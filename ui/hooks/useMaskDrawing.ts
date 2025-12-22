@@ -15,6 +15,7 @@ type MaskDrawingOptions = {
   currentDocument?: Document
   pointerToDocument: PointerToDocumentFn
   showMask: boolean
+  enabled: boolean
 }
 
 type Bounds = {
@@ -84,9 +85,10 @@ export function useMaskDrawing({
   currentDocument,
   pointerToDocument,
   showMask,
+  enabled,
 }: MaskDrawingOptions) {
   const {
-    maskConfig: { brushSize, brushMode },
+    brushConfig: { size: brushSize },
   } = useConfigStore()
   const updateMask = useAppStore((state) => state.updateMask)
   const inpaintPartial = useAppStore((state) => state.inpaintPartial)
@@ -99,6 +101,18 @@ export function useMaskDrawing({
   const lastPointRef = useRef<DocumentPointer | null>(null)
   const boundsRef = useRef<Bounds | null>(null)
   const inpaintQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const isRepairMode = mode === 'repairBrush'
+  const isEraseMode = mode === 'eraser'
+  const isActive = enabled && (isRepairMode || isEraseMode)
+
+  // Reset drawing state when interaction is disabled so stale strokes don't carry over.
+  useEffect(() => {
+    if (enabled) return
+    drawingRef.current = false
+    lastPointRef.current = null
+    boundsRef.current = null
+    inpaintQueueRef.current = Promise.resolve()
+  }, [enabled, mode])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -176,7 +190,7 @@ export function useMaskDrawing({
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     ctx.lineWidth = brushSize
-    ctx.strokeStyle = brushMode === 'eraser' ? '#000000' : '#ffffff'
+    ctx.strokeStyle = isEraseMode ? '#000000' : '#ffffff'
     ctx.fillStyle = ctx.strokeStyle
     ctx.globalCompositeOperation = 'source-over'
 
@@ -233,6 +247,7 @@ export function useMaskDrawing({
   }
 
   const finalizeStroke = () => {
+    if (!isActive) return
     const strokeBounds = boundsRef.current
     if (!currentDocument || !strokeBounds) return
     const patchRegion = boundsToRegion(strokeBounds, currentDocument)
@@ -268,7 +283,7 @@ export function useMaskDrawing({
   }
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (mode !== 'mask' || !currentDocument) return
+    if (!isActive || !currentDocument) return
     if (event.button !== 0) return
     const point = pointerToDocument(event)
     if (!point) return
@@ -287,7 +302,7 @@ export function useMaskDrawing({
   }
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!drawingRef.current || mode !== 'mask' || !currentDocument) return
+    if (!drawingRef.current || !isActive || !currentDocument) return
     const point = pointerToDocument(event)
     if (!point) return
     const clamped = clampToDocument(point, currentDocument)
