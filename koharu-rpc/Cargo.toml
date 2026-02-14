@@ -8,10 +8,12 @@ publish.workspace = true
 
 [dependencies]
 koharu-http = { workspace = true }
+koharu-mcp = { workspace = true }
 koharu-pipeline = { workspace = true }
 anyhow = { workspace = true }
 axum = { workspace = true }
 futures = { workspace = true }
+rmcp = { workspace = true }
 rmp-serde = { workspace = true }
 rmpv = { workspace = true }
 serde = { workspace = true }
