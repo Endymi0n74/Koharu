@@ -2,6 +2,6 @@
 
 export type DocumentChangedEvent = {
   documentId: string
-  revision: bigint
+  revision: number
   changed: Array<string>
 }
