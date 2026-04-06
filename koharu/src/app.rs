@@ -21,6 +21,11 @@ struct Cli {
     cpu: bool,
     #[arg(short, long, value_name = "PORT", help = "Bind to a specific port")]
     port: Option<u16>,
+    #[arg(
+        long,
+        help = "Bind the HTTP service to a specific host instead of 127.0.0.1"
+    )]
+    host: Option<String>,
     #[arg(long, help = "Run without GUI")]
     headless: bool,
     #[arg(long, help = "Use env vars for API keys instead of keyring")]
@@ -130,8 +135,9 @@ pub async fn run() -> Result<()> {
     // ── Server ───────────────────────────────────────────────────────
     let runtime = RuntimeManager::new_with_http(data_root.as_std_path(), compute, http)?;
     let default_port = if cfg!(debug_assertions) { 9999 } else { 0 };
-    let listener =
-        TcpListener::bind(format!("127.0.0.1:{}", cli.port.unwrap_or(default_port))).await?;
+    let bind_host = cli.host.as_deref().unwrap_or("127.0.0.1");
+    let bind_port = cli.port.unwrap_or(default_port);
+    let listener = TcpListener::bind((bind_host, bind_port)).await?;
     let port = listener.local_addr()?.port();
     let resources: Arc<tokio::sync::OnceCell<AppResources>> = Default::default();
     let shared = SharedState::new(Arc::clone(&resources), runtime.clone());
