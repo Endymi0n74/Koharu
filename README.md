@@ -111,7 +111,7 @@ Koharu bundles CUDA Toolkit 13.0. The required DLLs are extracted to the applica
 
 Koharu supports NVIDIA GPUs with compute capability 7.5 or higher.
 
-For GPU compatibility references, see [CUDA GPU Compute Capability](https://developer.nvidia.com/cuda-gpus) and the [cuDNN Support Matrix](https://docs.nvidia.com/deeplearning/cudnn/backend/latest/reference/support-matrix.html).
+For GPU compatibility references, see [CUDA GPU Compute Capability](https://developer.nvidia.com/cuda-gpus).
 
 ### ZLUDA (AMD GPUs on Windows, experimental)
 
