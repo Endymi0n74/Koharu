@@ -250,6 +250,9 @@ To build Koharu from source, follow the steps below.
 
 - [Rust](https://www.rust-lang.org/tools/install) 1.92 or later
 - [Bun](https://bun.sh/) 1.0 or later
+- [LLVM](https://llvm.org/) 15 or later (for GPU acceleration builds)
+- [CUDA Toolkit](https://developer.nvidia.com/cuda-13-0-0-download-archive) 13.0 (for CUDA and ZLUDA support on Windows)
+- [AMD HIP SDK](https://www.amd.com/en/developer/resources/rocm-hub/hip-sdk.html) (for ZLUDA support on Windows)
 
 ### Install dependencies
 
@@ -257,16 +260,16 @@ To build Koharu from source, follow the steps below.
 bun install
 ```
 
+### Development
+
+```bash
+bun dev
+```
+
 ### Build
 
 ```bash
 bun run build
-```
-
-If you want more direct control over the Tauri build:
-
-```bash
-bun tauri build --release --no-bundle
 ```
 
 The built binaries are written to `target/release`.
