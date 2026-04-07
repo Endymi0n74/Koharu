@@ -155,3 +155,7 @@ opt-level = 3
 
 [profile.dev.package.imageproc]
 opt-level = 3
+
+[profile.release-with-debug]
+inherits = "release"
+debug-assertions = true
