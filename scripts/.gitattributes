@@ -1,0 +1,2 @@
+*.py -linguist-detectable
+*.ts -linguist-detectable
