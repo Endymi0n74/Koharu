@@ -25,10 +25,55 @@ pub struct ComicTextDetection {
 pub fn refine_segmentation_mask(
     _image: &DynamicImage,
     pred_mask: &GrayImage,
-    _blocks: &[TextBlock],
+    blocks: &[TextBlock],
 ) -> GrayImage {
-    let base = threshold_binary(pred_mask, 60);
-    dilate(&base, Norm::L1, FINAL_MASK_DILATE_RADIUS)
+    let width = pred_mask.width();
+    let height = pred_mask.height();
+
+    if blocks.is_empty() {
+        return GrayImage::new(width, height);
+    }
+
+    // Extract expanded bounding boxes globally to validate intersection constraints.
+    let expanded_bounds: Vec<[u32; 4]> = blocks
+        .iter()
+        .map(|b| expanded_text_block_crop_bounds(width, height, b))
+        .collect();
+
+    // Rasterize the union of expanded text block bounds once to avoid an
+    // O(width * height * blocks) per-pixel rectangle membership test.
+    let mut in_bounds_mask = GrayImage::new(width, height);
+    for &[x1, y1, x2, y2] in &expanded_bounds {
+        for y in y1..y2 {
+            for x in x1..x2 {
+                in_bounds_mask.put_pixel(x, y, Luma([255]));
+            }
+        }
+    }
+
+    // Apply a threshold mask: Pixels are preserved exclusively if their probability
+    // exceeds the core threshold (`super::BINARY_THRESHOLD`) and they reside within a known TextBlock geometry.
+    let base = GrayImage::from_fn(width, height, |x, y| {
+        if in_bounds_mask.get_pixel(x, y)[0] != 0
+            && pred_mask.get_pixel(x, y)[0] > super::BINARY_THRESHOLD
+        {
+            Luma([255])
+        } else {
+            Luma([0])
+        }
+    });
+
+    let dilated = dilate(&base, Norm::L1, FINAL_MASK_DILATE_RADIUS);
+
+    // Final clipping pass: Ensure the dilated mask never escapes the block boundaries
+    // even if it thickens beyond its original source pixel edges.
+    GrayImage::from_fn(width, height, |x, y| {
+        if in_bounds_mask.get_pixel(x, y)[0] != 0 {
+            *dilated.get_pixel(x, y)
+        } else {
+            Luma([0])
+        }
+    })
 }
 
 pub fn crop_text_block_bbox(image: &DynamicImage, block: &TextBlock) -> DynamicImage {
@@ -274,22 +319,12 @@ fn vector_norm(vector: [f32; 2]) -> f32 {
     (vector[0] * vector[0] + vector[1] * vector[1]).sqrt()
 }
 
-fn threshold_binary(image: &GrayImage, threshold: u8) -> GrayImage {
-    GrayImage::from_fn(image.width(), image.height(), |x, y| {
-        if image.get_pixel(x, y)[0] > threshold {
-            Luma([255u8])
-        } else {
-            Luma([0u8])
-        }
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn refine_segmentation_mask_thresholds_when_blocks_are_missing() {
+    fn refine_segmentation_mask_erases_when_blocks_are_missing() {
         let image = DynamicImage::ImageRgb8(RgbImage::from_pixel(16, 16, Rgb([255, 255, 255])));
         let pred_mask = GrayImage::from_fn(16, 16, |x, y| {
             if (4..12).contains(&x) && (5..11).contains(&y) {
@@ -301,11 +336,11 @@ mod tests {
 
         let mask = refine_segmentation_mask(&image, &pred_mask, &[]);
         assert_eq!(mask.get_pixel(0, 0)[0], 0);
-        assert!(mask.get_pixel(8, 8)[0] > 0);
+        assert_eq!(mask.get_pixel(8, 8)[0], 0); // No blocks, must be wiped cleanly
     }
 
     #[test]
-    fn refine_segmentation_mask_ignores_blocks() {
+    fn refine_segmentation_mask_clips_outside_blocks() {
         let image = DynamicImage::ImageRgb8(RgbImage::from_pixel(32, 32, Rgb([255, 255, 255])));
         let pred_mask = GrayImage::from_fn(32, 32, |x, y| {
             if (8..24).contains(&x) && (10..22).contains(&y) {
@@ -314,27 +349,27 @@ mod tests {
                 Luma([0])
             }
         });
+
         let block = TextBlock {
             x: 10.0,
             y: 11.0,
-            width: 8.0,
-            height: 6.0,
-            line_polygons: Some(vec![[
-                [10.0, 11.0],
-                [18.0, 11.0],
-                [18.0, 17.0],
-                [10.0, 17.0],
-            ]]),
-            source_direction: Some(TextDirection::Horizontal),
-            rotation_deg: Some(0.0),
-            detected_font_size_px: Some(6.0),
-            detector: Some("ctd".to_string()),
+            width: 4.0, // Limits to roughly [10, 11] to [14, 15]
+            height: 4.0,
+            detected_font_size_px: Some(4.0),
             ..Default::default()
         };
 
-        let with_blocks = refine_segmentation_mask(&image, &pred_mask, &[block]);
+        let mask = refine_segmentation_mask(&image, &pred_mask, &[block]);
         let without_blocks = refine_segmentation_mask(&image, &pred_mask, &[]);
-        assert_eq!(with_blocks, without_blocks);
+
+        // Assert providing bounding blocks saves the mask within bounds
+        assert_ne!(mask, without_blocks);
+        // Assert pixel INSIDE the block is preserved
+        assert_eq!(mask.get_pixel(12, 13)[0], 255);
+        // Assert pixel OUTSIDE the block (but inside high-prob region) is cleared
+        assert_eq!(mask.get_pixel(20, 13)[0], 0);
+        // Assert pixel JUST OUTSIDE the block boundary is cleared
+        assert_eq!(mask.get_pixel(15, 13)[0], 0);
     }
 
     #[test]
