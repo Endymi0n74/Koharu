@@ -1,3 +1,4 @@
+use harfrust::Direction;
 use icu::properties::{CodePointMapData, props::Script};
 use koharu_core::TextBlock;
 
@@ -67,6 +68,18 @@ pub(crate) fn detect_scripts(text: &str) -> ScriptFlags {
         has_cjk,
         has_arabic,
         has_thai,
+    }
+}
+
+pub fn shaping_direction_for_text(text: &str, writing_mode: WritingMode) -> Direction {
+    if writing_mode.is_vertical() {
+        return Direction::TopToBottom;
+    }
+
+    if detect_scripts(text).has_arabic {
+        Direction::RightToLeft
+    } else {
+        Direction::LeftToRight
     }
 }
 
@@ -173,7 +186,7 @@ mod tests {
 
     use super::{
         font_families_for_text, is_latin_only, normalize_translation_for_layout,
-        writing_mode_for_block,
+        shaping_direction_for_text, writing_mode_for_block,
     };
 
     #[test]
@@ -220,5 +233,21 @@ mod tests {
         };
 
         assert_eq!(writing_mode_for_block(&block), WritingMode::Horizontal);
+    }
+
+    #[test]
+    fn arabic_text_uses_rtl_shaping() {
+        assert_eq!(
+            shaping_direction_for_text("مرحبا", WritingMode::Horizontal),
+            harfrust::Direction::RightToLeft
+        );
+    }
+
+    #[test]
+    fn latin_text_stays_ltr_shaping() {
+        assert_eq!(
+            shaping_direction_for_text("HELLO", WritingMode::Horizontal),
+            harfrust::Direction::LeftToRight
+        );
     }
 }

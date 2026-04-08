@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use anyhow::Result;
-use harfrust::{Direction, Feature, Tag};
+use harfrust::{Feature, Tag};
 use skrifa::{
     MetadataProvider,
     instance::{LocationRef, Size},
@@ -9,6 +9,7 @@ use skrifa::{
 
 use crate::font::{Font, font_key};
 use crate::shape::shape_segment_with_fallbacks;
+use crate::text::script::shaping_direction_for_text;
 
 pub use crate::segment::{LineBreakOpportunity, LineBreaker, LineSegment};
 pub use crate::shape::{PositionedGlyph, ShapedRun, ShapingOptions, TextShaper};
@@ -27,15 +28,6 @@ impl WritingMode {
     /// Returns true if the writing mode is vertical.
     pub fn is_vertical(&self) -> bool {
         matches!(self, WritingMode::VerticalRl)
-    }
-}
-
-impl From<WritingMode> for Direction {
-    fn from(mode: WritingMode) -> Self {
-        match mode {
-            WritingMode::Horizontal => Direction::LeftToRight,
-            WritingMode::VerticalRl => Direction::TopToBottom,
-        }
     }
 }
 
@@ -183,7 +175,7 @@ impl<'a> TextLayout<'a> {
         let line_height = (ascent + descent + metrics.leading).max(font_size);
 
         let opts = ShapingOptions {
-            direction: self.writing_mode.into(),
+            direction: shaping_direction_for_text(text, self.writing_mode),
             font_size,
             features: if self.writing_mode.is_vertical() {
                 &[
