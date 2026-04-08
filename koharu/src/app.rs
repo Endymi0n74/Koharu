@@ -6,33 +6,12 @@ use tokio::{net::TcpListener, sync::RwLock};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+use crate::cli::Cli;
 use koharu_app::{AppResources, config as app_config, engine, llm, storage::Storage};
 use koharu_llm::safe::llama_backend::LlamaBackend;
 use koharu_ml::{Device, device};
 use koharu_rpc::{SharedState, server};
 use koharu_runtime::{ComputePolicy, RuntimeHttpConfig, RuntimeManager};
-
-#[derive(Parser)]
-#[command(version = crate::version::APP_VERSION, about)]
-struct Cli {
-    #[arg(short, long, help = "Download dynamic libraries and exit")]
-    download: bool,
-    #[arg(long, help = "Force CPU even if GPU is available")]
-    cpu: bool,
-    #[arg(short, long, value_name = "PORT", help = "Bind to a specific port")]
-    port: Option<u16>,
-    #[arg(
-        long,
-        help = "Bind the HTTP service to a specific host instead of 127.0.0.1"
-    )]
-    host: Option<String>,
-    #[arg(long, help = "Run without GUI")]
-    headless: bool,
-    #[arg(long, help = "Use env vars for API keys instead of keyring")]
-    no_keyring: bool,
-    #[arg(long, help = "Enable debug console output")]
-    debug: bool,
-}
 
 async fn build_resources(
     runtime: RuntimeManager,
@@ -91,21 +70,9 @@ pub async fn run() -> Result<()> {
                 .with_default_directive(tracing::Level::INFO.into())
                 .from_env_lossy(),
         )
-        .with(crate::tracing_fmt::TimingLayer::new())
+        .with(crate::sentry::tracing_layer())
+        .with(crate::tracing::TimingLayer::new())
         .init();
-
-    if cli.headless {
-        std::panic::set_hook(Box::new(|info| eprintln!("panic: {info}")));
-    } else {
-        std::panic::set_hook(Box::new(|info| {
-            rfd::MessageDialog::new()
-                .set_level(rfd::MessageLevel::Error)
-                .set_title("Panic")
-                .set_description(info.to_string())
-                .show();
-            std::process::exit(1);
-        }));
-    }
 
     if cli.no_keyring {
         koharu_llm::providers::disable_keyring();
@@ -137,7 +104,7 @@ pub async fn run() -> Result<()> {
     let default_port = if cfg!(debug_assertions) { 9999 } else { 0 };
     let bind_host = cli.host.as_deref().unwrap_or("127.0.0.1");
     let bind_port = cli.port.unwrap_or(default_port);
-    let listener = TcpListener::bind((bind_host, bind_port)).await?;
+    let listener: TcpListener = TcpListener::bind((bind_host, bind_port)).await?;
     let port = listener.local_addr()?.port();
     let resources: Arc<tokio::sync::OnceCell<AppResources>> = Default::default();
     let shared = SharedState::new(Arc::clone(&resources), runtime.clone());

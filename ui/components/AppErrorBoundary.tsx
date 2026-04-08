@@ -1,8 +1,9 @@
 'use client'
 
-import { type ReactNode } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
+import { type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 
@@ -48,6 +49,11 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
 export function AppErrorBoundary({ children }: { children: ReactNode }) {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>{children}</ErrorBoundary>
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onError={(error) => Sentry.captureException(error)}
+    >
+      {children}
+    </ErrorBoundary>
   )
 }

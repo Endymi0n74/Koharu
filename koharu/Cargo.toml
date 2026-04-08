@@ -28,6 +28,7 @@ koharu-ml = { workspace = true }
 koharu-renderer = { workspace = true }
 koharu-rpc = { workspace = true }
 koharu-runtime = { workspace = true }
+koharu-llm = { workspace = true }
 anyhow = { workspace = true }
 camino = { workspace = true }
 clap = { workspace = true }
@@ -43,18 +44,12 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 console = { workspace = true }
 tracing-subscriber = { workspace = true }
+sentry = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-koharu-llm = { workspace = true }
 windows = { workspace = true }
 windows-sys = { workspace = true }
 winreg = { workspace = true }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-koharu-llm = { workspace = true }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-koharu-llm = { workspace = true }
 
 [features]
 cuda = ["koharu-ml/cuda"]
