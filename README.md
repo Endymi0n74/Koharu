@@ -24,7 +24,7 @@ Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) and 
 - OCR for manga dialogue, captions, and other page text
 - Inpainting to remove source lettering from the page
 - Translation with local or remote LLM backends
-- Vertical CJK layout and text rendering
+- Advanced text rendering with vertical CJK and RTL support
 - Layered PSD export with editable text
 - Local HTTP API and MCP server for automation
 
@@ -90,9 +90,9 @@ The catalog includes a small set of comic-friendly recommended families. Once ca
 
 ### Text Rendering
 
-Koharu uses a dedicated text renderer rather than browser or OS text primitives. The stack combines [HarfRust](https://crates.io/crates/harfrust) for [HarfBuzz](https://harfbuzz.github.io/)-style OpenType shaping, [ICU4X](https://github.com/unicode-org/icu4x) line segmentation, custom layout engine, real font metrics and glyph bounds from [`skrifa`](https://github.com/googlefonts/fontations/tree/main/skrifa), and [`tiny-skia`](https://github.com/linebender/tiny-skia) for rasterization.
+Koharu includes a dedicated text renderer tuned for manga lettering, using Unicode-aware [OpenType](https://learn.microsoft.com/en-us/typography/opentype/spec/) shaping, script-aware line breaking, precise glyph metrics, and real glyph bounds instead of generic browser or OS text primitives.
 
-The renderer is tuned for manga lettering rather than generic UI text. It supports vertical CJK and horizontal Latin layout, script-aware normalization, font fallback, vertical punctuation centering, automatic size fitting against layout constraints, and manga-oriented stroke and effect passes before compositing text back onto the page.
+It supports vertical CJK layout, right-to-left scripts, font fallback, vertical punctuation alignment, constrained-box fitting, and manga-oriented stroke and effect compositing so translated text reads naturally inside speech bubbles, captions, and other irregular page layouts.
 
 ## GPU Acceleration
 
