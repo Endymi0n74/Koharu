@@ -5,7 +5,6 @@ use koharu_llm::providers::{
     AnyProvider, ProviderCatalogModels, ProviderConfig, all_provider_descriptors, build_provider,
     discover_models,
 };
-use koharu_llm::providers::{DEEPL_ID, GOOGLE_TRANSLATE_ID};
 use tokio::sync::{RwLock, broadcast};
 use tracing::instrument;
 
@@ -580,7 +579,6 @@ async fn provider_catalog(state: &AppResources) -> anyhow::Result<Vec<LlmProvide
                         descriptor.id,
                         ProviderConfig {
                             http_client: state.runtime.http_client(),
-                            http_client_raw: state.runtime.http_client_raw(),
                             api_key,
                             base_url: base_url.clone(),
                             temperature: None,
@@ -659,7 +657,6 @@ fn provider_config_from_settings(
 
     Ok(ProviderConfig {
         http_client: state.runtime.http_client(),
-        http_client_raw: state.runtime.http_client_raw(),
         api_key: stored
             .and_then(|p| p.api_key.as_ref())
             .map(|secret| secret.expose().to_owned()),
@@ -731,50 +728,16 @@ pub async fn llm_generate(
 ) -> anyhow::Result<()> {
     let mut doc = state.storage.page(document_id).await?;
 
-    let translator = {
-        let cfg = state.config.read().await;
-        cfg.pipeline.translator.clone()
-    };
-
     match text_block_index {
         Some(block_index) => {
             let text_block = doc
                 .text_blocks
                 .get_mut(block_index)
                 .ok_or_else(|| anyhow::anyhow!("Text block not found"))?;
-            if translator == DEEPL_ID || translator == GOOGLE_TRANSLATE_ID {
-                let cfg = app_config::load()?;
-                let stored = cfg.providers.iter().find(|p| p.id == translator);
-                let api_key = stored
-                    .and_then(|p| p.api_key.as_ref())
-                    .map(|secret| secret.expose().to_owned());
-                let base_url = stored.and_then(|p| p.base_url.clone());
-                let provider = build_provider(
-                    &translator,
-                    ProviderConfig {
-                        http_client: state.runtime.http_client(),
-                        http_client_raw: state.runtime.http_client_raw(),
-                        api_key,
-                        base_url,
-                        temperature: None,
-                        max_tokens: None,
-                    },
-                )?;
-
-                let lang = language
-                    .and_then(Language::parse)
-                    .unwrap_or(Language::English);
-                let src = text_block.text.as_deref().map(str::trim).unwrap_or("");
-                if !src.is_empty() {
-                    let t = provider.translate(src, lang, "default", None).await?;
-                    text_block.translation = Some(t.trim().to_string());
-                }
-            } else {
-                state
-                    .llm
-                    .translate(text_block, language, system_prompt)
-                    .await?;
-            }
+            state
+                .llm
+                .translate(text_block, language, system_prompt)
+                .await?;
         }
         None => {
             state
