@@ -9,7 +9,7 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) and [llama.cpp](https://github.com/ggml-org/llama.cpp) for high-performance inference, with [Tauri](https://github.com/tauri-apps/tauri) for the desktop app. All components are written in Rust, ensuring safety and speed.
 
 > [!NOTE]
-> Koharu runs its vision models and LLMs **locally** on your machine by default. Koharu itself does not collect any user data.
+> Koharu runs its vision models and LLMs **locally** on your machine to keep your data private and secure.
 
 ---
 
