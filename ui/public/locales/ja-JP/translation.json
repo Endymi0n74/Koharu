@@ -336,5 +336,24 @@
     "translator": "翻訳器",
     "inpainter": "インペインター",
     "renderer": "レンダラー"
+  },
+  "updater": {
+    "available": {
+      "title": "アップデートが利用可能",
+      "description": "Koharu <strong>{{version}}</strong> をインストールできます"
+    },
+    "noNotes": "リリースノートはありません。",
+    "later": "後で",
+    "update": "更新",
+    "downloading": {
+      "title": "アップデートをダウンロード中…",
+      "subtitle": "Koharu {{version}}"
+    },
+    "error": {
+      "title": "アップデートに失敗しました",
+      "description": "アップデート中に問題が発生しました"
+    },
+    "close": "閉じる",
+    "retry": "再試行"
   }
 }

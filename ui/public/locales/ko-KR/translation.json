@@ -336,5 +336,24 @@
     "translator": "번역기",
     "inpainter": "인페인터",
     "renderer": "렌더러"
+  },
+  "updater": {
+    "available": {
+      "title": "업데이트 사용 가능",
+      "description": "Koharu <strong>{{version}}</strong>을(를) 설치할 수 있습니다"
+    },
+    "noNotes": "릴리스 노트가 제공되지 않았습니다.",
+    "later": "나중에",
+    "update": "업데이트",
+    "downloading": {
+      "title": "업데이트 다운로드 중…",
+      "subtitle": "Koharu {{version}}"
+    },
+    "error": {
+      "title": "업데이트 실패",
+      "description": "업데이트 중 문제가 발생했습니다"
+    },
+    "close": "닫기",
+    "retry": "다시 시도"
   }
 }

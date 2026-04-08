@@ -336,5 +336,24 @@
     "translator": "Переводчик",
     "inpainter": "Инпейнтер",
     "renderer": "Рендерер"
+  },
+  "updater": {
+    "available": {
+      "title": "Доступно обновление",
+      "description": "Koharu <strong>{{version}}</strong> готов к установке"
+    },
+    "noNotes": "Примечания к выпуску отсутствуют.",
+    "later": "Позже",
+    "update": "Обновить",
+    "downloading": {
+      "title": "Загрузка обновления…",
+      "subtitle": "Koharu {{version}}"
+    },
+    "error": {
+      "title": "Ошибка обновления",
+      "description": "Что-то пошло не так во время обновления"
+    },
+    "close": "Закрыть",
+    "retry": "Повторить"
   }
 }

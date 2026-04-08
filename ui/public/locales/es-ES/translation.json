@@ -336,5 +336,24 @@
     "translator": "Traductor",
     "inpainter": "Inpainter",
     "renderer": "Renderizador"
+  },
+  "updater": {
+    "available": {
+      "title": "Actualización disponible",
+      "description": "Koharu <strong>{{version}}</strong> está listo para instalar"
+    },
+    "noNotes": "No se proporcionaron notas de versión.",
+    "later": "Más tarde",
+    "update": "Actualizar",
+    "downloading": {
+      "title": "Descargando actualización…",
+      "subtitle": "Koharu {{version}}"
+    },
+    "error": {
+      "title": "Error de actualización",
+      "description": "Algo salió mal durante la actualización"
+    },
+    "close": "Cerrar",
+    "retry": "Reintentar"
   }
 }

@@ -336,5 +336,24 @@
     "translator": "翻译器",
     "inpainter": "修补器",
     "renderer": "渲染器"
+  },
+  "updater": {
+    "available": {
+      "title": "有可用更新",
+      "description": "Koharu <strong>{{version}}</strong> 已准备好安装"
+    },
+    "noNotes": "未提供发行说明。",
+    "later": "稍后",
+    "update": "更新",
+    "downloading": {
+      "title": "正在下载更新…",
+      "subtitle": "Koharu {{version}}"
+    },
+    "error": {
+      "title": "更新失败",
+      "description": "更新过程中出现问题"
+    },
+    "close": "关闭",
+    "retry": "重试"
   }
 }
