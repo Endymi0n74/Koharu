@@ -1,9 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
 import type { Update } from '@tauri-apps/plugin-updater'
-import { check } from '@tauri-apps/plugin-updater'
-import { relaunch } from '@tauri-apps/plugin-process'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Trans, useTranslation } from 'react-i18next'
@@ -18,90 +22,165 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { isTauri } from '@/lib/backend'
+
+export type UpdaterStatus = 'idle' | 'loading' | 'latest' | 'outdated' | 'error'
 
 type Phase =
   | { kind: 'hidden' }
-  | { kind: 'prompt'; update: Update }
-  | {
-      kind: 'downloading'
-      update: Update
-      downloaded: number
-      total: number | null
-    }
+  | { kind: 'prompt' }
+  | { kind: 'downloading'; downloaded: number; total: number | null }
   | { kind: 'error'; message: string; retry: () => Promise<void> }
 
-export default function Updater() {
-  const [phase, setPhase] = useState<Phase>({ kind: 'hidden' })
+type UpdaterContextValue = {
+  status: UpdaterStatus
+  latestVersion?: string
+  isInstalling: boolean
+  checkForUpdates: () => Promise<void>
+  installUpdate: () => Promise<void>
+}
 
-  const runCheck = async () => {
+const UpdaterContext = createContext<UpdaterContextValue>({
+  status: 'idle',
+  latestVersion: undefined,
+  isInstalling: false,
+  checkForUpdates: async () => {},
+  installUpdate: async () => {},
+})
+
+export function useUpdater(): UpdaterContextValue {
+  return useContext(UpdaterContext)
+}
+
+export function UpdaterProvider({ children }: { children: ReactNode }) {
+  const [phase, setPhase] = useState<Phase>({ kind: 'hidden' })
+  const [status, setStatus] = useState<UpdaterStatus>('idle')
+  const [update, setUpdate] = useState<Update | null>(null)
+  const [isInstalling, setIsInstalling] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      void update?.close().catch(() => {})
+    }
+  }, [update])
+
+  const checkForUpdates = async (showDialog = false) => {
+    if (!isTauri()) {
+      setStatus('idle')
+      setUpdate(null)
+      return
+    }
+
+    setStatus('loading')
     try {
-      const update = await check()
-      if (update) setPhase({ kind: 'prompt', update })
+      const { check } = await import('@tauri-apps/plugin-updater')
+      const nextUpdate = await check()
+      if (!nextUpdate) {
+        setUpdate(null)
+        setStatus('latest')
+        if (showDialog) setPhase({ kind: 'hidden' })
+        return
+      }
+
+      setUpdate(nextUpdate)
+      setStatus('outdated')
+      if (showDialog) setPhase({ kind: 'prompt' })
     } catch (err) {
       console.warn('[updater] check failed', err)
-      setPhase({ kind: 'error', message: String(err), retry: runCheck })
+      setStatus('error')
+      if (showDialog) {
+        setPhase({
+          kind: 'error',
+          message: String(err),
+          retry: async () => checkForUpdates(true),
+        })
+      }
     }
   }
 
-  const runInstall = async (update: Update) => {
-    setPhase({ kind: 'downloading', update, downloaded: 0, total: null })
+  const installUpdate = async (target: Update | null = update) => {
+    if (!isTauri() || isInstalling || !target) return
+
+    setIsInstalling(true)
+    setPhase({ kind: 'downloading', downloaded: 0, total: null })
     try {
-      await update.downloadAndInstall((event) => {
+      await target.downloadAndInstall((event) => {
         setPhase((prev) => {
           if (prev.kind !== 'downloading') return prev
-          if (event.event === 'Started')
+          if (event.event === 'Started') {
             return { ...prev, total: event.data.contentLength ?? null }
-          if (event.event === 'Progress')
+          }
+          if (event.event === 'Progress') {
             return {
               ...prev,
               downloaded: prev.downloaded + event.data.chunkLength,
             }
+          }
           return prev
         })
       })
+
+      setStatus('latest')
+      setPhase({ kind: 'hidden' })
+      const { relaunch } = await import('@tauri-apps/plugin-process')
       await relaunch()
     } catch (err) {
       console.warn('[updater] install failed', err)
+      setStatus('error')
       setPhase({
         kind: 'error',
         message: String(err),
-        retry: () => runInstall(update),
+        retry: async () => installUpdate(target),
       })
+    } finally {
+      setIsInstalling(false)
     }
   }
 
   useEffect(() => {
-    void runCheck()
+    void checkForUpdates(true)
   }, [])
 
-  const close = () => setPhase({ kind: 'hidden' })
-
   return (
-    <Dialog open={phase.kind !== 'hidden'} onOpenChange={(o) => !o && close()}>
-      <DialogContent className='flex w-[520px] max-w-[92vw] flex-col gap-0 overflow-hidden p-0'>
-        {phase.kind === 'prompt' && (
-          <PromptView
-            update={phase.update}
-            onLater={close}
-            onUpdate={() => runInstall(phase.update)}
-          />
-        )}
-        {phase.kind === 'downloading' && (
-          <DownloadingView
-            version={phase.update.version}
-            downloaded={phase.downloaded}
-            total={phase.total}
-          />
-        )}
-        {phase.kind === 'error' && (
-          <ErrorView
-            message={phase.message}
-            onRetry={phase.retry}
-            onClose={close}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <UpdaterContext.Provider
+      value={{
+        status,
+        latestVersion: update?.version,
+        isInstalling,
+        checkForUpdates: async () => checkForUpdates(false),
+        installUpdate: async () => installUpdate(),
+      }}
+    >
+      {children}
+      <Dialog
+        open={phase.kind !== 'hidden'}
+        onOpenChange={(open) => !open && setPhase({ kind: 'hidden' })}
+      >
+        <DialogContent className='flex w-[520px] max-w-[92vw] flex-col gap-0 overflow-hidden p-0'>
+          {phase.kind === 'prompt' && update && (
+            <PromptView
+              update={update}
+              onLater={() => setPhase({ kind: 'hidden' })}
+              onUpdate={() => void installUpdate(update)}
+            />
+          )}
+          {phase.kind === 'downloading' && update && (
+            <DownloadingView
+              version={update.version}
+              downloaded={phase.downloaded}
+              total={phase.total}
+            />
+          )}
+          {phase.kind === 'error' && (
+            <ErrorView
+              message={phase.message}
+              onRetry={phase.retry}
+              onClose={() => setPhase({ kind: 'hidden' })}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </UpdaterContext.Provider>
   )
 }
 
@@ -241,7 +320,7 @@ function ErrorView({
         <Button variant='outline' onClick={onClose}>
           {t('updater.close')}
         </Button>
-        <Button onClick={() => onRetry()}>
+        <Button onClick={() => void onRetry()}>
           <RefreshCw className='size-4' />
           {t('updater.retry')}
         </Button>

@@ -21,6 +21,7 @@
     "core:window:allow-maximize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-internal-toggle-maximize",
+    "opener:default",
     "process:default",
     "updater:default"
   ]

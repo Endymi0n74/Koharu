@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { MinusIcon, SquareIcon, XIcon, CopyIcon } from 'lucide-react'
-import { isTauri } from '@/lib/backend'
+import { isTauri, openExternalUrl } from '@/lib/backend'
 import { useTranslation } from 'react-i18next'
 
 const isMacOS = () =>
@@ -54,10 +54,6 @@ type MenuSection = {
   label: string
   items: MenuItem[]
   triggerTestId?: string
-}
-
-const openExternal = (url: string) => {
-  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 export function MenuBar() {
@@ -188,11 +184,11 @@ export function MenuBar() {
   const helpMenuItems: MenuItem[] = [
     {
       label: t('menu.discord'),
-      onSelect: () => openExternal('https://discord.gg/mHvHkxGnUY'),
+      onSelect: () => openExternalUrl('https://discord.gg/mHvHkxGnUY'),
     },
     {
       label: t('menu.github'),
-      onSelect: () => openExternal('https://github.com/mayocream/koharu'),
+      onSelect: () => openExternalUrl('https://github.com/mayocream/koharu'),
     },
   ]
 

@@ -124,6 +124,8 @@ pub async fn run() -> Result<()> {
 
     // ── GUI ──────────────────────────────────────────────────────────
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(move |app| {
             tauri::async_runtime::spawn(server::serve_with_listener(listener, shared, assets));
@@ -160,13 +162,6 @@ pub async fn run() -> Result<()> {
             tauri::webview::WebviewWindowBuilder::from_config(app, &wc)?
                 .build()?
                 .navigate(url)?;
-
-            let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                handle
-                    .plugin(tauri_plugin_updater::Builder::new().build())
-                    .ok();
-            });
 
             Ok(())
         })
