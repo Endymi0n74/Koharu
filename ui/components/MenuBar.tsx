@@ -61,6 +61,7 @@ export function MenuBar() {
   const { send } = useProcessing()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<TabId>('appearance')
+  const hasDocument = useEditorUiStore((state) => state.currentDocumentId !== null)
 
   const buildPipelineRequest = (documentId?: string): PipelineJobRequest => {
     const { selectedTarget, selectedLanguage, renderEffect, renderStroke } =
@@ -116,6 +117,7 @@ export function MenuBar() {
           format: 'webp',
           params: { layer: 'rendered' },
         }),
+      disabled: !hasDocument,
       testId: 'menu-file-export',
     },
     {
@@ -126,6 +128,7 @@ export function MenuBar() {
           documentId: requireDocumentId(),
           format: 'psd',
         }),
+      disabled: !hasDocument,
       testId: 'menu-file-export-psd',
     },
     {
@@ -161,6 +164,7 @@ export function MenuBar() {
               request: buildPipelineRequest(documentId),
             })
           },
+          disabled: !hasDocument,
           testId: 'menu-process-current',
         },
         {
@@ -169,6 +173,7 @@ export function MenuBar() {
             const documentId = requireDocumentId()
             send({ type: 'START_INPAINT', documentId })
           },
+          disabled: !hasDocument,
           testId: 'menu-process-rerender',
         },
         {
