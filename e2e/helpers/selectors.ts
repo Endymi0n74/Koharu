@@ -2,6 +2,7 @@ export const selectors = {
   menu: {
     fileTrigger: 'menu-file-trigger',
     fileOpen: 'menu-file-open',
+    fileAdd: 'menu-file-add',
     fileExport: 'menu-file-export',
     fileExportAllInpainted: 'menu-file-export-all-inpainted',
     fileExportAllRendered: 'menu-file-export-all-rendered',
@@ -13,6 +14,13 @@ export const selectors = {
   navigator: {
     panel: 'navigator-panel',
     page: (index: number) => `navigator-page-${index}`,
+    pageManagerButton: 'navigator-manage-pages',
+  },
+  pageManager: {
+    dialog: 'page-manager-dialog',
+    grid: 'page-manager-grid',
+    card: (index: number) => `page-manager-card-${index}`,
+    save: 'page-manager-save',
   },
   workspace: {
     viewport: 'workspace-viewport',

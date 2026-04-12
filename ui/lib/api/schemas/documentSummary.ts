@@ -14,6 +14,8 @@ export interface DocumentSummary {
   id: string
   name: string
   /** @minimum 0 */
+  order: number
+  /** @minimum 0 */
   textBlockCount: number
   /** @minimum 0 */
   width: number

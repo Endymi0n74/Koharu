@@ -27,6 +27,7 @@ import type {
   ImportDocumentsBody,
   ImportDocumentsParams,
   ImportResult,
+  ReorderRequest,
   UpdateDocumentStyleRequest,
 } from '../schemas'
 
@@ -263,6 +264,87 @@ export const useImportDocuments = <TError = ApiError, TContext = unknown>(
 > => {
   return useMutation(getImportDocumentsMutationOptions(options), queryClient)
 }
+
+export const getReorderDocumentsUrl = () => {
+  return `/api/v1/documents/order`
+}
+
+export const reorderDocuments = async (
+  reorderRequest: ReorderRequest,
+  options?: RequestInit,
+): Promise<DocumentSummary[]> => {
+  return fetchApi<DocumentSummary[]>(getReorderDocumentsUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reorderRequest),
+  })
+}
+
+export const getReorderDocumentsMutationOptions = <
+  TError = ApiError,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderDocuments>>,
+    TError,
+    { data: ReorderRequest },
+    TContext
+  >
+  request?: SecondParameter<typeof fetchApi>
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderDocuments>>,
+  TError,
+  { data: ReorderRequest },
+  TContext
+> => {
+  const mutationKey = ['reorderDocuments']
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined }
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderDocuments>>,
+    { data: ReorderRequest }
+  > = (props) => {
+    const { data } = props ?? {}
+
+    return reorderDocuments(data, requestOptions)
+  }
+
+  return { mutationFn, ...mutationOptions }
+}
+
+export type ReorderDocumentsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderDocuments>>
+>
+export type ReorderDocumentsMutationBody = ReorderRequest
+export type ReorderDocumentsMutationError = ApiError
+
+export const useReorderDocuments = <TError = ApiError, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof reorderDocuments>>,
+      TError,
+      { data: ReorderRequest },
+      TContext
+    >
+    request?: SecondParameter<typeof fetchApi>
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof reorderDocuments>>,
+  TError,
+  { data: ReorderRequest },
+  TContext
+> => {
+  return useMutation(getReorderDocumentsMutationOptions(options), queryClient)
+}
+
 export const getGetDocumentUrl = (documentId: string) => {
   return `/api/v1/documents/${documentId}`
 }

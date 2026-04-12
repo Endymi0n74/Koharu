@@ -12,8 +12,8 @@ use koharu_app::{AppResources, config as app_config, edit, engine, io, llm, pipe
 use koharu_core::{
     CreateTextBlock, Document, DocumentDetail, DocumentSummary, DownloadState, ExportLayer,
     ExportResult, FontFaceInfo, JobState, LlmCatalog, LlmLoadRequest, LlmState, MaskRegionRequest,
-    MetaInfo, PipelineJobRequest, RenderRequest, TextBlock, TextBlockDetail, TextBlockInput,
-    TextBlockPatch, TranslateRequest,
+    MetaInfo, PipelineJobRequest, RenderRequest, ReorderRequest, TextBlock, TextBlockDetail,
+    TextBlockInput, TextBlockPatch, TranslateRequest,
 };
 use koharu_psd::{PsdExportOptions, TextLayerMode};
 use serde::{Deserialize, Serialize};
@@ -41,6 +41,7 @@ impl ApiState {
 pub fn api() -> (axum::Router<ApiState>, utoipa::openapi::OpenApi) {
     OpenApiRouter::default()
         .routes(routes!(list_documents, import_documents))
+        .routes(routes!(reorder_documents))
         .routes(routes!(get_document))
         .routes(routes!(update_document_style))
         .routes(routes!(get_blob))
@@ -415,6 +416,33 @@ async fn get_google_font_file(
 )]
 async fn list_documents(State(state): State<ApiState>) -> ApiResult<Json<Vec<DocumentSummary>>> {
     let resources = state.resources()?;
+    let documents = resources.storage.list_pages().await;
+    Ok(Json(documents))
+}
+
+#[utoipa::path(
+    put,
+    path = "/documents/order",
+    operation_id = "reorderDocuments",
+    tag = "documents",
+    request_body(content = ReorderRequest, content_type = "application/json"),
+    responses(
+        (status = 200, body = Vec<DocumentSummary>),
+        (status = 400, body = ApiError),
+        (status = 503, body = ApiError),
+    ),
+)]
+#[tracing::instrument(level = "info", skip_all)]
+async fn reorder_documents(
+    State(state): State<ApiState>,
+    Json(body): Json<ReorderRequest>,
+) -> ApiResult<Json<Vec<DocumentSummary>>> {
+    let resources = state.resources()?;
+    resources
+        .storage
+        .reorder_pages(&body.ids)
+        .await
+        .map_err(|e| ApiError::bad_request(e.to_string()))?;
     let documents = resources.storage.list_pages().await;
     Ok(Json(documents))
 }

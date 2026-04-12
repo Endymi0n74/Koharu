@@ -1,6 +1,8 @@
 {
   "common": {
-    "initializing": "Başlatılıyor..."
+    "initializing": "Başlatılıyor...",
+    "cancel": "İptal",
+    "save": "Kaydet"
   },
   "menu": {
     "file": "Dosya",
@@ -57,7 +59,11 @@
     "pages_one": "{{count}} sayfa",
     "pages_other": "{{count}} sayfa",
     "empty": "Belge yok",
-    "prompt": "Başlamak için bir sayfa seçin veya içe aktarın"
+    "prompt": "Başlamak için bir sayfa seçin veya içe aktarın",
+    "pageManager": {
+      "title": "Sayfa Yöneticisi",
+      "description": "Sayfaları yeniden sıralamak için sürükleyip bırakın."
+    }
   },
   "panels": {
     "processing": "İşleme",

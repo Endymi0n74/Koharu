@@ -31,6 +31,7 @@ pub struct DocumentSummary {
     pub name: String,
     pub width: u32,
     pub height: u32,
+    pub order: u32,
     pub has_segment: bool,
     pub has_inpainted: bool,
     pub has_brush_layer: bool,
@@ -159,6 +160,12 @@ pub struct CreateTextBlock {
     pub y: f32,
     pub width: f32,
     pub height: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ReorderRequest {
+    pub ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, ToSchema)]

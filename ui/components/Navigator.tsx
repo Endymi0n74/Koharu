@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { LayoutGridIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   useListDocuments,
@@ -9,6 +10,7 @@ import {
 } from '@/lib/api/documents/documents'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { Button } from '@/components/ui/button'
+import { PageManagerDialog } from '@/components/PageManagerDialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 const THUMBNAIL_DPR =
@@ -32,6 +34,7 @@ export function Navigator() {
   )
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const { t } = useTranslation()
+  const [pageManagerOpen, setPageManagerOpen] = useState(false)
 
   const virtualizer = useVirtualizer({
     count: totalPages,
@@ -46,15 +49,29 @@ export function Navigator() {
       data-total-pages={totalPages}
       className='bg-muted/50 flex h-full min-h-0 w-full flex-col border-r'
     >
-      <div className='border-border border-b px-2 py-1.5'>
-        <p className='text-muted-foreground text-xs tracking-wide uppercase'>
-          {t('navigator.title')}
-        </p>
-        <p className='text-foreground text-xs font-semibold'>
-          {totalPages
-            ? t('navigator.pages', { count: totalPages })
-            : t('navigator.empty')}
-        </p>
+      <div className='border-border flex items-center justify-between border-b px-2 py-1.5'>
+        <div>
+          <p className='text-muted-foreground text-xs tracking-wide uppercase'>
+            {t('navigator.title')}
+          </p>
+          <p className='text-foreground text-xs font-semibold'>
+            {totalPages
+              ? t('navigator.pages', { count: totalPages })
+              : t('navigator.empty')}
+          </p>
+        </div>
+        {totalPages > 1 && (
+          <Button
+            variant='ghost'
+            size='icon'
+            data-testid='navigator-manage-pages'
+            className='h-6 w-6'
+            onClick={() => setPageManagerOpen(true)}
+            title={t('navigator.pageManager.title')}
+          >
+            <LayoutGridIcon className='h-3.5 w-3.5' />
+          </Button>
+        )}
       </div>
 
       <div className='text-muted-foreground flex items-center gap-1.5 px-2 py-1.5 text-xs'>
@@ -95,6 +112,11 @@ export function Navigator() {
           })}
         </div>
       </ScrollArea>
+
+      <PageManagerDialog
+        open={pageManagerOpen}
+        onOpenChange={setPageManagerOpen}
+      />
     </div>
   )
 }

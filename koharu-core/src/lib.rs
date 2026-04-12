@@ -191,6 +191,8 @@ pub struct Document {
     pub name: String,
     pub width: u32,
     pub height: u32,
+    #[serde(default)]
+    pub order: u32,
     pub source: BlobRef,
     pub segment: Option<BlobRef>,
     pub inpainted: Option<BlobRef>,

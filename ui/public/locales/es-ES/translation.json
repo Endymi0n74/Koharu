@@ -1,6 +1,8 @@
 {
   "common": {
-    "initializing": "Inicializando..."
+    "initializing": "Inicializando...",
+    "cancel": "Cancelar",
+    "save": "Guardar"
   },
   "menu": {
     "file": "Archivo",
@@ -57,7 +59,11 @@
     "pages_one": "{{count}} página",
     "pages_other": "{{count}} páginas",
     "empty": "No hay documentos",
-    "prompt": "Selecciona o importa una página para comenzar"
+    "prompt": "Selecciona o importa una página para comenzar",
+    "pageManager": {
+      "title": "Gestor de páginas",
+      "description": "Arrastra y suelta las páginas para reordenarlas."
+    }
   },
   "panels": {
     "processing": "Procesamiento",

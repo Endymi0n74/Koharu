@@ -237,6 +237,37 @@ impl Storage {
         self.persist(&project)
     }
 
+    /// Reorder pages to match the given id sequence.
+    /// Order 0 is reserved as the "unassigned"
+    pub async fn reorder_pages(&self, ids: &[String]) -> Result<()> {
+        let mut project = self.project.write().await;
+        let page_ids: Vec<String> = project.pages.iter().map(|p| p.id.clone()).collect();
+        for id in ids {
+            if !page_ids.contains(id) {
+                anyhow::bail!("Document not found: {id}");
+            }
+        }
+        if ids.len() != page_ids.len() {
+            anyhow::bail!(
+                "Reorder list length ({}) does not match page count ({})",
+                ids.len(),
+                page_ids.len()
+            );
+        }
+        for (order, id) in ids.iter().enumerate() {
+            if let Some(page) = project.pages.iter_mut().find(|p| &p.id == id) {
+                page.order = (order as u32) + 1;
+            }
+        }
+        project.pages.sort_by(|a, b| {
+            a.order
+                .cmp(&b.order)
+                .then_with(|| a.name.cmp(&b.name))
+                .then_with(|| a.id.cmp(&b.id))
+        });
+        self.persist(&project)
+    }
+
     /// Import files, create pages, save project.
     pub async fn import_files(
         &self,
@@ -273,11 +304,22 @@ impl Storage {
         if replace {
             project.pages.clear();
         }
+        let next_order = project
+            .pages
+            .iter()
+            .map(|p| p.order)
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1);
         let imported = pages.clone();
         project.pages.extend(pages);
-        project
-            .pages
-            .sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.id.cmp(&b.id)));
+        assign_missing_orders(&mut project.pages, next_order);
+        project.pages.sort_by(|a, b| {
+            a.order
+                .cmp(&b.order)
+                .then_with(|| a.name.cmp(&b.name))
+                .then_with(|| a.id.cmp(&b.id))
+        });
         self.persist(&project)?;
         Ok(imported)
     }
@@ -298,6 +340,7 @@ fn list_documents(project: &Project) -> Vec<DocumentSummary> {
             name: doc.name.clone(),
             width: doc.width,
             height: doc.height,
+            order: doc.order,
             has_segment: doc.segment.is_some(),
             has_inpainted: doc.inpainted.is_some(),
             has_rendered: doc.rendered.is_some(),
@@ -305,7 +348,12 @@ fn list_documents(project: &Project) -> Vec<DocumentSummary> {
             text_block_count: doc.text_blocks.len(),
         })
         .collect();
-    entries.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.id.cmp(&b.id)));
+    entries.sort_by(|a, b| {
+        a.order
+            .cmp(&b.order)
+            .then_with(|| a.name.cmp(&b.name))
+            .then_with(|| a.id.cmp(&b.id))
+    });
     entries
 }
 
@@ -314,7 +362,11 @@ fn load_or_create_project(root: &Path) -> Result<Project> {
         for entry in entries.flatten() {
             if entry.path().extension().is_some_and(|e| e == "toml") {
                 let content = std::fs::read_to_string(entry.path())?;
-                return toml::from_str(&content).context("parse project");
+                let mut project: Project = toml::from_str(&content).context("parse project")?;
+                if !project.pages.is_empty() && project.pages.iter().all(|p| p.order == 0) {
+                    assign_missing_orders(&mut project.pages, 1);
+                }
+                return Ok(project);
             }
         }
     }
@@ -326,4 +378,355 @@ fn load_or_create_project(root: &Path) -> Result<Project> {
     let content = toml::to_string_pretty(&project)?;
     std::fs::write(root.join(format!("{}.toml", project.name)), content)?;
     Ok(project)
+}
+
+/// Assign sequential order values to pages that have `order == 0` (unassigned), starting at `start`.
+fn assign_missing_orders(pages: &mut [Document], start: u32) {
+    let mut zero_indices: Vec<usize> = pages
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| p.order == 0)
+        .map(|(i, _)| i)
+        .collect();
+    zero_indices.sort_by(|&a, &b| {
+        pages[a]
+            .name
+            .cmp(&pages[b].name)
+            .then_with(|| pages[a].id.cmp(&pages[b].id))
+    });
+    for (offset, idx) in zero_indices.into_iter().enumerate() {
+        pages[idx].order = start + offset as u32;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use koharu_core::Document;
+
+    fn make_page(id: &str, name: &str, order: u32) -> Document {
+        Document {
+            id: id.to_string(),
+            name: name.to_string(),
+            order,
+            ..Default::default()
+        }
+    }
+
+    // ── assign_missing_orders ───────────────────────────────────────
+
+    #[test]
+    fn assign_missing_orders_sets_sequential_values() {
+        let mut pages = vec![
+            make_page("c", "gamma", 0),
+            make_page("a", "alpha", 0),
+            make_page("b", "beta", 0),
+        ];
+        assign_missing_orders(&mut pages, 1);
+        assert_eq!(pages.iter().find(|p| p.name == "alpha").unwrap().order, 1);
+        assert_eq!(pages.iter().find(|p| p.name == "beta").unwrap().order, 2);
+        assert_eq!(pages.iter().find(|p| p.name == "gamma").unwrap().order, 3);
+    }
+
+    #[test]
+    fn assign_missing_orders_respects_start_offset() {
+        let mut pages = vec![make_page("a", "alpha", 0), make_page("b", "beta", 0)];
+        assign_missing_orders(&mut pages, 5);
+        assert_eq!(pages.iter().find(|p| p.id == "a").unwrap().order, 5);
+        assert_eq!(pages.iter().find(|p| p.id == "b").unwrap().order, 6);
+    }
+
+    #[test]
+    fn assign_missing_orders_skips_non_zero() {
+        let mut pages = vec![make_page("a", "alpha", 3), make_page("b", "beta", 0)];
+        assign_missing_orders(&mut pages, 10);
+        assert_eq!(pages.iter().find(|p| p.id == "a").unwrap().order, 3);
+        assert_eq!(pages.iter().find(|p| p.id == "b").unwrap().order, 10);
+    }
+
+    #[test]
+    fn assign_missing_orders_empty_slice_is_noop() {
+        let mut pages = Vec::<Document>::new();
+        assign_missing_orders(&mut pages, 0);
+        assert!(pages.is_empty());
+    }
+
+    // ── list_documents ──────────────────────────────────────────────
+
+    #[test]
+    fn list_documents_sorts_by_order_then_name() {
+        let project = Project {
+            name: "test".to_string(),
+            pages: vec![
+                make_page("x", "gamma", 2),
+                make_page("y", "alpha", 0),
+                make_page("z", "beta", 1),
+            ],
+        };
+        let result = list_documents(&project);
+        assert_eq!(result[0].name, "alpha");
+        assert_eq!(result[1].name, "beta");
+        assert_eq!(result[2].name, "gamma");
+    }
+
+    #[test]
+    fn list_documents_uses_name_as_tiebreaker() {
+        let project = Project {
+            name: "test".to_string(),
+            pages: vec![make_page("b", "beta", 1), make_page("a", "alpha", 1)],
+        };
+        let result = list_documents(&project);
+        assert_eq!(result[0].name, "alpha");
+        assert_eq!(result[1].name, "beta");
+    }
+
+    // ── reorder_pages ───────────────────────────────────────────────
+
+    fn open_test_storage(pages: Vec<Document>) -> (Storage, tempfile::TempDir) {
+        let dir = tempfile::tempdir().unwrap();
+        let data_root = dir.path();
+        let projects_root = data_root.join("projects");
+        std::fs::create_dir_all(&projects_root).unwrap();
+        let blobs_root = data_root.join("blobs");
+        let blobs = BlobStore::new(blobs_root).unwrap();
+        let project = Project {
+            name: "test".to_string(),
+            pages,
+        };
+        let content = toml::to_string_pretty(&project).unwrap();
+        std::fs::write(projects_root.join("test.toml"), content).unwrap();
+        let storage = Storage {
+            images: ImageCache::new(blobs),
+            project: RwLock::new(project),
+            projects_root,
+        };
+        (storage, dir)
+    }
+
+    #[tokio::test]
+    async fn reorder_pages_assigns_sequential_orders() {
+        let (storage, _dir) = open_test_storage(vec![
+            make_page("a", "alpha", 0),
+            make_page("b", "beta", 1),
+            make_page("c", "gamma", 2),
+        ]);
+        storage
+            .reorder_pages(&["c".into(), "a".into(), "b".into()])
+            .await
+            .unwrap();
+        let pages = storage.list_pages().await;
+        assert_eq!(pages[0].id, "c");
+        assert_eq!(pages[0].order, 1);
+        assert_eq!(pages[1].id, "a");
+        assert_eq!(pages[1].order, 2);
+        assert_eq!(pages[2].id, "b");
+        assert_eq!(pages[2].order, 3);
+    }
+
+    #[tokio::test]
+    async fn reorder_pages_rejects_unknown_id() {
+        let (storage, _dir) =
+            open_test_storage(vec![make_page("a", "alpha", 0), make_page("b", "beta", 1)]);
+        let err = storage
+            .reorder_pages(&["a".into(), "unknown".into()])
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("Document not found"));
+    }
+
+    #[tokio::test]
+    async fn reorder_pages_rejects_wrong_count() {
+        let (storage, _dir) =
+            open_test_storage(vec![make_page("a", "alpha", 0), make_page("b", "beta", 1)]);
+        let err = storage.reorder_pages(&["a".into()]).await.unwrap_err();
+        assert!(err.to_string().contains("does not match page count"));
+    }
+
+    #[tokio::test]
+    async fn reorder_pages_persists_to_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let data_root = dir.path();
+        let projects_root = data_root.join("projects");
+        std::fs::create_dir_all(&projects_root).unwrap();
+        let blobs_root = data_root.join("blobs");
+        let blobs = BlobStore::new(&blobs_root).unwrap();
+        let project = Project {
+            name: "test".to_string(),
+            pages: vec![make_page("a", "alpha", 0), make_page("b", "beta", 1)],
+        };
+        let content = toml::to_string_pretty(&project).unwrap();
+        std::fs::write(projects_root.join("test.toml"), &content).unwrap();
+        let storage = Storage {
+            images: ImageCache::new(blobs),
+            project: RwLock::new(project),
+            projects_root: projects_root.clone(),
+        };
+        storage
+            .reorder_pages(&["b".into(), "a".into()])
+            .await
+            .unwrap();
+        // Re-load from disk
+        let reloaded: Project =
+            toml::from_str(&std::fs::read_to_string(projects_root.join("test.toml")).unwrap())
+                .unwrap();
+        assert_eq!(reloaded.pages[0].id, "b");
+        assert_eq!(reloaded.pages[0].order, 1);
+        assert_eq!(reloaded.pages[1].id, "a");
+        assert_eq!(reloaded.pages[1].order, 2);
+    }
+
+    // ── load_or_create_project migration ────────────────────────────
+
+    #[test]
+    fn load_project_migrates_all_zero_orders() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = Project {
+            name: "test".to_string(),
+            pages: vec![make_page("b", "beta", 0), make_page("a", "alpha", 0)],
+        };
+        let content = toml::to_string_pretty(&project).unwrap();
+        std::fs::write(dir.path().join("test.toml"), content).unwrap();
+        let loaded = load_or_create_project(dir.path()).unwrap();
+        let alpha = loaded.pages.iter().find(|p| p.id == "a").unwrap();
+        let beta = loaded.pages.iter().find(|p| p.id == "b").unwrap();
+        assert_eq!(alpha.order, 1);
+        assert_eq!(beta.order, 2);
+    }
+
+    #[test]
+    fn load_project_does_not_migrate_if_any_nonzero() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = Project {
+            name: "test".to_string(),
+            pages: vec![make_page("a", "alpha", 5), make_page("b", "beta", 0)],
+        };
+        let content = toml::to_string_pretty(&project).unwrap();
+        std::fs::write(dir.path().join("test.toml"), content).unwrap();
+        let loaded = load_or_create_project(dir.path()).unwrap();
+        assert_eq!(loaded.pages.iter().find(|p| p.id == "a").unwrap().order, 5);
+        assert_eq!(loaded.pages.iter().find(|p| p.id == "b").unwrap().order, 0);
+    }
+
+    // ── reorder + import interaction ────────────────────────────────
+
+    #[tokio::test]
+    async fn reorder_first_page_not_corrupted_by_new_import() {
+        let (storage, _dir) =
+            open_test_storage(vec![make_page("a", "alpha", 1), make_page("b", "beta", 2)]);
+
+        // Reorder: B first, A second
+        storage
+            .reorder_pages(&["b".into(), "a".into()])
+            .await
+            .unwrap();
+
+        let pages = storage.list_pages().await;
+        assert_eq!(pages[0].id, "b");
+        assert_eq!(pages[1].id, "a");
+
+        {
+            let mut project = storage.project.write().await;
+            let next_order = project
+                .pages
+                .iter()
+                .map(|p| p.order)
+                .max()
+                .unwrap_or(0)
+                .saturating_add(1);
+            project.pages.push(make_page("c", "charlie", 0));
+            assign_missing_orders(&mut project.pages, next_order);
+            project.pages.sort_by(|a, b| {
+                a.order
+                    .cmp(&b.order)
+                    .then_with(|| a.name.cmp(&b.name))
+                    .then_with(|| a.id.cmp(&b.id))
+            });
+        }
+
+        let pages = storage.list_pages().await;
+        assert_eq!(
+            pages[0].id, "b",
+            "reordered first page must keep position after import"
+        );
+        assert_eq!(
+            pages[1].id, "a",
+            "reordered second page must keep position after import"
+        );
+        assert_eq!(pages[2].id, "c", "new page must be appended at end");
+    }
+
+    #[tokio::test]
+    async fn multiple_reorders_and_imports_preserve_order() {
+        let (storage, _dir) =
+            open_test_storage(vec![make_page("a", "alpha", 1), make_page("b", "beta", 2)]);
+
+        // Reorder to [B, A]
+        storage
+            .reorder_pages(&["b".into(), "a".into()])
+            .await
+            .unwrap();
+        let pages = storage.list_pages().await;
+        assert_eq!(pages[0].id, "b");
+        assert_eq!(pages[1].id, "a");
+
+        // Add page C
+        {
+            let mut project = storage.project.write().await;
+            let next_order = project
+                .pages
+                .iter()
+                .map(|p| p.order)
+                .max()
+                .unwrap_or(0)
+                .saturating_add(1);
+            project.pages.push(make_page("c", "charlie", 0));
+            assign_missing_orders(&mut project.pages, next_order);
+            project.pages.sort_by(|a, b| {
+                a.order
+                    .cmp(&b.order)
+                    .then_with(|| a.name.cmp(&b.name))
+                    .then_with(|| a.id.cmp(&b.id))
+            });
+        }
+        let pages = storage.list_pages().await;
+        assert_eq!(pages[0].id, "b", "B must stay first after adding C");
+        assert_eq!(pages[1].id, "a", "A must stay second after adding C");
+        assert_eq!(pages[2].id, "c", "C must be third");
+
+        // Reorder to [C, B, A]
+        storage
+            .reorder_pages(&["c".into(), "b".into(), "a".into()])
+            .await
+            .unwrap();
+        let pages = storage.list_pages().await;
+        assert_eq!(pages[0].id, "c");
+        assert_eq!(pages[1].id, "b");
+        assert_eq!(pages[2].id, "a");
+
+        // Add page D
+        {
+            let mut project = storage.project.write().await;
+            let next_order = project
+                .pages
+                .iter()
+                .map(|p| p.order)
+                .max()
+                .unwrap_or(0)
+                .saturating_add(1);
+            project.pages.push(make_page("d", "delta", 0));
+            assign_missing_orders(&mut project.pages, next_order);
+            project.pages.sort_by(|a, b| {
+                a.order
+                    .cmp(&b.order)
+                    .then_with(|| a.name.cmp(&b.name))
+                    .then_with(|| a.id.cmp(&b.id))
+            });
+        }
+
+        let pages = storage.list_pages().await;
+        assert_eq!(pages[0].id, "c", "C must stay first after adding D");
+        assert_eq!(pages[1].id, "b", "B must stay second after adding D");
+        assert_eq!(pages[2].id, "a", "A must stay third after adding D");
+        assert_eq!(pages[3].id, "d", "D must be last");
+    }
 }

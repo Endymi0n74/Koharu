@@ -1,5 +1,5 @@
-import path from 'node:path'
 import { expect, type Locator, type Page } from '@playwright/test'
+import path from 'node:path'
 import { selectors, type LayerId } from './selectors'
 
 const FIXTURES_DIR = path.join(process.cwd(), 'e2e', 'fixtures')
@@ -79,6 +79,14 @@ export async function importImages(page: Page, filePaths: string[]) {
   const fileChooserPromise = page.waitForEvent('filechooser')
   await page.getByTestId(selectors.menu.fileTrigger).click()
   await page.getByTestId(selectors.menu.fileOpen).click()
+  const fileChooser = await fileChooserPromise
+  await fileChooser.setFiles(filePaths)
+}
+
+export async function addImages(page: Page, filePaths: string[]) {
+  const fileChooserPromise = page.waitForEvent('filechooser')
+  await page.getByTestId(selectors.menu.fileTrigger).click()
+  await page.getByTestId(selectors.menu.fileAdd).click()
   const fileChooser = await fileChooserPromise
   await fileChooser.setFiles(filePaths)
 }
@@ -181,9 +189,13 @@ export async function waitForLayerVisible(
 ) {
   await ensureLayersTabActive(page)
   const layer = getLayerLocator(page, layerId)
-  await expect(layer).toHaveAttribute('data-visible', visible ? 'true' : 'false', {
-    timeout,
-  })
+  await expect(layer).toHaveAttribute(
+    'data-visible',
+    visible ? 'true' : 'false',
+    {
+      timeout,
+    },
+  )
 }
 
 export async function readTextBlocksCount(page: Page) {

@@ -1,6 +1,8 @@
 {
   "common": {
-    "initializing": "初始化中..."
+    "initializing": "初始化中...",
+    "cancel": "取消",
+    "save": "保存"
   },
   "menu": {
     "file": "文件",
@@ -57,7 +59,11 @@
     "pages_one": "{{count}} 页",
     "pages_other": "{{count}} 页",
     "empty": "没有文档",
-    "prompt": "选择或导入页面开始"
+    "prompt": "选择或导入页面开始",
+    "pageManager": {
+      "title": "页面管理",
+      "description": "拖放页面以重新排列顺序。"
+    }
   },
   "panels": {
     "processing": "处理",

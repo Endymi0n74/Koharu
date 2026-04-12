@@ -2,7 +2,8 @@
   "common": {
     "initializing": "Initializing...",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "save": "Save"
   },
   "menu": {
     "file": "File",
@@ -59,7 +60,11 @@
     "pages_one": "{{count}} page",
     "pages_other": "{{count}} pages",
     "empty": "No documents",
-    "prompt": "Select or import a page to begin"
+    "prompt": "Select or import a page to begin",
+    "pageManager": {
+      "title": "Page Manager",
+      "description": "Drag and drop pages to reorder them."
+    }
   },
   "panels": {
     "processing": "Processing",

@@ -1,6 +1,8 @@
 {
   "common": {
-    "initializing": "初始化中..."
+    "initializing": "初始化中...",
+    "cancel": "取消",
+    "save": "儲存"
   },
   "menu": {
     "file": "檔案",
@@ -57,7 +59,11 @@
     "pages_one": "{{count}} 頁",
     "pages_other": "{{count}} 頁",
     "empty": "沒有文件",
-    "prompt": "選擇或匯入頁面以開始"
+    "prompt": "選擇或匯入頁面以開始",
+    "pageManager": {
+      "title": "頁面管理",
+      "description": "拖放頁面以重新排列順序。"
+    }
   },
   "panels": {
     "processing": "處理",
