@@ -2,7 +2,8 @@
   "common": {
     "initializing": "初始化中...",
     "cancel": "取消",
-    "save": "儲存"
+    "save": "儲存",
+    "saved": "已儲存！"
   },
   "menu": {
     "file": "檔案",
@@ -341,7 +342,16 @@
     "ocr": "OCR",
     "translator": "翻譯器",
     "inpainter": "修補器",
-    "renderer": "渲染器"
+    "renderer": "渲染器",
+    "keybinds": "快捷鍵",
+    "keybindsDescription": "自定義工具和操作的快捷鍵。",
+    "shortcutIncreaseBrushSize": "增大筆刷大小",
+    "shortcutDecreaseBrushSize": "減小筆刷大小",
+    "shortcutPressKey": "請按下一個按鍵...",
+    "shortcutReset": "重置快捷鍵",
+    "shortcutResetDescription": "這將恢復所有快捷鍵到默認值。您保存的更改將丟失。",
+    "shortcutConflict": "按鍵組合已被使用",
+    "shortcutInvalid": "此按鍵不能用作快捷鍵"
   },
   "updater": {
     "available": {

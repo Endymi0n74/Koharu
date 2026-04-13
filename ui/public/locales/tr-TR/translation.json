@@ -2,7 +2,8 @@
   "common": {
     "initializing": "Başlatılıyor...",
     "cancel": "İptal",
-    "save": "Kaydet"
+    "save": "Kaydet",
+    "saved": "Kaydedildi!"
   },
   "menu": {
     "file": "Dosya",
@@ -341,7 +342,16 @@
     "ocr": "OCR",
     "translator": "Çevirici",
     "inpainter": "İnpaint Motoru",
-    "renderer": "Render Motoru"
+    "renderer": "Render Motoru",
+    "keybinds": "Tuş Atamaları",
+    "keybindsDescription": "Araçlar ve eylemler için klavye kısa yollarını özelleştirin.",
+    "shortcutIncreaseBrushSize": "Fırça Boyutunu Artır",
+    "shortcutDecreaseBrushSize": "Fırça Boyutunu Azalt",
+    "shortcutPressKey": "Bir tuşa basın...",
+    "shortcutReset": "Kısayolları Sıfırla",
+    "shortcutResetDescription": "Bu, tüm klavye kısayollarını varsayılan değerlerine döndürecektir. Kaydedilen değişiklikleriniz kaybolacaktır.",
+    "shortcutConflict": "Tuş kombinasyonu zaten kullanılıyor",
+    "shortcutInvalid": "Bu tuş kısayol olarak kullanılamaz"
   },
   "updater": {
     "available": {

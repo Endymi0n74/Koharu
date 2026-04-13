@@ -3,7 +3,8 @@
     "initializing": "Initializing...",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "save": "Save"
+    "save": "Save",
+    "saved": "Saved!"
   },
   "menu": {
     "file": "File",
@@ -342,7 +343,16 @@
     "ocr": "OCR",
     "translator": "Translator",
     "inpainter": "Inpainter",
-    "renderer": "Renderer"
+    "renderer": "Renderer",
+    "keybinds": "Keybinds",
+    "keybindsDescription": "Customize keyboard shortcuts for tools and actions.",
+    "shortcutIncreaseBrushSize": "Increase Brush Size",
+    "shortcutDecreaseBrushSize": "Decrease Brush Size",
+    "shortcutPressKey": "Press a key...",
+    "shortcutReset": "Reset Keybinds",
+    "shortcutResetDescription": "This will restore all shortcuts to their default values. Your saved changes will be lost.",
+    "shortcutConflict": "Key combination already in use",
+    "shortcutInvalid": "This key cannot be used as a shortcut"
   },
   "updater": {
     "available": {

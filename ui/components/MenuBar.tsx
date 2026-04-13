@@ -61,7 +61,9 @@ export function MenuBar() {
   const { send } = useProcessing()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<TabId>('appearance')
-  const hasDocument = useEditorUiStore((state) => state.currentDocumentId !== null)
+  const hasDocument = useEditorUiStore(
+    (state) => state.currentDocumentId !== null,
+  )
 
   const buildPipelineRequest = (documentId?: string): PipelineJobRequest => {
     const { selectedTarget, selectedLanguage, renderEffect, renderStroke } =

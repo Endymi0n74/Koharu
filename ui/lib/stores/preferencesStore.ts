@@ -23,6 +23,7 @@ type PreferencesState = {
     decreaseBrushSize: string
   }
   setShortcuts: (shortcuts: Partial<PreferencesState['shortcuts']>) => void
+  resetShortcuts: () => void
   resetPreferences: () => void
 }
 
@@ -32,11 +33,11 @@ const initialPreferences = {
     color: '#ffffff',
   },
   shortcuts: {
-    select: 'v',
-    block: 'm',
-    brush: 'b',
-    eraser: 'e',
-    repairBrush: 'r',
+    select: 'V',
+    block: 'M',
+    brush: 'B',
+    eraser: 'E',
+    repairBrush: 'R',
     increaseBrushSize: ']',
     decreaseBrushSize: '[',
   },
@@ -62,11 +63,17 @@ export const usePreferencesStore = create<PreferencesState>()(
             ...shortcuts,
           },
         })),
+      resetShortcuts: () =>
+        set((state) => ({
+          shortcuts: {
+            ...initialPreferences.shortcuts,
+          },
+        })),
       resetPreferences: () => set({ ...initialPreferences }),
     }),
     {
       name: 'koharu-config',
-      version: 3,
+      version: 4,
       migrate: (persisted: any, version: number) => {
         if (version < 2 && persisted) {
           delete persisted.localLlm
@@ -76,6 +83,14 @@ export const usePreferencesStore = create<PreferencesState>()(
           delete persisted.apiKeys
           delete persisted.providerBaseUrls
           delete persisted.providerModelNames
+        }
+        if (version < 4 && persisted?.shortcuts) {
+          for (const key in persisted.shortcuts) {
+            const val = persisted.shortcuts[key]
+            if (typeof val === 'string' && val.length === 1) {
+              persisted.shortcuts[key] = val.toUpperCase()
+            }
+          }
         }
         return persisted
       },

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +16,10 @@ import {
   HardDriveIcon,
   InfoIcon,
   CpuIcon,
+  KeyboardIcon,
+  SaveIcon,
+  RotateCcwIcon,
+  AlertTriangleIcon,
 } from 'lucide-react'
 import {
   Dialog,
@@ -57,7 +61,15 @@ import {
   updateConfig,
 } from '@/lib/api/system/system'
 import { getLlmCatalog, getGetLlmCatalogQueryKey } from '@/lib/api/llm/llm'
+import {
+  getPlatform,
+  formatShortcut,
+  isKeyBlocked,
+  areShortcutsEqual,
+  isModifierKey,
+} from '@/lib/shortcutUtils'
 import { supportedLanguages } from '@/lib/i18n'
+import { usePreferencesStore } from '@/lib/stores/preferencesStore'
 import type {
   UpdateConfigBody,
   ProviderConfig,
@@ -71,6 +83,7 @@ const TABS = [
   { id: 'appearance', icon: PaletteIcon, labelKey: 'settings.appearance' },
   { id: 'engines', icon: CpuIcon, labelKey: 'settings.engines' },
   { id: 'providers', icon: KeyIcon, labelKey: 'settings.apiKeys' },
+  { id: 'keybinds', icon: KeyboardIcon, labelKey: 'settings.keybinds' },
   { id: 'runtime', icon: HardDriveIcon, labelKey: 'settings.runtime' },
   { id: 'about', icon: InfoIcon, labelKey: 'settings.about' },
 ] as const
@@ -129,7 +142,7 @@ export function SettingsDialog({
         setAppConfig(config)
         setProviderCatalogs(catalog.providers)
         setEngineCatalog(engines)
-      } catch {}
+      } catch { }
     })()
   }, [open])
 
@@ -250,13 +263,13 @@ export function SettingsDialog({
   const storageSettingsUnchanged =
     dataPathDraft.trim() === appConfig?.data?.path &&
     httpConnectTimeoutDraft.trim() ===
-      String(
-        appConfig?.http?.connect_timeout ?? DEFAULT_HTTP_CONNECT_TIMEOUT,
-      ) &&
+    String(
+      appConfig?.http?.connect_timeout ?? DEFAULT_HTTP_CONNECT_TIMEOUT,
+    ) &&
     httpReadTimeoutDraft.trim() ===
-      String(appConfig?.http?.read_timeout ?? DEFAULT_HTTP_READ_TIMEOUT) &&
+    String(appConfig?.http?.read_timeout ?? DEFAULT_HTTP_READ_TIMEOUT) &&
     httpMaxRetriesDraft.trim() ===
-      String(appConfig?.http?.max_retries ?? DEFAULT_HTTP_MAX_RETRIES)
+    String(appConfig?.http?.max_retries ?? DEFAULT_HTTP_MAX_RETRIES)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -376,6 +389,7 @@ export function SettingsDialog({
                   onApply={() => void handleApplyStorageSettings()}
                 />
               )}
+              {tab === 'keybinds' && <KeybindsPane />}
               {tab === 'about' && (
                 <AboutPane
                   version={appVersion}
@@ -657,6 +671,244 @@ function ProvidersPane({
           })}
         </Accordion>
       </Section>
+    </div>
+  )
+}
+
+// ── Keybinds ──────────────────────────────────────────────────────
+
+const SHORTCUT_ITEMS = [
+  { key: 'select', labelKey: 'toolRail.select' },
+  { key: 'block', labelKey: 'toolRail.block' },
+  { key: 'brush', labelKey: 'toolRail.brush' },
+  { key: 'eraser', labelKey: 'toolRail.eraser' },
+  { key: 'repairBrush', labelKey: 'toolRail.repairBrush' },
+  {
+    key: 'increaseBrushSize',
+    labelKey: 'settings.shortcutIncreaseBrushSize',
+  },
+  {
+    key: 'decreaseBrushSize',
+    labelKey: 'settings.shortcutDecreaseBrushSize',
+  },
+] as const
+
+function KeybindsPane() {
+  const { t } = useTranslation()
+  const shortcuts = usePreferencesStore((state) => state.shortcuts)
+  const setShortcuts = usePreferencesStore((state) => state.setShortcuts)
+  const resetShortcutsStore = usePreferencesStore(
+    (state) => state.resetShortcuts,
+  )
+  const [pendingShortcuts, setPendingShortcuts] = useState(shortcuts)
+  const [recordingKey, setRecordingKey] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isSaved, setIsSaved] = useState(false)
+  const isMac = useMemo(() => getPlatform() === 'mac', [])
+
+  // Optimized conflict detection
+  const conflictCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    Object.values(pendingShortcuts).forEach((val) => {
+      counts.set(val, (counts.get(val) || 0) + 1)
+    })
+    return counts
+  }, [pendingShortcuts])
+
+  const isDirty = useMemo(
+    () => !areShortcutsEqual(shortcuts, pendingShortcuts),
+    [shortcuts, pendingShortcuts],
+  )
+
+  // Sync from store if it changes (e.g. externally via Reset)
+  useEffect(() => {
+    setPendingShortcuts(shortcuts)
+  }, [shortcuts])
+
+  useEffect(() => {
+    if (!recordingKey) {
+      setError(null)
+      return
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Early exit for modifier-only events
+      if (isModifierKey(e.key)) {
+        return
+      }
+
+      // Allow Escape to cancel recording
+      if (e.key === 'Escape') {
+        setRecordingKey(null)
+        return
+      }
+
+      // Block system/function keys
+      if (isKeyBlocked(e.key)) {
+        setError(t('settings.shortcutInvalid'))
+        return
+      }
+
+      const shortcut = formatShortcut(e, isMac)
+      if (!shortcut) return
+
+      // Conflict detection (now non-blocking)
+      const existingAction = Object.entries(pendingShortcuts).find(
+        ([action, val]) => val === shortcut && action !== recordingKey,
+      )
+
+      if (existingAction) {
+        // Just a hint, we still allow it
+        setError(t('settings.shortcutConflict'))
+      }
+
+      setPendingShortcuts((prev) => ({ ...prev, [recordingKey]: shortcut }))
+      setRecordingKey(null)
+      setIsSaved(false)
+    }
+
+    const handleClickOutside = () => {
+      setRecordingKey(null)
+    }
+
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    window.addEventListener('click', handleClickOutside, { capture: true })
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
+      window.removeEventListener('click', handleClickOutside, {
+        capture: true,
+      })
+    }
+  }, [recordingKey, pendingShortcuts, t, isMac])
+
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
+
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleSave = () => {
+    setShortcuts(pendingShortcuts)
+    setIsSaved(true)
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      setIsSaved(false)
+      saveTimeoutRef.current = null
+    }, 2000)
+  }
+
+  const handleReset = () => {
+    setResetConfirmOpen(true)
+  }
+
+  const handleConfirmReset = () => {
+    resetShortcutsStore()
+    setResetConfirmOpen(false)
+  }
+
+  return (
+    <div className='flex h-full flex-col gap-6'>
+      <div className='grow space-y-6 overflow-y-auto pr-2'>
+        <Section
+          title={t('settings.keybinds')}
+          description={t('settings.keybindsDescription')}
+        >
+          <div className='bg-card border-border divide-border divide-y overflow-hidden rounded-xl border'>
+            {SHORTCUT_ITEMS.map((item) => {
+              const currentVal = pendingShortcuts[item.key]
+              const hasConflict = (conflictCounts.get(currentVal) || 0) > 1
+
+              return (
+                <div
+                  key={item.key}
+                  className='flex items-center justify-between px-4 py-3'
+                >
+                  <div className='flex items-center gap-2'>
+                    <span className='text-sm'>{t(item.labelKey)}</span>
+                    {hasConflict && (
+                      <div title={t('settings.shortcutConflict')}>
+                        <AlertTriangleIcon className='size-3.5 text-amber-500' />
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    variant={recordingKey === item.key ? 'default' : 'outline'}
+                    size='sm'
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setRecordingKey(item.key)
+                    }}
+                    className='h-8 min-w-16 font-mono uppercase'
+                  >
+                    {recordingKey === item.key
+                      ? error || t('settings.shortcutPressKey')
+                      : currentVal || 'NONE'}
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+      </div>
+
+      <div className='border-border flex items-center justify-between border-t pt-4'>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='text-muted-foreground hover:text-foreground gap-2'
+          onClick={handleReset}
+        >
+          <RotateCcwIcon className='size-4' />
+          {t('settings.shortcutReset')}
+        </Button>
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='default'
+            size='sm'
+            disabled={!isDirty || isSaved}
+            onClick={handleSave}
+            className='min-w-32 gap-2'
+          >
+            {isSaved ? (
+              <>
+                <CheckCircleIcon className='size-4' />
+                {t('common.saved')}
+              </>
+            ) : (
+              <>
+                <SaveIcon className='size-4' />
+                {t('common.save')}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+      <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogTitle>{t('settings.shortcutReset')}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t('settings.shortcutResetDescription')}
+          </AlertDialogDescription>
+          <div className='flex justify-end gap-2'>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReset}>
+              {t('common.confirm')}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
