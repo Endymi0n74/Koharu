@@ -1,0 +1,28 @@
+name: PR
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  welcome:
+    name: Welcome First-Time Contributor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v3
+        with:
+          pr_message: |
+            Thanks for your first PR to Koharu.
+
+            Please review our contribution guide before review:
+            https://koharu.rs/how-to/contributing/
+
+            In the PR description, include:
+            - what changed
+            - any user-visible behavior differences
+            - how you verified the change
+
+            If AI helped produce the patch, a human still needs to review and understand it before submission.
