@@ -1,10 +1,13 @@
 name: PR
 
 on:
-  pull_request_target:
+  issues:
+    types: [opened]
+  pull_request:
     types: [opened]
 
 permissions:
+  issues: write
   pull-requests: write
 
 jobs:
@@ -14,6 +17,19 @@ jobs:
     steps:
       - uses: actions/first-interaction@v3
         with:
+          issue_message: |
+            Thanks for opening your first issue in Koharu.
+
+            Please include:
+            - what you expected to happen
+            - what happened instead
+            - steps to reproduce
+            - screenshots or logs if available
+            - your OS and GPU/runtime setup if the issue is build or inference related
+
+            If this is a support question or you want faster discussion, you can also use Discord:
+            https://discord.gg/mHvHkxGnUY
+
           pr_message: |
             Thanks for your first PR to Koharu.
 
