@@ -1,3 +1,60 @@
+## [0.44.0](https://github.com/mayocream/koharu/compare/0.43.2..0.44.0) - 2026-04-13
+
+### ⛰️  Features
+
+- *(mt)* DeepL/Google as koharu-llm providers ([#357](https://github.com/mayocream/koharu/issues/357)) - ([5bf565f](https://github.com/mayocream/koharu/commit/5bf565f98a222f40cdbea4705d76e9cd3d462a31))
+- *(ui)* Add model search to llm popover ([#409](https://github.com/mayocream/koharu/issues/409)) - ([654583f](https://github.com/mayocream/koharu/commit/654583f77b3479df1e4465df5ecfe5b1537407ea))
+- Add keybind configuration in settings ([#411](https://github.com/mayocream/koharu/issues/411)) - ([bb471fd](https://github.com/mayocream/koharu/commit/bb471fdb87c5dc2b295f579949e768c21376f7cc))
+- Tool keybind and Brush Outline on canvas implementation ([#396](https://github.com/mayocream/koharu/issues/396)) - ([05ccbc8](https://github.com/mayocream/koharu/commit/05ccbc8b8c2abdb6aa44320ae78a47f487bff227))
+- Updater - ([a61bb75](https://github.com/mayocream/koharu/commit/a61bb756f4d373530971cf3fa68627b46d4390bc))
+- Sentry integration - ([1e3462a](https://github.com/mayocream/koharu/commit/1e3462aaeadefa9122ab42d0bc59b147557daf8a))
+- Remove segmentation mask detections outside of detected text blocks ([#378](https://github.com/mayocream/koharu/issues/378)) - ([b51c007](https://github.com/mayocream/koharu/commit/b51c0077d3b39ac3aee74f4e1c0f24120f4ec116))
+- Add AMD GPU support via ZLUDA ([#362](https://github.com/mayocream/koharu/issues/362)) - ([759985b](https://github.com/mayocream/koharu/commit/759985b74bd240c8d92fcc60d9e843a9b89b398e))
+- Implementing --host cli parameter ([#328](https://github.com/mayocream/koharu/issues/328)) - ([8238a7c](https://github.com/mayocream/koharu/commit/8238a7cd19223ea7e1614811aff785474ef75011))
+
+### 🐛 Bug Fixes
+
+- *(renderer)* Add thai font fallback ([#370](https://github.com/mayocream/koharu/issues/370)) - ([d0a14f2](https://github.com/mayocream/koharu/commit/d0a14f29641cdb3176ecdfd2771ad4c8102fc97a))
+- No current document selected ([#394](https://github.com/mayocream/koharu/issues/394)) - ([c86578e](https://github.com/mayocream/koharu/commit/c86578e26abec22c9c6b28c2f88a673d18beaed0))
+- Linking and updater - ([8d70da2](https://github.com/mayocream/koharu/commit/8d70da286e36665888599184d5a434e991c9174d))
+- Add `get_document_id_for_index` mcp tool ([#377](https://github.com/mayocream/koharu/issues/377)) - ([d264853](https://github.com/mayocream/koharu/commit/d264853bc525ef25b6ea8c4ba08a3a67a8ca52f0))
+- Allow Segmentation Mask to be viewed outside of Eraser and Repair Brush Tools ([#358](https://github.com/mayocream/koharu/issues/358)) - ([41c50d4](https://github.com/mayocream/koharu/commit/41c50d4e525226f5da77fc3850b92b99609f394a))
+
+### 🚜 Refactor
+
+- *(llm)* Deel & google translate ([#361](https://github.com/mayocream/koharu/issues/361)) - ([09c43a0](https://github.com/mayocream/koharu/commit/09c43a0ab58c432fff92f60003f483259429d435))
+
+### 📚 Documentation
+
+- Correct download button label ([#418](https://github.com/mayocream/koharu/issues/418)) - ([557662a](https://github.com/mayocream/koharu/commit/557662ac431f737107d5101d3a592d58964143a7))
+- Update text rendering to include RTL - ([63fd98c](https://github.com/mayocream/koharu/commit/63fd98c2ef74465631deec212e09ff16792c0794))
+- Update data privacy note - ([a78fdd6](https://github.com/mayocream/koharu/commit/a78fdd676c2fb36fcc39ac1a727b9697d8aef86a))
+- Update developement section - ([a3c01a2](https://github.com/mayocream/koharu/commit/a3c01a2e7ab84b89d1bd0502f25251cda4f60299))
+- Remove cudnn - ([caf9cec](https://github.com/mayocream/koharu/commit/caf9cecb263da333f294c361331d7249e556c017))
+- Include zluda - ([b72338f](https://github.com/mayocream/koharu/commit/b72338f64e315187d5ab9b6aaa385ebe2ebba8da))
+- Add technical term links - ([b886699](https://github.com/mayocream/koharu/commit/b8866999b55abb2e992e4be15b56b36af5955276))
+- Mention text rendering - ([422c653](https://github.com/mayocream/koharu/commit/422c6536568088bbbb65bc6d8dd67e1fc569f122))
+- Improve readme - ([2300986](https://github.com/mayocream/koharu/commit/2300986e100f0e03aa432bbe2c19be48499cbcc2))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(ci)* Ignore scripts and generated - ([2bb81ae](https://github.com/mayocream/koharu/commit/2bb81aeba59b9192061cd3203b1d40dcb099ddd7))
+- Enhance PR workflow with issue support and messages - ([e286f58](https://github.com/mayocream/koharu/commit/e286f5858abd88ccfdc22236981ac5def525bfcf))
+- Simplify name - ([472e15c](https://github.com/mayocream/koharu/commit/472e15c995696364ba50d3898b2d63193ecad51a))
+- Enhance workflow - ([686d710](https://github.com/mayocream/koharu/commit/686d7103c7ed0e703141e5713f08149d29c188ce))
+- Add workflow to summarize new issues with AI - ([ce9d4c2](https://github.com/mayocream/koharu/commit/ce9d4c289ed46b20f108f8cee1bafa182a21dc0c))
+- Enable Sentry only for production builds ([#397](https://github.com/mayocream/koharu/issues/397)) - ([bc38c49](https://github.com/mayocream/koharu/commit/bc38c49206f2256c69bd52831915da568f5fbb65))
+- Update CODEOWNERS - ([b6972d2](https://github.com/mayocream/koharu/commit/b6972d2becf534f784e9b6565c5bf61fa5a66d95))
+
+## New Contributors ❤️
+
+* @Pixlox made their first contribution in [#409](https://github.com/mayocream/koharu/pull/409)
+* @kidonng made their first contribution in [#418](https://github.com/mayocream/koharu/pull/418)
+* @apiweb made their first contribution in [#393](https://github.com/mayocream/koharu/pull/393)
+* @Duvet13d made their first contribution in [#361](https://github.com/mayocream/koharu/pull/361)
+* @hotball made their first contribution in [#377](https://github.com/mayocream/koharu/pull/377)
+* @SirEdvin made their first contribution in [#328](https://github.com/mayocream/koharu/pull/328)
+
 ## [0.43.2](https://github.com/mayocream/koharu/compare/0.43.1..0.43.2) - 2026-04-06
 
 ### ⛰️  Features
@@ -137,7 +194,7 @@
 ## New Contributors ❤️
 
 * @gabrieljcodes made their first contribution in [#317](https://github.com/mayocream/koharu/pull/317)
-* @DevNergis made their first contribution in [#316](https://github.com/mayocream/koharu/pull/316)
+* @DevNergis made their first contribution
 * @toufudealer made their first contribution in [#315](https://github.com/mayocream/koharu/pull/315)
 
 ## [0.41.4](https://github.com/mayocream/koharu/compare/0.41.3..0.41.4) - 2026-03-30
