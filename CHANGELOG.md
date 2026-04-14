@@ -1,3 +1,10 @@
+## [0.44.2](https://github.com/mayocream/koharu/compare/0.44.1..0.44.2) - 2026-04-14
+
+### 🐛 Bug Fixes
+
+- Upgrade zluda to v6-preview.64 - ([23d97e5](https://github.com/mayocream/koharu/commit/23d97e552fb9d460ceb0d772c7823518efb36eef))
+
+
 ## [0.44.1](https://github.com/mayocream/koharu/compare/0.44.0..0.44.1) - 2026-04-14
 
 ### 🐛 Bug Fixes
