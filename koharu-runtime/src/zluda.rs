@@ -5,6 +5,9 @@ const RELEASE_TAG: &str = "v6-preview.64";
 #[cfg(any(target_os = "windows", test))]
 const ZLUDA_ASSET_NAME: &str = "zluda-windows-8251f1e.zip";
 #[cfg(any(target_os = "windows", test))]
+// Bump this when extraction behavior changes but the upstream asset name stays the same.
+const ZLUDA_EXTRACT_REVISION: u32 = 3;
+#[cfg(any(target_os = "windows", test))]
 const ZLUDA_DLLS: &[&str] = &[
     "nvcudart_hybrid64.dll",
     "nvcuda.dll",
@@ -83,7 +86,7 @@ mod platform {
     async fn install_if_needed(runtime: &Runtime, install_dir: &Path) -> Result<()> {
         let source_id = source_id();
         let install = InstallState::new(install_dir, &source_id);
-        if install.is_current() {
+        if install.is_current() && ZLUDA_DLLS.iter().all(|dll| install_dir.join(dll).exists()) {
             return Ok(());
         }
 
@@ -152,7 +155,7 @@ pub(crate) use platform::{package_enabled, package_prepare, package_present};
 
 #[cfg(any(target_os = "windows", test))]
 fn source_id() -> String {
-    format!("zluda;tag={RELEASE_TAG};asset={ZLUDA_ASSET_NAME}")
+    format!("zluda;tag={RELEASE_TAG};asset={ZLUDA_ASSET_NAME};extract={ZLUDA_EXTRACT_REVISION}")
 }
 
 crate::declare_native_package!(
