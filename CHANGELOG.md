@@ -1,3 +1,14 @@
+## [0.44.5](https://github.com/mayocream/koharu/compare/0.44.4..0.44.5) - 2026-04-15
+
+### ⛰️  Features
+
+- Portable mode ([#415](https://github.com/mayocream/koharu/issues/415)) - ([332f55b](https://github.com/mayocream/koharu/commit/332f55b78d7a941c52c2e424b9ac1f4b58a52c76))
+
+### 📚 Documentation
+
+- Runtime & model downloads - ([0a913e9](https://github.com/mayocream/koharu/commit/0a913e99ed32e3a585e0511d66b2aaee852811bf))
+
+
 ## [0.44.4](https://github.com/mayocream/koharu/compare/0.44.3..0.44.4) - 2026-04-15
 
 ### 🐛 Bug Fixes
