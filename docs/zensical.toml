@@ -17,6 +17,7 @@ nav = [
   {"How-To Guides" = [
     "how-to/index.md",
     "how-to/install-koharu.md",
+    "how-to/runtime-and-model-downloads.md",
     "how-to/contributing.md",
     "how-to/run-gui-headless-and-mcp.md",
     "how-to/configure-mcp-clients.md",

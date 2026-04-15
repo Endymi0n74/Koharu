@@ -72,6 +72,8 @@ Koharu 首次使用时需要联网下载：
 
 如果下载持续失败，先换一条网络测试，能很快区分是本机问题还是上游可达性问题。
 
+如果你想看更详细的运行时与模型下载路径说明，以及针对 Hugging Face、GitHub 和 PyPI 的浏览器与 `curl` 检查步骤，请看[运行时与模型下载](runtime-and-model-downloads.md)。
+
 ## 明明有 NVIDIA GPU，但 Koharu 还是回退到 CPU
 
 当 Koharu 无法确认你的驱动支持 CUDA 13.1 时，这就是预期行为。

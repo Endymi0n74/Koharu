@@ -72,6 +72,8 @@ What to check:
 
 If downloads keep failing, test on a different network first. That is the fastest way to separate a machine-local problem from an upstream reachability issue.
 
+For a deeper explanation of Koharu's runtime and model download paths, plus browser and `curl` checks for Hugging Face, GitHub, and PyPI, see [Runtime and Model Downloads](runtime-and-model-downloads.md).
+
 ## Koharu falls back to CPU even though you have an NVIDIA GPU
 
 This is expected when Koharu cannot confirm support for CUDA 13.1.
