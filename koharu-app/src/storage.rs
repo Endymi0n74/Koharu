@@ -262,7 +262,7 @@ impl Storage {
         project.pages.sort_by(|a, b| {
             a.order
                 .cmp(&b.order)
-                .then_with(|| a.name.cmp(&b.name))
+                .then_with(|| natord::compare(&a.name, &b.name))
                 .then_with(|| a.id.cmp(&b.id))
         });
         self.persist(&project)
@@ -317,7 +317,7 @@ impl Storage {
         project.pages.sort_by(|a, b| {
             a.order
                 .cmp(&b.order)
-                .then_with(|| a.name.cmp(&b.name))
+                .then_with(|| natord::compare(&a.name, &b.name))
                 .then_with(|| a.id.cmp(&b.id))
         });
         self.persist(&project)?;
@@ -351,7 +351,7 @@ fn list_documents(project: &Project) -> Vec<DocumentSummary> {
     entries.sort_by(|a, b| {
         a.order
             .cmp(&b.order)
-            .then_with(|| a.name.cmp(&b.name))
+            .then_with(|| natord::compare(&a.name, &b.name))
             .then_with(|| a.id.cmp(&b.id))
     });
     entries
@@ -389,10 +389,7 @@ fn assign_missing_orders(pages: &mut [Document], start: u32) {
         .map(|(i, _)| i)
         .collect();
     zero_indices.sort_by(|&a, &b| {
-        pages[a]
-            .name
-            .cmp(&pages[b].name)
-            .then_with(|| pages[a].id.cmp(&pages[b].id))
+        natord::compare(&pages[a].name, &pages[b].name).then_with(|| pages[a].id.cmp(&pages[b].id))
     });
     for (offset, idx) in zero_indices.into_iter().enumerate() {
         pages[idx].order = start + offset as u32;
@@ -426,6 +423,19 @@ mod tests {
         assert_eq!(pages.iter().find(|p| p.name == "alpha").unwrap().order, 1);
         assert_eq!(pages.iter().find(|p| p.name == "beta").unwrap().order, 2);
         assert_eq!(pages.iter().find(|p| p.name == "gamma").unwrap().order, 3);
+    }
+
+    #[test]
+    fn assign_missing_orders_natural_sorts_numeric_names() {
+        let mut pages = vec![
+            make_page("10", "10", 0),
+            make_page("1", "1", 0),
+            make_page("2", "2", 0),
+        ];
+        assign_missing_orders(&mut pages, 1);
+        assert_eq!(pages.iter().find(|p| p.name == "1").unwrap().order, 1);
+        assert_eq!(pages.iter().find(|p| p.name == "2").unwrap().order, 2);
+        assert_eq!(pages.iter().find(|p| p.name == "10").unwrap().order, 3);
     }
 
     #[test]
@@ -478,6 +488,23 @@ mod tests {
         let result = list_documents(&project);
         assert_eq!(result[0].name, "alpha");
         assert_eq!(result[1].name, "beta");
+    }
+
+    #[test]
+    fn list_documents_natural_sorts_numeric_and_mixed_numeric_names_on_ties() {
+        let project = Project {
+            name: "test".to_string(),
+            pages: vec![
+                make_page("a", "10", 1),
+                make_page("b", "2", 1),
+                make_page("c", "1", 1),
+                make_page("d", "page 10", 1),
+                make_page("e", "page 2", 1),
+            ],
+        };
+        let result = list_documents(&project);
+        let names: Vec<&str> = result.iter().map(|d| d.name.as_str()).collect();
+        assert_eq!(names, ["1", "2", "10", "page 2", "page 10"]);
     }
 
     // ── reorder_pages ───────────────────────────────────────────────
