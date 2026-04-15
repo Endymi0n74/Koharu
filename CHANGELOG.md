@@ -1,3 +1,10 @@
+## [0.44.4](https://github.com/mayocream/koharu/compare/0.44.3..0.44.4) - 2026-04-15
+
+### 🐛 Bug Fixes
+
+- Resolve incorrect ZLUDA DLLs usage ([#442](https://github.com/mayocream/koharu/issues/442)) ([#458](https://github.com/mayocream/koharu/issues/458)) - ([63bf6c1](https://github.com/mayocream/koharu/commit/63bf6c1c6c5844ac4bfc2e01a24546a870abd1b0))
+
+
 ## [0.44.3](https://github.com/mayocream/koharu/compare/0.44.2..0.44.3) - 2026-04-15
 
 ### 🐛 Bug Fixes
