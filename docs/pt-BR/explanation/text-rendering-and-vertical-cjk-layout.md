@@ -1,11 +1,11 @@
 ---
 title: Renderização de Texto e Layout Vertical CJK
-description: Como o renderer de texto do Koharu funciona, por que a renderização de texto é difícil e o que a implementação atual faz para o layout vertical CJK de mangá.
+description: Como o renderizador de texto do Koharu funciona, por que a renderização de texto é difícil e o que a implementação atual faz para o layout vertical CJK de mangá.
 ---
 
 # Renderização de Texto e Layout Vertical CJK
 
-A renderização de texto é uma das partes mais difíceis de um tradutor de mangá. Detection, OCR e inpainting decidem o que deve acontecer com a página, mas o renderer decide se o resultado ainda se lê como uma página de mangá finalizada em vez de uma sobreposição de debug.
+A renderização de texto é uma das partes mais difíceis de um tradutor de mangá. Detecção, OCR e inpainting decidem o que deve acontecer com a página, mas o renderizador decide se o resultado ainda se lê como uma página de mangá finalizada em vez de uma sobreposição de depuração.
 
 Uma referência externa útil é [Text Rendering Hates You](https://faultlore.com/blah/text-hates-you/) de Aria Desires. O ponto central se aplica diretamente ao Koharu: a renderização de texto não é um problema linear e limpo, e não existe uma resposta universalmente correta. Layout, shaping, fallback de fonte, rasterização e composição afetam uns aos outros.
 
@@ -13,7 +13,7 @@ O Koharu não tenta ser um mecanismo completo de publicação desktop. Ele busca
 
 ## Por que esse problema é difícil
 
-O artigo do Faultlore divide um renderer em um conjunto familiar de estágios:
+O artigo do Faultlore divide um renderizador em um conjunto familiar de estágios:
 
 ```mermaid
 flowchart LR
@@ -29,7 +29,7 @@ Essa divisão é útil, mas na prática os estágios não permanecem independent
 - você não pode fazer shaping de forma confiável sem conhecer a direção de escrita e as features OpenType
 - você não pode escolher uma única fonte para todo o texto porque as páginas de mangá misturam scripts, símbolos e emojis
 - você não pode simplesmente desenhar pontos de código um por um porque o texto real é moldado em runs de glifos
-- você não pode assumir que a caixa de um balão é a mesma coisa que os limites reais de tinta do renderer
+- você não pode assumir que a caixa de um balão é a mesma coisa que os limites reais de tinta do renderizador
 
 O texto vertical de mangá torna o problema ainda mais difícil:
 
@@ -40,7 +40,7 @@ O texto vertical de mangá torna o problema ainda mais difícil:
 
 ## O que o Koharu realmente faz
 
-No nível da implementação, o renderer vive no crate `koharu-renderer`, e a orquestração principal acontece em `koharu-app/src/renderer.rs`, `src/layout.rs`, `src/shape.rs`, `src/segment.rs` e `src/renderer.rs`.
+No nível da implementação, o renderizador vive no crate `koharu-renderer`, e a orquestração principal acontece em `koharu-app/src/renderer.rs`, `src/layout.rs`, `src/shape.rs`, `src/segment.rs` e `src/renderer.rs`.
 
 A pipeline para um `TextBlock` traduzido é aproximadamente:
 
@@ -74,12 +74,12 @@ O Koharu não força cegamente todo texto CJK para o modo vertical. A heurístic
 
 Isso significa que o layout vertical depende de ambos:
 
-- detection de script
+- detecção de script
 - a geometria da caixa de texto detectada ou ajustada pelo usuário
 
 Isso é simples de propósito. Ele corresponde a uma grande parcela do texto de balão de mangá e evita transformar cada legenda mista em texto vertical só porque contém um caractere japonês.
 
-Ainda é uma heurística, não um mecanismo geral de modo de escrita. Isso importa para casos extremos e é um dos limites atuais do renderer.
+Ainda é uma heurística, não um mecanismo geral de modo de escrita. Isso importa para casos extremos e é um dos limites atuais do renderizador.
 
 ## Como o CJK vertical é implementado
 
@@ -96,7 +96,7 @@ Quando o Koharu faz shaping de texto vertical, ele ativa as features OpenType:
 - `vert`
 - `vrt2`
 
-Essas são as alternativas verticais padrão expostas por fontes que realmente suportam escrita vertical. Essa é uma das principais razões pelas quais o renderer pode produzir um layout vertical CJK convincente em vez de parecer texto horizontal rotacionado.
+Essas são as alternativas verticais padrão expostas por fontes que realmente suportam escrita vertical. Essa é uma das principais razões pelas quais o renderizador pode produzir um layout vertical CJK convincente em vez de parecer texto horizontal rotacionado.
 
 Se a fonte tiver substituições apropriadas de glifos verticais, o Koharu pode usá-las. Se a fonte não tiver, o resultado degrada para o que a fonte fornecer.
 
@@ -127,7 +127,7 @@ Isso cobre casos como:
 - colchetes e marcas de canto
 - pontos médios e marcas similares
 
-Isso não é cosmético. É uma das razões pelas quais o caminho vertical atual parece mais intencional do que um renderer genérico de texto.
+Isso não é cosmético. É uma das razões pelas quais o caminho vertical atual parece mais intencional do que um renderizador genérico de texto.
 
 ### 5. Pontuação de ênfase é normalizada
 
@@ -145,7 +145,7 @@ Isso é importante porque:
 - pontuação vertical e formas alternativas de glifos podem ter extensões surpreendentes
 - glifos de contorno e de bitmap precisam pousar na mesma superfície final de forma confiável
 
-Na prática, essa passagem de limites é uma das razões pelas quais o renderer parece estável em vez de estar constantemente recortando a borda superior, inferior ou direita do texto.
+Na prática, essa passagem de limites é uma das razões pelas quais o renderizador parece estável em vez de estar constantemente recortando a borda superior, inferior ou direita do texto.
 
 ## Por que a saída é boa em balões de mangá
 
@@ -159,7 +159,7 @@ O Koharu acerta várias coisas de alto valor para o caso comum de mangá:
 - ele centraliza pontuação fullwidth no modo vertical
 - ele tem testes verificando especificamente a direção de fluxo vertical e a saída vertical em chinês e japonês
 
-Essa combinação é por que o renderer pode produzir texto vertical CJK que parece intencional e legível em vez de meramente "suportado".
+Essa combinação é por que o renderizador pode produzir texto vertical CJK que parece intencional e legível em vez de meramente "suportado".
 
 ## Quão perfeito é?
 
@@ -176,7 +176,7 @@ O Koharu é melhor entendido como:
 
 ## Limites atuais
 
-A base de código é bastante clara sobre onde o renderer ainda está incompleto.
+A base de código é bastante clara sobre onde o renderizador ainda está incompleto.
 
 ### O modo de escrita é heurístico
 
@@ -193,11 +193,11 @@ Isso funciona surpreendentemente bem para balões, mas ainda é uma heurística.
 
 ### O suporte da fonte importa muito
 
-As alternativas verticais só ficam tão boas quanto a fonte escolhida permite. Se a fonte do sistema não contiver formas verticais adequadas, o renderer não pode inventar uma fonte CJK profissional completa do zero.
+As alternativas verticais só ficam tão boas quanto a fonte escolhida permite. Se a fonte do sistema não contiver formas verticais adequadas, o renderizador não pode inventar uma fonte CJK profissional completa do zero.
 
 ### Sem features completas de engine de publicação
 
-O Koharu não está tentando fazer todas as features avançadas de texto que você esperaria de um sistema completo de composição. O renderer atual não é uma implementação completa de coisas como:
+O Koharu não está tentando fazer todas as features avançadas de texto que você esperaria de um sistema completo de composição. O renderizador atual não é uma implementação completa de coisas como:
 
 - anotação ruby
 - warichu e outras features avançadas de layout japonês
@@ -206,7 +206,7 @@ O Koharu não está tentando fazer todas as features avançadas de texto que voc
 
 ### O tamanho da tradução ainda muda a qualidade do layout
 
-Mesmo com um bom shaping, uma tradução pode simplesmente ser muito longa ou muito desajeitada para o balão disponível. O renderer pode encaixar e alinhar texto, mas nem sempre consegue transformar uma geometria de bloco ruim ou uma tradução excessivamente verbosa em uma letragem perfeita.
+Mesmo com um bom shaping, uma tradução pode simplesmente ser muito longa ou muito desajeitada para o balão disponível. O renderizador pode encaixar e alinhar texto, mas nem sempre consegue transformar uma geometria de bloco ruim ou uma tradução excessivamente verbosa em uma letragem perfeita.
 
 ## Por que o Koharu não apenas rotaciona o texto
 
@@ -222,12 +222,12 @@ Em vez disso, o Koharu empurra o tratamento vertical de volta para os estágios 
 
 ## Referência externa que vale a leitura
 
-[Text Rendering Hates You](https://faultlore.com/blah/text-hates-you/) é útil porque explica o problema do renderer de uma forma agnóstica à linguagem. O stack do Koharu é diferente de um engine de navegador, mas as mesmas lições centrais aparecem aqui:
+[Text Rendering Hates You](https://faultlore.com/blah/text-hates-you/) é útil porque explica o problema do renderizador de uma forma agnóstica à linguagem. O stack do Koharu é diferente de um engine de navegador, mas as mesmas lições centrais aparecem aqui:
 
 - shaping não é opcional
 - fontes de fallback são inevitáveis
 - layout e shaping dependem um do outro
 - renderização de texto "perfeita" é principalmente uma história que as pessoas contam antes de implementá-la
 
-Se você quer a versão curta: o renderer do Koharu é cuidadoso porque a renderização de texto é um problema de sistemas acoplados, não uma etapa final de pintura.
+Se você quer a versão curta: o renderizador do Koharu é cuidadoso porque a renderização de texto é um problema de sistemas acoplados, não uma etapa final de pintura.
 

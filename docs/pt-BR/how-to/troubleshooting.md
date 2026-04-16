@@ -8,7 +8,7 @@ Esta página cobre os problemas mais comuns do Koharu na implementação atual: 
 
 ## Antes de começar
 
-Ao fazer troubleshooting, identifique primeiro qual camada está falhando:
+Ao fazer diagnóstico de problemas, identifique primeiro qual camada está falhando:
 
 - inicialização da aplicação
 - downloads de runtime ou modelos
@@ -116,7 +116,7 @@ Use esta ordem:
 
 Se o export falhar porque não há camada renderizada ou inpainted, rode novamente o estágio que está faltando em vez de tentar exportar repetidamente.
 
-## Qualidade de detection ou OCR ruim em uma página
+## Qualidade de detecção ou OCR ruim em uma página
 
 Causas comuns:
 
@@ -124,7 +124,7 @@ Causas comuns:
 - recortes de página incomuns
 - tramas pesadas ou scans ruidosos
 - texto vertical misturado com arte difícil
-- blocos de texto mal colocados ou duplicados após o detection
+- blocos de texto mal colocados ou duplicados após a detecção
 
 Tente isto:
 
@@ -275,4 +275,4 @@ Nesse ponto, colete:
 - [Configurar Clientes MCP](configure-mcp-clients.md)
 - [Build a Partir do Código-Fonte](build-from-source.md)
 - [Referência da CLI](../reference/cli.md)
-- [Technical Deep Dive](../explanation/technical-deep-dive.md)
+- [Mergulho Técnico Profundo](../explanation/technical-deep-dive.md)

@@ -136,4 +136,4 @@ Isso permite manter múltiplos backends compatíveis configurados e alternar ent
 
 - [Modelos e Providers](../explanation/models-and-providers.md)
 - [Traduza Sua Primeira Página](../tutorials/translate-your-first-page.md)
-- [Troubleshooting](troubleshooting.md)
+- [Solução de problemas](troubleshooting.md)
