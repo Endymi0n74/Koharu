@@ -210,7 +210,9 @@ export function RenderControlsPanel() {
     ].filter((value): value is FontFaceInfo => !!value),
   )
   const fallbackFontFaces = fontCandidates.length > 0 ? fontCandidates : DEFAULT_FONT_FACES
-  const fallbackColor = firstBlock?.style?.color ?? DEFAULT_COLOR
+  const fallbackColor = firstBlock
+    ? resolveStyleColor(firstBlock.style, firstBlock, DEFAULT_COLOR)
+    : DEFAULT_COLOR
   const fontOptions = fontCandidates
   const currentFontCandidate =
     selectedBlock?.style?.fontFamilies?.[0] ??
@@ -223,7 +225,9 @@ export function RenderControlsPanel() {
   const currentFontFamilyName = currentFontFace?.familyName
   const currentEffect = normalizeEffect(selectedBlock?.style?.effect ?? renderEffect)
   const currentStroke = normalizeStroke(selectedBlock?.style?.stroke ?? renderStroke)
-  const currentColor = selectedBlock?.style?.color ?? (hasBlocks ? fallbackColor : DEFAULT_COLOR)
+  const currentColor = selectedBlock
+    ? resolveStyleColor(selectedBlock.style, selectedBlock, fallbackColor)
+    : fallbackColor
   const currentColorHex = colorToHex(currentColor)
   const currentStrokeColorHex = colorToHex(currentStroke.color)
   const currentStrokeWidth = currentStroke.widthPx ?? DEFAULT_STROKE_WIDTH
