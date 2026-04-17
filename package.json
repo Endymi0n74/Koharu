@@ -8,11 +8,9 @@
     "cargo": "bun run scripts/dev.ts cargo",
     "lint:ui": "bun run --filter ui lint",
     "format": "oxfmt ui package.json .oxfmtrc.json .vscode",
-    "format:check": "oxfmt --check ui package.json .oxfmtrc.json .vscode",
-    "test:e2e": "playwright test"
+    "format:check": "oxfmt --check ui package.json .oxfmtrc.json .vscode"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
     "@tauri-apps/cli": "^2.10.1",
     "git-cliff": "^2.12.0",
     "oxfmt": "^0.45.0"
