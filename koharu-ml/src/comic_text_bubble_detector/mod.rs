@@ -21,21 +21,21 @@ koharu_runtime::declare_hf_model_package!(
     id: "model:comic-text-bubble-detector:config",
     repo: "ogkalu/comic-text-and-bubble-detector",
     file: "config.json",
-    bootstrap: true,
+    bootstrap: false,
     order: 113,
 );
 koharu_runtime::declare_hf_model_package!(
     id: "model:comic-text-bubble-detector:preprocessor-config",
     repo: "ogkalu/comic-text-and-bubble-detector",
     file: "preprocessor_config.json",
-    bootstrap: true,
+    bootstrap: false,
     order: 114,
 );
 koharu_runtime::declare_hf_model_package!(
     id: "model:comic-text-bubble-detector:weights",
     repo: "ogkalu/comic-text-and-bubble-detector",
     file: "model.safetensors",
-    bootstrap: true,
+    bootstrap: false,
     order: 115,
 );
 

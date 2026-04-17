@@ -6,7 +6,6 @@
 import type { EngineCatalogEntry } from './engineCatalogEntry'
 
 export type GetEngineCatalog200 = {
-  bubbleDetectors: EngineCatalogEntry[]
   detectors: EngineCatalogEntry[]
   fontDetectors: EngineCatalogEntry[]
   inpainters: EngineCatalogEntry[]

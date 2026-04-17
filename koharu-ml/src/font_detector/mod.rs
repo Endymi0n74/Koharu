@@ -20,14 +20,14 @@ koharu_runtime::declare_hf_model_package!(
     id: "model:font-detector:weights",
     repo: "fffonion/yuzumarker-font-detection",
     file: "yuzumarker-font-detection.safetensors",
-    bootstrap: true,
+    bootstrap: false,
     order: 140,
 );
 koharu_runtime::declare_hf_model_package!(
     id: "model:font-detector:labels",
     repo: "fffonion/yuzumarker-font-detection",
     file: "font-labels-ex.json",
-    bootstrap: true,
+    bootstrap: false,
     order: 141,
 );
 

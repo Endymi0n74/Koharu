@@ -99,7 +99,6 @@
                         }
                       ],
                       "default": {
-                        "bubble_detector": "comic-text-bubble-detector",
                         "detector": "comic-text-bubble-detector",
                         "font_detector": "yuzumarker-font-detection",
                         "inpainter": "aot-inpainting",
@@ -171,7 +170,6 @@
                       }
                     ],
                     "default": {
-                      "bubble_detector": "comic-text-bubble-detector",
                       "detector": "comic-text-bubble-detector",
                       "font_detector": "yuzumarker-font-detection",
                       "inpainter": "aot-inpainting",
@@ -231,7 +229,6 @@
                         }
                       ],
                       "default": {
-                        "bubble_detector": "comic-text-bubble-detector",
                         "detector": "comic-text-bubble-detector",
                         "font_detector": "yuzumarker-font-detection",
                         "inpainter": "aot-inpainting",
@@ -1292,7 +1289,6 @@
                   "type": "object",
                   "required": [
                     "detectors",
-                    "bubbleDetectors",
                     "fontDetectors",
                     "segmenters",
                     "ocr",
@@ -1301,12 +1297,6 @@
                     "renderers"
                   ],
                   "properties": {
-                    "bubbleDetectors": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/EngineCatalogEntry"
-                      }
-                    },
                     "detectors": {
                       "type": "array",
                       "items": {
@@ -2562,10 +2552,6 @@
         "type": "object",
         "description": "Engine selection for each pipeline stage.\nValues are engine IDs (e.g. \"pp-doclayout-v3\", \"comic-text-detector\").\nEmpty string means use default.",
         "properties": {
-          "bubble_detector": {
-            "type": "string",
-            "default": "comic-text-bubble-detector"
-          },
           "detector": {
             "type": "string",
             "default": "comic-text-bubble-detector"

@@ -337,7 +337,6 @@
     "engines": "Motorlar",
     "enginesDescription": "Her işlem hattı aşaması için kullanılacak ML motorunu seçin.",
     "detector": "Algılayıcı",
-    "bubbleDetector": "Bubble Detector",
     "fontDetector": "Font Detector",
     "segmenter": "Bölümleyici",
     "ocr": "OCR",

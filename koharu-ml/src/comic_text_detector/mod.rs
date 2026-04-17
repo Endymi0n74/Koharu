@@ -35,21 +35,21 @@ koharu_runtime::declare_hf_model_package!(
     id: "model:comic-text-detector:yolo-v5",
     repo: HF_REPO,
     file: "yolo-v5.safetensors",
-    bootstrap: true,
+    bootstrap: false,
     order: 110,
 );
 koharu_runtime::declare_hf_model_package!(
     id: "model:comic-text-detector:unet",
     repo: HF_REPO,
     file: "unet.safetensors",
-    bootstrap: true,
+    bootstrap: false,
     order: 111,
 );
 koharu_runtime::declare_hf_model_package!(
     id: "model:comic-text-detector:dbnet",
     repo: HF_REPO,
     file: "dbnet.safetensors",
-    bootstrap: true,
+    bootstrap: false,
     order: 112,
 );
 

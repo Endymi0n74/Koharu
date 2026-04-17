@@ -435,7 +435,6 @@ pub struct EngineCatalogEntry {
 #[serde(rename_all = "camelCase")]
 pub struct EngineCatalog {
     pub detectors: Vec<EngineCatalogEntry>,
-    pub bubble_detectors: Vec<EngineCatalogEntry>,
     pub font_detectors: Vec<EngineCatalogEntry>,
     pub segmenters: Vec<EngineCatalogEntry>,
     pub ocr: Vec<EngineCatalogEntry>,

@@ -254,10 +254,6 @@ pub fn catalog() -> koharu_core::EngineCatalog {
             .iter()
             .map(entry)
             .collect(),
-        bubble_detectors: Registry::providers(Artifact::Bubbles)
-            .iter()
-            .map(entry)
-            .collect(),
         font_detectors: Registry::providers(Artifact::FontPredictions)
             .iter()
             .map(entry)
@@ -290,7 +286,6 @@ pub fn catalog() -> koharu_core::EngineCatalog {
 pub fn resolve_pipeline(config: &crate::config::PipelineConfig) -> Vec<&'static str> {
     let candidates = [
         &config.detector,
-        &config.bubble_detector,
         &config.font_detector,
         &config.segmenter,
         &config.ocr,

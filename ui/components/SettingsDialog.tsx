@@ -152,7 +152,7 @@ export function SettingsDialog({
   useEffect(() => {
     if (!open || !isTauri()) return
     void updater.checkForUpdates()
-  }, [open])
+  }, [open, updater])
 
   useEffect(() => {
     if (!appConfig?.data) return
@@ -444,11 +444,6 @@ function EnginesPane({
       label: t('settings.detector'),
       key: 'detector' as const,
       engines: catalog.detectors,
-    },
-    {
-      label: t('settings.bubbleDetector'),
-      key: 'bubble_detector' as const,
-      engines: catalog.bubbleDetectors,
     },
     {
       label: t('settings.fontDetector'),
