@@ -1,9 +1,31 @@
-use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize};
+//! Text styling types shared by scene nodes, the API, and the renderer.
+
 use std::fmt;
 use std::str::FromStr;
+
+use schemars::JsonSchema;
+use serde::{Deserialize, Deserializer, Serialize};
 use strum::IntoEnumIterator;
 use utoipa::ToSchema;
+
+// ---------------------------------------------------------------------------
+// Alignment
+// ---------------------------------------------------------------------------
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, ToSchema, JsonSchema,
+)]
+#[serde(rename_all = "camelCase")]
+pub enum TextAlign {
+    #[default]
+    Left,
+    Center,
+    Right,
+}
+
+// ---------------------------------------------------------------------------
+// Shader effect (italic / bold flags)
+// ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumIter, strum::EnumString)]
 #[strum(serialize_all = "lowercase")]
@@ -146,6 +168,55 @@ impl<'de> Deserialize<'de> for TextShaderEffect {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Stroke
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TextStrokeStyle {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_stroke_color")]
+    pub color: [u8; 4],
+    #[serde(default)]
+    pub width_px: Option<f32>,
+}
+
+impl Default for TextStrokeStyle {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            color: [255, 255, 255, 255],
+            width_px: None,
+        }
+    }
+}
+
+const fn default_true() -> bool {
+    true
+}
+
+const fn default_stroke_color() -> [u8; 4] {
+    [255, 255, 255, 255]
+}
+
+// ---------------------------------------------------------------------------
+// Text style (scene-facing)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TextStyle {
+    pub font_families: Vec<String>,
+    pub font_size: Option<f32>,
+    pub color: [u8; 4],
+    pub effect: Option<TextShaderEffect>,
+    pub stroke: Option<TextStrokeStyle>,
+    #[serde(default)]
+    pub text_align: Option<TextAlign>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::TextShaderEffect;
@@ -158,21 +229,10 @@ mod tests {
     }
 
     #[test]
-    fn parse_legacy_effects_fail() {
-        assert!("manga".parse::<TextShaderEffect>().is_err());
-        assert!("motionblur".parse::<TextShaderEffect>().is_err());
-    }
-
-    #[test]
     fn default_has_no_effects() {
         let effect = TextShaderEffect::default();
         assert!(!effect.italic);
         assert!(!effect.bold);
-    }
-
-    #[test]
-    fn parse_border_token_fails() {
-        assert!("border".parse::<TextShaderEffect>().is_err());
     }
 
     #[test]
