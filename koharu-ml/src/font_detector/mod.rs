@@ -31,7 +31,7 @@ koharu_runtime::declare_hf_model_package!(
     order: 141,
 );
 
-pub use koharu_core::{FontPrediction, NamedFontPrediction, TextDirection, TopFont};
+pub use crate::types::{FontPrediction, NamedFontPrediction, TextDirection, TopFont};
 
 pub struct FontDetector {
     model: models::Model,

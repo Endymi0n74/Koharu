@@ -9,11 +9,10 @@ use anyhow::{Context, bail};
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_transformers::object_detection::{Bbox, non_maximum_suppression};
 use image::{DynamicImage, GenericImageView, GrayImage};
-use koharu_core::TextBlock;
 use koharu_runtime::RuntimeManager;
 use tracing::instrument;
 
-use crate::{device, loading};
+use crate::{device, loading, types::TextRegion};
 
 pub use postprocess::{
     ComicTextDetection, Quad, crop_text_block_bbox, extract_text_block_regions,
@@ -353,7 +352,7 @@ fn tensor_channel_to_gray_resized(
     ))
 }
 
-fn bboxes_to_text_blocks(mut bboxes: Vec<Bbox<usize>>) -> Vec<TextBlock> {
+fn bboxes_to_text_blocks(mut bboxes: Vec<Bbox<usize>>) -> Vec<TextRegion> {
     bboxes.sort_unstable_by(|a, b| {
         let ay = a.ymin + (a.ymax - a.ymin) * 0.5;
         let by = b.ymin + (b.ymax - b.ymin) * 0.5;
@@ -362,7 +361,7 @@ fn bboxes_to_text_blocks(mut bboxes: Vec<Bbox<usize>>) -> Vec<TextBlock> {
 
     bboxes
         .into_iter()
-        .map(|bbox| TextBlock {
+        .map(|bbox| TextRegion {
             x: bbox.xmin,
             y: bbox.ymin,
             width: bbox.xmax - bbox.xmin,
