@@ -1,3 +1,10 @@
+## [0.45.1](https://github.com/mayocream/koharu/compare/0.45.0..0.45.1) - 2026-04-19
+
+### 🐛 Bug Fixes
+
+- Broken export - ([08d32e5](https://github.com/mayocream/koharu/commit/08d32e511c6543269c389ea1ae95c651933abded))
+
+
 ## [0.45.0](https://github.com/mayocream/koharu/compare/0.44.6..0.45.0) - 2026-04-19
 
 ### ⛰️  Features
