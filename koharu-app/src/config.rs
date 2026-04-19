@@ -7,6 +7,8 @@ use koharu_runtime::default_app_data_root;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use utoipa::ToSchema;
 
+use crate::pipeline::{Artifact, Registry};
+
 const CONFIG_FILE: &str = "config.toml";
 const REDACTED: &str = "[REDACTED]";
 
@@ -157,6 +159,10 @@ pub fn load() -> Result<AppConfig> {
         config
     };
 
+    if validate_pipeline_config(&mut config) {
+        save(&config)?;
+    }
+
     // Populate api_key from the keyring for every known provider.
     for provider in &mut config.providers {
         if let Ok(Some(key)) = get_saved_api_key(&provider.id)
@@ -249,6 +255,96 @@ pub fn apply_patch(config: &mut AppConfig, patch: koharu_core::ConfigPatch) {
         }
         config.providers = new_providers;
     }
+
+    validate_pipeline_config(config);
+}
+
+fn validate_pipeline_config(config: &mut AppConfig) -> bool {
+    let defaults = PipelineConfig::default();
+    let mut changed = false;
+
+    changed |= validate_engine_name(
+        "detector",
+        &mut config.pipeline.detector,
+        &defaults.detector,
+        Artifact::TextBoxes,
+    );
+    changed |= validate_engine_name(
+        "font_detector",
+        &mut config.pipeline.font_detector,
+        &defaults.font_detector,
+        Artifact::FontPredictions,
+    );
+    changed |= validate_engine_name(
+        "segmenter",
+        &mut config.pipeline.segmenter,
+        &defaults.segmenter,
+        Artifact::SegmentMask,
+    );
+    changed |= validate_engine_name(
+        "bubble_segmenter",
+        &mut config.pipeline.bubble_segmenter,
+        &defaults.bubble_segmenter,
+        Artifact::BubbleMask,
+    );
+    changed |= validate_engine_name(
+        "ocr",
+        &mut config.pipeline.ocr,
+        &defaults.ocr,
+        Artifact::OcrText,
+    );
+    changed |= validate_engine_name(
+        "translator",
+        &mut config.pipeline.translator,
+        &defaults.translator,
+        Artifact::Translations,
+    );
+    changed |= validate_engine_name(
+        "inpainter",
+        &mut config.pipeline.inpainter,
+        &defaults.inpainter,
+        Artifact::Inpainted,
+    );
+    changed |= validate_engine_name(
+        "renderer",
+        &mut config.pipeline.renderer,
+        &defaults.renderer,
+        Artifact::FinalRender,
+    );
+
+    changed
+}
+
+fn validate_engine_name(
+    field: &'static str,
+    configured: &mut String,
+    default: &str,
+    artifact: Artifact,
+) -> bool {
+    let trimmed = configured.trim();
+    let is_valid = !trimmed.is_empty()
+        && Registry::providers(artifact)
+            .into_iter()
+            .any(|engine| engine.id == trimmed);
+
+    if is_valid {
+        if trimmed != configured {
+            *configured = trimmed.to_string();
+            return true;
+        }
+        return false;
+    }
+
+    if trimmed != default {
+        tracing::warn!(
+            field,
+            configured_engine = configured.as_str(),
+            default_engine = default,
+            "invalid pipeline engine in config; resetting to default"
+        );
+    }
+    *configured = default.to_string();
+    true
 }
 
 // ---------------------------------------------------------------------------
@@ -277,6 +373,7 @@ pub fn sync_secrets(config: &AppConfig) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use koharu_core::{ConfigPatch, PipelineConfigPatch};
 
     #[test]
     fn old_config_without_providers_still_loads() {
@@ -315,5 +412,37 @@ mod tests {
         let path = config_path().unwrap();
         assert_eq!(path.file_name(), Some("config.toml"));
         assert!(path.as_str().contains("Koharu"));
+    }
+
+    #[test]
+    fn invalid_pipeline_engines_reset_to_defaults() {
+        let mut config = AppConfig::default();
+        config.pipeline.detector = "bad-detector".to_string();
+        config.pipeline.renderer = "bad-renderer".to_string();
+        config.pipeline.ocr = String::new();
+
+        let changed = validate_pipeline_config(&mut config);
+
+        assert!(changed);
+        assert_eq!(config.pipeline.detector, PipelineConfig::default().detector);
+        assert_eq!(config.pipeline.renderer, PipelineConfig::default().renderer);
+        assert_eq!(config.pipeline.ocr, PipelineConfig::default().ocr);
+    }
+
+    #[test]
+    fn apply_patch_normalizes_invalid_pipeline_engine_names() {
+        let mut config = AppConfig::default();
+        apply_patch(
+            &mut config,
+            ConfigPatch {
+                pipeline: Some(PipelineConfigPatch {
+                    renderer: Some("not-a-renderer".to_string()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(config.pipeline.renderer, PipelineConfig::default().renderer);
     }
 }
