@@ -36,9 +36,11 @@ pub fn router() -> OpenApiRouter<AppState> {
 
 /// Build the current registry snapshot.
 fn snapshot_from(app: &AppState) -> SnapshotEvent {
-    let jobs: Vec<JobSummary> = app.jobs.iter().map(|e| e.value().clone()).collect();
+    let jobs_state = app.jobs();
+    let downloads_state = app.downloads();
+    let jobs: Vec<JobSummary> = jobs_state.iter().map(|e| e.value().clone()).collect();
     let downloads: Vec<DownloadProgress> =
-        app.downloads.iter().map(|e| e.value().clone()).collect();
+        downloads_state.iter().map(|e| e.value().clone()).collect();
     SnapshotEvent { jobs, downloads }
 }
 
@@ -56,7 +58,8 @@ async fn events(
     headers: HeaderMap,
 ) -> Sse<impl Stream<Item = Result<Event, axum::Error>>> {
     let resume_from = last_event_id(&headers);
-    let mut rx = BroadcastStream::new(app.bus.subscribe());
+    let bus = app.bus();
+    let mut rx = BroadcastStream::new(bus.subscribe());
     let app_for_stream = app.clone();
 
     let stream = try_stream! {
@@ -66,10 +69,10 @@ async fn events(
                 // in the ring buffer. If there's a gap (the buffer no longer
                 // contains `last_id + 1`), emit a snapshot first so the client
                 // can rebuild state — then stream whatever tail we still have.
-                let replay = app.bus.replay_since(last_id);
+                let replay = bus.replay_since(last_id);
                 let has_gap = match replay.first() {
                     Some(first) => first.seq > last_id + 1,
-                    None => app.bus.latest_seq().map(|s| s > last_id).unwrap_or(false),
+                    None => bus.latest_seq().map(|s| s > last_id).unwrap_or(false),
                 };
                 if has_gap {
                     yield snapshot_frame(&app)?;

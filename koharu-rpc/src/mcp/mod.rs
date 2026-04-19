@@ -30,15 +30,23 @@ use serde::{Deserialize, Serialize};
 use std::sync::atomic::AtomicBool;
 use uuid::Uuid;
 
+use crate::AppState;
+
 /// Server state handed to each tool call. Carries the shared `App`.
 #[derive(Clone)]
 pub struct KoharuServer {
-    app: Arc<App>,
+    state: AppState,
 }
 
 impl KoharuServer {
-    pub fn new(app: Arc<App>) -> Self {
-        Self { app }
+    pub fn new(state: AppState) -> Self {
+        Self { state }
+    }
+
+    fn app(&self) -> Result<Arc<App>, rmcp::ErrorData> {
+        self.state
+            .app()
+            .ok_or_else(|| rmcp::ErrorData::internal_error("app is still bootstrapping", None))
     }
 }
 
@@ -107,20 +115,23 @@ impl KoharuServer {
         &self,
         Parameters(input): Parameters<ApplyInput>,
     ) -> Result<JsonOutput<ApplyOutput>, rmcp::ErrorData> {
+        let app = self.app()?;
         let op: Op = serde_json::from_value(input.op).map_err(err)?;
-        let epoch = self.app.apply(op).map_err(err)?;
+        let epoch = app.apply(op).map_err(err)?;
         Ok(JsonOutput(ApplyOutput { epoch }))
     }
 
     #[tool(name = "koharu.undo", description = "Undo the most recent op")]
     async fn undo(&self) -> Result<JsonOutput<UndoOutput>, rmcp::ErrorData> {
-        let epoch = self.app.undo().map_err(err)?;
+        let app = self.app()?;
+        let epoch = app.undo().map_err(err)?;
         Ok(JsonOutput(UndoOutput { epoch }))
     }
 
     #[tool(name = "koharu.redo", description = "Redo the most recent undo")]
     async fn redo(&self) -> Result<JsonOutput<UndoOutput>, rmcp::ErrorData> {
-        let epoch = self.app.redo().map_err(err)?;
+        let app = self.app()?;
+        let epoch = app.redo().map_err(err)?;
         Ok(JsonOutput(UndoOutput { epoch }))
     }
 
@@ -132,9 +143,9 @@ impl KoharuServer {
         &self,
         Parameters(input): Parameters<OpenProjectInput>,
     ) -> Result<JsonOutput<OpenProjectOutput>, rmcp::ErrorData> {
+        let app = self.app()?;
         let path = Utf8PathBuf::from(input.path);
-        let session = self
-            .app
+        let session = app
             .open_project(path, input.create_name)
             .await
             .map_err(err)?;
@@ -149,7 +160,8 @@ impl KoharuServer {
         description = "Close the active project"
     )]
     async fn close_project(&self) -> Result<JsonOutput<serde_json::Value>, rmcp::ErrorData> {
-        self.app.close_project().await.map_err(err)?;
+        let app = self.app()?;
+        app.close_project().await.map_err(err)?;
         Ok(JsonOutput(serde_json::Value::Null))
     }
 
@@ -161,8 +173,8 @@ impl KoharuServer {
         &self,
         Parameters(input): Parameters<StartPipelineInput>,
     ) -> Result<JsonOutput<StartPipelineOutput>, rmcp::ErrorData> {
-        let session = self
-            .app
+        let app = self.app()?;
+        let session = app
             .current_session()
             .ok_or_else(|| rmcp::ErrorData::invalid_request("no project open", None))?;
         let spec = PipelineSpec {
@@ -180,11 +192,11 @@ impl KoharuServer {
         };
         let job_id = Uuid::new_v4().to_string();
         let cancel = Arc::new(AtomicBool::new(false));
-        let registry = self.app.registry.clone();
-        let runtime = self.app.runtime.clone();
-        let llm = self.app.llm.clone();
-        let renderer = self.app.renderer.clone();
-        let cpu = self.app.cpu_only();
+        let registry = app.registry.clone();
+        let runtime = app.runtime.clone();
+        let llm = app.llm.clone();
+        let renderer = app.renderer.clone();
+        let cpu = app.cpu_only();
         tokio::spawn(async move {
             let _ = koharu_app::pipeline::run(
                 session, registry, runtime, cpu, llm, renderer, spec, cancel, None,
@@ -217,11 +229,11 @@ impl ServerHandler for KoharuServer {
 // ---------------------------------------------------------------------------
 
 /// Mount the MCP endpoint at `/mcp` on `router`.
-pub fn mount(router: axum::Router, app: Arc<App>) -> axum::Router {
+pub fn mount(router: axum::Router, state: AppState) -> axum::Router {
     let manager = Arc::new(LocalSessionManager::default());
     let factory = {
-        let app = app.clone();
-        move || -> Result<KoharuServer, std::io::Error> { Ok(KoharuServer::new(app.clone())) }
+        let state = state.clone();
+        move || -> Result<KoharuServer, std::io::Error> { Ok(KoharuServer::new(state.clone())) }
     };
     let service =
         StreamableHttpService::new(factory, manager, StreamableHttpServerConfig::default());

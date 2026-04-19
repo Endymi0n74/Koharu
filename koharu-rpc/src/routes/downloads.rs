@@ -37,7 +37,8 @@ pub struct ListDownloadsResponse {
     responses((status = 200, body = ListDownloadsResponse))
 )]
 async fn list_downloads(State(app): State<AppState>) -> ApiResult<Json<ListDownloadsResponse>> {
-    let downloads = app.downloads.iter().map(|e| e.value().clone()).collect();
+    let downloads_state = app.downloads();
+    let downloads = downloads_state.iter().map(|e| e.value().clone()).collect();
     Ok(Json(ListDownloadsResponse { downloads }))
 }
 
@@ -72,7 +73,7 @@ async fn start_download(
         .all()
         .find(|p| p.id == req.model_id)
         .ok_or_else(|| ApiError::not_found(format!("unknown package {}", req.model_id)))?;
-    let runtime = app.runtime.clone();
+    let runtime = app.runtime();
     tokio::spawn(async move {
         if let Err(e) = (pkg.ensure)(&runtime).await {
             tracing::error!(package = pkg.id, "download failed: {e:#}");

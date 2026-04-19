@@ -11,6 +11,7 @@
 
 pub mod api;
 pub mod binary;
+pub mod bootstrap;
 pub mod error;
 pub mod events;
 pub mod mcp;
@@ -21,7 +22,8 @@ pub mod server;
 use std::sync::Arc;
 
 pub use api::{ApiState, api, router};
+pub use bootstrap::BootstrapManager;
 pub use error::{ApiError, ApiResult};
 
 /// Concrete state threaded through every `State<ApiState>` extractor.
-pub type AppState = Arc<koharu_app::App>;
+pub type AppState = Arc<BootstrapManager>;

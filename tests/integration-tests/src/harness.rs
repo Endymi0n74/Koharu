@@ -17,7 +17,7 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use koharu_app::{App, AppConfig};
 use koharu_client::apis::configuration::Configuration;
-use koharu_rpc::server;
+use koharu_rpc::{BootstrapManager, server};
 use koharu_runtime::{ComputePolicy, RuntimeHttpConfig, RuntimeManager};
 use tokio::net::TcpListener;
 use tokio::sync::OnceCell;
@@ -93,15 +93,26 @@ impl TestApp {
 
         // Shared runtime (prepared once per process).
         let runtime = shared_runtime().await?;
-        let app = Arc::new(App::new(config, runtime, true, "test")?);
+        let state = BootstrapManager::new(runtime.clone());
+        state.spawn_download_forwarder();
+        let app = Arc::new(App::new_with_shared_state(
+            config,
+            runtime,
+            true,
+            state.shared_state(),
+            "test",
+        )?);
         app.spawn_llm_forwarder();
+        state
+            .set_app(app.clone())
+            .map_err(|_| anyhow::anyhow!("test app already initialized"))?;
 
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let addr = listener.local_addr()?;
         let base_url = format!("http://{addr}/api/v1");
         let server = tokio::spawn({
-            let app = app.clone();
-            async move { server::serve_with_listener(listener, app).await }
+            let state = state.clone();
+            async move { server::serve_with_listener(listener, state).await }
         });
 
         let client_config = Configuration {

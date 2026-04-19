@@ -6,7 +6,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use clap::Parser;
 use koharu_app::{App, AppConfig, config as app_config};
-use koharu_rpc::server;
+use koharu_rpc::{BootstrapManager, server};
 use koharu_runtime::{ComputePolicy, RuntimeHttpConfig, RuntimeManager};
 use tokio::net::TcpListener;
 use tracing_subscriber::layer::SubscriberExt;
@@ -14,10 +14,35 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 use crate::cli::Cli;
 
+async fn bootstrap_app(
+    state: Arc<BootstrapManager>,
+    config: AppConfig,
+    cpu_only: bool,
+) -> Result<()> {
+    let runtime = state.runtime();
+    runtime
+        .prepare()
+        .await
+        .context("failed to prepare runtime")?;
+
+    let app = Arc::new(App::new_with_shared_state(
+        config,
+        runtime,
+        cpu_only,
+        state.shared_state(),
+        crate::version::current(),
+    )?);
+    koharu_llm::suppress_native_logs();
+    app.spawn_llm_forwarder();
+    state
+        .set_app(app)
+        .map_err(|_| anyhow::anyhow!("app already initialized"))?;
+    Ok(())
+}
+
 pub async fn run() -> Result<()> {
     let cli = Cli::parse();
 
-    // ── Platform & logging ───────────────────────────────────────────
     #[cfg(target_os = "windows")]
     {
         let attached = crate::windows::attach_parent_console();
@@ -41,7 +66,6 @@ pub async fn run() -> Result<()> {
         koharu_llm::providers::disable_keyring();
     }
 
-    // ── Config ───────────────────────────────────────────────────────
     let config: AppConfig = app_config::load()?;
     let http = RuntimeHttpConfig {
         connect_timeout_secs: config.http.connect_timeout.max(1),
@@ -61,27 +85,16 @@ pub async fn run() -> Result<()> {
             .context("failed to download runtime packages");
     }
 
-    // ── Runtime + App ────────────────────────────────────────────────
-    let runtime = RuntimeManager::new_with_http(config.data.path.as_std_path(), compute, http)?;
-    runtime
-        .prepare()
-        .await
-        .context("failed to prepare runtime")?;
+    let state = BootstrapManager::new(Arc::new(RuntimeManager::new_with_http(
+        config.data.path.as_std_path(),
+        compute,
+        http,
+    )?));
+    state.spawn_download_forwarder();
 
     #[cfg(target_os = "windows")]
     crate::windows::register_khr().ok();
 
-    let app = Arc::new(App::new(
-        config,
-        Arc::new(runtime),
-        cli.cpu,
-        crate::version::current(),
-    )?);
-    koharu_llm::suppress_native_logs();
-    app.spawn_download_forwarder();
-    app.spawn_llm_forwarder();
-
-    // ── Server ───────────────────────────────────────────────────────
     let default_port = if cfg!(debug_assertions) { 9999 } else { 0 };
     let bind_host = cli.host.as_deref().unwrap_or("127.0.0.1");
     let bind_port = cli.port.unwrap_or(default_port);
@@ -89,30 +102,22 @@ pub async fn run() -> Result<()> {
     let port = listener.local_addr()?.port();
     tracing::info!(port, "starting server");
 
-    // Extract the embedded UI assets up-front so both headless and GUI modes
-    // can serve them on the HTTP fallback. Headless deployments point a
-    // browser at the listener port and get the full app; the GUI build uses
-    // the same bundle inside Tauri's webview.
     let mut context = tauri::generate_context!();
     let assets = crate::assets::from_context(&mut context);
-
-    if cli.headless {
-        tauri::async_runtime::spawn(async move {
-            if let Err(e) = server::serve_with_listener_and_assets(listener, app, assets).await {
-                tracing::error!("server error: {e:#}");
-            }
-        });
-        tracing::info!(port, "headless: open http://127.0.0.1:{port}/ in a browser");
-        tokio::signal::ctrl_c().await?;
-        return Ok(());
-    }
-
-    // ── GUI ──────────────────────────────────────────────────────────
+    let server_state = state.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = server::serve_with_listener_and_assets(listener, app, assets).await {
+        if let Err(e) = server::serve_with_listener_and_assets(listener, server_state, assets).await
+        {
             tracing::error!("server error: {e:#}");
         }
     });
+
+    if cli.headless {
+        tracing::info!(port, "headless: open http://127.0.0.1:{port}/ in a browser");
+        bootstrap_app(state, config, cli.cpu).await?;
+        tokio::signal::ctrl_c().await?;
+        return Ok(());
+    }
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -121,6 +126,12 @@ pub async fn run() -> Result<()> {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(move |handle| {
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = bootstrap_app(state, config, cli.cpu).await {
+                    tracing::error!("bootstrap error: {e:#}");
+                }
+            });
+
             let cfg = handle.config();
             let url: tauri::Url = if cfg!(debug_assertions) {
                 cfg.build

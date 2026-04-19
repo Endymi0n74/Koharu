@@ -36,6 +36,23 @@ use crate::session::ProjectSession;
 /// cover a minute of pipeline chatter at ~4 events/sec.
 const EVENT_BUS_CAPACITY: usize = 256;
 
+#[derive(Clone)]
+pub struct AppSharedState {
+    pub jobs: Arc<DashMap<String, JobSummary>>,
+    pub downloads: Arc<DashMap<String, DownloadProgress>>,
+    pub bus: Arc<EventBus>,
+}
+
+impl Default for AppSharedState {
+    fn default() -> Self {
+        Self {
+            jobs: Arc::new(DashMap::new()),
+            downloads: Arc::new(DashMap::new()),
+            bus: EventBus::new(EVENT_BUS_CAPACITY),
+        }
+    }
+}
+
 /// Top-level app.
 pub struct App {
     pub config: Arc<ArcSwap<AppConfig>>,
@@ -60,6 +77,19 @@ impl App {
         cpu: bool,
         version: &'static str,
     ) -> Result<Self> {
+        Self::new_with_shared_state(config, runtime, cpu, AppSharedState::default(), version)
+    }
+
+    /// Construct with caller-provided shared registries/event bus. This is
+    /// used by the HTTP bootstrap flow so the server can expose downloads and
+    /// SSE state before the full `App` is ready.
+    pub fn new_with_shared_state(
+        config: AppConfig,
+        runtime: Arc<RuntimeManager>,
+        cpu: bool,
+        shared: AppSharedState,
+        version: &'static str,
+    ) -> Result<Self> {
         let backend = shared_llama_backend(&runtime)?;
         let llm = Arc::new(llm::Model::new((*runtime).clone(), cpu, backend));
         let renderer = Arc::new(renderer::Renderer::new()?);
@@ -68,9 +98,9 @@ impl App {
             runtime,
             registry: Arc::new(Registry::new()),
             session: Arc::new(ArcSwapOption::empty()),
-            jobs: Arc::new(DashMap::new()),
-            downloads: Arc::new(DashMap::new()),
-            bus: EventBus::new(EVENT_BUS_CAPACITY),
+            jobs: shared.jobs,
+            downloads: shared.downloads,
+            bus: shared.bus,
             llm,
             renderer,
             autosave: Mutex::new(None),

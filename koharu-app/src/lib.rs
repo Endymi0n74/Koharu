@@ -18,7 +18,7 @@ pub mod renderer;
 pub mod session;
 pub mod utils;
 
-pub use app::App;
+pub use app::{App, AppSharedState};
 pub use blobs::BlobStore;
 pub use config::AppConfig;
 pub use pipeline::{

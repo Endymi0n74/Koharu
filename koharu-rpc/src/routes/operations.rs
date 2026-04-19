@@ -57,7 +57,8 @@ pub struct ListOperationsResponse {
     responses((status = 200, body = ListOperationsResponse))
 )]
 async fn list_operations(State(app): State<AppState>) -> ApiResult<Json<ListOperationsResponse>> {
-    let operations = app.jobs.iter().map(|e| e.value().clone()).collect();
+    let jobs = app.jobs();
+    let operations = jobs.iter().map(|e| e.value().clone()).collect();
     Ok(Json(ListOperationsResponse { operations }))
 }
 
@@ -75,6 +76,6 @@ async fn cancel_operation(
         flag.store(true, Ordering::Relaxed);
     }
     // Best-effort download cancel: drop the registry row.
-    app.downloads.remove(&id);
+    app.downloads().remove(&id);
     Ok(StatusCode::NO_CONTENT)
 }
