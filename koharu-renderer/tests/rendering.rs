@@ -375,7 +375,7 @@ fn test_rtl_alignment() -> Result<()> {
     // Test Left Alignment
     let layout_left = TextLayout::new(&font, Some(24.0))
         .with_max_width(500.0)
-        .with_alignment(koharu_core::TextAlign::Left)
+        .with_alignment(koharu_renderer::TextAlign::Left)
         .run(text)?;
 
     let img_left = tiny_skia_renderer()?.render(
@@ -393,7 +393,7 @@ fn test_rtl_alignment() -> Result<()> {
     // Test Right Alignment
     let layout_right = TextLayout::new(&font, Some(24.0))
         .with_max_width(500.0)
-        .with_alignment(koharu_core::TextAlign::Right)
+        .with_alignment(koharu_renderer::TextAlign::Right)
         .run(text)?;
 
     let img_right = tiny_skia_renderer()?.render(
