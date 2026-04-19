@@ -111,6 +111,7 @@ async fn llm_state_starts_empty() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+#[ignore = "Requires keyring"]
 async fn provider_secret_set_and_clear() -> anyhow::Result<()> {
     let app = TestApp::spawn().await?;
     api::set_provider_secret(
