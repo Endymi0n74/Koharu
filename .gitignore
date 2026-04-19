@@ -30,10 +30,10 @@ target/
 /data
 
 # model results
-runs/
+/runs
 
 # model checkpoints
-models/
+/models
 .env
 
 # Python
