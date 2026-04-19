@@ -1,3 +1,55 @@
+## [0.45.0](https://github.com/mayocream/koharu/compare/0.44.6..0.45.0) - 2026-04-19
+
+### ⛰️  Features
+
+- *(app)* CLI pipeline binary for full-image regression testing - ([8413df6](https://github.com/mayocream/koharu/commit/8413df69578b00e186230f0e5b73bcf36478ba75))
+- *(app)* Pipeline engine system with inventory-registered engines - ([05dffa1](https://github.com/mayocream/koharu/commit/05dffa180dcd8c8908e641f315b88eb5dad19271))
+- *(ui)* Shadcn primitive additions + polish + locale updates - ([7ba57cf](https://github.com/mayocream/koharu/commit/7ba57cf72afcda4fbd3f1c4f1c5043811cfcdb48))
+- Improve text rendering ux - ([f8d096c](https://github.com/mayocream/koharu/commit/f8d096c42fb9a9cc8d4b4f10edd4753525d734d8))
+- Multi-selection on ui - ([ef295f0](https://github.com/mayocream/koharu/commit/ef295f0b7b3f8a433122d75cce11152bb08ecef5))
+
+### 🐛 Bug Fixes
+
+- Arabic and mixed text rendering ([#500](https://github.com/mayocream/koharu/issues/500)) - ([cb1ce23](https://github.com/mayocream/koharu/commit/cb1ce234fdab0bfcbe01ed4db381532bfbcc7619))
+- Make clippy happy - ([c4ef119](https://github.com/mayocream/koharu/commit/c4ef1198c55a24d5f0cb092856f4a72d86291b66))
+
+### 🚜 Refactor
+
+- *(app)* Replace monolithic engine/io with session + history + blobs - ([8eb4a95](https://github.com/mayocream/koharu/commit/8eb4a9579fd47873a9404c8286e25813ed076cb9))
+- *(core)* Rewrite data model as Scene + Op + content-addressed blobs - ([0cf9ac6](https://github.com/mayocream/koharu/commit/0cf9ac6ec3993b61660a69a2cdf54bd3697dfe54))
+- *(ml)* Shared TextRegion/TextDirection types for pipeline engines - ([3e4b068](https://github.com/mayocream/koharu/commit/3e4b068e83dbc12cc7cc4fb8253abf448db7d45c))
+- *(psd)* Rewrite export around new Scene/Page/Node model - ([24155b7](https://github.com/mayocream/koharu/commit/24155b744aa44a547055a870a6a8b8a9907b5aa8))
+- *(renderer)* Bubble-aware latin layout with BubbleIndex lookup - ([6e68231](https://github.com/mayocream/koharu/commit/6e682313f9f86b6ee82a2c8f68beedbfa62e5c85))
+- *(rpc)* Axum router with typed routes, SSE events, binary I/O - ([092fee3](https://github.com/mayocream/koharu/commit/092fee3a770ded30a5b21be03e7b103318ff0ade))
+- *(runtime)* Tauri shell + downloads queue for the v2 backend - ([436885a](https://github.com/mayocream/koharu/commit/436885ac584848c9a196049f2df8a5c70bb79cff))
+- *(ui)* Menu, settings, welcome, navigator + error/loading chrome - ([7731a38](https://github.com/mayocream/koharu/commit/7731a3890c1e4534ac4b77652f6f45aad9f976a1))
+- *(ui)* Rewrite editor canvas + right-panel components - ([97f6cb3](https://github.com/mayocream/koharu/commit/97f6cb36f4192de4096f048fee1e6d7022b7316b))
+- *(ui)* Rewrite hooks around the new scene snapshot + selection store - ([86effa9](https://github.com/mayocream/koharu/commit/86effa9aa246b4687723d23bcaa3d1eaef9af425))
+- *(ui)* Backend-as-truth state layer (ops / io / stores / events) - ([e7f70a8](https://github.com/mayocream/koharu/commit/e7f70a83e526b56002e8190c439832b7d8fb4f42))
+- *(ui)* Regenerate orval client against the v2 axum router - ([d2c7ebc](https://github.com/mayocream/koharu/commit/d2c7ebc56c0282cf7b5475602e82d4a6302af535))
+- Remove cudnn - ([720c8aa](https://github.com/mayocream/koharu/commit/720c8aab137759d77d78bb254d760061089e264e))
+- Remove e2e - ([fbd739b](https://github.com/mayocream/koharu/commit/fbd739b435787596c496da95a65bf596b4ba44d0))
+- Remove bubbleDetector - ([c6b28a0](https://github.com/mayocream/koharu/commit/c6b28a024a68b481ada57db57cddbe416de6d591))
+
+### 📚 Documentation
+
+- Update demo images - ([5bc33d4](https://github.com/mayocream/koharu/commit/5bc33d4d50cffe0e838568c2601c1b2450246b85))
+- Update demo images - ([f703f2f](https://github.com/mayocream/koharu/commit/f703f2f5fd3ae31c241bb8b724880c8be90005ce))
+
+### 🧪 Testing
+
+- Ignore provider_secret_set_and_clear - ([00b327a](https://github.com/mayocream/koharu/commit/00b327af6ff611b1f63861cfd624ffced2bdbf79))
+- Fix unit test - ([4ef5c03](https://github.com/mayocream/koharu/commit/4ef5c03cbd560cdcec9b918ecd5a8b77cdbaca46))
+- Rust integration tests + Vitest UI tests - ([14a73e8](https://github.com/mayocream/koharu/commit/14a73e8fb99fc4a0eab13b8f113bf5c52b078699))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(fix)* Add missing client - ([48009ab](https://github.com/mayocream/koharu/commit/48009ab2221aabc858a6a85a8561efc862942539))
+- Add i18n keys - ([ed3ec95](https://github.com/mayocream/koharu/commit/ed3ec95334bf43fa0b22d6b2885d1df4747c8f0c))
+- Run Rust integration tests and Vitest UI tests - ([fbf208d](https://github.com/mayocream/koharu/commit/fbf208db2da40984096acf0b406d18f8a83dbd5e))
+- Workspace config + next.js + tauri build glue for v2 - ([4c1f5c5](https://github.com/mayocream/koharu/commit/4c1f5c560baaed6e094d3e7926ee7c772fc12f61))
+
+
 ## [0.44.6](https://github.com/mayocream/koharu/compare/0.44.5..0.44.6) - 2026-04-16
 
 ### ⛰️  Features
