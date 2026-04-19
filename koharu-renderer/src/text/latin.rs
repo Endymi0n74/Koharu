@@ -30,6 +30,12 @@ impl LayoutBox {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BubbleMatch {
+    pub id: u8,
+    pub layout_box: LayoutBox,
+}
+
 pub fn layout_box_from_block(block: &RenderBlock) -> LayoutBox {
     LayoutBox {
         x: block.x,
@@ -133,6 +139,11 @@ impl BubbleIndex {
     /// vertical layouts reserve more margin so CJK columns aren't crowded
     /// against the balloon outline.
     pub fn lookup(&self, seed: LayoutBox, writing_mode: WritingMode) -> Option<LayoutBox> {
+        self.lookup_match(seed, writing_mode)
+            .map(|matched| matched.layout_box)
+    }
+
+    pub fn lookup_match(&self, seed: LayoutBox, writing_mode: WritingMode) -> Option<BubbleMatch> {
         let w = self.mask.width() as i32;
         let h = self.mask.height() as i32;
         if w <= 0 || h <= 0 {
@@ -161,11 +172,14 @@ impl BubbleIndex {
         let inset_y = bbox.height * frac;
         let width = (bbox.width - 2.0 * inset_x).max(1.0);
         let height = (bbox.height - 2.0 * inset_y).max(1.0);
-        Some(LayoutBox {
-            x: bbox.x + inset_x,
-            y: bbox.y + inset_y,
-            width,
-            height,
+        Some(BubbleMatch {
+            id: best_id,
+            layout_box: LayoutBox {
+                x: bbox.x + inset_x,
+                y: bbox.y + inset_y,
+                width,
+                height,
+            },
         })
     }
 }
@@ -296,6 +310,30 @@ mod tests {
         assert!(vertical.height < horizontal.height);
         assert!(vertical.x > horizontal.x);
         assert!(vertical.y > horizontal.y);
+    }
+
+    #[test]
+    fn lookup_match_reports_the_bubble_id() {
+        let mut mask = GrayImage::from_pixel(200, 200, Luma([0u8]));
+        paint_rect(&mut mask, 10, 10, 90, 90, 1);
+        paint_rect(&mut mask, 110, 10, 190, 90, 2);
+        let index = BubbleIndex::new(mask);
+
+        let matched = index
+            .lookup_match(
+                LayoutBox {
+                    x: 125.0,
+                    y: 25.0,
+                    width: 20.0,
+                    height: 20.0,
+                },
+                WritingMode::Horizontal,
+            )
+            .expect("should find bubble");
+
+        assert_eq!(matched.id, 2);
+        assert!(matched.layout_box.x >= 110.0);
+        assert!(matched.layout_box.x + matched.layout_box.width <= 190.0);
     }
 
     #[test]

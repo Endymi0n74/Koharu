@@ -7,7 +7,10 @@
 //! Pure output: the pipeline engine ([`crate::pipeline::engines::renderer`])
 //! takes a `RenderOutput` and translates sprites + final composite into ops.
 
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::{Context, Result};
 use image::{DynamicImage, imageops};
@@ -164,16 +167,17 @@ impl Renderer {
         // once to record per-ID bboxes and then answers seed→bbox
         // lookups in O(seed_area).
         let bubble_index: Option<BubbleIndex> = bubble_mask.map(|m| BubbleIndex::new(m.to_luma8()));
+        let layout_boxes = resolve_layout_boxes(blocks, bubble_index.as_ref());
 
         let mut rendered_blocks = Vec::with_capacity(blocks.len());
-        for block in blocks.iter() {
+        for (block, layout_box) in blocks.iter().zip(layout_boxes.iter().copied()) {
             match self.render_one(
                 block,
+                layout_box,
                 &opts.shader_effect,
                 &opts.shader_stroke,
                 opts.document_font.as_deref(),
                 min_font,
-                bubble_index.as_ref(),
             ) {
                 Ok(Some(out)) => rendered_blocks.push(out),
                 Ok(None) => {}
@@ -200,11 +204,11 @@ impl Renderer {
     fn render_one(
         &self,
         block: &RenderBlockInput,
+        layout_box: LayoutBox,
         effect: &TextShaderEffect,
         global_stroke: &Option<TextStrokeStyle>,
         document_font: Option<&str>,
         min_font_size: f32,
-        bubble_index: Option<&BubbleIndex>,
     ) -> Result<Option<RenderedBlock>> {
         let translation = block.translation.trim();
         if translation.is_empty() {
@@ -212,14 +216,7 @@ impl Renderer {
         }
         let normalized = normalize_translation_for_layout(translation);
 
-        let layout_source = RenderBlock {
-            x: block.transform.x,
-            y: block.transform.y,
-            width: block.transform.width.max(1.0),
-            height: block.transform.height.max(1.0),
-            text: translation.to_string(),
-            source_direction: block.source_direction.map(core_direction_to_renderer),
-        };
+        let layout_source = layout_source_from_input(block, translation);
 
         let mut style = block.style.clone().unwrap_or_else(|| TextStyle {
             font_families: Vec::new(),
@@ -266,12 +263,6 @@ impl Renderer {
             .map(core_align_to_renderer)
             .unwrap_or(RendererTextAlign::Center);
         let seed_box = layout_box_from_block(&layout_source);
-        let expanded_box = if block.lock_layout_box {
-            None
-        } else {
-            bubble_index.and_then(|idx| idx.lookup(seed_box, writing_mode))
-        };
-        let layout_box = expanded_box.unwrap_or(seed_box);
 
         let layout_builder = TextLayout::new(&font, None)
             .with_fallback_fonts(&self.symbol_fallbacks)
@@ -459,6 +450,48 @@ fn fit_font_size<'a>(
     Ok(best)
 }
 
+fn resolve_layout_boxes(
+    blocks: &[RenderBlockInput],
+    bubble_index: Option<&BubbleIndex>,
+) -> Vec<LayoutBox> {
+    let Some(bubble_index) = bubble_index else {
+        return blocks.iter().map(seed_layout_box).collect();
+    };
+
+    let mut counts: HashMap<u8, usize> = HashMap::new();
+    let mut matches = Vec::with_capacity(blocks.len());
+
+    for block in blocks {
+        let seed_box = seed_layout_box(block);
+        let translation = block.translation.trim();
+        let bubble_match = if block.lock_layout_box || translation.is_empty() {
+            None
+        } else {
+            let layout_source = layout_source_from_input(block, translation);
+            let writing_mode = writing_mode_for_block(&layout_source);
+            bubble_index.lookup_match(seed_box, writing_mode)
+        };
+        if let Some(matched) = bubble_match {
+            *counts.entry(matched.id).or_insert(0) += 1;
+        }
+        matches.push((seed_box, bubble_match));
+    }
+
+    matches
+        .into_iter()
+        .map(|(seed_box, bubble_match)| match bubble_match {
+            // Connected bubbles can contain multiple independently detected
+            // text blocks. Expanding all of them to the same bubble bbox makes
+            // their layouts collide, so shared bubbles fall back to each
+            // block's original detector box.
+            Some(matched) if counts.get(&matched.id).copied().unwrap_or(0) == 1 => {
+                matched.layout_box
+            }
+            _ => seed_box,
+        })
+        .collect()
+}
+
 // ---------------------------------------------------------------------------
 // Helpers: font families, fallbacks
 // ---------------------------------------------------------------------------
@@ -501,6 +534,26 @@ fn face_post_script_name(faces: &[FaceInfo], candidate: &str) -> Option<String> 
         })
         .map(|face| face.post_script_name.clone())
         .filter(|post_script_name| !post_script_name.is_empty())
+}
+
+fn layout_source_from_input(block: &RenderBlockInput, translation: &str) -> RenderBlock {
+    RenderBlock {
+        x: block.transform.x,
+        y: block.transform.y,
+        width: block.transform.width.max(1.0),
+        height: block.transform.height.max(1.0),
+        text: translation.to_string(),
+        source_direction: block.source_direction.map(core_direction_to_renderer),
+    }
+}
+
+fn seed_layout_box(block: &RenderBlockInput) -> LayoutBox {
+    LayoutBox {
+        x: block.transform.x,
+        y: block.transform.y,
+        width: block.transform.width.max(1.0),
+        height: block.transform.height.max(1.0),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -617,6 +670,8 @@ fn placement_origin(input: &RenderBlockInput, expanded: &Option<Transform>) -> (
 #[cfg(test)]
 mod tests {
     use super::*;
+    use image::{GrayImage, Luma};
+    use koharu_core::NodeId;
 
     #[test]
     fn default_font_families_should_fill_empty_list() {
@@ -663,5 +718,61 @@ mod tests {
         .expect("explicit stroke should be present");
         assert_eq!(stroke.color, [255, 255, 255, 255]);
         assert_eq!(stroke.width_px, 2.0);
+    }
+
+    #[test]
+    fn shared_bubble_falls_back_to_seed_boxes() {
+        let mut mask = GrayImage::from_pixel(200, 200, Luma([0u8]));
+        paint_rect(&mut mask, 10, 10, 190, 190, 1);
+        let index = BubbleIndex::new(mask);
+        let blocks = vec![
+            block(30.0, 30.0, 40.0, 80.0, "hello"),
+            block(120.0, 30.0, 40.0, 80.0, "world"),
+        ];
+
+        let layout_boxes = resolve_layout_boxes(&blocks, Some(&index));
+
+        assert_eq!(layout_boxes[0], seed_layout_box(&blocks[0]));
+        assert_eq!(layout_boxes[1], seed_layout_box(&blocks[1]));
+    }
+
+    #[test]
+    fn single_block_can_still_expand_into_its_bubble() {
+        let mut mask = GrayImage::from_pixel(200, 200, Luma([0u8]));
+        paint_rect(&mut mask, 20, 20, 180, 180, 1);
+        let index = BubbleIndex::new(mask);
+        let blocks = vec![block(70.0, 70.0, 20.0, 30.0, "hello")];
+
+        let layout_boxes = resolve_layout_boxes(&blocks, Some(&index));
+
+        assert!(layout_boxes[0].width > blocks[0].transform.width);
+        assert!(layout_boxes[0].height > blocks[0].transform.height);
+    }
+
+    fn block(x: f32, y: f32, width: f32, height: f32, translation: &str) -> RenderBlockInput {
+        RenderBlockInput {
+            node_id: NodeId::new(),
+            transform: Transform {
+                x,
+                y,
+                width,
+                height,
+                rotation_deg: 0.0,
+            },
+            translation: translation.to_string(),
+            style: None,
+            font_prediction: None,
+            source_direction: None,
+            rendered_direction: None,
+            lock_layout_box: false,
+        }
+    }
+
+    fn paint_rect(img: &mut GrayImage, x0: u32, y0: u32, x1: u32, y1: u32, value: u8) {
+        for y in y0..y1 {
+            for x in x0..x1 {
+                img.put_pixel(x, y, Luma([value]));
+            }
+        }
     }
 }
