@@ -66,7 +66,7 @@ async fn get_scene_bin(State(app): State<AppState>) -> ApiResult<Response> {
         let epoch = session.epoch();
         let bytes = postcard::to_allocvec(&WireSnapshot {
             epoch,
-            scene: &*scene,
+            scene: &scene,
         })
         .map_err(|e| ApiError::internal(anyhow::Error::new(e)))?;
         (epoch, bytes)

@@ -101,7 +101,7 @@ async fn events(
 fn snapshot_frame(app: &AppState) -> Result<Event, axum::Error> {
     let snap = snapshot_from(app);
     Event::default()
-        .json_data(&AppEvent::Snapshot(snap))
+        .json_data(AppEvent::Snapshot(snap))
         .map_err(axum::Error::new)
 }
 

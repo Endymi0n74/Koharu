@@ -257,7 +257,7 @@ pub fn shared_llama_backend(runtime: &RuntimeManager) -> Result<Arc<LlamaBackend
     if let Some(backend) = LLAMA_BACKEND.get() {
         return Ok(backend.clone());
     }
-    koharu_llm::sys::initialize(runtime).map_err(anyhow::Error::from)?;
+    koharu_llm::sys::initialize(runtime)?;
     let backend = Arc::new(LlamaBackend::init().map_err(anyhow::Error::from)?);
     let _ = LLAMA_BACKEND.set(backend.clone());
     Ok(backend)

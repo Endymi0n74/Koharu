@@ -167,11 +167,9 @@ fn slugify(input: &str) -> String {
                 out.push('-');
                 prev_dash = true;
             }
-        } else if c.is_whitespace() {
-            if !out.is_empty() && !prev_dash {
-                out.push('-');
-                prev_dash = true;
-            }
+        } else if c.is_whitespace() && !out.is_empty() && !prev_dash {
+            out.push('-');
+            prev_dash = true;
         }
         // Other chars dropped silently.
     }

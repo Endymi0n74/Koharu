@@ -117,7 +117,7 @@ impl Renderer {
                     .first()
                     .map(|(family, _)| family.clone())
                     .unwrap_or_else(|| face.post_script_name.clone());
-                seen.insert(family_name.clone()).then(|| FontFaceInfo {
+                seen.insert(family_name.clone()).then_some(FontFaceInfo {
                     family_name,
                     post_script_name: face.post_script_name,
                     source: FontSource::System,
@@ -146,6 +146,7 @@ impl Renderer {
     /// the full page + per-block sprites. Blocks with an empty translation
     /// are skipped (they appear as holes in the composite, falling through to
     /// the inpainted plane).
+    #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(level = "info", skip_all, fields(blocks = blocks.len()))]
     pub fn render_page(
         &self,
@@ -186,8 +187,7 @@ impl Renderer {
             imageops::overlay(&mut canvas, &brush.to_rgba8(), 0, 0);
         }
         for out in &rendered_blocks {
-            let (x, y) =
-                placement_origin(&find_input(blocks, out.node_id), &out.expanded_transform);
+            let (x, y) = placement_origin(find_input(blocks, out.node_id), &out.expanded_transform);
             imageops::overlay(&mut canvas, &out.sprite.to_rgba8(), x as i64, y as i64);
         }
         Ok(RenderOutput {
@@ -237,11 +237,10 @@ impl Renderer {
 
         let font = self.select_font(&style)?;
         let block_effect = style.effect.unwrap_or(*effect);
-        let color = style
-            .effect
-            .is_some()
-            .then_some(style.color)
-            .unwrap_or_else(|| {
+        let color = if style.effect.is_some() {
+            style.color
+        } else {
+            {
                 if block.style.is_some() {
                     style.color
                 } else if let Some(pred) = &block.font_prediction {
@@ -254,7 +253,8 @@ impl Renderer {
                 } else {
                     [0, 0, 0, 255]
                 }
-            });
+            }
+        };
 
         let writing_mode = writing_mode_for_block(&layout_source);
         // Translations default to centre alignment inside a bubble — each
@@ -296,13 +296,12 @@ impl Renderer {
         // Re-run the layout with `max_width = actual_content_width` so
         // every line is centred relative to the block's widest line.
         let layout = if layout.width > layout_box.width + 0.5 {
-            let expanded = layout_builder
+            layout_builder
                 .clone()
                 .with_font_size(layout.font_size)
                 .with_max_width(layout.width)
                 .with_max_height(layout_box.height)
-                .run(&normalized)?;
-            expanded
+                .run(&normalized)?
         } else {
             layout
         };
@@ -588,7 +587,7 @@ fn core_align_to_renderer(a: koharu_core::TextAlign) -> RendererTextAlign {
 // Helpers: placement
 // ---------------------------------------------------------------------------
 
-fn find_input<'a>(blocks: &'a [RenderBlockInput], id: NodeId) -> &'a RenderBlockInput {
+fn find_input(blocks: &[RenderBlockInput], id: NodeId) -> &RenderBlockInput {
     blocks
         .iter()
         .find(|b| b.node_id == id)

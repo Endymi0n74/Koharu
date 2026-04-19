@@ -89,6 +89,7 @@ pub enum Scope {
 
 /// Execute `spec` against `session`. Each engine step becomes one `Op::Batch`
 /// applied via the session's history (one undo step per step per page).
+#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(level = "info", skip_all)]
 pub async fn run(
     session: Arc<ProjectSession>,

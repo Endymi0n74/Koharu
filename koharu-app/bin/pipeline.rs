@@ -253,10 +253,8 @@ async fn run() -> Result<()> {
         Err(e) => eprintln!("=> pipeline failed: {e:#}"),
     }
 
-    if ensure_translation_fallback {
-        if let Err(e) = synthesize_translations(&app, page_id).await {
-            eprintln!("warn: failed to synthesize translations: {e:#}");
-        }
+    if ensure_translation_fallback && let Err(e) = synthesize_translations(&app, page_id).await {
+        eprintln!("warn: failed to synthesize translations: {e:#}");
     }
 
     dump_artifacts(&session, page_id, &cli.output_dir)

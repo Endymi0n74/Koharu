@@ -10,6 +10,12 @@
 //! let undo = op.inverse();                                    // pure
 //! ```
 
+// `Op` / `NodeDataPatch` are wire-format data types; their variant-size
+// asymmetry is inherent (Text patches carry many optional fields), and
+// boxing would change the serialised representation. Silence clippy here
+// rather than smear `#[allow]` across every producer.
+#![allow(clippy::large_enum_variant)]
+
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

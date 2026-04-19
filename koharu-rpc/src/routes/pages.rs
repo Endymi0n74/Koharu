@@ -346,24 +346,22 @@ async fn add_image_layer(
             .len()
     };
 
-    let mut filename = String::from("layer.png");
-    let mut bytes: Option<Vec<u8>> = None;
-    while let Some(field) = multipart
+    // The handler only accepts a single image layer per request, so we
+    // pull the first multipart field and ignore the rest.
+    let field = multipart
         .next_field()
         .await
         .map_err(|e| ApiError::bad_request(format!("multipart: {e}")))?
-    {
-        if let Some(name) = field.file_name() {
-            filename = name.to_string();
-        }
-        let data = field
-            .bytes()
-            .await
-            .map_err(|e| ApiError::bad_request(format!("read file: {e}")))?;
-        bytes = Some(data.to_vec());
-        break;
-    }
-    let bytes = bytes.ok_or_else(|| ApiError::bad_request("no file uploaded"))?;
+        .ok_or_else(|| ApiError::bad_request("no file uploaded"))?;
+    let filename = field
+        .file_name()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| String::from("layer.png"));
+    let bytes = field
+        .bytes()
+        .await
+        .map_err(|e| ApiError::bad_request(format!("read file: {e}")))?
+        .to_vec();
 
     let decoded = image::load_from_memory(&bytes)
         .map_err(|e| ApiError::bad_request(format!("decode: {e}")))?;

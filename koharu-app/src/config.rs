@@ -187,10 +187,10 @@ pub fn save(config: &AppConfig) -> Result<()> {
 /// Apply a `ConfigPatch` in-place. Missing fields leave the existing value
 /// alone. Providers are replaced wholesale (the list, not field-by-field).
 pub fn apply_patch(config: &mut AppConfig, patch: koharu_core::ConfigPatch) {
-    if let Some(data) = patch.data {
-        if let Some(path) = data.path {
-            config.data.path = camino::Utf8PathBuf::from(path);
-        }
+    if let Some(data) = patch.data
+        && let Some(path) = data.path
+    {
+        config.data.path = camino::Utf8PathBuf::from(path);
     }
     if let Some(http) = patch.http {
         if let Some(v) = http.connect_timeout {

@@ -19,6 +19,17 @@ use koharu_psd::{
     write_document,
 };
 
+/// Resolved page artifacts ready to hand to `koharu-psd`.
+struct ResolvedPage {
+    doc: PsdDocument,
+    source: DynamicImage,
+    segment: Option<DynamicImage>,
+    inpainted: Option<DynamicImage>,
+    rendered: Option<DynamicImage>,
+    brush: Option<DynamicImage>,
+    block_images: HashMap<PsdBlobRef, DynamicImage>,
+}
+
 /// Encode a single page as PSD bytes.
 pub fn psd_bytes_for_page(session: &Arc<ProjectSession>, page_id: PageId) -> Result<Vec<u8>> {
     let scene: Scene = session.scene_snapshot();
@@ -26,8 +37,15 @@ pub fn psd_bytes_for_page(session: &Arc<ProjectSession>, page_id: PageId) -> Res
         .pages
         .get(&page_id)
         .ok_or_else(|| anyhow::anyhow!("page {page_id} not found"))?;
-    let (doc, source, segment, inpainted, rendered, brush, block_images) =
-        resolve_page_blobs(session, page).with_context(|| format!("page {page_id}"))?;
+    let ResolvedPage {
+        doc,
+        source,
+        segment,
+        inpainted,
+        rendered,
+        brush,
+        block_images,
+    } = resolve_page_blobs(session, page).with_context(|| format!("page {page_id}"))?;
     let resolved = ResolvedDocument {
         document: &doc,
         source: &source,
@@ -43,18 +61,7 @@ pub fn psd_bytes_for_page(session: &Arc<ProjectSession>, page_id: PageId) -> Res
     Ok(buf)
 }
 
-fn resolve_page_blobs(
-    session: &ProjectSession,
-    page: &koharu_core::Page,
-) -> Result<(
-    PsdDocument,
-    DynamicImage,
-    Option<DynamicImage>,
-    Option<DynamicImage>,
-    Option<DynamicImage>,
-    Option<DynamicImage>,
-    HashMap<PsdBlobRef, DynamicImage>,
-)> {
+fn resolve_page_blobs(session: &ProjectSession, page: &koharu_core::Page) -> Result<ResolvedPage> {
     let mut source: Option<DynamicImage> = None;
     let mut segment: Option<DynamicImage> = None;
     let mut inpainted: Option<DynamicImage> = None;
@@ -105,7 +112,7 @@ fn resolve_page_blobs(
         height: page.height,
         text_blocks,
     };
-    Ok((
+    Ok(ResolvedPage {
         doc,
         source,
         segment,
@@ -113,7 +120,7 @@ fn resolve_page_blobs(
         rendered,
         brush,
         block_images,
-    ))
+    })
 }
 
 /// Encode a single page's image for `role` as PNG bytes. Returns `None` if

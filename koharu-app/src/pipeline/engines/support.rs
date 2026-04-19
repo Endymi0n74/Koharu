@@ -18,7 +18,7 @@ use crate::blobs::BlobStore;
 
 /// Find the Source image node on `page`. Returns `(node_id, image_data)`.
 /// Every valid page has exactly one; absence means the page is malformed.
-pub fn source_node<'a>(scene: &'a Scene, page: PageId) -> Result<(NodeId, &'a ImageData)> {
+pub fn source_node(scene: &Scene, page: PageId) -> Result<(NodeId, &ImageData)> {
     let page = scene
         .page(page)
         .with_context(|| format!("page {} not found", page))?;
@@ -58,10 +58,7 @@ pub fn find_mask_node(scene: &Scene, page: PageId, role: MaskRole) -> Option<(No
 
 /// Collect `(NodeId, &Transform, &TextData)` for every text node on `page`,
 /// in stacking order.
-pub fn text_nodes<'a>(
-    scene: &'a Scene,
-    page: PageId,
-) -> Vec<(NodeId, &'a Transform, &'a TextData)> {
+pub fn text_nodes(scene: &Scene, page: PageId) -> Vec<(NodeId, &Transform, &TextData)> {
     let Some(page) = scene.page(page) else {
         return Vec::new();
     };
@@ -122,6 +119,7 @@ pub fn core_text_direction_to_ml(d: koharu_core::TextDirection) -> koharu_ml::ty
 // ---------------------------------------------------------------------------
 
 /// Build an `AddNode` for a new `Image { role }` layer.
+#[allow(clippy::too_many_arguments)]
 pub fn add_image_node_op(
     page: PageId,
     role: ImageRole,
@@ -309,13 +307,12 @@ pub fn clear_text_nodes_ops(scene: &Scene, page: PageId) -> Vec<Op> {
         .nodes
         .iter()
         .enumerate()
-        .filter_map(|(idx, (id, node))| {
-            matches!(&node.kind, NodeKind::Text(_)).then(|| Op::RemoveNode {
-                page,
-                id: *id,
-                prev_node: node.clone(),
-                prev_index: idx,
-            })
+        .filter(|(_, (_, node))| matches!(&node.kind, NodeKind::Text(_)))
+        .map(|(idx, (id, node))| Op::RemoveNode {
+            page,
+            id: *id,
+            prev_node: node.clone(),
+            prev_index: idx,
         })
         .collect()
 }

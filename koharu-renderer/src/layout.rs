@@ -636,10 +636,11 @@ mod tests {
     }
 
     fn assert_approx_eq(actual: f32, expected: f32) {
-        if actual.is_infinite() && expected.is_infinite() {
-            if actual.is_sign_positive() == expected.is_sign_positive() {
-                return;
-            }
+        if actual.is_infinite()
+            && expected.is_infinite()
+            && actual.is_sign_positive() == expected.is_sign_positive()
+        {
+            return;
         }
         let eps = 1e-4;
         assert!(

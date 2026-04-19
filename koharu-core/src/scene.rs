@@ -3,6 +3,10 @@
 //! Three primitives: `Node`, `Blob` (via `BlobRef`), `Op` (in `op.rs`).
 //! Everything visual on a page is a `Node`; scene mutations flow through `Op`s.
 
+// `NodeKind::Text` naturally carries more data than `Image`/`Mask`, and
+// boxing would change the wire format. Same reasoning as in `op.rs`.
+#![allow(clippy::large_enum_variant)]
+
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use schemars::JsonSchema;

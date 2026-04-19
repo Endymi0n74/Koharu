@@ -2,14 +2,12 @@
 //! `{data.path}/projects/` directory; clients never supply filesystem
 //! paths. A project's `id` is the `.khrproj/` directory basename.
 //!
-//! - `GET    /projects`                  — list managed projects
-//! - `POST   /projects`                  — create a new project (`{name}`),
-//!                                         server allocates the path
-//! - `POST   /projects/import`           — extract a `.khr` archive into a
-//!                                         fresh allocated directory + open
-//! - `PUT    /projects/current`          — open a managed project by `id`
-//! - `DELETE /projects/current`          — close current session
-//! - `POST   /projects/current/export`   — export current; returns bytes
+//! - `GET    /projects` — list managed projects
+//! - `POST   /projects` — create a new project (`{name}`), server allocates path
+//! - `POST   /projects/import` — extract a `.khr` archive into a fresh dir + open
+//! - `PUT    /projects/current` — open a managed project by `id`
+//! - `DELETE /projects/current` — close current session
+//! - `POST   /projects/current/export` — export current; returns bytes
 
 use axum::Json;
 use axum::body::{Body, Bytes};
@@ -311,7 +309,7 @@ async fn export_image_role(
             "no pages have the requested layer populated",
         ));
     }
-    Ok(files_to_response(files, project_name, role_ext(role))?)
+    files_to_response(files, project_name, role_ext(role))
 }
 
 fn resolve_page_ids(
