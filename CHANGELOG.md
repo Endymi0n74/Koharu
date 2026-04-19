@@ -1,3 +1,10 @@
+## [0.45.2](https://github.com/mayocream/koharu/compare/0.45.1..0.45.2) - 2026-04-19
+
+### 🐛 Bug Fixes
+
+- Add bootstrap step - ([e70fc65](https://github.com/mayocream/koharu/commit/e70fc656f31c95d93d221282b2f1cfa486045c19))
+
+
 ## [0.45.1](https://github.com/mayocream/koharu/compare/0.45.0..0.45.1) - 2026-04-19
 
 ### 🐛 Bug Fixes
