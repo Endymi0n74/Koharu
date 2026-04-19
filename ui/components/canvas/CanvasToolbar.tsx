@@ -350,7 +350,7 @@ function LlmStatusPopover() {
       <PopoverContent align='end' className='w-[280px] p-0' data-testid='llm-popover'>
         <div className='flex flex-col gap-1.5 px-3 pt-3 pb-2.5'>
           <span className='text-[10px] font-medium text-muted-foreground uppercase'>
-            {t('llm.model', { defaultValue: 'Model' })}
+            {t('llm.model')}
           </span>
           <div className='flex items-center gap-1.5'>
             <LlmModelSelect
@@ -382,7 +382,7 @@ function LlmStatusPopover() {
         </div>
         <div className='flex flex-col gap-1 px-3 pt-2.5 pb-3'>
           <span className='text-[10px] font-medium text-muted-foreground uppercase'>
-            {t('llm.translationSettings', { defaultValue: 'Translation' })}
+            {t('llm.translationSettings')}
           </span>
           <div className='flex flex-col gap-1.5'>
             {selectedModelLanguages.length > 0 ? (
@@ -410,9 +410,7 @@ function LlmStatusPopover() {
               data-testid='llm-system-prompt'
               value={customSystemPrompt ?? ''}
               onChange={(e) => setCustomSystemPrompt(e.target.value || undefined)}
-              placeholder={t('llm.systemPromptPlaceholder', {
-                defaultValue: 'Custom system prompt (optional)',
-              })}
+              placeholder={t('llm.systemPromptPlaceholder')}
               rows={5}
               className='min-h-0 resize-y px-2 py-1.5 text-xs leading-snug md:text-xs'
             />

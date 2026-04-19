@@ -13,13 +13,14 @@ import {
   MenubarItem,
   MenubarMenu,
   MenubarSeparator,
+  MenubarShortcut,
   MenubarTrigger,
 } from '@/components/ui/menubar'
 import { useScene } from '@/hooks/useScene'
 import { getConfig, startPipeline } from '@/lib/api/default/default'
 import { isTauri, openExternalUrl } from '@/lib/backend'
 import { exportCurrentProjectAs, importPages } from '@/lib/io/pagesIo'
-import { closeProject } from '@/lib/io/scene'
+import { closeProject, redoOp, undoOp } from '@/lib/io/scene'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { usePreferencesStore } from '@/lib/stores/preferencesStore'
 import { useSelectionStore } from '@/lib/stores/selectionStore'
@@ -196,7 +197,7 @@ export function MenuBar() {
               disabled={!hasScene}
               onSelect={() => void importPages('replace', 'files')}
             >
-              {t('menu.openFiles', { defaultValue: 'Open Files...' })}
+              {t('menu.openFiles')}
             </MenubarItem>
             <MenubarItem
               data-testid='menu-file-open-folder'
@@ -204,7 +205,7 @@ export function MenuBar() {
               disabled={!hasScene}
               onSelect={() => void importPages('replace', 'folder')}
             >
-              {t('menu.openFolder', { defaultValue: 'Open Folder...' })}
+              {t('menu.openFolder')}
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem
@@ -213,7 +214,7 @@ export function MenuBar() {
               disabled={!hasScene}
               onSelect={() => void exportCurrentProjectAs('khr')}
             >
-              {t('menu.saveAs', { defaultValue: 'Save As...' })}
+              {t('menu.saveAs')}
             </MenubarItem>
             <MenubarSeparator />
             {exportItems.map((item) => (
@@ -234,7 +235,7 @@ export function MenuBar() {
               disabled={!hasScene}
               onSelect={() => void closeProject()}
             >
-              {t('menu.closeProject', { defaultValue: 'Close Project' })}
+              {t('menu.closeProject')}
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem
@@ -245,6 +246,34 @@ export function MenuBar() {
               }}
             >
               {t('menu.settings')}
+            </MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+        <MenubarMenu>
+          <MenubarTrigger
+            data-testid='menu-edit-trigger'
+            className='rounded px-3 py-1.5 font-medium hover:bg-accent data-[state=open]:bg-accent'
+          >
+            {t('menu.edit')}
+          </MenubarTrigger>
+          <MenubarContent className='min-w-40' align='start' sideOffset={5} alignOffset={-3}>
+            <MenubarItem
+              data-testid='menu-edit-undo'
+              className='text-[13px]'
+              disabled={!hasScene}
+              onSelect={() => void undoOp()}
+            >
+              {t('menu.undo')}
+              <MenubarShortcut>{isMacOS() ? '⌘Z' : 'Ctrl+Z'}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarItem
+              data-testid='menu-edit-redo'
+              className='text-[13px]'
+              disabled={!hasScene}
+              onSelect={() => void redoOp()}
+            >
+              {t('menu.redo')}
+              <MenubarShortcut>{isMacOS() ? '⇧⌘Z' : 'Ctrl+Shift+Z'}</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>

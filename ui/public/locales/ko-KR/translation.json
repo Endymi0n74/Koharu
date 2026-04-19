@@ -13,6 +13,11 @@
     "addFolder": "폴더 추가...",
     "save": "저장...",
     "saveAs": "다른 이름으로 저장...",
+    "openFiles": "파일 열기...",
+    "closeProject": "프로젝트 닫기",
+    "edit": "편집",
+    "undo": "실행 취소",
+    "redo": "다시 실행",
     "export": "내보내기...",
     "exportPsd": "PSD 내보내기...",
     "exportAllInpainted": "모든 인페인트 이미지 내보내기...",
@@ -42,6 +47,19 @@
       "ko-KR": "한국어",
       "pt-BR": "Português (Brasil)"
     }
+  },
+  "welcome": {
+    "title": "Koharu",
+    "subtitle": "만화 번역 작업 공간",
+    "new": "새 프로젝트",
+    "newDescription": "빈 상태로 시작하고 나중에 페이지 가져오기",
+    "importKhr": ".khr 아카이브 가져오기",
+    "projects": "최근",
+    "emptyHint": "최근 프로젝트가 여기에 표시됩니다",
+    "newDialogTitle": "새 프로젝트",
+    "newDialogDescription": "프로젝트 이름을 입력하세요. 관리 프로젝트 디렉터리에 저장됩니다.",
+    "newDialogPlaceholder": "프로젝트 이름",
+    "newDialogSubmit": "생성"
   },
   "operations": {
     "title": "작업 중",
@@ -103,6 +121,9 @@
     "ready": "준비됨",
     "idle": "대기 중",
     "selectPlaceholder": "모델 선택",
+    "model": "모델",
+    "translationSettings": "번역",
+    "systemPromptPlaceholder": "사용자 지정 시스템 프롬프트 (선택 사항)",
     "modelLabel": "모델",
     "languageLabel": "대상 언어",
     "languagePlaceholder": "언어 선택",
@@ -178,6 +199,7 @@
     "fontLabel": "글꼴",
     "fontPlaceholder": "글꼴 선택",
     "fontColorLabel": "글꼴 색상",
+    "fontSizeLabel": "크기",
     "fontScopeGlobal": "전역",
     "fontScopeBlock": "블록별",
     "fontScopeBlockIndex": "블록 {{index}}"

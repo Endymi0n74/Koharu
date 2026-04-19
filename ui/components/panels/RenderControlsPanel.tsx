@@ -22,6 +22,7 @@ import { useCurrentPage, useSelectedTextNode, useTextNodes } from '@/hooks/useCu
 import { useGetGoogleFontsCatalog, useListFonts } from '@/lib/api/default/default'
 import type {
   FontFaceInfo,
+  FontPrediction,
   TextAlign,
   TextShaderEffect,
   TextStrokeStyle,
@@ -108,6 +109,16 @@ const normalizeEffect = (effect?: TextShaderEffect | null): TextShaderEffect => 
   italic: effect?.italic ?? false,
 })
 
+const predictionColor = (prediction?: FontPrediction | null): number[] | undefined => {
+  const tc = prediction?.textColor
+  if (!tc || tc.length < 3) return undefined
+  return [clampByte(tc[0]), clampByte(tc[1]), clampByte(tc[2]), 255]
+}
+
+// Mirrors renderer precedence: explicit style color → predicted color → black.
+const effectiveColorOf = (style?: TextStyle | null, prediction?: FontPrediction | null): number[] =>
+  style?.color ?? predictionColor(prediction) ?? DEFAULT_COLOR
+
 export function RenderControlsPanel() {
   const { t } = useTranslation()
   const page = useCurrentPage()
@@ -117,7 +128,6 @@ export function RenderControlsPanel() {
   useGetGoogleFontsCatalog() // prefetch catalog so picker can decorate Google entries
   const appDefaultFont = usePreferencesStore((s) => s.defaultFont)
   const renderEffect = useEditorUiStore((s) => s.renderEffect)
-  const renderStroke = useEditorUiStore((s) => s.renderStroke)
   const setRenderEffect = useEditorUiStore((s) => s.setRenderEffect)
   const setRenderStroke = useEditorUiStore((s) => s.setRenderStroke)
 
@@ -149,7 +159,8 @@ export function RenderControlsPanel() {
   const currentFontFamilyName = currentFontFace?.familyName
 
   const selectedStyle = selectedNode?.data.style ?? firstNode?.data.style
-  const currentColor = selectedStyle?.color ?? DEFAULT_COLOR
+  const colorSource = selectedNode ?? firstNode
+  const currentColor = effectiveColorOf(colorSource?.data.style, colorSource?.data.fontPrediction)
   const currentColorHex = colorToHex(currentColor)
   const currentStroke = normalizeStroke(selectedStyle?.stroke)
   const currentStrokeColorHex = colorToHex(currentStroke.color ?? DEFAULT_STROKE_COLOR)
@@ -165,8 +176,6 @@ export function RenderControlsPanel() {
     firstNode?.data.style?.textAlign ??
     (selectedNode?.data.translation ? 'center' : 'left')
 
-  const selectedBlockHasExplicitFont = (selectedNode?.data.style?.fontFamilies?.length ?? 0) > 0
-
   // ---------------------------------------------------------------------------
   // Mutations
   // ---------------------------------------------------------------------------
@@ -179,7 +188,7 @@ export function RenderControlsPanel() {
     const nextStyle: TextStyle = {
       fontFamilies: updates.fontFamilies ?? current?.fontFamilies ?? [],
       fontSize: updates.fontSize ?? current?.fontSize ?? null,
-      color: updates.color ?? current?.color ?? DEFAULT_COLOR,
+      color: updates.color ?? effectiveColorOf(current, existing.kind.text.fontPrediction),
       effect: updates.effect ?? current?.effect ?? null,
       stroke: updates.stroke ?? current?.stroke ?? null,
       textAlign: updates.textAlign ?? current?.textAlign ?? null,
@@ -204,7 +213,7 @@ export function RenderControlsPanel() {
       const nextStyle: TextStyle = {
         fontFamilies: updates.fontFamilies ?? current?.fontFamilies ?? [],
         fontSize: updates.fontSize ?? current?.fontSize ?? null,
-        color: updates.color ?? current?.color ?? DEFAULT_COLOR,
+        color: updates.color ?? effectiveColorOf(current, n.data.fontPrediction),
         effect: updates.effect ?? current?.effect ?? null,
         stroke: updates.stroke ?? current?.stroke ?? null,
         textAlign: updates.textAlign ?? current?.textAlign ?? null,
@@ -294,24 +303,14 @@ export function RenderControlsPanel() {
                 currentFontFamilyName ? { fontFamily: currentFontFamilyName } : undefined
               }
               onChange={(value) => {
-                if (selectedBlockHasExplicitFont) {
-                  const nextFamilies = [value]
-                  if (applyStyleToSelected({ fontFamilies: nextFamilies })) return
+                if (selectedNode) {
+                  applyStyleToSelected({ fontFamilies: [value] })
+                  return
                 }
                 usePreferencesStore.getState().setDefaultFont(value)
               }}
             />
           </div>
-          {selectedBlockHasExplicitFont && (
-            <button
-              type='button'
-              className='text-[9px] text-muted-foreground hover:text-foreground'
-              onClick={() => applyStyleToSelected({ fontFamilies: [] })}
-              title='Reset to default'
-            >
-              ✕
-            </button>
-          )}
           <ColorPicker
             value={currentColorHex}
             disabled={!hasNodes}
@@ -333,7 +332,7 @@ export function RenderControlsPanel() {
       {/* Size / Effect / Align */}
       <div className='grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-x-1.5'>
         <span className='text-[10px] font-medium text-muted-foreground uppercase'>
-          {t('render.fontSizeLabel', { defaultValue: 'Size' })}
+          {t('render.fontSizeLabel')}
         </span>
         <span className='text-[10px] font-medium text-muted-foreground uppercase'>
           {t('render.effectLabel')}

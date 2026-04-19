@@ -13,6 +13,11 @@
     "addFolder": "Klasör Ekle...",
     "save": "Kaydet...",
     "saveAs": "Farklı Kaydet...",
+    "openFiles": "Dosyaları Aç...",
+    "closeProject": "Projeyi Kapat",
+    "edit": "Düzenle",
+    "undo": "Geri Al",
+    "redo": "Yinele",
     "export": "Dışa Aktar...",
     "exportPsd": "PSD Olarak Dışa Aktar...",
     "exportAllInpainted": "Tüm İnpaint Görsellerini Dışa Aktar...",
@@ -42,6 +47,19 @@
       "ko-KR": "Korece",
       "pt-BR": "Português (Brasil)"
     }
+  },
+  "welcome": {
+    "title": "Koharu",
+    "subtitle": "Manga çeviri çalışma alanı",
+    "new": "Yeni proje",
+    "newDescription": "Boş başlayın, sayfaları sonra içe aktarın",
+    "importKhr": ".khr arşivini içe aktar",
+    "projects": "Son Kullanılanlar",
+    "emptyHint": "Son projeleriniz burada görünecek",
+    "newDialogTitle": "Yeni proje",
+    "newDialogDescription": "Projenize bir ad verin. Yönetilen proje dizini altında saklanacaktır.",
+    "newDialogPlaceholder": "Proje adı",
+    "newDialogSubmit": "Oluştur"
   },
   "operations": {
     "title": "Çalışıyor",
@@ -103,6 +121,9 @@
     "ready": "Hazır",
     "idle": "Boşta",
     "selectPlaceholder": "Model seç",
+    "model": "Model",
+    "translationSettings": "Çeviri",
+    "systemPromptPlaceholder": "Özel sistem komutu (isteğe bağlı)",
     "modelLabel": "Model",
     "languageLabel": "Hedef dil",
     "languagePlaceholder": "Dil seç",
@@ -178,6 +199,7 @@
     "fontLabel": "Yazı tipi",
     "fontPlaceholder": "Yazı tipi seç",
     "fontColorLabel": "Yazı rengi",
+    "fontSizeLabel": "Boyut",
     "fontScopeGlobal": "Genel",
     "fontScopeBlock": "Blok bazında",
     "fontScopeBlockIndex": "Blok {{index}}"

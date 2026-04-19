@@ -14,6 +14,11 @@
     "addFolder": "Adicionar pasta...",
     "save": "Salvar...",
     "saveAs": "Salvar como...",
+    "openFiles": "Abrir arquivos...",
+    "closeProject": "Fechar projeto",
+    "edit": "Editar",
+    "undo": "Desfazer",
+    "redo": "Refazer",
     "export": "Exportar...",
     "exportPsd": "Exportar PSD...",
     "exportAllInpainted": "Exportar todos os inpaintings...",
@@ -43,6 +48,19 @@
       "ko-KR": "Coreano",
       "pt-BR": "Português (Brasil)"
     }
+  },
+  "welcome": {
+    "title": "Koharu",
+    "subtitle": "Espaço de trabalho de tradução de mangá",
+    "new": "Novo projeto",
+    "newDescription": "Comece em branco e importe páginas depois",
+    "importKhr": "Importar arquivo .khr",
+    "projects": "Recentes",
+    "emptyHint": "Seus projetos recentes aparecerão aqui",
+    "newDialogTitle": "Novo projeto",
+    "newDialogDescription": "Dê um nome ao seu projeto. Ele será armazenado no diretório de projetos gerenciados.",
+    "newDialogPlaceholder": "Nome do projeto",
+    "newDialogSubmit": "Criar"
   },
   "operations": {
     "title": "Trabalhando",
@@ -104,6 +122,9 @@
     "ready": "Pronto",
     "idle": "Inativo",
     "selectPlaceholder": "Selecionar modelo",
+    "model": "Modelo",
+    "translationSettings": "Tradução",
+    "systemPromptPlaceholder": "Prompt do sistema personalizado (opcional)",
     "modelLabel": "Modelo",
     "languageLabel": "Idioma de destino",
     "languagePlaceholder": "Selecionar idioma",
@@ -179,6 +200,7 @@
     "fontLabel": "Fonte",
     "fontPlaceholder": "Selecionar fonte",
     "fontColorLabel": "Cor da fonte",
+    "fontSizeLabel": "Tamanho",
     "fontScopeGlobal": "Global",
     "fontScopeBlock": "Por bloco",
     "fontScopeBlockIndex": "Bloco {{index}}"

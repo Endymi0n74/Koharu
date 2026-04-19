@@ -17,6 +17,9 @@
     "open": "Open",
     "openFiles": "Files...",
     "closeProject": "Close Project",
+    "edit": "Edit",
+    "undo": "Undo",
+    "redo": "Redo",
     "exportGroup": "Export",
     "export": "Export...",
     "exportPsd": "Export PSD...",
@@ -47,6 +50,19 @@
       "ko-KR": "한국어",
       "pt-BR": "Português (Brasil)"
     }
+  },
+  "welcome": {
+    "title": "Koharu",
+    "subtitle": "Manga translation workspace",
+    "new": "New project",
+    "newDescription": "Start blank, import pages later",
+    "importKhr": "Import .khr archive",
+    "projects": "Recent",
+    "emptyHint": "Your recent projects will appear here",
+    "newDialogTitle": "New project",
+    "newDialogDescription": "Give your project a name. It will be stored under the managed projects directory.",
+    "newDialogPlaceholder": "Project name",
+    "newDialogSubmit": "Create"
   },
   "operations": {
     "title": "Working",
@@ -108,6 +124,9 @@
     "ready": "Ready",
     "idle": "Idle",
     "selectPlaceholder": "Select model",
+    "model": "Model",
+    "translationSettings": "Translation",
+    "systemPromptPlaceholder": "Custom system prompt (optional)",
     "modelLabel": "Model",
     "languageLabel": "Target language",
     "languagePlaceholder": "Select language",
@@ -183,6 +202,7 @@
     "fontLabel": "Font",
     "fontPlaceholder": "Select font",
     "fontColorLabel": "Font color",
+    "fontSizeLabel": "Size",
     "fontScopeGlobal": "Global",
     "fontScopeBlock": "Per block",
     "fontScopeBlockIndex": "Block {{index}}"

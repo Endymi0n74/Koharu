@@ -99,11 +99,9 @@ export function WelcomeScreen() {
           <Image src='/icon.png' alt='Koharu' width={56} height={56} priority />
           <div className='mt-1 flex flex-col gap-0.5'>
             <h1 className='text-2xl font-semibold tracking-tight text-foreground'>
-              {t('welcome.title', { defaultValue: 'Koharu' })}
+              {t('welcome.title')}
             </h1>
-            <p className='text-xs text-muted-foreground'>
-              {t('welcome.subtitle', { defaultValue: 'Manga translation workspace' })}
-            </p>
+            <p className='text-xs text-muted-foreground'>{t('welcome.subtitle')}</p>
           </div>
         </header>
 
@@ -127,24 +125,22 @@ export function WelcomeScreen() {
             onClick={() => setNewDialogOpen(true)}
             disabled={!!busy}
             loading={busy === 'new'}
-            title={t('welcome.new', { defaultValue: 'New project' })}
-            description={t('welcome.newDescription', {
-              defaultValue: 'Start blank, import pages later',
-            })}
+            title={t('welcome.new')}
+            description={t('welcome.newDescription')}
           />
           <SecondaryAction
             onClick={importKhr}
             disabled={!!busy}
             loading={busy === 'import'}
             icon={<FileArchiveIcon className='h-4 w-4' />}
-            label={t('welcome.importKhr', { defaultValue: 'Import .khr archive' })}
+            label={t('welcome.importKhr')}
           />
         </div>
 
         <section className='flex flex-col gap-2'>
           <div className='flex items-baseline justify-between px-0.5'>
             <h2 className='text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase'>
-              {t('welcome.projects', { defaultValue: 'Recent' })}
+              {t('welcome.projects')}
             </h2>
             {projects.length > 0 && (
               <span className='text-[10px] text-muted-foreground tabular-nums'>
@@ -273,11 +269,7 @@ function RecentSkeleton() {
         ))}
       </ul>
       <div className='absolute inset-0 flex items-center justify-center bg-gradient-to-t from-background/95 via-background/60 to-transparent'>
-        <p className='text-center text-[11px] text-muted-foreground'>
-          {t('welcome.emptyHint', {
-            defaultValue: 'Your recent projects will appear here',
-          })}
-        </p>
+        <p className='text-center text-[11px] text-muted-foreground'>{t('welcome.emptyHint')}</p>
       </div>
     </div>
   )
@@ -357,13 +349,8 @@ function NewProjectDialog({
     >
       <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle>{t('welcome.newDialogTitle', { defaultValue: 'New project' })}</DialogTitle>
-          <DialogDescription>
-            {t('welcome.newDialogDescription', {
-              defaultValue:
-                'Give your project a name. It will be stored under the managed projects directory.',
-            })}
-          </DialogDescription>
+          <DialogTitle>{t('welcome.newDialogTitle')}</DialogTitle>
+          <DialogDescription>{t('welcome.newDialogDescription')}</DialogDescription>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -376,15 +363,15 @@ function NewProjectDialog({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t('welcome.newDialogPlaceholder', { defaultValue: 'Project name' })}
+            placeholder={t('welcome.newDialogPlaceholder')}
           />
           <DialogFooter>
             <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
-              {t('common.cancel', { defaultValue: 'Cancel' })}
+              {t('common.cancel')}
             </Button>
             <Button type='submit' disabled={!canSubmit}>
               <PlusIcon className='h-3.5 w-3.5' />
-              {t('welcome.newDialogSubmit', { defaultValue: 'Create' })}
+              {t('welcome.newDialogSubmit')}
             </Button>
           </DialogFooter>
         </form>
