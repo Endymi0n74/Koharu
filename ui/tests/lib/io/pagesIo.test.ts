@@ -13,10 +13,16 @@ vi.mock('@/lib/io/openFiles', () => ({
   openImageFolder: vi.fn(),
   openKhrFile: vi.fn(),
 }))
-vi.mock('@/lib/io/saveBlob', () => ({
-  saveBlob: vi.fn().mockResolvedValue(true),
-  filenameFromContentDisposition: () => undefined,
-}))
+vi.mock('@/lib/io/saveBlob', async () => {
+  // Keep the real `filenameFromContentDisposition` so the export flow can
+  // read server-provided filenames from `Content-Disposition`. Only stub
+  // `saveBlob` itself, since it touches the filesystem / Tauri dialog.
+  const actual = await vi.importActual<typeof import('@/lib/io/saveBlob')>('@/lib/io/saveBlob')
+  return {
+    ...actual,
+    saveBlob: vi.fn().mockResolvedValue(true),
+  }
+})
 
 import { openImageFiles, openImageFolder, openKhrFile } from '@/lib/io/openFiles'
 import { exportCurrentProjectAs, importKhrFile, importPages } from '@/lib/io/pagesIo'
@@ -182,5 +188,26 @@ describe('exportCurrentProjectAs', () => {
     await exportCurrentProjectAs('khr')
     const [, filename] = asMock(saveBlob).mock.calls[0]
     expect(filename).toBe('koharu-export.khr')
+  })
+
+  it('uses the server-provided filename for single-file exports', async () => {
+    // Regression: the backend returns a raw PNG (Content-Type: image/png,
+    // Content-Disposition: page-001-abc.png) for single-page exports. The
+    // UI previously forced `.zip` into the filename which caused saveBlob
+    // to try `unzipSync` on a PNG and silently fail.
+    server.use(
+      http.post('/api/v1/projects/current/export', () =>
+        HttpResponse.arrayBuffer(new Uint8Array([137, 80, 78, 71]).buffer, {
+          headers: {
+            'content-type': 'image/png',
+            'content-disposition': 'attachment; filename="page-001-abc.png"',
+          },
+        }),
+      ),
+    )
+    await exportCurrentProjectAs('rendered', ['p1'])
+    const [blob, filename] = asMock(saveBlob).mock.calls[0]
+    expect(filename).toBe('page-001-abc.png')
+    expect((blob as Blob).type).toBe('image/png')
   })
 })

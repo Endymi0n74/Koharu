@@ -18,7 +18,10 @@
 import { isTauri } from '@/lib/backend'
 
 export async function saveBlob(blob: Blob, defaultName: string): Promise<boolean> {
-  const isZip = blob.type === 'application/zip' || defaultName.toLowerCase().endsWith('.zip')
+  // Zip detection must come from the actual content type — a single-file
+  // export (PNG/PSD/khr) whose filename happens to end in `.zip` would
+  // otherwise be fed to `unzipSync` and throw.
+  const isZip = blob.type === 'application/zip'
 
   if (isTauri()) {
     const { open, save } = await import('@tauri-apps/plugin-dialog')

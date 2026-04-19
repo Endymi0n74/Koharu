@@ -6,8 +6,8 @@ import {
   createPagesFromPaths,
   createProject,
   deleteCurrentProject,
-  exportCurrentProject,
   getConfig,
+  getExportCurrentProjectUrl,
   getGetConfigQueryKey,
   getGetCurrentLlmQueryKey,
   getGetSceneJsonQueryKey,
@@ -18,6 +18,7 @@ import {
   startPipeline,
   undo,
 } from '@/lib/api/default/default'
+import { ApiError } from '@/lib/api/fetch'
 import type {
   ConfigPatch,
   CreateProjectRequest,
@@ -27,6 +28,7 @@ import type {
   ProjectSummary,
   SceneSnapshot,
 } from '@/lib/api/schemas'
+import { filenameFromContentDisposition } from '@/lib/io/saveBlob'
 import { queryClient } from '@/lib/queryClient'
 import { useSelectionStore } from '@/lib/stores/selectionStore'
 
@@ -168,8 +170,37 @@ export async function uploadKhrArchive(file: File): Promise<ProjectSummary> {
 
 // Export ---------------------------------------------------------------------
 
-export async function exportProject(req: ExportProjectRequest): Promise<Blob> {
-  return exportCurrentProject(req)
+/**
+ * Export wrapper that keeps the server-supplied filename.
+ *
+ * The backend returns the raw file for single-page exports (e.g. a PNG or
+ * PSD with `Content-Type: image/png`), and a zip when the format produces
+ * multiple files. The raw-file shortcut means we can't hardcode `.zip` in
+ * the UI — we'd end up feeding a PNG to `unzipSync` and crashing. Read
+ * the `Content-Disposition` filename so the caller gets the correct
+ * extension + `blob.type` to drive the save path.
+ */
+export async function exportProject(
+  req: ExportProjectRequest,
+): Promise<{ blob: Blob; filename?: string }> {
+  const res = await fetch(getExportCurrentProjectUrl(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    const message =
+      (body && typeof body === 'object' && 'message' in body && typeof body.message === 'string'
+        ? body.message
+        : null) ??
+      res.statusText ??
+      `HTTP ${res.status}`
+    throw new ApiError(res.status, message, body)
+  }
+  const blob = await res.blob()
+  const filename = filenameFromContentDisposition(res.headers.get('content-disposition'))
+  return { blob, filename }
 }
 
 // Config ---------------------------------------------------------------------

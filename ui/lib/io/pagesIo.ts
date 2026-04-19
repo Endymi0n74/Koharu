@@ -68,7 +68,16 @@ export async function exportCurrentProjectAs(
   format: 'khr' | 'psd' | 'rendered' | 'inpainted',
   pages?: string[],
 ): Promise<void> {
-  const blob = await exportProject({ format, pages })
-  const base = sanitiseBaseName(currentProjectName())
-  await saveBlob(blob, `${base}.${exportExtension[format]}`)
+  try {
+    const { blob, filename } = await exportProject({ format, pages })
+    const base = sanitiseBaseName(currentProjectName())
+    // Prefer the server's Content-Disposition filename (matches the actual
+    // bytes — a raw PNG/PSD for single-file responses, a zip for multi).
+    // Fall back to our guess only if the header is missing/unparseable.
+    const defaultName = filename ?? `${base}.${exportExtension[format]}`
+    await saveBlob(blob, defaultName)
+  } catch (err) {
+    console.error('Export failed:', err)
+    throw err
+  }
 }

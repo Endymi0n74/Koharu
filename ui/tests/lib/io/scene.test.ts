@@ -147,20 +147,56 @@ describe('pages + archive uploads', () => {
 })
 
 describe('export', () => {
-  it('returns a Blob without invalidating any cache', async () => {
+  it('returns a Blob + filename without invalidating any cache', async () => {
     server.use(
       http.post('/api/v1/projects/current/export', () =>
         HttpResponse.arrayBuffer(new Uint8Array([9, 9, 9]).buffer, {
-          headers: { 'content-type': 'application/zip' },
+          headers: {
+            'content-type': 'application/zip',
+            'content-disposition': 'attachment; filename="project-rendered.zip"',
+          },
         }),
       ),
     )
 
-    const blob = await exportProject({ format: 'rendered' })
+    const { blob, filename } = await exportProject({ format: 'rendered' })
     expect(Object.prototype.toString.call(blob)).toBe('[object Blob]')
     expect(blob.type).toBe('application/zip')
     expect(blob.size).toBe(3)
+    expect(filename).toBe('project-rendered.zip')
     expect(isInvalidated(getGetSceneJsonQueryKey())).toBe(false)
+  })
+
+  it('returns the raw file type + single-file filename for single-page exports', async () => {
+    server.use(
+      http.post('/api/v1/projects/current/export', () =>
+        HttpResponse.arrayBuffer(new Uint8Array([137, 80, 78, 71]).buffer, {
+          headers: {
+            'content-type': 'image/png',
+            'content-disposition': 'attachment; filename="page-001-abc.png"',
+          },
+        }),
+      ),
+    )
+
+    const { blob, filename } = await exportProject({
+      format: 'rendered',
+      pages: ['p1'],
+    })
+    expect(blob.type).toBe('image/png')
+    expect(filename).toBe('page-001-abc.png')
+  })
+
+  it('throws a structured error when the server returns 400', async () => {
+    server.use(
+      http.post('/api/v1/projects/current/export', () =>
+        HttpResponse.json({ message: 'no project open' }, { status: 400 }),
+      ),
+    )
+    await expect(exportProject({ format: 'khr' })).rejects.toMatchObject({
+      status: 400,
+      message: 'no project open',
+    })
   })
 })
 
