@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 use image::GrayImage;
 
+use crate::layout::WritingMode;
 use crate::types::RenderBlock;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -39,11 +40,24 @@ pub fn layout_box_from_block(block: &RenderBlock) -> LayoutBox {
 }
 
 /// Fraction of each axis trimmed off the bubble's bounding box to keep
-/// text comfortably inside the balloon. 12% per side → ~76% of the
-/// detected bbox is usable layout space — leaves breathing room around
-/// the text instead of pushing lettering flush against the bubble
-/// outline, and absorbs slight bbox imprecision from the segmenter.
-const BUBBLE_INSET_FRAC: f32 = 0.12;
+/// text comfortably inside the balloon. 12% per side for horizontal
+/// layout → ~76% of the detected bbox is usable layout space — leaves
+/// breathing room around the text instead of pushing lettering flush
+/// against the bubble outline, and absorbs slight bbox imprecision from
+/// the segmenter.
+const BUBBLE_INSET_FRAC_HORIZONTAL: f32 = 0.12;
+/// Vertical CJK text wants more breathing room: columns need horizontal
+/// margin so neighboring columns don't crowd the bubble outline, and a
+/// deeper top/bottom inset because vertical columns tend to fill the
+/// full bubble height more aggressively than wrapped horizontal lines.
+const BUBBLE_INSET_FRAC_VERTICAL: f32 = 0.20;
+
+fn bubble_inset_fraction(writing_mode: WritingMode) -> f32 {
+    match writing_mode {
+        WritingMode::Horizontal => BUBBLE_INSET_FRAC_HORIZONTAL,
+        WritingMode::VerticalRl => BUBBLE_INSET_FRAC_VERTICAL,
+    }
+}
 
 /// Pre-built index over a bubble-segmentation mask.
 ///
@@ -114,7 +128,11 @@ impl BubbleIndex {
     /// region when the mask is painted smaller-last).
     ///
     /// Returns `None` when the seed bbox has zero coverage over any bubble.
-    pub fn lookup(&self, seed: LayoutBox) -> Option<LayoutBox> {
+    ///
+    /// `writing_mode` controls how much the returned bubble bbox is inset —
+    /// vertical layouts reserve more margin so CJK columns aren't crowded
+    /// against the balloon outline.
+    pub fn lookup(&self, seed: LayoutBox, writing_mode: WritingMode) -> Option<LayoutBox> {
         let w = self.mask.width() as i32;
         let h = self.mask.height() as i32;
         if w <= 0 || h <= 0 {
@@ -138,8 +156,9 @@ impl BubbleIndex {
         let (best_id, _) = counts.into_iter().max_by_key(|&(_, c)| c)?;
         let bbox = self.bboxes.get(&best_id)?;
 
-        let inset_x = bbox.width * BUBBLE_INSET_FRAC;
-        let inset_y = bbox.height * BUBBLE_INSET_FRAC;
+        let frac = bubble_inset_fraction(writing_mode);
+        let inset_x = bbox.width * frac;
+        let inset_y = bbox.height * frac;
         let width = (bbox.width - 2.0 * inset_x).max(1.0);
         let height = (bbox.height - 2.0 * inset_y).max(1.0);
         Some(LayoutBox {
@@ -172,6 +191,7 @@ mod tests {
             width: 40.0,
             height: 20.0,
             text: "hello".into(),
+            source_direction: None,
         };
         assert_eq!(
             layout_box_from_block(&block),
@@ -197,7 +217,9 @@ mod tests {
             width: 10.0,
             height: 10.0,
         };
-        let rect = index.lookup(seed).expect("should find bubble");
+        let rect = index
+            .lookup(seed, WritingMode::Horizontal)
+            .expect("should find bubble");
         // The returned rect is the bubble bbox with a small inset.
         assert!(rect.x >= 20.0);
         assert!(rect.y >= 30.0);
@@ -226,7 +248,9 @@ mod tests {
             width: 35.0,
             height: 20.0,
         };
-        let rect = index.lookup(seed).expect("should find bubble");
+        let rect = index
+            .lookup(seed, WritingMode::Horizontal)
+            .expect("should find bubble");
         // Expected: bubble 2's bbox (x ∈ 100..199).
         assert!(rect.x >= 100.0);
     }
@@ -243,7 +267,35 @@ mod tests {
             width: 20.0,
             height: 20.0,
         };
-        assert!(index.lookup(seed).is_none());
+        assert!(index.lookup(seed, WritingMode::Horizontal).is_none());
+    }
+
+    #[test]
+    fn vertical_writing_mode_yields_larger_inset_than_horizontal() {
+        let mut mask = GrayImage::from_pixel(200, 200, Luma([0u8]));
+        paint_rect(&mut mask, 20, 30, 180, 170, 1);
+        let index = BubbleIndex::new(mask);
+        let seed = LayoutBox {
+            x: 80.0,
+            y: 80.0,
+            width: 20.0,
+            height: 20.0,
+        };
+
+        let horizontal = index
+            .lookup(seed, WritingMode::Horizontal)
+            .expect("horizontal lookup");
+        let vertical = index
+            .lookup(seed, WritingMode::VerticalRl)
+            .expect("vertical lookup");
+
+        // Vertical inset fraction is strictly greater, so the usable box
+        // should be smaller on both axes and the top-left corner pushed
+        // further inward.
+        assert!(vertical.width < horizontal.width);
+        assert!(vertical.height < horizontal.height);
+        assert!(vertical.x > horizontal.x);
+        assert!(vertical.y > horizontal.y);
     }
 
     #[test]
@@ -263,7 +315,9 @@ mod tests {
             width: 20.0,
             height: 20.0,
         };
-        let rect = index.lookup(seed).expect("should find small bubble");
+        let rect = index
+            .lookup(seed, WritingMode::Horizontal)
+            .expect("should find small bubble");
         // Small bubble bbox is roughly [80, 80] to [120, 120] → the
         // returned rect should be nested inside these bounds, not the
         // enclosing big bubble.

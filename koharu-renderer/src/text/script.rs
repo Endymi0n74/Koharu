@@ -3,16 +3,31 @@ use icu::properties::{CodePointMapData, props::Script as IcuScript};
 use unicode_bidi::BidiInfo;
 
 use crate::layout::WritingMode;
-use crate::types::RenderBlock;
+use crate::types::{RenderBlock, TextDirection};
 
 pub fn writing_mode_for_block(block: &RenderBlock) -> WritingMode {
     if block.text.is_empty() {
         return WritingMode::Horizontal;
     }
-    if !is_cjk_text(&block.text) || block.width >= block.height {
-        WritingMode::Horizontal
-    } else {
-        WritingMode::VerticalRl
+    // Non-CJK text always lays out horizontally regardless of bubble shape —
+    // an English translation in a tall manga bubble still reads left-to-right.
+    if !is_cjk_text(&block.text) {
+        return WritingMode::Horizontal;
+    }
+    // CJK content: prefer the OCR/detector's source direction when available,
+    // so bubble aspect ratio doesn't override a trusted signal. The bbox
+    // heuristic is kept only as a fallback for user-added blocks that have
+    // no recorded source direction.
+    match block.source_direction {
+        Some(TextDirection::Vertical) => WritingMode::VerticalRl,
+        Some(TextDirection::Horizontal) => WritingMode::Horizontal,
+        None => {
+            if block.height > block.width {
+                WritingMode::VerticalRl
+            } else {
+                WritingMode::Horizontal
+            }
+        }
     }
 }
 
@@ -244,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn writing_mode_uses_cjk_tall_box_heuristic() {
+    fn writing_mode_falls_back_to_cjk_tall_box_when_source_direction_missing() {
         let block = RenderBlock {
             width: 40.0,
             height: 120.0,
@@ -261,6 +276,36 @@ mod tests {
             width: 40.0,
             height: 120.0,
             text: "HELLO".to_string(),
+            ..Default::default()
+        };
+
+        assert_eq!(writing_mode_for_block(&block), WritingMode::Horizontal);
+    }
+
+    #[test]
+    fn writing_mode_honors_vertical_source_direction_in_wide_cjk_bubble() {
+        // A wide bubble (width > height) with vertical source direction
+        // should stay vertical — old bbox heuristic would have flipped it.
+        let block = RenderBlock {
+            width: 200.0,
+            height: 60.0,
+            text: "縦書き".to_string(),
+            source_direction: Some(crate::types::TextDirection::Vertical),
+            ..Default::default()
+        };
+
+        assert_eq!(writing_mode_for_block(&block), WritingMode::VerticalRl);
+    }
+
+    #[test]
+    fn writing_mode_honors_horizontal_source_direction_in_tall_cjk_bubble() {
+        // A tall bubble with horizontal source direction should stay
+        // horizontal — old bbox heuristic would have flipped it.
+        let block = RenderBlock {
+            width: 40.0,
+            height: 120.0,
+            text: "横書き".to_string(),
+            source_direction: Some(crate::types::TextDirection::Horizontal),
             ..Default::default()
         };
 

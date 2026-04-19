@@ -7,6 +7,7 @@ import {
   createProject,
   deleteCurrentProject,
   exportCurrentProject,
+  getConfig,
   getGetConfigQueryKey,
   getGetCurrentLlmQueryKey,
   getGetSceneJsonQueryKey,
@@ -14,6 +15,7 @@ import {
   patchConfig,
   putCurrentProject,
   redo,
+  startPipeline,
   undo,
 } from '@/lib/api/default/default'
 import type {
@@ -59,6 +61,45 @@ export async function undoOp(): Promise<void> {
 export async function redoOp(): Promise<void> {
   await redo()
   await invalidateScene()
+}
+
+// Auto-render ---------------------------------------------------------------
+//
+// `queueAutoRender(pageId)` schedules a debounced renderer-pipeline invocation
+// so a text-block edit (move/resize/translation/color/etc.) produces an
+// updated rendered image without the user running Render manually.
+//
+// Coalescing is essential: slider drags and typing emit many ops per second;
+// the trailing-edge debounce fires one render after the edits settle.
+
+const AUTO_RENDER_DEBOUNCE_MS = 500
+
+let autoRenderTimer: ReturnType<typeof setTimeout> | null = null
+let autoRenderPendingPageId: string | null = null
+
+export function queueAutoRender(pageId: string): void {
+  autoRenderPendingPageId = pageId
+  if (autoRenderTimer) clearTimeout(autoRenderTimer)
+  autoRenderTimer = setTimeout(() => {
+    autoRenderTimer = null
+    const id = autoRenderPendingPageId
+    autoRenderPendingPageId = null
+    if (!id) return
+    void runAutoRender(id)
+  }, AUTO_RENDER_DEBOUNCE_MS)
+}
+
+async function runAutoRender(pageId: string): Promise<void> {
+  try {
+    const cfg = await getConfig()
+    const renderer = cfg.pipeline?.renderer
+    if (!renderer) return
+    await startPipeline({ steps: [renderer], pages: [pageId] })
+  } catch (err) {
+    // Auto-render failures shouldn't disturb the editing flow; users can
+    // always run Render manually from the toolbar / menu.
+    console.error('Auto-render failed:', err)
+  }
 }
 
 /** Select every text node on the active page. No-op if no project/page open. */

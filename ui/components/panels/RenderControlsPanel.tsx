@@ -35,7 +35,7 @@ import type {
   TextStrokeStyle,
   TextStyle,
 } from '@/lib/api/schemas'
-import { applyOp } from '@/lib/io/scene'
+import { applyOp, queueAutoRender } from '@/lib/io/scene'
 import { ops } from '@/lib/ops'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { usePreferencesStore } from '@/lib/stores/preferencesStore'
@@ -211,14 +211,15 @@ export function RenderControlsPanel() {
     if (!page || nodes.length === 0) return
     if (nodes.length === 1) {
       void applyOp(buildStyleOp(nodes[0], updates))
-      return
+    } else {
+      void applyOp(
+        ops.batch(
+          label,
+          nodes.map((n) => buildStyleOp(n, updates)),
+        ),
+      )
     }
-    void applyOp(
-      ops.batch(
-        label,
-        nodes.map((n) => buildStyleOp(n, updates)),
-      ),
-    )
+    queueAutoRender(page.id)
   }
 
   const applyStyleToSelected = (updates: Partial<TextStyle>): boolean => {

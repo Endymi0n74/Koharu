@@ -7,7 +7,7 @@ import { useHotkeys } from 'react-hotkeys-hook'
 import { useBlobImage } from '@/hooks/useBlobData'
 import { useCurrentPage, useTextNodes, type TextNodeEntry } from '@/hooks/useCurrentPage'
 import type { Transform } from '@/lib/api/schemas'
-import { applyOp } from '@/lib/io/scene'
+import { applyOp, queueAutoRender } from '@/lib/io/scene'
 import { ops } from '@/lib/ops'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { useSelectionStore } from '@/lib/stores/selectionStore'
@@ -42,11 +42,13 @@ export function TextBlockLayer({ showSprites, scale, style }: TextBlockLayerProp
     if (!node) return
     const idx = Object.keys(page.nodes).indexOf(id)
     await applyOp(ops.removeNode(page.id, id, node, idx < 0 ? 0 : idx))
+    if ('text' in node.kind) queueAutoRender(page.id)
   }
 
   const updateTransform = async (id: string, t: Transform) => {
     if (!page) return
     await applyOp(ops.updateNode(page.id, id, { transform: t }))
+    queueAutoRender(page.id)
   }
 
   useHotkeys(

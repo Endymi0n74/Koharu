@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useCurrentPage, useTextNodes, type TextNodeEntry } from '@/hooks/useCurrentPage'
 import { getConfig, startPipeline, useGetCurrentLlm } from '@/lib/api/default/default'
 import type { TextDataPatch } from '@/lib/api/schemas'
-import { applyOp } from '@/lib/io/scene'
+import { applyOp, queueAutoRender } from '@/lib/io/scene'
 import { ops } from '@/lib/ops'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { useJobsStore } from '@/lib/stores/jobsStore'
@@ -54,6 +54,7 @@ export function TextBlocksPanel() {
         data: { text: patch } as never,
       }),
     )
+    queueAutoRender(page.id)
   }
 
   const removeNode = async (nodeId: string) => {
@@ -62,6 +63,7 @@ export function TextBlocksPanel() {
     const idx = Object.keys(page.nodes).indexOf(nodeId)
     await applyOp(ops.removeNode(page.id, nodeId, node, idx < 0 ? 0 : idx))
     clearSelection()
+    queueAutoRender(page.id)
   }
 
   const generate = async () => {

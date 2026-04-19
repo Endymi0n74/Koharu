@@ -27,7 +27,7 @@ use koharu_renderer::{
             font_families_for_text, normalize_translation_for_layout, writing_mode_for_block,
         },
     },
-    types::RenderBlock,
+    types::{RenderBlock, TextDirection as RendererTextDirection},
 };
 
 use crate::google_fonts::GoogleFontService;
@@ -218,6 +218,7 @@ impl Renderer {
             width: block.transform.width.max(1.0),
             height: block.transform.height.max(1.0),
             text: translation.to_string(),
+            source_direction: block.source_direction.map(core_direction_to_renderer),
         };
 
         let mut style = block.style.clone().unwrap_or_else(|| TextStyle {
@@ -268,7 +269,7 @@ impl Renderer {
         let expanded_box = if block.lock_layout_box {
             None
         } else {
-            bubble_index.and_then(|idx| idx.lookup(seed_box))
+            bubble_index.and_then(|idx| idx.lookup(seed_box, writing_mode))
         };
         let layout_box = expanded_box.unwrap_or(seed_box);
 
@@ -580,6 +581,13 @@ fn core_align_to_renderer(a: koharu_core::TextAlign) -> RendererTextAlign {
         koharu_core::TextAlign::Left => RendererTextAlign::Left,
         koharu_core::TextAlign::Center => RendererTextAlign::Center,
         koharu_core::TextAlign::Right => RendererTextAlign::Right,
+    }
+}
+
+fn core_direction_to_renderer(d: TextDirection) -> RendererTextDirection {
+    match d {
+        TextDirection::Horizontal => RendererTextDirection::Horizontal,
+        TextDirection::Vertical => RendererTextDirection::Vertical,
     }
 }
 
