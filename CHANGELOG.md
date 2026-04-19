@@ -1,3 +1,11 @@
+## [0.45.3](https://github.com/mayocream/koharu/compare/0.45.2..0.45.3) - 2026-04-19
+
+### 🐛 Bug Fixes
+
+- Normalizes invalid pipeline engine names back to the stage defaults - ([890fb2b](https://github.com/mayocream/koharu/commit/890fb2b3b934c58bdafa05aec1d3d66007aaff20))
+- Text overlapping - ([39a872c](https://github.com/mayocream/koharu/commit/39a872cb0399f604d618c7f7b17f322b16e2c1f3))
+
+
 ## [0.45.2](https://github.com/mayocream/koharu/compare/0.45.1..0.45.2) - 2026-04-19
 
 ### 🐛 Bug Fixes
