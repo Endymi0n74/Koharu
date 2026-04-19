@@ -122,6 +122,7 @@ export function TextBlocksPanel() {
                   node={node}
                   index={index}
                   selected={selectedIds.has(node.id)}
+                  onToggleSelect={() => select(node.id, true)}
                   onPatch={(patch) => void patchText(node.id, patch)}
                   onDelete={() => void removeNode(node.id)}
                   onGenerate={() => void generate()}
@@ -141,6 +142,7 @@ type BlockCardProps = {
   node: TextNodeEntry
   index: number
   selected: boolean
+  onToggleSelect: () => void
   onPatch: (patch: TextDataPatch) => void
   onDelete: () => void
   onGenerate: () => void
@@ -152,6 +154,7 @@ function BlockCard({
   node,
   index,
   selected,
+  onToggleSelect,
   onPatch,
   onDelete,
   onGenerate,
@@ -176,7 +179,16 @@ function BlockCard({
         data-selected={selected}
         className='overflow-hidden rounded-md bg-card/90 text-xs ring-1 ring-border data-[selected=true]:ring-primary'
       >
-        <AccordionTrigger className='flex w-full cursor-pointer items-center gap-1.5 px-2 py-1.5 text-left transition outline-none hover:no-underline data-[state=open]:bg-accent [&>svg]:hidden'>
+        <AccordionTrigger
+          onClick={(e) => {
+            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+              e.preventDefault()
+              e.stopPropagation()
+              onToggleSelect()
+            }
+          }}
+          className='flex w-full cursor-pointer items-center gap-1.5 px-2 py-1.5 text-left transition outline-none hover:no-underline data-[state=open]:bg-accent [&>svg]:hidden'
+        >
           <span
             className={`shrink-0 rounded-md px-1.5 py-0.5 text-center text-[10px] font-medium text-white tabular-nums ${
               selected ? 'bg-primary' : 'bg-muted-foreground/60'

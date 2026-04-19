@@ -20,7 +20,7 @@ import { useScene } from '@/hooks/useScene'
 import { getConfig, startPipeline } from '@/lib/api/default/default'
 import { isTauri, openExternalUrl } from '@/lib/backend'
 import { exportCurrentProjectAs, importPages } from '@/lib/io/pagesIo'
-import { closeProject, redoOp, undoOp } from '@/lib/io/scene'
+import { closeProject, redoOp, selectAllTextNodesOnCurrentPage, undoOp } from '@/lib/io/scene'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { usePreferencesStore } from '@/lib/stores/preferencesStore'
 import { useSelectionStore } from '@/lib/stores/selectionStore'
@@ -274,6 +274,16 @@ export function MenuBar() {
             >
               {t('menu.redo')}
               <MenubarShortcut>{isMacOS() ? '⇧⌘Z' : 'Ctrl+Shift+Z'}</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem
+              data-testid='menu-edit-select-all'
+              className='text-[13px]'
+              disabled={!hasPage}
+              onSelect={() => selectAllTextNodesOnCurrentPage()}
+            >
+              {t('menu.selectAll')}
+              <MenubarShortcut>{isMacOS() ? '⌘A' : 'Ctrl+A'}</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>

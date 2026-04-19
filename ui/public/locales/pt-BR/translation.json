@@ -19,6 +19,7 @@
     "edit": "Editar",
     "undo": "Desfazer",
     "redo": "Refazer",
+    "selectAll": "Selecionar tudo",
     "export": "Exportar...",
     "exportPsd": "Exportar PSD...",
     "exportAllInpainted": "Exportar todos os inpaintings...",
@@ -203,7 +204,8 @@
     "fontSizeLabel": "Tamanho",
     "fontScopeGlobal": "Global",
     "fontScopeBlock": "Por bloco",
-    "fontScopeBlockIndex": "Bloco {{index}}"
+    "fontScopeBlockIndex": "Bloco {{index}}",
+    "fontScopeBlocksCount": "{{count}} blocos"
   },
   "textBlocks": {
     "emptyPrompt": "Abra uma imagem para ver os blocos de texto.",

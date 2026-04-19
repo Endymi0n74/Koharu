@@ -20,6 +20,7 @@
     "edit": "Edit",
     "undo": "Undo",
     "redo": "Redo",
+    "selectAll": "Select All",
     "exportGroup": "Export",
     "export": "Export...",
     "exportPsd": "Export PSD...",
@@ -205,7 +206,8 @@
     "fontSizeLabel": "Size",
     "fontScopeGlobal": "Global",
     "fontScopeBlock": "Per block",
-    "fontScopeBlockIndex": "Block {{index}}"
+    "fontScopeBlockIndex": "Block {{index}}",
+    "fontScopeBlocksCount": "{{count}} blocks"
   },
   "textBlocks": {
     "emptyPrompt": "Open an image to see text blocks.",

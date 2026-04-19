@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 
-import { redoOp, undoOp } from '@/lib/io/scene'
+import { redoOp, selectAllTextNodesOnCurrentPage, undoOp } from '@/lib/io/scene'
 import { getPlatform, formatShortcut, isModifierKey } from '@/lib/shortcutUtils'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { usePreferencesStore } from '@/lib/stores/preferencesStore'
@@ -31,6 +31,14 @@ export function useKeyboardShortcuts() {
       if (mod && (event.key === 'y' || event.key === 'Y')) {
         event.preventDefault()
         void redoOp()
+        return
+      }
+
+      // Select all text blocks on the current page. Runs outside text fields;
+      // inside a textarea/input the browser's native "select all text" wins.
+      if (mod && (event.key === 'a' || event.key === 'A') && !inTextField) {
+        event.preventDefault()
+        selectAllTextNodesOnCurrentPage()
         return
       }
 

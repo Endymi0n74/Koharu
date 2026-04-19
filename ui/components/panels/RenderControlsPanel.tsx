@@ -18,11 +18,18 @@ import { ColorPicker } from '@/components/ui/color-picker'
 import { FontSelect } from '@/components/ui/font-select'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useCurrentPage, useSelectedTextNode, useTextNodes } from '@/hooks/useCurrentPage'
+import {
+  useCurrentPage,
+  useSelectedTextNode,
+  useSelectedTextNodes,
+  useTextNodes,
+  type TextNodeEntry,
+} from '@/hooks/useCurrentPage'
 import { useGetGoogleFontsCatalog, useListFonts } from '@/lib/api/default/default'
 import type {
   FontFaceInfo,
   FontPrediction,
+  Op,
   TextAlign,
   TextShaderEffect,
   TextStrokeStyle,
@@ -124,6 +131,7 @@ export function RenderControlsPanel() {
   const page = useCurrentPage()
   const textNodes = useTextNodes()
   const selectedNode = useSelectedTextNode()
+  const selectedNodes = useSelectedTextNodes()
   const { data: availableFonts = [] } = useListFonts()
   useGetGoogleFontsCatalog() // prefetch catalog so picker can decorate Google entries
   const appDefaultFont = usePreferencesStore((s) => s.defaultFont)
@@ -180,49 +188,47 @@ export function RenderControlsPanel() {
   // Mutations
   // ---------------------------------------------------------------------------
 
-  const applyStyleToNode = async (nodeId: string, updates: Partial<TextStyle>) => {
-    if (!page) return
-    const existing = page.nodes[nodeId]
-    if (!existing || !('text' in existing.kind)) return
-    const current = existing.kind.text.style ?? undefined
+  const buildStyleOp = (n: TextNodeEntry, updates: Partial<TextStyle>): Op => {
+    const current = n.data.style
     const nextStyle: TextStyle = {
       fontFamilies: updates.fontFamilies ?? current?.fontFamilies ?? [],
       fontSize: updates.fontSize ?? current?.fontSize ?? null,
-      color: updates.color ?? effectiveColorOf(current, existing.kind.text.fontPrediction),
+      color: updates.color ?? effectiveColorOf(current, n.data.fontPrediction),
       effect: updates.effect ?? current?.effect ?? null,
       stroke: updates.stroke ?? current?.stroke ?? null,
       textAlign: updates.textAlign ?? current?.textAlign ?? null,
     }
-    await applyOp(
-      ops.updateNode(page.id, nodeId, {
-        data: { text: { style: nextStyle } } as never,
-      }),
+    return ops.updateNode(page!.id, n.id, {
+      data: { text: { style: nextStyle } } as never,
+    })
+  }
+
+  const applyStyleToNodes = (
+    nodes: TextNodeEntry[],
+    updates: Partial<TextStyle>,
+    label: string,
+  ) => {
+    if (!page || nodes.length === 0) return
+    if (nodes.length === 1) {
+      void applyOp(buildStyleOp(nodes[0], updates))
+      return
+    }
+    void applyOp(
+      ops.batch(
+        label,
+        nodes.map((n) => buildStyleOp(n, updates)),
+      ),
     )
   }
 
   const applyStyleToSelected = (updates: Partial<TextStyle>): boolean => {
-    if (!selectedNode) return false
-    void applyStyleToNode(selectedNode.id, updates)
+    if (selectedNodes.length === 0) return false
+    applyStyleToNodes(selectedNodes, updates, 'Multi-block style update')
     return true
   }
 
   const applyStyleToAll = (updates: Partial<TextStyle>) => {
-    if (!hasNodes || !page) return
-    const batch = textNodes.map((n) => {
-      const current = n.data.style
-      const nextStyle: TextStyle = {
-        fontFamilies: updates.fontFamilies ?? current?.fontFamilies ?? [],
-        fontSize: updates.fontSize ?? current?.fontSize ?? null,
-        color: updates.color ?? effectiveColorOf(current, n.data.fontPrediction),
-        effect: updates.effect ?? current?.effect ?? null,
-        stroke: updates.stroke ?? current?.stroke ?? null,
-        textAlign: updates.textAlign ?? current?.textAlign ?? null,
-      }
-      return ops.updateNode(page.id, n.id, {
-        data: { text: { style: nextStyle } } as never,
-      })
-    })
-    void applyOp(ops.batch('Bulk style update', batch))
+    applyStyleToNodes(textNodes, updates, 'Bulk style update')
   }
 
   const applyStrokeSetting = (nextStroke: TextStrokeStyle) => {
@@ -257,11 +263,14 @@ export function RenderControlsPanel() {
     { value: 'right', label: t('render.alignRight'), Icon: AlignRightIcon },
   ]
 
-  const scopeLabel = selectedNode
-    ? t('render.fontScopeBlockIndex', {
-        index: textNodes.findIndex((n) => n.id === selectedNode.id) + 1,
-      })
-    : t('render.fontScopeGlobal')
+  const scopeLabel =
+    selectedNodes.length > 1
+      ? t('render.fontScopeBlocksCount', { count: selectedNodes.length })
+      : selectedNode
+        ? t('render.fontScopeBlockIndex', {
+            index: textNodes.findIndex((n) => n.id === selectedNode.id) + 1,
+          })
+        : t('render.fontScopeGlobal')
   const scopeToneClass = selectedNode
     ? 'border-primary/20 bg-primary/10 text-primary'
     : 'border-border/60 bg-muted text-muted-foreground'

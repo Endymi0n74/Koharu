@@ -125,3 +125,23 @@ export function useSelectedTextNode(): TextNodeEntry | null {
     return null
   }, [page, nodeIds, epoch])
 }
+
+/** All selected text nodes in stacking order (for batch edits). */
+export function useSelectedTextNodes(): TextNodeEntry[] {
+  const page = useCurrentPage()
+  const nodeIds = useSelectionStore((s) => s.nodeIds)
+  const { epoch } = useScene()
+  return useMemo(() => {
+    if (!page) return []
+    const out: TextNodeEntry[] = []
+    for (const [id, node] of Object.entries(page.nodes)) {
+      if (!nodeIds.has(id) || !isTextNode(node)) continue
+      out.push({
+        id,
+        transform: node.transform ?? { x: 0, y: 0, width: 0, height: 0 },
+        data: node.kind.text,
+      })
+    }
+    return out
+  }, [page, nodeIds, epoch])
+}

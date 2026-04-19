@@ -23,8 +23,10 @@ import type {
   Op,
   OpenProjectRequest,
   ProjectSummary,
+  SceneSnapshot,
 } from '@/lib/api/schemas'
 import { queryClient } from '@/lib/queryClient'
+import { useSelectionStore } from '@/lib/stores/selectionStore'
 
 /**
  * Imperative action helpers. Every mutation below is a thin wrapper that
@@ -57,6 +59,20 @@ export async function undoOp(): Promise<void> {
 export async function redoOp(): Promise<void> {
   await redo()
   await invalidateScene()
+}
+
+/** Select every text node on the active page. No-op if no project/page open. */
+export function selectAllTextNodesOnCurrentPage(): void {
+  const pageId = useSelectionStore.getState().pageId
+  if (!pageId) return
+  const snap = queryClient.getQueryData<SceneSnapshot>(getGetSceneJsonQueryKey())
+  const page = snap?.scene?.pages?.[pageId]
+  if (!page) return
+  const ids: string[] = []
+  for (const [id, node] of Object.entries(page.nodes)) {
+    if (node && 'text' in node.kind) ids.push(id)
+  }
+  useSelectionStore.getState().selectMany(ids)
 }
 
 // Project lifecycle ----------------------------------------------------------

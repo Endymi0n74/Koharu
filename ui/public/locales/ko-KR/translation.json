@@ -18,6 +18,7 @@
     "edit": "편집",
     "undo": "실행 취소",
     "redo": "다시 실행",
+    "selectAll": "모두 선택",
     "export": "내보내기...",
     "exportPsd": "PSD 내보내기...",
     "exportAllInpainted": "모든 인페인트 이미지 내보내기...",
@@ -202,7 +203,8 @@
     "fontSizeLabel": "크기",
     "fontScopeGlobal": "전역",
     "fontScopeBlock": "블록별",
-    "fontScopeBlockIndex": "블록 {{index}}"
+    "fontScopeBlockIndex": "블록 {{index}}",
+    "fontScopeBlocksCount": "블록 {{count}}개"
   },
   "textBlocks": {
     "emptyPrompt": "텍스트 블록을 보려면 이미지를 열어주세요.",

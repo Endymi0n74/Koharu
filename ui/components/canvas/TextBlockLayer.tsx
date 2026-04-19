@@ -80,7 +80,7 @@ export function TextBlockLayer({ showSprites, scale, style }: TextBlockLayerProp
           scale={scale}
           selected={selectedIds.has(n.id)}
           interactive={interactive}
-          onSelect={(id) => select(id, false)}
+          onSelect={(id, additive) => select(id, additive)}
           onCommit={(t) => void updateTransform(n.id, t)}
         />
       ))}
@@ -94,8 +94,14 @@ type TextBlockItemProps = {
   scale: number
   selected: boolean
   interactive: boolean
-  onSelect: (id: string) => void
+  onSelect: (id: string, additive: boolean) => void
   onCommit: (transform: Transform) => void
+}
+
+const isAdditiveEvent = (event: unknown): boolean => {
+  if (!event || typeof event !== 'object') return false
+  const e = event as { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean }
+  return !!(e.shiftKey || e.metaKey || e.ctrlKey)
 }
 
 const RESIZE_HANDLE_SIZE = 8
@@ -130,8 +136,9 @@ function TextBlockItem({
     ({ first, last, movement: [mx, my], event, tap }) => {
       if (!interactive) return
       event?.stopPropagation()
+      const additive = isAdditiveEvent(event)
       if (tap) {
-        onSelect(node.id)
+        onSelect(node.id, additive)
         return
       }
       if (first) {
@@ -141,7 +148,9 @@ function TextBlockItem({
           w: t.width * scale,
           h: t.height * scale,
         }
-        onSelect(node.id)
+        // Keep multi-selection intact when dragging a node that's already selected;
+        // otherwise this click is a single-select (unless the modifier is held).
+        if (additive || !selected) onSelect(node.id, additive)
       }
       const { x: sx, y: sy, w: sw, h: sh } = dragStart.current
       const edge = edgeRef.current

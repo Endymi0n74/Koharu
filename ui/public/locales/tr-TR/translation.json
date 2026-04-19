@@ -18,6 +18,7 @@
     "edit": "Düzenle",
     "undo": "Geri Al",
     "redo": "Yinele",
+    "selectAll": "Tümünü Seç",
     "export": "Dışa Aktar...",
     "exportPsd": "PSD Olarak Dışa Aktar...",
     "exportAllInpainted": "Tüm İnpaint Görsellerini Dışa Aktar...",
@@ -202,7 +203,8 @@
     "fontSizeLabel": "Boyut",
     "fontScopeGlobal": "Genel",
     "fontScopeBlock": "Blok bazında",
-    "fontScopeBlockIndex": "Blok {{index}}"
+    "fontScopeBlockIndex": "Blok {{index}}",
+    "fontScopeBlocksCount": "{{count}} blok"
   },
   "textBlocks": {
     "emptyPrompt": "Metin bloklarını görmek için bir görsel açın.",
