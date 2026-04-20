@@ -8,6 +8,7 @@ pub fn initialize() -> sentry::ClientInitGuard {
             .expect("invalid SENTRY_DSN environment variable"),
         release: sentry::release_name!(),
         send_default_pii: true,
+        sample_rate: 0.1,
         ..Default::default()
     })
 }
