@@ -209,17 +209,17 @@ export function RenderControlsPanel() {
     label: string,
   ) => {
     if (!page || nodes.length === 0) return
-    if (nodes.length === 1) {
-      void applyOp(buildStyleOp(nodes[0], updates))
-    } else {
-      void applyOp(
-        ops.batch(
-          label,
-          nodes.map((n) => buildStyleOp(n, updates)),
-        ),
-      )
-    }
-    queueAutoRender(page.id)
+    void (async () => {
+      const op =
+        nodes.length === 1
+          ? buildStyleOp(nodes[0], updates)
+          : ops.batch(
+              label,
+              nodes.map((n) => buildStyleOp(n, updates)),
+            )
+      await applyOp(op)
+      queueAutoRender(page.id)
+    })()
   }
 
   const applyStyleToSelected = (updates: Partial<TextStyle>): boolean => {

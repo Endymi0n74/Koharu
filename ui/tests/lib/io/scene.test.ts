@@ -69,6 +69,40 @@ describe('applyOp', () => {
     await expect(applyOp(ops.updatePage('p1', {}))).rejects.toBeDefined()
     expect(isInvalidated(getGetSceneJsonQueryKey())).toBe(false)
   })
+
+  it('serializes scene ops in the order they were queued', async () => {
+    const seen: string[] = []
+    let releaseFirst!: () => void
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    server.use(
+      http.post('/api/v1/history/apply', async ({ request }) => {
+        const body = (await request.json()) as {
+          updatePage?: { id: string }
+        }
+        const id = body.updatePage?.id ?? 'unknown'
+        seen.push(`${id}:start`)
+        if (id === 'first') {
+          await firstGate
+          seen.push(`${id}:end`)
+        }
+        return HttpResponse.json({ epoch: 42 })
+      }),
+    )
+
+    const first = applyOp(ops.updatePage('first', { name: 'one' }))
+    const second = applyOp(ops.updatePage('second', { name: 'two' }))
+
+    await vi.waitFor(() => {
+      expect(seen).toEqual(['first:start'])
+    })
+
+    releaseFirst()
+    await Promise.all([first, second])
+
+    expect(seen).toEqual(['first:start', 'first:end', 'second:start'])
+  })
 })
 
 describe('project lifecycle', () => {

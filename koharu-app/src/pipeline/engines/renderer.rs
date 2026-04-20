@@ -95,6 +95,10 @@ impl Engine for Model {
         let mut ops = Vec::with_capacity(output.blocks.len() + 1);
         for block_out in output.blocks {
             let sprite_ref = ctx.blobs.put_raw(&block_out.sprite)?;
+            let existing_style = inputs
+                .iter()
+                .find(|i| i.node_id == block_out.node_id)
+                .and_then(|i| i.style.clone());
             ops.push(Op::UpdateNode {
                 page: ctx.page,
                 id: block_out.node_id,
@@ -105,14 +109,11 @@ impl Engine for Model {
                             block_out.expanded_transform.map(normalize_transform),
                         ),
                         rendered_direction: Some(Some(block_out.rendered_direction)),
-                        // Persist an empty style so downstream re-renders skip
-                        // re-deriving font families; mirrors legacy behaviour.
-                        style: Some(Some(preserve_or_empty_style(
-                            inputs
-                                .iter()
-                                .find(|i| i.node_id == block_out.node_id)
-                                .and_then(|i| i.style.clone()),
-                        ))),
+                        // Only persist explicit user style overrides. Writing
+                        // a synthetic default style back into the scene makes
+                        // later renders treat implicit predicted colors as
+                        // explicit black overrides.
+                        style: preserve_existing_style(existing_style),
                         ..Default::default()
                     })),
                     transform: None,
@@ -162,13 +163,39 @@ fn normalize_transform(t: Transform) -> Transform {
     }
 }
 
-fn preserve_or_empty_style(existing: Option<TextStyle>) -> TextStyle {
-    existing.unwrap_or_else(|| TextStyle {
-        font_families: Vec::new(),
-        font_size: None,
-        color: [0, 0, 0, 255],
-        effect: None,
-        stroke: None,
-        text_align: None,
-    })
+fn preserve_existing_style(existing: Option<TextStyle>) -> Option<Option<TextStyle>> {
+    existing.map(Some)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::preserve_existing_style;
+    use koharu_core::TextStyle;
+
+    #[test]
+    fn omits_style_patch_when_block_has_no_explicit_style() {
+        assert!(preserve_existing_style(None).is_none());
+    }
+
+    #[test]
+    fn preserves_existing_explicit_style() {
+        let style = TextStyle {
+            font_families: vec!["Arial".to_string()],
+            font_size: Some(18.0),
+            color: [12, 34, 56, 255],
+            effect: None,
+            stroke: None,
+            text_align: None,
+        };
+        let preserved = preserve_existing_style(Some(style));
+        let Some(Some(preserved)) = preserved else {
+            panic!("expected explicit style patch");
+        };
+        assert_eq!(preserved.font_families, vec!["Arial".to_string()]);
+        assert_eq!(preserved.font_size, Some(18.0));
+        assert_eq!(preserved.color, [12, 34, 56, 255]);
+        assert!(preserved.effect.is_none());
+        assert!(preserved.stroke.is_none());
+        assert!(preserved.text_align.is_none());
+    }
 }

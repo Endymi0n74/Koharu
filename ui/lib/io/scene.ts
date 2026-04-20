@@ -51,19 +51,33 @@ const invalidateLlm = () => queryClient.invalidateQueries({ queryKey: getGetCurr
 
 // Ops ------------------------------------------------------------------------
 
+let historyMutationQueue: Promise<void> = Promise.resolve()
+
+const enqueueHistoryMutation = (run: () => Promise<void>): Promise<void> => {
+  const next = historyMutationQueue.then(run, run)
+  historyMutationQueue = next.catch(() => undefined)
+  return next
+}
+
 export async function applyOp(op: Op): Promise<void> {
-  await applyCommand(op)
-  await invalidateScene()
+  await enqueueHistoryMutation(async () => {
+    await applyCommand(op)
+    await invalidateScene()
+  })
 }
 
 export async function undoOp(): Promise<void> {
-  await undo()
-  await invalidateScene()
+  await enqueueHistoryMutation(async () => {
+    await undo()
+    await invalidateScene()
+  })
 }
 
 export async function redoOp(): Promise<void> {
-  await redo()
-  await invalidateScene()
+  await enqueueHistoryMutation(async () => {
+    await redo()
+    await invalidateScene()
+  })
 }
 
 // Auto-render ---------------------------------------------------------------

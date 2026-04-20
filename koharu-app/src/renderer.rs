@@ -235,24 +235,8 @@ impl Renderer {
 
         let font = self.select_font(&style)?;
         let block_effect = style.effect.unwrap_or(*effect);
-        let color = if style.effect.is_some() {
-            style.color
-        } else {
-            {
-                if block.style.is_some() {
-                    style.color
-                } else if let Some(pred) = &block.font_prediction {
-                    [
-                        pred.text_color[0],
-                        pred.text_color[1],
-                        pred.text_color[2],
-                        255,
-                    ]
-                } else {
-                    [0, 0, 0, 255]
-                }
-            }
-        };
+        let color =
+            resolve_text_color(block.style.as_ref(), &style, block.font_prediction.as_ref());
 
         let writing_mode = writing_mode_for_block(&layout_source);
         // Translations default to centre alignment inside a bubble — each
@@ -618,6 +602,25 @@ fn resolve_stroke_style(
     })
 }
 
+fn resolve_text_color(
+    explicit_style: Option<&TextStyle>,
+    derived_style: &TextStyle,
+    font_prediction: Option<&FontPrediction>,
+) -> [u8; 4] {
+    if explicit_style.is_some() {
+        return derived_style.color;
+    }
+    if let Some(pred) = font_prediction {
+        return [
+            pred.text_color[0],
+            pred.text_color[1],
+            pred.text_color[2],
+            255,
+        ];
+    }
+    [0, 0, 0, 255]
+}
+
 // ---------------------------------------------------------------------------
 // Helpers: type conversions
 // ---------------------------------------------------------------------------
@@ -718,6 +721,46 @@ mod tests {
         .expect("explicit stroke should be present");
         assert_eq!(stroke.color, [255, 255, 255, 255]);
         assert_eq!(stroke.width_px, 2.0);
+    }
+
+    #[test]
+    fn predicted_text_color_wins_without_explicit_style() {
+        let derived = TextStyle {
+            font_families: Vec::new(),
+            font_size: None,
+            color: [0, 0, 0, 255],
+            effect: None,
+            stroke: None,
+            text_align: None,
+        };
+        let prediction = FontPrediction {
+            text_color: [12, 34, 56],
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_text_color(None, &derived, Some(&prediction)),
+            [12, 34, 56, 255]
+        );
+    }
+
+    #[test]
+    fn explicit_text_color_wins_over_prediction() {
+        let explicit = TextStyle {
+            font_families: Vec::new(),
+            font_size: None,
+            color: [200, 100, 50, 255],
+            effect: None,
+            stroke: None,
+            text_align: None,
+        };
+        let prediction = FontPrediction {
+            text_color: [12, 34, 56],
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_text_color(Some(&explicit), &explicit, Some(&prediction)),
+            [200, 100, 50, 255]
+        );
     }
 
     #[test]
