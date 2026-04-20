@@ -143,6 +143,14 @@ export function RenderControlsPanel() {
     return [...(availableFonts ?? [])].sort((a, b) => a.familyName.localeCompare(b.familyName))
   }, [availableFonts])
 
+  if (!page) {
+    return (
+      <div className='flex items-center justify-center py-6 text-xs text-muted-foreground'>
+        {t('textBlocks.emptyPrompt')}
+      </div>
+    )
+  }
+
   const firstNode = textNodes[0]
   const hasNodes = textNodes.length > 0
 
