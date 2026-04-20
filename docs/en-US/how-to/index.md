@@ -10,7 +10,6 @@ How-to guides focus on concrete tasks you may want to complete with Koharu.
 
 - [Install Koharu](install-koharu.md): release setup, first-run downloads, and acceleration expectations
 - [Runtime and Model Downloads](runtime-and-model-downloads.md): what Koharu downloads, where files are cached, and how to test connectivity before filing a bug
-- [Contributing](contributing.md): repository layout, local commands, validation steps, and PR expectations
 - [Run GUI, Headless, and MCP Modes](run-gui-headless-and-mcp.md): local deployment patterns and runtime flags
 - [Configure MCP Clients](configure-mcp-clients.md): connect Antigravity, Claude Desktop, or Claude Code to Koharu's local MCP endpoint
 - [Use OpenAI-Compatible APIs](use-openai-compatible-api.md): connect LM Studio, OpenRouter, and other OpenAI-style chat-completions endpoints

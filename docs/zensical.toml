@@ -18,7 +18,6 @@ nav = [
     "how-to/index.md",
     "how-to/install-koharu.md",
     "how-to/runtime-and-model-downloads.md",
-    "how-to/contributing.md",
     "how-to/run-gui-headless-and-mcp.md",
     "how-to/configure-mcp-clients.md",
     "how-to/use-openai-compatible-api.md",
@@ -41,6 +40,10 @@ nav = [
     "reference/mcp-tools.md",
     "reference/settings.md",
     "reference/keyboard-shortcuts.md",
+  ]},
+  {"Contribute" = [
+    "contribute/introduction.md",
+    "contribute/development.md",
   ]},
 ]
 

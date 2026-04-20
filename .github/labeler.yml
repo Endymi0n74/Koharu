@@ -8,7 +8,7 @@
 'area: docs':
   - changed-files:
       - any-glob-to-any-file:
-          - .github/CONTRIBUTING.md
+          - CONTRIBUTING.md
           - README.md
           - docs/**
 
@@ -17,11 +17,10 @@
       - any-glob-to-any-file:
           - ui/**
 
-'area: e2e':
+'area: tests':
   - changed-files:
       - any-glob-to-any-file:
-          - e2e/**
-          - playwright.config.ts
+          - tests/**
 
 'area: tauri':
   - changed-files:

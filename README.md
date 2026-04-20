@@ -291,7 +291,7 @@ bun run build
 
 The built binaries are written to `target/release`.
 
-For platform-specific build notes, see [Build From Source](https://koharu.rs/how-to/build-from-source/). For the local development workflow, see [Contributing](https://koharu.rs/how-to/contributing/).
+For platform-specific build notes, see [Build From Source](https://koharu.rs/how-to/build-from-source/). For the local development workflow, see [Contributing](https://koharu.rs/contribute/introduction/).
 
 ## Sponsorship
 

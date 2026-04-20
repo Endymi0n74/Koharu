@@ -10,7 +10,6 @@ title: ハウツーガイド
 
 - [Koharu をインストールする](install-koharu.md): リリース版の導入、初回起動時のダウンロード、アクセラレーションの前提
 - [ランタイムとモデルのダウンロード](runtime-and-model-downloads.md): Koharu が何をダウンロードするか、どこにキャッシュするか、バグ報告前にどう接続確認するか
-- [コントリビュートする](contributing.md): リポジトリ構成、ローカルコマンド、検証手順、PR の期待事項
 - [GUI / Headless / MCP モードを使う](run-gui-headless-and-mcp.md): ローカルでの起動パターンと実行時フラグ
 - [MCP クライアントを設定する](configure-mcp-clients.md): Antigravity、Claude Desktop、Claude Code を Koharu のローカル MCP エンドポイントに接続する
 - [OpenAI 互換 API を使う](use-openai-compatible-api.md): LM Studio、OpenRouter、その他 OpenAI 形式の chat-completions エンドポイントを接続する
