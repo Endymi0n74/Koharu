@@ -1,3 +1,10 @@
+## [0.47.1](https://github.com/mayocream/koharu/compare/0.47.0..0.47.1) - 2026-04-20
+
+### 🐛 Bug Fixes
+
+- Inpainting OOM & pipeline error handling - ([aeda77d](https://github.com/mayocream/koharu/commit/aeda77d085ba22679e5361a3368d982ab87661f6))
+
+
 ## [0.47.0](https://github.com/mayocream/koharu/compare/0.46.0..0.47.0) - 2026-04-20
 
 ### ⛰️  Features
