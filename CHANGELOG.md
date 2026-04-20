@@ -1,3 +1,10 @@
+## [0.47.2](https://github.com/mayocream/koharu/compare/0.47.1..0.47.2) - 2026-04-20
+
+### ⚡ Performance
+
+- Improve inpainting - ([6f1494a](https://github.com/mayocream/koharu/commit/6f1494af238616cac6cfdcdd9941eb702fe8b404))
+
+
 ## [0.47.1](https://github.com/mayocream/koharu/compare/0.47.0..0.47.1) - 2026-04-20
 
 ### 🐛 Bug Fixes
