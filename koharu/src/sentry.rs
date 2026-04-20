@@ -9,6 +9,7 @@ pub fn initialize() -> sentry::ClientInitGuard {
         release: sentry::release_name!(),
         send_default_pii: true,
         sample_rate: 0.1,
+        auto_session_tracking: true,
         ..Default::default()
     })
 }
