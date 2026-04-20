@@ -7,7 +7,7 @@
 //!
 //! Requires an `Image { role: Inpainted }` node on the page.
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use async_trait::async_trait;
 use koharu_core::{
     ImageRole, MaskRole, NodeDataPatch, NodePatch, Op, TextDataPatch, TextStyle, Transform,
@@ -69,7 +69,7 @@ impl Engine for Model {
             .collect();
 
         if inputs.is_empty() {
-            return Err(anyhow!("no text translations to render"));
+            return Ok(Vec::new());
         }
 
         let page_opts = PageRenderOptions {
