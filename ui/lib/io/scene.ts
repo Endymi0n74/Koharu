@@ -30,6 +30,7 @@ import type {
 } from '@/lib/api/schemas'
 import { filenameFromContentDisposition } from '@/lib/io/saveBlob'
 import { queryClient } from '@/lib/queryClient'
+import { usePreferencesStore } from '@/lib/stores/preferencesStore'
 import { useSelectionStore } from '@/lib/stores/selectionStore'
 
 /**
@@ -96,7 +97,8 @@ async function runAutoRender(pageId: string): Promise<void> {
     const cfg = await getConfig()
     const renderer = cfg.pipeline?.renderer
     if (!renderer) return
-    await startPipeline({ steps: [renderer], pages: [pageId] })
+    const defaultFont = usePreferencesStore.getState().defaultFont
+    await startPipeline({ steps: [renderer], pages: [pageId], defaultFont })
   } catch (err) {
     // Auto-render failures shouldn't disturb the editing flow; users can
     // always run Render manually from the toolbar / menu.
