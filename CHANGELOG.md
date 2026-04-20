@@ -1,3 +1,16 @@
+## [0.47.0](https://github.com/mayocream/koharu/compare/0.46.0..0.47.0) - 2026-04-20
+
+### ⛰️  Features
+
+- Keybind ui tweaks, redo/undo configuration ([#517](https://github.com/mayocream/koharu/issues/517)) - ([c13a2ee](https://github.com/mayocream/koharu/commit/c13a2ee3bfbe1b6909f254a3a3f1016de03e8a30))
+
+### 🐛 Bug Fixes
+
+- *(i18n)* Show language names in their native locale ([#518](https://github.com/mayocream/koharu/issues/518)) - ([211f658](https://github.com/mayocream/koharu/commit/211f65826b2eaac94cb257afb6e51a92b5d52e66))
+- Brush tool where it doesn't render every stroke after the first - ([c72979c](https://github.com/mayocream/koharu/commit/c72979cb97fe489ba2e11f2ef71e8438bf981caf))
+- Download stuck at 100% sometimes - ([9ef226a](https://github.com/mayocream/koharu/commit/9ef226ac76b4f17545adac30fd8334382f8bf300))
+
+
 ## [0.46.0](https://github.com/mayocream/koharu/compare/0.45.3..0.46.0) - 2026-04-20
 
 ### ⛰️  Features
