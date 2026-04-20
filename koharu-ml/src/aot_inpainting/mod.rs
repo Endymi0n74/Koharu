@@ -15,8 +15,8 @@ use tracing::instrument;
 use crate::{
     device,
     inpainting::{
-        HdStrategyConfig, InpaintForward, binarize_mask, extract_alpha, restore_alpha_channel,
-        run_inpaint, try_fill_balloon,
+        HdStrategyConfig, InpaintForward, apply_bubble_fill, binarize_mask, extract_alpha,
+        restore_alpha_channel, run_inpaint,
     },
     loading,
 };
@@ -137,8 +137,13 @@ impl AotInpainting {
     }
 
     #[instrument(level = "debug", skip_all)]
-    pub fn inference(&self, image: &DynamicImage, mask: &DynamicImage) -> Result<DynamicImage> {
-        self.inference_with_config(image, mask, &self.default_config())
+    pub fn inference(
+        &self,
+        image: &DynamicImage,
+        mask: &DynamicImage,
+        bubble_mask: &DynamicImage,
+    ) -> Result<DynamicImage> {
+        self.inference_with_config(image, mask, bubble_mask, &self.default_config())
     }
 
     #[instrument(level = "debug", skip_all)]
@@ -146,21 +151,25 @@ impl AotInpainting {
         &self,
         image: &DynamicImage,
         mask: &DynamicImage,
+        bubble_mask: &DynamicImage,
         cfg: &HdStrategyConfig,
     ) -> Result<DynamicImage> {
-        if image.dimensions() != mask.dimensions() {
+        if image.dimensions() != mask.dimensions() || image.dimensions() != bubble_mask.dimensions()
+        {
             bail!(
-                "image and mask dimensions dismatch: image is {:?}, mask is {:?}",
+                "image/mask/bubble dimensions dismatch: image is {:?}, mask is {:?}, bubble is {:?}",
                 image.dimensions(),
-                mask.dimensions()
+                mask.dimensions(),
+                bubble_mask.dimensions()
             );
         }
 
         let started = Instant::now();
         let binary_mask = binarize_mask(mask);
+        let bubble_mask = bubble_mask.to_luma8();
         let image_rgb = image.to_rgb8();
         let forward = AotForward { aot: self };
-        let output_rgb = run_inpaint(&forward, &image_rgb, &binary_mask, cfg)?;
+        let output_rgb = run_inpaint(&forward, &image_rgb, &binary_mask, Some(&bubble_mask), cfg)?;
 
         tracing::info!(
             width = image.width(),
@@ -233,17 +242,31 @@ struct AotForward<'a> {
 }
 
 impl InpaintForward for AotForward<'_> {
-    fn forward(&self, image: &RgbImage, mask: &GrayImage) -> Result<RgbImage> {
+    fn forward(
+        &self,
+        image: &RgbImage,
+        mask: &GrayImage,
+        bubble_mask: Option<&GrayImage>,
+    ) -> Result<RgbImage> {
         if mask.pixels().all(|p| p.0[0] == 0) {
             return Ok(image.clone());
         }
-        // Same flat-balloon fast path as Lama: skip the model when the mask
-        // sits in a uniform-background bubble. Fires per-crop under the Crop
-        // strategy; generally no-ops on whole-image forwards under Resize.
-        if let Some(filled) = try_fill_balloon(image, mask) {
-            return Ok(filled);
+
+        let (image, mask) = if let Some(bubble_mask) = bubble_mask {
+            let filled = apply_bubble_fill(image, mask, bubble_mask);
+            tracing::debug!(
+                filled_pixels = filled.filled_pixels,
+                "aot bubble fill fast path"
+            );
+            (filled.image, filled.remaining_mask)
+        } else {
+            (image.clone(), mask.clone())
+        };
+
+        if mask.pixels().all(|p| p.0[0] == 0) {
+            return Ok(image);
         }
-        self.aot.forward_rgb(image, mask)
+        self.aot.forward_rgb(&image, &mask)
     }
 }
 

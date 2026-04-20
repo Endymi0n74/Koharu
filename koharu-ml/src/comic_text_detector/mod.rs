@@ -15,8 +15,8 @@ use tracing::instrument;
 use crate::{device, loading, types::TextRegion};
 
 pub use postprocess::{
-    ComicTextDetection, Quad, crop_text_block_bbox, extract_text_block_regions,
-    refine_segmentation_mask,
+    ComicTextDetection, Quad, crop_text_block_bbox, expanded_text_block_crop_bounds,
+    extract_text_block_regions, refine_segmentation_mask,
 };
 
 const HF_REPO: &str = "mayocream/comic-text-detector";

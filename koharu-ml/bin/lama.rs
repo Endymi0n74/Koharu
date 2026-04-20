@@ -13,6 +13,9 @@ struct Cli {
     #[arg(short, long, value_name = "FILE")]
     mask: String,
 
+    #[arg(long, value_name = "FILE")]
+    bubble_mask: String,
+
     #[arg(short, long, value_name = "FILE")]
     output: String,
 
@@ -39,11 +42,12 @@ async fn main() -> anyhow::Result<()> {
     let model = Lama::load(&runtime, cli.cpu).await?;
     let image = image::open(&cli.input)?;
     let mask = image::open(&cli.mask)?;
+    let bubble_mask = image::open(&cli.bubble_mask)?;
 
     // inferernce start time
     let start = std::time::Instant::now();
 
-    let output = model.inference(&image, &mask)?;
+    let output = model.inference(&image, &mask, &bubble_mask)?;
 
     // measure inference speed
     let duration = start.elapsed();

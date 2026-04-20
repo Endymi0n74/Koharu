@@ -15,8 +15,9 @@ async fn lama_inpainting_updates_masked_region() -> anyhow::Result<()> {
     let lama = Lama::load(&runtime, false).await?;
     let base = image::open(fixtures.join("image.jpg"))?;
     let mask = image::open(fixtures.join("mask.png"))?;
+    let bubble_mask = image::open(fixtures.join("mask.png"))?;
 
-    let output = lama.inference(&base, &mask)?;
+    let output = lama.inference(&base, &mask, &bubble_mask)?;
 
     assert_eq!(output.dimensions(), base.dimensions());
 
@@ -48,8 +49,9 @@ async fn aot_inpainting_updates_masked_region() -> anyhow::Result<()> {
     let aot = AotInpainting::load(&runtime, false).await?;
     let base = image::open(fixtures.join("image.jpg"))?;
     let mask = image::open(fixtures.join("mask.png"))?;
+    let bubble_mask = image::open(fixtures.join("mask.png"))?;
 
-    let output = aot.inference(&base, &mask)?;
+    let output = aot.inference(&base, &mask, &bubble_mask)?;
 
     assert_eq!(output.dimensions(), base.dimensions());
 

@@ -6,10 +6,14 @@
 //! per-model config. Concrete models only implement the raw forward pass.
 
 pub mod balloon;
+pub mod mask;
 pub mod strategy;
 
-pub use balloon::try_fill_balloon;
-pub use strategy::{HdStrategy, HdStrategyConfig, InpaintForward, run_inpaint};
+pub use balloon::{BubbleFillResult, apply_bubble_fill};
+pub use mask::expand_mask_for_inpainting;
+pub use strategy::{
+    HdStrategy, HdStrategyConfig, InpaintForward, run_inpaint, run_inpaint_with_windows,
+};
 
 use image::{DynamicImage, GrayImage, Luma, RgbImage, Rgba, RgbaImage};
 use imageproc::{distance_transform::Norm, morphology::dilate};

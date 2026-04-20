@@ -104,7 +104,7 @@ pub fn extract_text_block_regions(image: &DynamicImage, block: &TextRegion) -> V
     }
 }
 
-fn expanded_text_block_crop_bounds(
+pub fn expanded_text_block_crop_bounds(
     image_width: u32,
     image_height: u32,
     block: &TextRegion,

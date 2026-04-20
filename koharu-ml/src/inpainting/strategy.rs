@@ -16,8 +16,9 @@
 //!
 //! The Crop path uses [`pad_forward_bounded`] per crop, so an oversized crop
 //! (e.g. a brush stroke covering most of a page) falls back to the Resize path
-//! inside that single crop. No `HdStrategy` ever OOMs on a reasonable GPU
-//! provided `resize_limit` is within VRAM budget.
+//! inside that single crop. Callers may optionally provide pre-planned crop
+//! windows to override the default contour boxes. No `HdStrategy` ever OOMs on
+//! a reasonable GPU provided `resize_limit` is within VRAM budget.
 //!
 //! Mask boxes come from `imageproc::contours::find_contours` on the binarized
 //! mask — equivalent to OpenCV's `cv2.findContours(RETR_EXTERNAL)` that IOPaint
@@ -26,7 +27,7 @@
 use anyhow::Result;
 use image::{
     GrayImage, RgbImage,
-    imageops::{FilterType, crop_imm, replace, resize},
+    imageops::{FilterType, crop_imm, resize},
 };
 use imageproc::contours::{BorderType, find_contours};
 
@@ -91,7 +92,12 @@ pub type Xyxy = [u32; 4];
 /// same spatial size. Implementors are free to apply fast paths (e.g. Lama's
 /// balloon-fill shortcut) before the model forward.
 pub trait InpaintForward {
-    fn forward(&self, image: &RgbImage, mask: &GrayImage) -> Result<RgbImage>;
+    fn forward(
+        &self,
+        image: &RgbImage,
+        mask: &GrayImage,
+        bubble_mask: Option<&GrayImage>,
+    ) -> Result<RgbImage>;
 }
 
 /// Entry point: dispatch on `cfg.strategy` and return an RGB image with the
@@ -100,15 +106,38 @@ pub fn run_inpaint<F: InpaintForward>(
     model: &F,
     image: &RgbImage,
     mask: &GrayImage,
+    bubble_mask: Option<&GrayImage>,
     cfg: &HdStrategyConfig,
 ) -> Result<RgbImage> {
+    run_inpaint_with_windows(model, image, mask, bubble_mask, cfg, None)
+}
+
+/// Variant of [`run_inpaint`] that accepts caller-supplied crop windows for
+/// the Crop strategy. Each window is an image-space `[x1, y1, x2, y2]`
+/// rectangle. When omitted, crop mode falls back to contour boxes from the
+/// mask itself.
+pub fn run_inpaint_with_windows<F: InpaintForward>(
+    model: &F,
+    image: &RgbImage,
+    mask: &GrayImage,
+    bubble_mask: Option<&GrayImage>,
+    cfg: &HdStrategyConfig,
+    crop_windows: Option<&[Xyxy]>,
+) -> Result<RgbImage> {
     assert_eq!(image.dimensions(), mask.dimensions());
+    if let Some(bubble_mask) = bubble_mask {
+        assert_eq!(image.dimensions(), bubble_mask.dimensions());
+    }
     let max_side = image.width().max(image.height());
 
     match cfg.strategy {
-        HdStrategy::Crop if max_side > cfg.crop_trigger_size => run_crop(model, image, mask, cfg),
-        HdStrategy::Resize if max_side > cfg.resize_limit => run_resize(model, image, mask, cfg),
-        _ => pad_forward(model, image, mask, cfg.pad_mod),
+        HdStrategy::Crop if max_side > cfg.crop_trigger_size => {
+            run_crop(model, image, mask, bubble_mask, cfg, crop_windows)
+        }
+        HdStrategy::Resize if max_side > cfg.resize_limit => {
+            run_resize(model, image, mask, bubble_mask, cfg)
+        }
+        _ => pad_forward(model, image, mask, bubble_mask, cfg.pad_mod),
     }
 }
 
@@ -116,8 +145,39 @@ fn run_crop<F: InpaintForward>(
     model: &F,
     image: &RgbImage,
     mask: &GrayImage,
+    bubble_mask: Option<&GrayImage>,
     cfg: &HdStrategyConfig,
+    crop_windows: Option<&[Xyxy]>,
 ) -> Result<RgbImage> {
+    let mut out = image.clone();
+    let mut working_mask = mask.clone();
+
+    if let Some(windows) = crop_windows.filter(|windows| !windows.is_empty()) {
+        tracing::debug!(
+            count = windows.len(),
+            "inpaint crop strategy: caller-supplied crop windows"
+        );
+
+        for &window in windows {
+            let Some((crop_img, crop_mask, [l, t, _r, _bt])) =
+                crop_window(&out, &working_mask, window)
+            else {
+                continue;
+            };
+            let crop_bubble = bubble_mask.map(|bubble_mask| {
+                crop_imm(bubble_mask, l, t, crop_mask.width(), crop_mask.height()).to_image()
+            });
+            if !mask_has_nonzero(&crop_mask) {
+                continue;
+            }
+            let crop_result =
+                pad_forward_bounded(model, &crop_img, &crop_mask, crop_bubble.as_ref(), cfg)?;
+            composite_masked(&mut out, &crop_result, &crop_mask, l, t);
+            clear_masked_region(&mut working_mask, &crop_mask, l, t);
+        }
+        return Ok(out);
+    }
+
     let boxes = boxes_from_mask(mask);
     if boxes.is_empty() {
         return Ok(image.clone());
@@ -128,11 +188,19 @@ fn run_crop<F: InpaintForward>(
         "inpaint crop strategy: one forward per mask contour"
     );
 
-    let mut out = image.clone();
     for b in boxes {
-        let (crop_img, crop_mask, [l, t, _r, _bt]) = crop_box(image, mask, b, cfg.crop_margin);
-        let crop_result = pad_forward_bounded(model, &crop_img, &crop_mask, cfg)?;
-        replace(&mut out, &crop_result, i64::from(l), i64::from(t));
+        let (crop_img, crop_mask, [l, t, _r, _bt]) =
+            crop_box(&out, &working_mask, b, cfg.crop_margin);
+        let crop_bubble = bubble_mask.map(|bubble_mask| {
+            crop_imm(bubble_mask, l, t, crop_mask.width(), crop_mask.height()).to_image()
+        });
+        if !mask_has_nonzero(&crop_mask) {
+            continue;
+        }
+        let crop_result =
+            pad_forward_bounded(model, &crop_img, &crop_mask, crop_bubble.as_ref(), cfg)?;
+        composite_masked(&mut out, &crop_result, &crop_mask, l, t);
+        clear_masked_region(&mut working_mask, &crop_mask, l, t);
     }
     Ok(out)
 }
@@ -141,6 +209,7 @@ fn run_resize<F: InpaintForward>(
     model: &F,
     image: &RgbImage,
     mask: &GrayImage,
+    bubble_mask: Option<&GrayImage>,
     cfg: &HdStrategyConfig,
 ) -> Result<RgbImage> {
     let (w, h) = image.dimensions();
@@ -155,8 +224,16 @@ fn run_resize<F: InpaintForward>(
 
     let small_img = resize(image, nw, nh, FilterType::Triangle);
     let small_mask = rebinarize(&resize(mask, nw, nh, FilterType::Triangle));
+    let small_bubble =
+        bubble_mask.map(|bubble_mask| resize(bubble_mask, nw, nh, FilterType::Nearest));
 
-    let small_out = pad_forward(model, &small_img, &small_mask, cfg.pad_mod)?;
+    let small_out = pad_forward(
+        model,
+        &small_img,
+        &small_mask,
+        small_bubble.as_ref(),
+        cfg.pad_mod,
+    )?;
     let full_out = resize(&small_out, w, h, FilterType::CatmullRom);
 
     // Restore untouched pixels from the original so Resize only loses quality
@@ -179,12 +256,13 @@ fn pad_forward_bounded<F: InpaintForward>(
     model: &F,
     image: &RgbImage,
     mask: &GrayImage,
+    bubble_mask: Option<&GrayImage>,
     cfg: &HdStrategyConfig,
 ) -> Result<RgbImage> {
     if image.width().max(image.height()) > cfg.resize_limit {
-        run_resize(model, image, mask, cfg)
+        run_resize(model, image, mask, bubble_mask, cfg)
     } else {
-        pad_forward(model, image, mask, cfg.pad_mod)
+        pad_forward(model, image, mask, bubble_mask, cfg.pad_mod)
     }
 }
 
@@ -195,6 +273,7 @@ fn pad_forward<F: InpaintForward>(
     model: &F,
     image: &RgbImage,
     mask: &GrayImage,
+    bubble_mask: Option<&GrayImage>,
     pad_mod: u32,
 ) -> Result<RgbImage> {
     let (w, h) = image.dimensions();
@@ -202,11 +281,12 @@ fn pad_forward<F: InpaintForward>(
     let pad_h = ceil_multiple(h, pad_mod);
 
     let out = if pad_w == w && pad_h == h {
-        model.forward(image, mask)?
+        model.forward(image, mask, bubble_mask)?
     } else {
         let pad_img = symmetric_pad_rgb(image, pad_w, pad_h);
         let pad_msk = symmetric_pad_gray(mask, pad_w, pad_h);
-        let padded_out = model.forward(&pad_img, &pad_msk)?;
+        let pad_bubble = bubble_mask.map(|bubble_mask| zero_pad_gray(bubble_mask, pad_w, pad_h));
+        let padded_out = model.forward(&pad_img, &pad_msk, pad_bubble.as_ref())?;
         crop_imm(&padded_out, 0, 0, w, h).to_image()
     };
     Ok(out)
@@ -304,6 +384,19 @@ pub fn crop_box(
     (crop_img, crop_mask, [l, t, r, b])
 }
 
+fn crop_window(
+    image: &RgbImage,
+    mask: &GrayImage,
+    window: Xyxy,
+) -> Option<(RgbImage, GrayImage, Xyxy)> {
+    let [l, t, r, b] = clamp_xyxy(window, image.width(), image.height())?;
+    let cw = r - l;
+    let ch = b - t;
+    let crop_img = crop_imm(image, l, t, cw, ch).to_image();
+    let crop_mask = crop_imm(mask, l, t, cw, ch).to_image();
+    Some((crop_img, crop_mask, [l, t, r, b]))
+}
+
 /// Scale `(w, h)` so `max(w, h) == max_side`, preserving aspect ratio. No-op
 /// when the image already fits. Mirrors IOPaint's `resize_max_size`.
 pub fn scaled_dims(w: u32, h: u32, max_side: u32) -> (u32, u32) {
@@ -331,6 +424,49 @@ fn rebinarize(mask: &GrayImage) -> GrayImage {
         p.0[0] = if p.0[0] > 127 { 255 } else { 0 };
     }
     out
+}
+
+fn clamp_xyxy([x1, y1, x2, y2]: Xyxy, width: u32, height: u32) -> Option<Xyxy> {
+    let x1 = x1.min(width);
+    let y1 = y1.min(height);
+    let x2 = x2.min(width);
+    let y2 = y2.min(height);
+    if x2 <= x1 || y2 <= y1 {
+        return None;
+    }
+    Some([x1, y1, x2, y2])
+}
+
+fn mask_has_nonzero(mask: &GrayImage) -> bool {
+    mask.pixels().any(|pixel| pixel.0[0] > 0)
+}
+
+fn composite_masked(
+    out: &mut RgbImage,
+    crop_result: &RgbImage,
+    crop_mask: &GrayImage,
+    left: u32,
+    top: u32,
+) {
+    for y in 0..crop_mask.height() {
+        for x in 0..crop_mask.width() {
+            if crop_mask.get_pixel(x, y).0[0] == 0 {
+                continue;
+            }
+            out.put_pixel(left + x, top + y, *crop_result.get_pixel(x, y));
+        }
+    }
+}
+
+fn clear_masked_region(mask: &mut GrayImage, crop_mask: &GrayImage, left: u32, top: u32) {
+    for y in 0..crop_mask.height() {
+        for x in 0..crop_mask.width() {
+            if crop_mask.get_pixel(x, y).0[0] == 0 {
+                continue;
+            }
+            mask.put_pixel(left + x, top + y, image::Luma([0]));
+        }
+    }
 }
 
 /// Numpy-style `mode="symmetric"` padding, but only on the right/bottom edges
@@ -367,6 +503,20 @@ fn symmetric_pad_gray(img: &GrayImage, new_w: u32, new_h: u32) -> GrayImage {
     out
 }
 
+fn zero_pad_gray(img: &GrayImage, new_w: u32, new_h: u32) -> GrayImage {
+    let (w, h) = img.dimensions();
+    if new_w == w && new_h == h {
+        return img.clone();
+    }
+    let mut out = GrayImage::new(new_w, new_h);
+    for y in 0..h {
+        for x in 0..w {
+            out.put_pixel(x, y, *img.get_pixel(x, y));
+        }
+    }
+    out
+}
+
 /// Reflect index for symmetric padding: `[0..len-1]` maps to itself, `[len..]`
 /// reflects. Padding is always less than `len` for our use (right/bottom only,
 /// by `pad_mod - 1` pixels max).
@@ -388,6 +538,8 @@ fn reflect_index(i: u32, len: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
+
     use image::{Luma, Rgb};
 
     fn solid_rgb(w: u32, h: u32, rgb: [u8; 3]) -> RgbImage {
@@ -396,8 +548,43 @@ mod tests {
 
     struct IdentityForward;
     impl InpaintForward for IdentityForward {
-        fn forward(&self, image: &RgbImage, _mask: &GrayImage) -> Result<RgbImage> {
+        fn forward(
+            &self,
+            image: &RgbImage,
+            _mask: &GrayImage,
+            _bubble_mask: Option<&GrayImage>,
+        ) -> Result<RgbImage> {
             Ok(image.clone())
+        }
+    }
+
+    struct PaintForward {
+        calls: Cell<u32>,
+        color: [u8; 3],
+    }
+
+    impl PaintForward {
+        fn new(color: [u8; 3]) -> Self {
+            Self {
+                calls: Cell::new(0),
+                color,
+            }
+        }
+    }
+
+    impl InpaintForward for PaintForward {
+        fn forward(
+            &self,
+            image: &RgbImage,
+            _mask: &GrayImage,
+            _bubble_mask: Option<&GrayImage>,
+        ) -> Result<RgbImage> {
+            self.calls.set(self.calls.get() + 1);
+            Ok(RgbImage::from_pixel(
+                image.width(),
+                image.height(),
+                Rgb(self.color),
+            ))
         }
     }
 
@@ -492,7 +679,7 @@ mod tests {
         let img = solid_rgb(900, 900, [50, 60, 70]);
         let mask = GrayImage::new(900, 900);
         let cfg = HdStrategyConfig::lama_default();
-        let out = run_inpaint(&IdentityForward, &img, &mask, &cfg).unwrap();
+        let out = run_inpaint(&IdentityForward, &img, &mask, None, &cfg).unwrap();
         assert_eq!(out.get_pixel(0, 0).0, [50, 60, 70]);
     }
 
@@ -510,7 +697,7 @@ mod tests {
             resize_limit: 640,
             ..HdStrategyConfig::lama_default()
         };
-        let out = run_inpaint(&IdentityForward, &img, &mask, &cfg).unwrap();
+        let out = run_inpaint(&IdentityForward, &img, &mask, None, &cfg).unwrap();
         assert_eq!(out.get_pixel(0, 0).0, [10, 20, 30]);
         assert_eq!(out.get_pixel(1599, 1199).0, [10, 20, 30]);
     }
@@ -531,9 +718,67 @@ mod tests {
             }
         }
         let cfg = HdStrategyConfig::lama_default();
-        let out = run_inpaint(&IdentityForward, &img, &mask, &cfg).unwrap();
+        let out = run_inpaint(&IdentityForward, &img, &mask, None, &cfg).unwrap();
         // IdentityForward is a no-op, so output == input everywhere.
         assert_eq!(out.get_pixel(0, 0).0, [100, 100, 100]);
         assert_eq!(out.get_pixel(500, 500).0, [100, 100, 100]);
+    }
+
+    #[test]
+    fn crop_strategy_only_updates_masked_pixels() {
+        let img = solid_rgb(900, 900, [12, 34, 56]);
+        let mut mask = GrayImage::new(900, 900);
+        for y in 100..120 {
+            for x in 100..120 {
+                mask.put_pixel(x, y, Luma([255]));
+            }
+        }
+
+        let forward = PaintForward::new([250, 10, 10]);
+        let out = run_inpaint(
+            &forward,
+            &img,
+            &mask,
+            None,
+            &HdStrategyConfig::lama_default(),
+        )
+        .unwrap();
+
+        assert_eq!(forward.calls.get(), 1);
+        assert_eq!(out.get_pixel(110, 110).0, [250, 10, 10]);
+        assert_eq!(out.get_pixel(90, 90).0, [12, 34, 56]);
+        assert_eq!(out.get_pixel(200, 200).0, [12, 34, 56]);
+    }
+
+    #[test]
+    fn supplied_crop_windows_reduce_forward_count() {
+        let img = solid_rgb(1200, 1200, [90, 90, 90]);
+        let mut mask = GrayImage::new(1200, 1200);
+        for y in 100..120 {
+            for x in 100..120 {
+                mask.put_pixel(x, y, Luma([255]));
+            }
+        }
+        for y in 150..170 {
+            for x in 160..180 {
+                mask.put_pixel(x, y, Luma([255]));
+            }
+        }
+
+        let forward = PaintForward::new([5, 6, 7]);
+        let out = run_inpaint_with_windows(
+            &forward,
+            &img,
+            &mask,
+            None,
+            &HdStrategyConfig::lama_default(),
+            Some(&[[80, 80, 220, 220]]),
+        )
+        .unwrap();
+
+        assert_eq!(forward.calls.get(), 1);
+        assert_eq!(out.get_pixel(110, 110).0, [5, 6, 7]);
+        assert_eq!(out.get_pixel(170, 160).0, [5, 6, 7]);
+        assert_eq!(out.get_pixel(20, 20).0, [90, 90, 90]);
     }
 }

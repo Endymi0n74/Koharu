@@ -1,237 +1,130 @@
-//! Balloon-fill fast path for inpainting.
+//! Bubble-mask fill fast path for inpainting.
 //!
-//! When a mask sits inside a speech bubble with a near-uniform background,
-//! the model can be skipped entirely: fill the masked pixels with the median
-//! background colour of the balloon. This is purely image processing, so
-//! every erase model (Lama, AoT) can use it as a pre-model pass.
-//!
-//! Effectiveness depends on the caller handing us one bubble at a time —
-//! which is exactly what the Crop strategy does, since each crop corresponds
-//! to a connected mask contour. On a whole-image forward (Resize strategy),
-//! `extract_balloon_mask` usually fails to find a single containing contour
-//! and we fall through to the model.
+//! When the page already has a speech-bubble mask, we can skip the model for
+//! simple bubbles: estimate the bubble background colour from the segmented
+//! bubble region, fill the masked pixels that sit inside that bubble, and only
+//! pass any remaining masked pixels to the actual inpainting model.
 
-use image::{DynamicImage, GrayImage, Luma, Rgb, RgbImage};
-use imageproc::{
-    contours::find_contours, distance_transform::Norm, drawing::draw_polygon_mut, edges::canny,
-    filter::gaussian_blur_f32, morphology::dilate, point::Point,
-};
+use std::collections::BTreeSet;
 
-const BALLOON_CANNY_LOW: f32 = 70.0;
-const BALLOON_CANNY_HIGH: f32 = 140.0;
+use image::{GrayImage, Luma, Rgb, RgbImage};
+
 const SIMPLE_BG_THRESHOLD_LOW_VARIANCE: f64 = 10.0;
 const SIMPLE_BG_THRESHOLD_HIGH_VARIANCE: f64 = 7.0;
 const SIMPLE_BG_CHANNEL_STD_SWITCH: f64 = 1.0;
 
-type Xyxy = [u32; 4];
-
-pub(crate) struct BalloonMasks {
-    pub balloon_mask: GrayImage,
-    pub non_text_mask: GrayImage,
+#[derive(Debug, Clone)]
+pub struct BubbleFillResult {
+    pub image: RgbImage,
+    pub remaining_mask: GrayImage,
+    pub filled_pixels: u32,
 }
 
-/// Return an image with the masked pixels painted the balloon's median
-/// background colour, iff a containing bubble with low background variance
-/// can be identified. `None` means "no confident fast path; call the model".
-pub fn try_fill_balloon(image: &RgbImage, mask: &GrayImage) -> Option<RgbImage> {
-    let masks = extract_balloon_mask(image, mask)?;
-    let average_bg_color = median_rgb(image, &masks.non_text_mask)?;
-    let std_rgb = color_stddev(image, &masks.non_text_mask, average_bg_color);
-    let inpaint_thresh = if stddev3(std_rgb) > SIMPLE_BG_CHANNEL_STD_SWITCH {
-        SIMPLE_BG_THRESHOLD_HIGH_VARIANCE
-    } else {
-        SIMPLE_BG_THRESHOLD_LOW_VARIANCE
-    };
-    let std_max = std_rgb.into_iter().fold(0.0, f64::max);
+impl BubbleFillResult {
+    fn unchanged(image: &RgbImage, mask: &GrayImage) -> Self {
+        Self {
+            image: image.clone(),
+            remaining_mask: mask.clone(),
+            filled_pixels: 0,
+        }
+    }
+}
 
-    if std_max >= inpaint_thresh {
-        return None;
+/// Fill masked pixels that fall inside low-variance speech bubbles using the
+/// provided bubble-ID mask. Each non-zero pixel value in `bubble_mask`
+/// identifies a distinct bubble region.
+pub fn apply_bubble_fill(
+    image: &RgbImage,
+    mask: &GrayImage,
+    bubble_mask: &GrayImage,
+) -> BubbleFillResult {
+    if image.dimensions() != mask.dimensions() || mask.dimensions() != bubble_mask.dimensions() {
+        return BubbleFillResult::unchanged(image, mask);
+    }
+
+    let bubble_ids = overlapping_bubble_ids(mask, bubble_mask);
+    if bubble_ids.is_empty() {
+        return BubbleFillResult::unchanged(image, mask);
     }
 
     let mut result = image.clone();
-    let fill = [
-        average_bg_color[0] as u8,
-        average_bg_color[1] as u8,
-        average_bg_color[2] as u8,
-    ];
-    for (x, y, pixel) in masks.balloon_mask.enumerate_pixels() {
-        if pixel.0[0] > 0 {
-            result.put_pixel(x, y, Rgb(fill));
-        }
-    }
+    let mut remaining_mask = mask.clone();
+    let mut filled_pixels = 0u32;
 
-    Some(result)
-}
-
-pub(crate) fn extract_balloon_mask(image: &RgbImage, mask: &GrayImage) -> Option<BalloonMasks> {
-    if image.dimensions() != mask.dimensions() {
-        return None;
-    }
-
-    let text_bbox = non_zero_bbox(mask)?;
-    let text_sum = count_nonzero(mask);
-    if text_sum == 0 {
-        return None;
-    }
-
-    let gray = DynamicImage::ImageRgb8(image.clone()).to_luma8();
-    let blurred = gaussian_blur_f32(&gray, 1.0);
-    let mut cannyed = canny(&blurred, BALLOON_CANNY_LOW, BALLOON_CANNY_HIGH);
-    cannyed = dilate(&cannyed, Norm::LInf, 1);
-    draw_binary_border(&mut cannyed);
-    subtract_binary_mask(&mut cannyed, mask);
-
-    let contours = find_contours::<i32>(&cannyed);
-    let (width, height) = cannyed.dimensions();
-    let mut best_mask = None;
-    let mut best_area = f64::INFINITY;
-
-    for contour in contours {
-        let Some(polygon) = contour_polygon(&contour.points) else {
+    for bubble_id in bubble_ids {
+        let background_mask = bubble_background_mask(&remaining_mask, bubble_mask, bubble_id);
+        if count_nonzero(&background_mask) == 0 {
             continue;
+        }
+
+        let average_bg_color = match median_rgb(image, &background_mask) {
+            Some(color) => color,
+            None => continue,
         };
-        let bbox = polygon_bbox(&polygon)?;
-        if bbox[0] > text_bbox[0]
-            || bbox[1] > text_bbox[1]
-            || bbox[2] < text_bbox[2]
-            || bbox[3] < text_bbox[3]
-        {
+        let std_rgb = color_stddev(image, &background_mask, average_bg_color);
+        let inpaint_thresh = if stddev3(std_rgb) > SIMPLE_BG_CHANNEL_STD_SWITCH {
+            SIMPLE_BG_THRESHOLD_HIGH_VARIANCE
+        } else {
+            SIMPLE_BG_THRESHOLD_LOW_VARIANCE
+        };
+        let std_max = std_rgb.into_iter().fold(0.0, f64::max);
+        if std_max >= inpaint_thresh {
             continue;
         }
 
-        let mut candidate = GrayImage::new(width, height);
-        draw_polygon_mut(&mut candidate, &polygon, Luma([255u8]));
-        if count_overlap(&candidate, mask) < text_sum {
-            continue;
+        let fill = [
+            average_bg_color[0] as u8,
+            average_bg_color[1] as u8,
+            average_bg_color[2] as u8,
+        ];
+
+        for y in 0..remaining_mask.height() {
+            for x in 0..remaining_mask.width() {
+                if remaining_mask.get_pixel(x, y).0[0] == 0 {
+                    continue;
+                }
+                if bubble_mask.get_pixel(x, y).0[0] != bubble_id {
+                    continue;
+                }
+                result.put_pixel(x, y, Rgb(fill));
+                remaining_mask.put_pixel(x, y, Luma([0]));
+                filled_pixels += 1;
+            }
         }
+    }
 
-        let area = polygon_area(&polygon);
-        if area < best_area {
-            best_area = area;
-            best_mask = Some(candidate);
+    BubbleFillResult {
+        image: result,
+        remaining_mask,
+        filled_pixels,
+    }
+}
+
+fn overlapping_bubble_ids(mask: &GrayImage, bubble_mask: &GrayImage) -> Vec<u8> {
+    let mut ids = BTreeSet::new();
+    for (mask_pixel, bubble_pixel) in mask.pixels().zip(bubble_mask.pixels()) {
+        if mask_pixel.0[0] > 0 && bubble_pixel.0[0] > 0 {
+            ids.insert(bubble_pixel.0[0]);
         }
     }
-
-    let balloon_mask = best_mask?;
-    let mut non_text_mask = balloon_mask.clone();
-    for (x, y, pixel) in mask.enumerate_pixels() {
-        if pixel.0[0] > 0 {
-            non_text_mask.put_pixel(x, y, Luma([0]));
-        }
-    }
-
-    Some(BalloonMasks {
-        balloon_mask,
-        non_text_mask,
-    })
+    ids.into_iter().collect()
 }
 
-fn contour_polygon(points: &[Point<i32>]) -> Option<Vec<Point<i32>>> {
-    let mut polygon = points.to_vec();
-    if polygon.len() < 3 {
-        return None;
-    }
-    if polygon.first() == polygon.last() {
-        polygon.pop();
-    }
-    if polygon.len() < 3 {
-        return None;
-    }
-    Some(polygon)
-}
-
-fn polygon_bbox(points: &[Point<i32>]) -> Option<Xyxy> {
-    let first = points.first()?;
-    let mut min_x = first.x;
-    let mut min_y = first.y;
-    let mut max_x = first.x;
-    let mut max_y = first.y;
-    for point in points.iter().skip(1) {
-        min_x = min_x.min(point.x);
-        min_y = min_y.min(point.y);
-        max_x = max_x.max(point.x);
-        max_y = max_y.max(point.y);
-    }
-
-    Some([
-        min_x.max(0) as u32,
-        min_y.max(0) as u32,
-        max_x.max(min_x).saturating_add(1) as u32,
-        max_y.max(min_y).saturating_add(1) as u32,
-    ])
-}
-
-fn polygon_area(points: &[Point<i32>]) -> f64 {
-    let mut area = 0.0;
-    for index in 0..points.len() {
-        let current = points[index];
-        let next = points[(index + 1) % points.len()];
-        area += f64::from(current.x) * f64::from(next.y) - f64::from(next.x) * f64::from(current.y);
-    }
-    area.abs() * 0.5
-}
-
-fn draw_binary_border(image: &mut GrayImage) {
-    let width = image.width();
-    let height = image.height();
-    if width == 0 || height == 0 {
-        return;
-    }
-
-    for x in 0..width {
-        image.put_pixel(x, 0, Luma([255]));
-        image.put_pixel(x, height - 1, Luma([255]));
-    }
+fn bubble_background_mask(mask: &GrayImage, bubble_mask: &GrayImage, bubble_id: u8) -> GrayImage {
+    let (width, height) = bubble_mask.dimensions();
+    let mut out = GrayImage::new(width, height);
     for y in 0..height {
-        image.put_pixel(0, y, Luma([255]));
-        image.put_pixel(width - 1, y, Luma([255]));
-    }
-}
-
-fn subtract_binary_mask(image: &mut GrayImage, mask: &GrayImage) {
-    for (x, y, pixel) in image.enumerate_pixels_mut() {
-        if mask.get_pixel(x, y).0[0] > 0 {
-            pixel.0[0] = 0;
+        for x in 0..width {
+            if bubble_mask.get_pixel(x, y).0[0] == bubble_id && mask.get_pixel(x, y).0[0] == 0 {
+                out.put_pixel(x, y, Luma([255]));
+            }
         }
     }
-}
-
-fn non_zero_bbox(mask: &GrayImage) -> Option<Xyxy> {
-    let (width, height) = mask.dimensions();
-    let mut min_x = width;
-    let mut min_y = height;
-    let mut max_x = 0;
-    let mut max_y = 0;
-    let mut found = false;
-
-    for (x, y, pixel) in mask.enumerate_pixels() {
-        if pixel.0[0] == 0 {
-            continue;
-        }
-        found = true;
-        min_x = min_x.min(x);
-        min_y = min_y.min(y);
-        max_x = max_x.max(x);
-        max_y = max_y.max(y);
-    }
-
-    found.then_some([
-        min_x,
-        min_y,
-        max_x.saturating_add(1),
-        max_y.saturating_add(1),
-    ])
+    out
 }
 
 fn count_nonzero(mask: &GrayImage) -> u32 {
     mask.pixels().filter(|pixel| pixel.0[0] > 0).count() as u32
-}
-
-fn count_overlap(left: &GrayImage, right: &GrayImage) -> u32 {
-    left.pixels()
-        .zip(right.pixels())
-        .filter(|(l, r)| l.0[0] > 0 && r.0[0] > 0)
-        .count() as u32
 }
 
 fn median_rgb(image: &RgbImage, mask: &GrayImage) -> Option<[f64; 3]> {
@@ -309,61 +202,89 @@ fn stddev3(values: [f64; 3]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use imageproc::drawing::draw_hollow_rect_mut;
-    use imageproc::rect::Rect;
 
     #[test]
-    fn extract_balloon_mask_prefers_smallest_covering_contour() {
-        let mut image = RgbImage::from_pixel(80, 80, Rgb([255, 255, 255]));
-        draw_hollow_rect_mut(&mut image, Rect::at(4, 4).of_size(72, 72), Rgb([0, 0, 0]));
-        draw_hollow_rect_mut(&mut image, Rect::at(20, 20).of_size(28, 20), Rgb([0, 0, 0]));
+    fn bubble_fill_clears_simple_flat_bubble_pixels() {
+        let mut image = RgbImage::from_pixel(64, 64, Rgb([240, 240, 240]));
+        let mut mask = GrayImage::new(64, 64);
+        let mut bubble_mask = GrayImage::new(64, 64);
 
-        let mut mask = GrayImage::new(80, 80);
-        for y in 24..36 {
-            for x in 24..44 {
-                mask.put_pixel(x, y, Luma([255]));
+        for y in 8..40 {
+            for x in 8..56 {
+                bubble_mask.put_pixel(x, y, Luma([3]));
             }
         }
-
-        let masks = extract_balloon_mask(&image, &mask).expect("balloon should be detected");
-        let balloon_pixels = count_nonzero(&masks.balloon_mask);
-
-        assert!(
-            balloon_pixels < 900,
-            "expected inner contour fill, got {balloon_pixels}"
-        );
-        assert!(
-            balloon_pixels > 250,
-            "expected meaningful bubble area, got {balloon_pixels}"
-        );
-    }
-
-    #[test]
-    fn simple_balloon_chooses_fill_but_textured_balloon_does_not() {
-        let mut flat = RgbImage::from_pixel(64, 64, Rgb([240, 240, 240]));
-        draw_hollow_rect_mut(&mut flat, Rect::at(8, 8).of_size(48, 32), Rgb([0, 0, 0]));
-
-        let mut mask = GrayImage::new(64, 64);
         for y in 18..30 {
             for x in 18..46 {
                 mask.put_pixel(x, y, Luma([255]));
+                image.put_pixel(x, y, Rgb([10, 10, 10]));
             }
         }
 
-        assert!(try_fill_balloon(&flat, &mask).is_some());
+        let filled = apply_bubble_fill(&image, &mask, &bubble_mask);
 
-        let mut textured = flat.clone();
-        for y in 9..39 {
-            for x in 9..55 {
-                let noise = ((x + y) % 23) as u8;
-                textured.put_pixel(
-                    x,
-                    y,
-                    Rgb([200 + noise, 210 + (noise / 2), 220 - (noise / 3)]),
-                );
+        assert_eq!(filled.filled_pixels, 28 * 12);
+        assert_eq!(count_nonzero(&filled.remaining_mask), 0);
+        assert_eq!(filled.image.get_pixel(20, 20).0, [240, 240, 240]);
+        assert_eq!(filled.image.get_pixel(4, 4).0, [240, 240, 240]);
+    }
+
+    #[test]
+    fn bubble_fill_skips_textured_bubbles() {
+        let mut image = RgbImage::from_pixel(64, 64, Rgb([240, 240, 240]));
+        let mut mask = GrayImage::new(64, 64);
+        let mut bubble_mask = GrayImage::new(64, 64);
+
+        for y in 8..40 {
+            for x in 8..56 {
+                bubble_mask.put_pixel(x, y, Luma([5]));
+                let stripe = if (x / 3 + y / 2) % 2 == 0 { 35 } else { 245 };
+                image.put_pixel(x, y, Rgb([stripe, 255 - stripe, stripe / 2]));
+            }
+        }
+        for y in 18..30 {
+            for x in 18..46 {
+                mask.put_pixel(x, y, Luma([255]));
+                image.put_pixel(x, y, Rgb([0, 0, 0]));
             }
         }
 
-        assert!(try_fill_balloon(&textured, &mask).is_none());
+        let filled = apply_bubble_fill(&image, &mask, &bubble_mask);
+
+        assert_eq!(filled.filled_pixels, 0);
+        assert_eq!(count_nonzero(&filled.remaining_mask), 28 * 12);
+        assert_eq!(filled.image.get_pixel(20, 20).0, [0, 0, 0]);
+    }
+
+    #[test]
+    fn bubble_fill_only_clears_masked_pixels_inside_segmented_bubbles() {
+        let mut image = RgbImage::from_pixel(64, 64, Rgb([235, 235, 235]));
+        let mut mask = GrayImage::new(64, 64);
+        let mut bubble_mask = GrayImage::new(64, 64);
+
+        for y in 10..42 {
+            for x in 10..54 {
+                bubble_mask.put_pixel(x, y, Luma([7]));
+            }
+        }
+        for y in 20..28 {
+            for x in 20..32 {
+                mask.put_pixel(x, y, Luma([255]));
+                image.put_pixel(x, y, Rgb([5, 5, 5]));
+            }
+        }
+        for y in 44..50 {
+            for x in 44..52 {
+                mask.put_pixel(x, y, Luma([255]));
+                image.put_pixel(x, y, Rgb([5, 5, 5]));
+            }
+        }
+
+        let filled = apply_bubble_fill(&image, &mask, &bubble_mask);
+
+        assert_eq!(filled.filled_pixels, 12 * 8);
+        assert_eq!(count_nonzero(&filled.remaining_mask), 8 * 6);
+        assert_eq!(filled.image.get_pixel(22, 22).0, [235, 235, 235]);
+        assert_eq!(filled.image.get_pixel(46, 46).0, [5, 5, 5]);
     }
 }

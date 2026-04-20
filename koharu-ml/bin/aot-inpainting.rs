@@ -14,6 +14,9 @@ struct Cli {
     #[arg(short, long, value_name = "FILE")]
     mask: String,
 
+    #[arg(long, value_name = "FILE")]
+    bubble_mask: String,
+
     #[arg(short, long, value_name = "FILE")]
     output: String,
 
@@ -55,15 +58,16 @@ async fn main() -> Result<()> {
 
     let image = image::open(&cli.input)?;
     let mask = image::open(&cli.mask)?;
+    let bubble_mask = image::open(&cli.bubble_mask)?;
     let started = std::time::Instant::now();
     let output = if let Some(max_side) = cli.max_side {
         let cfg = koharu_ml::inpainting::HdStrategyConfig {
             resize_limit: max_side,
             ..model.default_config()
         };
-        model.inference_with_config(&image, &mask, &cfg)?
+        model.inference_with_config(&image, &mask, &bubble_mask, &cfg)?
     } else {
-        model.inference(&image, &mask)?
+        model.inference(&image, &mask, &bubble_mask)?
     };
 
     println!("Inference took: {:?}", started.elapsed());
