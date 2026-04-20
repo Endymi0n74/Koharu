@@ -4779,6 +4779,7 @@ dependencies = [
  "inventory",
  "koharu-core",
  "libloading 0.8.9",
+ "num_cpus",
  "reqwest 0.13.2",
  "reqwest-middleware",
  "reqwest-retry",
