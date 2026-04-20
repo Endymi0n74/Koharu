@@ -152,19 +152,31 @@ impl<'de> Deserialize<'de> for TextShaderEffect {
         }
 
         #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct BinaryFlagsRepr {
+            italic: bool,
+            bold: bool,
+        }
+
+        #[derive(Deserialize)]
         #[serde(untagged)]
         enum Repr {
             Flags(FlagsRepr),
             Legacy(String),
         }
 
-        match Repr::deserialize(deserializer)? {
-            Repr::Flags(FlagsRepr { italic, bold }) => Ok(Self {
-                italic: italic.unwrap_or(false),
-                bold: bold.unwrap_or(false),
-            }),
-            Repr::Legacy(value) => value.parse().map_err(serde::de::Error::custom),
+        if deserializer.is_human_readable() {
+            return match Repr::deserialize(deserializer)? {
+                Repr::Flags(FlagsRepr { italic, bold }) => Ok(Self {
+                    italic: italic.unwrap_or(false),
+                    bold: bold.unwrap_or(false),
+                }),
+                Repr::Legacy(value) => value.parse().map_err(serde::de::Error::custom),
+            };
         }
+
+        let BinaryFlagsRepr { italic, bold } = BinaryFlagsRepr::deserialize(deserializer)?;
+        Ok(Self { italic, bold })
     }
 }
 
@@ -219,7 +231,7 @@ pub struct TextStyle {
 
 #[cfg(test)]
 mod tests {
-    use super::TextShaderEffect;
+    use super::{TextShaderEffect, TextStyle};
 
     #[test]
     fn parse_combined_effects() {
@@ -239,5 +251,44 @@ mod tests {
     fn parse_none_disables_all_effects() {
         let effect: TextShaderEffect = "none".parse().expect("parse");
         assert_eq!(effect.to_string(), "none");
+    }
+
+    #[test]
+    fn json_legacy_string_deserializes() {
+        let effect: TextShaderEffect = serde_json::from_str("\"italic,bold\"").expect("json");
+        assert!(effect.italic);
+        assert!(effect.bold);
+    }
+
+    #[test]
+    fn postcard_text_shader_effect_round_trips() {
+        let effect = TextShaderEffect {
+            italic: true,
+            bold: true,
+        };
+        let bytes = postcard::to_allocvec(&effect).expect("serialize");
+        let decoded: TextShaderEffect = postcard::from_bytes(&bytes).expect("deserialize");
+        assert!(decoded.italic);
+        assert!(decoded.bold);
+    }
+
+    #[test]
+    fn postcard_text_style_with_effect_round_trips() {
+        let style = TextStyle {
+            font_families: vec!["Arial".to_string()],
+            font_size: Some(18.0),
+            color: [12, 34, 56, 255],
+            effect: Some(TextShaderEffect {
+                italic: true,
+                bold: false,
+            }),
+            stroke: None,
+            text_align: None,
+        };
+        let bytes = postcard::to_allocvec(&style).expect("serialize");
+        let decoded: TextStyle = postcard::from_bytes(&bytes).expect("deserialize");
+        let effect = decoded.effect.expect("effect");
+        assert!(effect.italic);
+        assert!(!effect.bold);
     }
 }

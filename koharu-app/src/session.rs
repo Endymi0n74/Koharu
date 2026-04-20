@@ -229,7 +229,9 @@ struct ProjectTomlFile {
 mod tests {
     use super::*;
     use camino::Utf8PathBuf;
-    use koharu_core::{Op, Page, PageId};
+    use koharu_core::{
+        Node, NodeId, NodeKind, Op, Page, PageId, TextData, TextShaderEffect, TextStyle, Transform,
+    };
     use tempfile::tempdir;
 
     fn tmp_dir() -> (tempfile::TempDir, Utf8PathBuf) {
@@ -255,6 +257,70 @@ mod tests {
         let session = ProjectSession::open(&path).unwrap();
         assert_eq!(session.scene.read().pages.len(), 1);
         assert!(session.scene.read().pages.contains_key(&page_id));
+    }
+
+    #[test]
+    fn reopen_preserves_text_style_effects_in_scene_bin() {
+        let (_tmp, path) = tmp_dir();
+        let page_id: PageId;
+        let node_id: NodeId;
+        {
+            let session = ProjectSession::create(&path, "styled").unwrap();
+            let page = Page::new("p1", 800, 600);
+            page_id = page.id;
+            session
+                .apply(Op::AddPage { page, at: 0 })
+                .expect("apply AddPage");
+
+            node_id = NodeId::new();
+            let mut scene = session.scene.write();
+            let page = scene.pages.get_mut(&page_id).expect("page");
+            page.nodes.insert(
+                node_id,
+                Node {
+                    id: node_id,
+                    transform: Transform {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 100.0,
+                        height: 40.0,
+                        rotation_deg: 0.0,
+                    },
+                    visible: true,
+                    kind: NodeKind::Text(TextData {
+                        style: Some(TextStyle {
+                            font_families: vec!["Arial".to_string()],
+                            font_size: Some(20.0),
+                            color: [0, 0, 0, 255],
+                            effect: Some(TextShaderEffect {
+                                italic: true,
+                                bold: true,
+                            }),
+                            stroke: None,
+                            text_align: None,
+                        }),
+                        ..Default::default()
+                    }),
+                },
+            );
+            drop(scene);
+            session.compact().unwrap();
+        }
+
+        let session = ProjectSession::open(&path).unwrap();
+        let scene = session.scene.read();
+        let page = scene.pages.get(&page_id).expect("page");
+        let node = page.nodes.get(&node_id).expect("node");
+        let NodeKind::Text(text) = &node.kind else {
+            panic!("expected text node");
+        };
+        let effect = text
+            .style
+            .as_ref()
+            .and_then(|style| style.effect)
+            .expect("effect");
+        assert!(effect.italic);
+        assert!(effect.bold);
     }
 
     #[test]
