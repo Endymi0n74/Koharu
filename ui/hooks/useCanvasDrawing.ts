@@ -205,7 +205,7 @@ export function useCanvasDrawing(
       const patchBytes = await exportCanvasRegion(sourceCanvas, patchRegion)
 
       if (config.onFinalizeFullCanvas) {
-        const fullBytes = await exportFullCanvas(canvasRef.current!)
+        const fullBytes = await exportFullCanvas(sourceCanvas)
         if (fullBytes) {
           try {
             await config.onFinalizeFullCanvas(fullBytes, patchRegion)
