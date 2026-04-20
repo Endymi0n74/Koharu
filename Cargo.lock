@@ -4486,7 +4486,7 @@ dependencies = [
 
 [[package]]
 name = "koharu"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "camino",
@@ -4522,7 +4522,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-app"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -4586,7 +4586,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-core"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4627,7 +4627,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-llm"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -4666,7 +4666,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-ml"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "candle-core",
@@ -4702,7 +4702,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-psd"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "image",
  "thiserror 2.0.18",
@@ -4710,7 +4710,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-renderer"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -4732,7 +4732,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-rpc"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -4766,7 +4766,7 @@ dependencies = [
 
 [[package]]
 name = "koharu-runtime"
-version = "0.45.3"
+version = "0.46.0"
 dependencies = [
  "anyhow",
  "camino",

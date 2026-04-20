@@ -1,3 +1,28 @@
+## [0.46.0](https://github.com/mayocream/koharu/compare/0.45.3..0.46.0) - 2026-04-20
+
+### ⛰️  Features
+
+- Add Belarusian translation option ([#512](https://github.com/mayocream/koharu/issues/512)) - ([3b0c9a3](https://github.com/mayocream/koharu/commit/3b0c9a31a865a7fb366767f89fe00f060d9cf116))
+
+### 🐛 Bug Fixes
+
+- Render panel throw an error when no page selected - ([ea455b7](https://github.com/mayocream/koharu/commit/ea455b746337827f4f1f2667de36ab9f65903598))
+- Improve llm dropdown list - ([fff194d](https://github.com/mayocream/koharu/commit/fff194df134acd43f8d9573d82fc2688d9946906))
+- Bold/italic cause postcard unable reopen - ([c62b050](https://github.com/mayocream/koharu/commit/c62b050d802a188f8a974acb8b9f37bd637b7139))
+- Global color override per-block color - ([5156d51](https://github.com/mayocream/koharu/commit/5156d51f9d2855535bd9250d801f6c6193bd69b7))
+- Auto render not pass default font - ([df61113](https://github.com/mayocream/koharu/commit/df611134105ea91b905b354d6ee6fe6c59c7ede8))
+- Pipeline stop when no text to render - ([25a5de9](https://github.com/mayocream/koharu/commit/25a5de95e303a0271fc20a3ab5d92095a380a41b))
+- AssetNotFound("index.html") - ([7c711d5](https://github.com/mayocream/koharu/commit/7c711d5b6a0605a54ce619d63b686bd8f211ccf2))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(sentry)* Enable session tracking - ([e677200](https://github.com/mayocream/koharu/commit/e677200a3c2ccd53982b35e76e21c70158bcbc5d))
+- Configure sentry sample rate to 0.1 - ([a2bba3a](https://github.com/mayocream/koharu/commit/a2bba3aeaa12cb668356ca2035937aef7dc6331b))
+
+## New Contributors ❤️
+
+* @Thrapis made their first contribution in [#512](https://github.com/mayocream/koharu/pull/512)
+
 ## [0.45.3](https://github.com/mayocream/koharu/compare/0.45.2..0.45.3) - 2026-04-19
 
 ### 🐛 Bug Fixes
