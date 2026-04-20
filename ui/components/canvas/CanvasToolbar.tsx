@@ -400,7 +400,7 @@ function LlmStatusPopover() {
                       value={language}
                       data-testid={`llm-language-option-${index}`}
                     >
-                      {t(`llm.languages.${language}`)}
+                      {t(`llm.languages.${language}`, { defaultValue: language })}
                     </SelectItem>
                   ))}
                 </SelectContent>

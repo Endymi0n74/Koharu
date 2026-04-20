@@ -27,7 +27,9 @@ export const resources = {
   'pt-BR': { translation: ptBR },
 } satisfies Resource
 
-export const supportedLanguages = Object.keys(resources)
+export type SupportedLanguage = keyof typeof resources
+
+export const supportedLanguages = Object.keys(resources) as SupportedLanguage[]
 
 i18n
   .use(LocalStorageBackend)

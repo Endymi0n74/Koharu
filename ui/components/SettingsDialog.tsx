@@ -470,7 +470,7 @@ function AppearancePane() {
           <SelectContent>
             {locales.map((code) => (
               <SelectItem key={code} value={code}>
-                {t(`menu.languages.${code}`)}
+                {t(`menu.languages.${code}`, { defaultValue: code })}
               </SelectItem>
             ))}
           </SelectContent>
