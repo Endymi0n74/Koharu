@@ -57,7 +57,11 @@ async fn main() -> Result<()> {
     let mask = image::open(&cli.mask)?;
     let started = std::time::Instant::now();
     let output = if let Some(max_side) = cli.max_side {
-        model.inference_with_max_side(&image, &mask, max_side)?
+        let cfg = koharu_ml::inpainting::HdStrategyConfig {
+            resize_limit: max_side,
+            ..model.default_config()
+        };
+        model.inference_with_config(&image, &mask, &cfg)?
     } else {
         model.inference(&image, &mask)?
     };

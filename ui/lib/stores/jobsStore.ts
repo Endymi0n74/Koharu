@@ -3,14 +3,17 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
-import type { JobSummary, PipelineProgress } from '@/lib/api/schemas'
+import type { JobSummary, JobWarningEvent, PipelineProgress } from '@/lib/api/schemas'
 
 /**
  * Live job registry, fed by SSE. Keyed by id. `progress` is attached when
- * the backend streams `JobProgress` for a running pipeline job.
+ * the backend streams `JobProgress` for a running pipeline job. `warnings`
+ * accumulates non-fatal step failures as they arrive; the pipeline keeps
+ * running past them.
  */
 export type JobEntry = JobSummary & {
   progress?: PipelineProgress
+  warnings?: JobWarningEvent[]
 }
 
 type JobsState = {
@@ -18,6 +21,7 @@ type JobsState = {
   setSnapshot: (jobs: JobSummary[]) => void
   started: (id: string, kind: string) => void
   progress: (p: PipelineProgress) => void
+  warning: (w: JobWarningEvent) => void
   finished: (id: string, status: JobSummary['status'], error: string | null | undefined) => void
   clear: () => void
   byStatus: (status: JobSummary['status']) => JobEntry[]
@@ -43,6 +47,16 @@ export const useJobsStore = create<JobsState>()(
           status: 'running' as JobSummary['status'],
         }
         s.jobs[p.jobId] = { ...existing, progress: p }
+      }),
+    warning: (w) =>
+      set((s) => {
+        const existing = s.jobs[w.jobId] ?? {
+          id: w.jobId,
+          kind: 'pipeline',
+          status: 'running' as JobSummary['status'],
+        }
+        const warnings = existing.warnings ?? []
+        s.jobs[w.jobId] = { ...existing, warnings: [...warnings, w] }
       }),
     finished: (id, status, error) =>
       set((s) => {

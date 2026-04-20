@@ -9,10 +9,12 @@ use std::sync::atomic::AtomicBool;
 
 use axum::Json;
 use axum::extract::State;
-use koharu_app::pipeline::{self, PipelineRunOptions, PipelineSpec, ProgressTick, Scope};
+use koharu_app::pipeline::{
+    self, PipelineRunOptions, PipelineSpec, ProgressTick, Scope, WarningTick,
+};
 use koharu_core::{
-    AppEvent, JobFinishedEvent, JobStatus, JobSummary, PageId, PipelineProgress, PipelineStatus,
-    Region,
+    AppEvent, JobFinishedEvent, JobStatus, JobSummary, JobWarningEvent, PageId, PipelineProgress,
+    PipelineStatus, Region,
 };
 use serde::{Deserialize, Serialize};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -123,6 +125,17 @@ async fn start_pipeline(
             overall_percent: tick.overall_percent,
         }));
     });
+    let warning_bus = app.bus.clone();
+    let warning_op_id = operation_id.clone();
+    let warning_sink: pipeline::WarningSink = Arc::new(move |tick: WarningTick| {
+        warning_bus.publish(AppEvent::JobWarning(JobWarningEvent {
+            job_id: warning_op_id.clone(),
+            page_index: tick.page_index,
+            total_pages: tick.total_pages,
+            step_id: tick.step_id,
+            message: tick.message,
+        }));
+    });
     tokio::spawn(async move {
         let result = pipeline::run(
             session_c,
@@ -134,12 +147,23 @@ async fn start_pipeline(
             spec,
             cancel,
             Some(progress_sink),
+            Some(warning_sink),
         )
         .await;
         let (status, error) = match &result {
-            Ok(()) => (JobStatus::Completed, None),
+            Ok(outcome) if outcome.warning_count == 0 => (JobStatus::Completed, None),
+            Ok(outcome) => (
+                JobStatus::CompletedWithErrors,
+                Some(format!(
+                    "{} step(s) failed; see warnings for details",
+                    outcome.warning_count
+                )),
+            ),
             Err(e) if e.to_string().contains("cancelled") => (JobStatus::Cancelled, None),
-            Err(e) => (JobStatus::Failed, Some(format!("{e:#}"))),
+            Err(e) => {
+                tracing::warn!(operation_id = %op_id_c, "pipeline run failed: {e:#}");
+                (JobStatus::Failed, Some(format!("{e:#}")))
+            }
         };
         app_c.jobs.insert(
             op_id_c.clone(),

@@ -897,6 +897,25 @@
           {
             "allOf": [
               {
+                "$ref": "#/components/schemas/JobWarningEvent",
+                "description": "A single step on one page failed but the pipeline kept running.\nEmitted per failed step so clients can show a non-fatal warning while\nthe job continues with the next page."
+              },
+              {
+                "type": "object",
+                "required": ["event"],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "enum": ["jobWarning"]
+                  }
+                }
+              }
+            ],
+            "description": "A single step on one page failed but the pipeline kept running.\nEmitted per failed step so clients can show a non-fatal warning while\nthe job continues with the next page."
+          },
+          {
+            "allOf": [
+              {
                 "$ref": "#/components/schemas/JobFinishedEvent"
               },
               {
@@ -1571,6 +1590,32 @@
           },
           "status": {
             "$ref": "#/components/schemas/JobStatus"
+          }
+        }
+      },
+      "JobWarningEvent": {
+        "type": "object",
+        "description": "A non-fatal step failure during a pipeline run. The pipeline recovers by\nskipping the rest of the current page's steps and moving on to the next\npage; the UI accumulates these into a list during the job.",
+        "required": ["jobId", "pageIndex", "totalPages", "stepId", "message"],
+        "properties": {
+          "jobId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "pageIndex": {
+            "type": "integer",
+            "description": "0-based page index where the failure happened.",
+            "minimum": 0
+          },
+          "stepId": {
+            "type": "string",
+            "description": "Engine id (e.g. `\"lama-manga\"`) of the step that failed."
+          },
+          "totalPages": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       },

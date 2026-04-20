@@ -1,10 +1,10 @@
 mod hf_hub;
-mod inpainting;
 
 pub mod aot_inpainting;
 pub mod comic_text_bubble_detector;
 pub mod comic_text_detector;
 pub mod font_detector;
+pub mod inpainting;
 pub mod lama;
 pub mod loading;
 pub mod manga_ocr;

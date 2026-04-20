@@ -61,6 +61,8 @@
     "processAll": "正在批次處理所有圖片",
     "imageProgress": "圖片 {{current}} / {{total}}",
     "stepProgress": "步驟 {{current}} / {{total}}：{{step}}",
+    "warningsOne": "1 個步驟失敗，繼續處理",
+    "warningsOther": "{{count}} 個步驟失敗，繼續處理",
     "cancel": "停止",
     "cancelling": "停止中..."
   },

@@ -151,6 +151,10 @@ function dispatch(event: AppEvent): void {
       }
       return
 
+    case 'jobWarning':
+      useJobsStore.getState().warning(event)
+      return
+
     case 'jobFinished':
       useJobsStore.getState().finished(event.id, event.status, event.error)
       lastPageByJob.delete(event.id)

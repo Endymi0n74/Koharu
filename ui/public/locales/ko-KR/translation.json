@@ -61,6 +61,8 @@
     "processAll": "모든 이미지 처리 중",
     "imageProgress": "이미지 {{current}} / {{total}}",
     "stepProgress": "단계 {{current}} / {{total}}: {{step}}",
+    "warningsOne": "1개 단계 실패, 계속 진행",
+    "warningsOther": "{{count}}개 단계 실패, 계속 진행",
     "cancel": "취소",
     "cancelling": "취소 중..."
   },

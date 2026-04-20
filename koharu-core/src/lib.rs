@@ -19,7 +19,7 @@ pub mod style;
 pub use blob::BlobRef;
 pub use events::{
     AppEvent, DownloadProgress, DownloadStatus, JobFinishedEvent, JobStatus, JobSummary,
-    PipelineProgress, PipelineStatus, PipelineStep, ProjectSummary, SnapshotEvent,
+    JobWarningEvent, PipelineProgress, PipelineStatus, PipelineStep, ProjectSummary, SnapshotEvent,
 };
 pub use font::{FontPrediction, NamedFontPrediction, TextDirection, TopFont};
 pub use google_fonts::{FontSource, GoogleFontCatalog, GoogleFontEntry, GoogleFontVariant};

@@ -61,6 +61,8 @@
     "processAll": "Tüm görseller işleniyor",
     "imageProgress": "Görsel {{current}} / {{total}}",
     "stepProgress": "Adım {{current}} / {{total}}: {{step}}",
+    "warningsOne": "1 adım başarısız oldu, devam ediliyor",
+    "warningsOther": "{{count}} adım başarısız oldu, devam ediliyor",
     "cancel": "Durdur",
     "cancelling": "Durduruluyor..."
   },

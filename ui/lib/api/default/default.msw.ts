@@ -325,6 +325,16 @@ export const getEventsResponseMock = (): AppEvent =>
     },
     {
       ...{
+        jobId: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        message: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        pageIndex: faker.number.int({ min: 0 }),
+        stepId: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        totalPages: faker.number.int({ min: 0 }),
+      },
+      ...{ event: faker.helpers.arrayElement(['jobWarning'] as const) },
+    },
+    {
+      ...{
         error: faker.helpers.arrayElement([
           faker.helpers.arrayElement([faker.string.alpha({ length: { min: 10, max: 20 } }), null]),
           undefined,

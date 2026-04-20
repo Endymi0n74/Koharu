@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use image::{DynamicImage, GenericImageView};
 use koharu_core::{
     BlobRef, ImageData, ImageRole, MaskData, MaskRole, Node, NodeDataPatch, NodeId, NodeKind, Op,
-    PageId, Region, Scene, TextData, Transform,
+    PageId, Scene, TextData, Transform,
 };
 
 use crate::blobs::BlobStore;
@@ -86,23 +86,6 @@ pub fn text_node_to_region(transform: &Transform, text: &TextData) -> koharu_ml:
         rotation_deg: text.rotation_deg,
         detected_font_size_px: text.detected_font_size_px,
         detector: text.detector.clone(),
-    }
-}
-
-/// Wrap a raw pixel `Region` as a `TextRegion` with no text hints. Used when
-/// an inpainter engine receives a region override (repair-brush path).
-pub fn region_to_text_region(r: &Region) -> koharu_ml::types::TextRegion {
-    koharu_ml::types::TextRegion {
-        x: r.x as f32,
-        y: r.y as f32,
-        width: r.width as f32,
-        height: r.height as f32,
-        confidence: 1.0,
-        line_polygons: None,
-        source_direction: None,
-        rotation_deg: None,
-        detected_font_size_px: None,
-        detector: None,
     }
 }
 

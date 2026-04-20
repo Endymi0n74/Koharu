@@ -75,6 +75,8 @@
     "processAll": "Processing all images",
     "imageProgress": "Image {{current}} / {{total}}",
     "stepProgress": "Step {{current}} / {{total}}: {{step}}",
+    "warningsOne": "1 step failed, continuing",
+    "warningsOther": "{{count}} steps failed, continuing",
     "cancel": "Stop",
     "cancelling": "Stopping..."
   },

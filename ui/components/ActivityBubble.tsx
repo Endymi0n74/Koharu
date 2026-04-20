@@ -1,12 +1,17 @@
 'use client'
 
-import { CircleXIcon } from 'lucide-react'
+import { AlertTriangleIcon, CircleXIcon } from 'lucide-react'
 import { type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { cancelOperation } from '@/lib/api/default/default'
-import type { DownloadProgress, JobSummary, PipelineProgress } from '@/lib/api/schemas'
+import type {
+  DownloadProgress,
+  JobSummary,
+  JobWarningEvent,
+  PipelineProgress,
+} from '@/lib/api/schemas'
 import { useDownloadsStore } from '@/lib/stores/downloadsStore'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { type JobEntry, useJobsStore } from '@/lib/stores/jobsStore'
@@ -112,6 +117,39 @@ function ErrorCard({
   )
 }
 
+function JobWarnings({ warnings, t }: { warnings: JobWarningEvent[]; t: TranslateFunc }) {
+  const latest = warnings[warnings.length - 1]
+  const count = warnings.length
+  const pageLabel =
+    typeof latest.totalPages === 'number' && latest.totalPages > 1
+      ? t('operations.imageProgress', {
+          current: latest.pageIndex + 1,
+          total: latest.totalPages,
+        })
+      : undefined
+  const header =
+    count === 1 ? t('operations.warningsOne') : t('operations.warningsOther', { count })
+  return (
+    <div
+      data-testid='operation-warnings'
+      className='mt-3 rounded-lg border border-amber-200/70 bg-amber-50/80 p-2.5 dark:border-amber-900/70 dark:bg-amber-950/40'
+    >
+      <div className='flex items-start gap-2 text-amber-900 dark:text-amber-200'>
+        <AlertTriangleIcon className='mt-0.5 size-3.5 shrink-0' />
+        <div className='min-w-0 flex-1'>
+          <div className='text-[11px] font-semibold'>{header}</div>
+          <div className='mt-0.5 truncate text-[11px] text-amber-800/90 dark:text-amber-200/80'>
+            {[latest.stepId, pageLabel].filter(Boolean).join(' \u00b7 ')}
+          </div>
+          <div className='mt-1 line-clamp-2 text-[11px] break-words text-amber-900/80 dark:text-amber-100/80'>
+            {latest.message}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function JobCard({ job, onCancel, t }: { job: JobEntry; onCancel: () => void; t: TranslateFunc }) {
   const progress: PipelineProgress | undefined = job.progress
   const percent = clampProgress(progress?.overallPercent)
@@ -133,6 +171,7 @@ function JobCard({ job, onCancel, t }: { job: JobEntry; onCancel: () => void; t:
       : undefined
   const subtitle =
     [pageText, stepLabel].filter(Boolean).join(' \u00b7 ') || t('operations.inProgress')
+  const warnings = job.warnings ?? []
 
   return (
     <BubbleCard>
@@ -148,6 +187,7 @@ function JobCard({ job, onCancel, t }: { job: JobEntry; onCancel: () => void; t:
             </div>
           </div>
           <ProgressBar percent={percent} />
+          {warnings.length > 0 && <JobWarnings warnings={warnings} t={t} />}
           <div className='mt-3 flex justify-end'>
             <Button
               data-testid='operation-cancel'

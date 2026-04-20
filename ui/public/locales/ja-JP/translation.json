@@ -61,6 +61,8 @@
     "processAll": "すべての画像を一括処理中",
     "imageProgress": "画像 {{current}} / {{total}}",
     "stepProgress": "ステップ {{current}} / {{total}}：{{step}}",
+    "warningsOne": "1 つのステップが失敗しましたが、続行します",
+    "warningsOther": "{{count}} 個のステップが失敗しましたが、続行します",
     "cancel": "停止",
     "cancelling": "停止中..."
   },

@@ -61,6 +61,8 @@
     "processAll": "Обработка всех изображений",
     "imageProgress": "Изображение {{current}} / {{total}}",
     "stepProgress": "Шаг {{current}} / {{total}}: {{step}}",
+    "warningsOne": "1 шаг не выполнен, продолжаем",
+    "warningsOther": "{{count}} шагов не выполнены, продолжаем",
     "cancel": "Остановить",
     "cancelling": "Остановка..."
   },

@@ -21,8 +21,15 @@ use crate::protocol::LlmTarget;
 #[serde(tag = "event", rename_all = "camelCase")]
 pub enum AppEvent {
     // Pipeline jobs.
-    JobStarted { id: String, kind: String },
+    JobStarted {
+        id: String,
+        kind: String,
+    },
     JobProgress(PipelineProgress),
+    /// A single step on one page failed but the pipeline kept running.
+    /// Emitted per failed step so clients can show a non-fatal warning while
+    /// the job continues with the next page.
+    JobWarning(JobWarningEvent),
     JobFinished(JobFinishedEvent),
 
     // Runtime library / model downloads.
@@ -36,9 +43,15 @@ pub enum AppEvent {
     // - `LlmLoaded`   — model is on the GPU and ready for inference.
     // - `LlmFailed`   — load failed; see `GET /llm/current` for the reason.
     // - `LlmUnloaded` — model released.
-    LlmLoading { target: LlmTarget },
-    LlmLoaded { target: LlmTarget },
-    LlmFailed { target: Option<LlmTarget> },
+    LlmLoading {
+        target: LlmTarget,
+    },
+    LlmLoaded {
+        target: LlmTarget,
+    },
+    LlmFailed {
+        target: Option<LlmTarget>,
+    },
     LlmUnloaded,
 
     // (Re)connect replay so the client can seed in-flight state.
@@ -120,6 +133,21 @@ pub struct JobFinishedEvent {
     pub status: JobStatus,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+}
+
+/// A non-fatal step failure during a pipeline run. The pipeline recovers by
+/// skipping the rest of the current page's steps and moving on to the next
+/// page; the UI accumulates these into a list during the job.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct JobWarningEvent {
+    pub job_id: String,
+    /// 0-based page index where the failure happened.
+    pub page_index: usize,
+    pub total_pages: usize,
+    /// Engine id (e.g. `"lama-manga"`) of the step that failed.
+    pub step_id: String,
+    pub message: String,
 }
 
 // ---------------------------------------------------------------------------

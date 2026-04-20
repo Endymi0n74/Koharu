@@ -235,6 +235,16 @@ async fn run() -> Result<()> {
     let ensure_translation_fallback = !cli.with_translate;
 
     let cancel = Arc::new(AtomicBool::new(false));
+    let warning_sink: koharu_app::pipeline::WarningSink =
+        Arc::new(|tick: koharu_app::pipeline::WarningTick| {
+            eprintln!(
+                "warn: step '{}' failed on page {}/{}: {}",
+                tick.step_id,
+                tick.page_index + 1,
+                tick.total_pages,
+                tick.message
+            );
+        });
     let result = koharu_app::pipeline::run(
         session.clone(),
         app.registry.clone(),
@@ -245,11 +255,16 @@ async fn run() -> Result<()> {
         spec,
         cancel,
         Some(progress_sink),
+        Some(warning_sink),
     )
     .await;
 
     match &result {
-        Ok(()) => eprintln!("=> pipeline succeeded"),
+        Ok(outcome) if outcome.warning_count == 0 => eprintln!("=> pipeline succeeded"),
+        Ok(outcome) => eprintln!(
+            "=> pipeline finished with {} failed step(s)",
+            outcome.warning_count
+        ),
         Err(e) => eprintln!("=> pipeline failed: {e:#}"),
     }
 
@@ -261,7 +276,7 @@ async fn run() -> Result<()> {
         .with_context(|| format!("dump artifacts to {}", cli.output_dir.display()))?;
 
     app.close_project().await.ok();
-    result
+    result.map(|_| ())
 }
 
 /// Load `AppConfig` from TOML at `path` or default.

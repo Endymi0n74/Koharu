@@ -7,17 +7,17 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use candle_core::{DType, Device, Tensor};
-use image::{
-    DynamicImage, GenericImageView, GrayImage, RgbImage,
-    imageops::{FilterType, resize},
-};
+use image::{DynamicImage, GenericImageView, GrayImage, RgbImage};
 use koharu_runtime::RuntimeManager;
 use serde::Deserialize;
 use tracing::instrument;
 
 use crate::{
     device,
-    inpainting::{binarize_mask, extract_alpha, restore_alpha_channel},
+    inpainting::{
+        HdStrategyConfig, InpaintForward, binarize_mask, extract_alpha, restore_alpha_channel,
+        run_inpaint, try_fill_balloon,
+    },
     loading,
 };
 
@@ -47,16 +47,6 @@ pub struct AotInpainting {
     model: AotGenerator,
     config: AotInpaintingConfig,
     device: Device,
-}
-
-#[derive(Debug, Clone)]
-struct PreparedInput {
-    pixel_values: Tensor,
-    mask_values: Tensor,
-    original_rgb: RgbImage,
-    original_mask: GrayImage,
-    model_width: u32,
-    model_height: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -137,21 +127,27 @@ impl AotInpainting {
         })
     }
 
-    #[instrument(level = "debug", skip_all)]
-    pub fn inference(&self, image: &DynamicImage, mask: &DynamicImage) -> Result<DynamicImage> {
-        self.inference_with_max_side(image, mask, self.config.default_max_side)
+    /// Default strategy: Resize, using the model's shipped `default_max_side`
+    /// as the resize limit. Matches pre-refactor behaviour.
+    pub fn default_config(&self) -> HdStrategyConfig {
+        HdStrategyConfig::aot_default(
+            self.config.default_max_side,
+            self.config.pad_multiple as u32,
+        )
     }
 
     #[instrument(level = "debug", skip_all)]
-    pub fn inference_with_max_side(
+    pub fn inference(&self, image: &DynamicImage, mask: &DynamicImage) -> Result<DynamicImage> {
+        self.inference_with_config(image, mask, &self.default_config())
+    }
+
+    #[instrument(level = "debug", skip_all)]
+    pub fn inference_with_config(
         &self,
         image: &DynamicImage,
         mask: &DynamicImage,
-        max_side: u32,
+        cfg: &HdStrategyConfig,
     ) -> Result<DynamicImage> {
-        if max_side == 0 {
-            bail!("max_side must be positive");
-        }
         if image.dimensions() != mask.dimensions() {
             bail!(
                 "image and mask dimensions dismatch: image is {:?}, mask is {:?}",
@@ -161,84 +157,36 @@ impl AotInpainting {
         }
 
         let started = Instant::now();
-        let prepared = self.preprocess(image, mask, max_side)?;
-        let output = self
-            .model
-            .forward(&prepared.pixel_values, &prepared.mask_values)?;
-        let composited = self.postprocess(&output, &prepared)?;
+        let binary_mask = binarize_mask(mask);
+        let image_rgb = image.to_rgb8();
+        let forward = AotForward { aot: self };
+        let output_rgb = run_inpaint(&forward, &image_rgb, &binary_mask, cfg)?;
 
         tracing::info!(
             width = image.width(),
             height = image.height(),
-            model_width = prepared.model_width,
-            model_height = prepared.model_height,
-            max_side,
+            resize_limit = cfg.resize_limit,
             total_ms = started.elapsed().as_millis(),
             "aot inpainting timings"
         );
 
         if image.color().has_alpha() {
             let alpha = extract_alpha(&image.to_rgba8());
-            let rgba = restore_alpha_channel(&composited, &alpha, &prepared.original_mask);
+            let rgba = restore_alpha_channel(&output_rgb, &alpha, &binary_mask);
             Ok(DynamicImage::ImageRgba8(rgba))
         } else {
-            Ok(DynamicImage::ImageRgb8(composited))
+            Ok(DynamicImage::ImageRgb8(output_rgb))
         }
     }
 
-    fn preprocess(
-        &self,
-        image: &DynamicImage,
-        mask: &DynamicImage,
-        max_side: u32,
-    ) -> Result<PreparedInput> {
-        let original_rgb = image.to_rgb8();
-        let original_mask = binarize_mask(mask);
-        let mut working_rgb = original_rgb.clone();
-        let mut working_mask = original_mask.clone();
-
-        if working_rgb.width().max(working_rgb.height()) > max_side {
-            let (resized_width, resized_height) =
-                resize_keep_aspect_dims(working_rgb.width(), working_rgb.height(), max_side);
-            working_rgb = resize(
-                &working_rgb,
-                resized_width,
-                resized_height,
-                FilterType::Triangle,
-            );
-            working_mask = resize(
-                &working_mask,
-                resized_width,
-                resized_height,
-                FilterType::Triangle,
-            );
-        }
-
-        let model_width = round_up_multiple(working_rgb.width(), self.config.pad_multiple as u32);
-        let model_height = round_up_multiple(working_rgb.height(), self.config.pad_multiple as u32);
-        if model_width != working_rgb.width() || model_height != working_rgb.height() {
-            working_rgb = resize(
-                &working_rgb,
-                model_width,
-                model_height,
-                FilterType::Triangle,
-            );
-            working_mask = resize(
-                &working_mask,
-                model_width,
-                model_height,
-                FilterType::Triangle,
-            );
-        }
-
-        let mut binary_model_mask = working_mask;
-        for pixel in binary_model_mask.pixels_mut() {
-            pixel.0[0] = if pixel.0[0] >= 127 { 255 } else { 0 };
-        }
-
+    /// Raw model forward on a pre-padded RGB image + mask. Input spatial dims
+    /// must already be multiples of `pad_multiple` — the HD-strategy dispatcher
+    /// handles this.
+    fn forward_rgb(&self, image: &RgbImage, mask: &GrayImage) -> Result<RgbImage> {
+        let (w, h) = image.dimensions();
         let image_tensor = (Tensor::from_vec(
-            working_rgb.into_raw(),
-            (1, model_height as usize, model_width as usize, 3),
+            image.clone().into_raw(),
+            (1, h as usize, w as usize, 3),
             &self.device,
         )?
         .permute((0, 3, 1, 2))?
@@ -247,29 +195,22 @@ impl AotInpainting {
         let image_tensor = (image_tensor - 1.0)?;
 
         let mask_tensor = Tensor::from_vec(
-            binary_model_mask.clone().into_raw(),
-            (1, model_height as usize, model_width as usize, 1),
+            mask.clone().into_raw(),
+            (1, h as usize, w as usize, 1),
             &self.device,
         )?
         .permute((0, 3, 1, 2))?
         .to_dtype(DType::F32)?;
         let mask_tensor = (mask_tensor / 255.0)?;
         let mask_inv = (Tensor::ones_like(&mask_tensor)? - &mask_tensor)?;
-        let mask_inv_rgb =
-            mask_inv.broadcast_as((1, 3, model_height as usize, model_width as usize))?;
+        let mask_inv_rgb = mask_inv.broadcast_as((1, 3, h as usize, w as usize))?;
         let masked_image = (&image_tensor * &mask_inv_rgb)?;
 
-        Ok(PreparedInput {
-            pixel_values: masked_image,
-            mask_values: mask_tensor,
-            original_rgb,
-            original_mask,
-            model_width,
-            model_height,
-        })
+        let output = self.model.forward(&masked_image, &mask_tensor)?;
+        self.postprocess(&output)
     }
 
-    fn postprocess(&self, output: &Tensor, prepared: &PreparedInput) -> Result<RgbImage> {
+    fn postprocess(&self, output: &Tensor) -> Result<RgbImage> {
         let output = output.to_device(&Device::Cpu)?.squeeze(0)?;
         let (channels, height, width) = output.dims3()?;
         if channels != 3 {
@@ -282,27 +223,27 @@ impl AotInpainting {
             .to_dtype(DType::U8)?
             .flatten_all()?
             .to_vec1::<u8>()?;
-        let predicted = RgbImage::from_raw(width as u32, height as u32, raw)
-            .ok_or_else(|| anyhow::anyhow!("failed to create image buffer from model output"))?;
+        RgbImage::from_raw(width as u32, height as u32, raw)
+            .ok_or_else(|| anyhow::anyhow!("failed to create image buffer from model output"))
+    }
+}
 
-        let predicted = if width as u32 != prepared.original_rgb.width()
-            || height as u32 != prepared.original_rgb.height()
-        {
-            resize(
-                &predicted,
-                prepared.original_rgb.width(),
-                prepared.original_rgb.height(),
-                FilterType::Triangle,
-            )
-        } else {
-            predicted
-        };
+struct AotForward<'a> {
+    aot: &'a AotInpainting,
+}
 
-        Ok(composite_rgb(
-            &prepared.original_rgb,
-            &predicted,
-            &prepared.original_mask,
-        ))
+impl InpaintForward for AotForward<'_> {
+    fn forward(&self, image: &RgbImage, mask: &GrayImage) -> Result<RgbImage> {
+        if mask.pixels().all(|p| p.0[0] == 0) {
+            return Ok(image.clone());
+        }
+        // Same flat-balloon fast path as Lama: skip the model when the mask
+        // sits in a uniform-background bubble. Fires per-crop under the Crop
+        // strategy; generally no-ops on whole-image forwards under Resize.
+        if let Some(filled) = try_fill_balloon(image, mask) {
+            return Ok(filled);
+        }
+        self.aot.forward_rgb(image, mask)
     }
 }
 
@@ -322,50 +263,4 @@ async fn resolve_model_paths(runtime: &RuntimeManager) -> Result<(PathBuf, PathB
         .await
         .with_context(|| format!("failed to download {SAFETENSORS_FILENAME} from {HF_REPO}"))?;
     Ok((config, weights))
-}
-
-fn resize_keep_aspect_dims(width: u32, height: u32, max_side: u32) -> (u32, u32) {
-    let ratio = max_side as f32 / width.max(height) as f32;
-    (
-        ((width as f32 * ratio).round() as u32).max(1),
-        ((height as f32 * ratio).round() as u32).max(1),
-    )
-}
-
-fn round_up_multiple(value: u32, multiple: u32) -> u32 {
-    if value.is_multiple_of(multiple) {
-        value
-    } else {
-        value + (multiple - value % multiple)
-    }
-}
-
-fn composite_rgb(original: &RgbImage, predicted: &RgbImage, mask: &GrayImage) -> RgbImage {
-    let mut composited = original.clone();
-    for y in 0..original.height() {
-        for x in 0..original.width() {
-            if mask.get_pixel(x, y).0[0] > 0 {
-                composited.put_pixel(x, y, *predicted.get_pixel(x, y));
-            }
-        }
-    }
-    composited
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{resize_keep_aspect_dims, round_up_multiple};
-
-    #[test]
-    fn resize_keep_aspect_matches_upstream_rounding() {
-        assert_eq!(resize_keep_aspect_dims(1600, 900, 1024), (1024, 576));
-        assert_eq!(resize_keep_aspect_dims(900, 1600, 1024), (576, 1024));
-    }
-
-    #[test]
-    fn round_up_multiple_expands_to_next_valid_shape() {
-        assert_eq!(round_up_multiple(1024, 8), 1024);
-        assert_eq!(round_up_multiple(1025, 8), 1032);
-        assert_eq!(round_up_multiple(7, 8), 8);
-    }
 }

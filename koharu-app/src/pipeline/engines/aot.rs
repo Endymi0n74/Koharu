@@ -1,14 +1,15 @@
-//! AOT inpainting. Simpler than Lama: direct source + segment → result.
+//! AOT inpainting. Direct source + segment → result. Subdivision is handled
+//! by [`koharu_ml::inpainting::run_inpaint`] (shared with Lama) — this engine
+//! only wires up the scene I/O.
 //!
-//! With `ctx.options.region`, composites onto the existing `Image { Inpainted }`
-//! (falling back to Source) so repair-brush strokes only affect the touched
-//! area. AOT inference has no blockwise overload, so we crop the base image
-//! and mask to the region, inpaint the crop, and paste back.
+//! For repair-brush (`ctx.options.region`), composite onto the existing
+//! `Image { Inpainted }` if present (fallback Source) and zero out mask
+//! pixels outside the region so only that area is reprocessed.
 
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use image::{DynamicImage, GenericImage, GenericImageView};
-use koharu_core::{ImageRole, MaskRole, Op};
+use image::{DynamicImage, GrayImage, Luma};
+use koharu_core::{ImageRole, MaskRole, Op, Region};
 use koharu_ml::aot_inpainting::AotInpainting;
 
 use crate::pipeline::artifacts::Artifact;
@@ -26,31 +27,22 @@ impl Engine for Model {
             .ok_or_else(|| anyhow!("no Segment mask on page"))?;
         let mask = ctx.blobs.load_image(&mask_ref)?;
 
-        let result = match ctx.options.region {
-            None => {
-                let image = load_source_image(ctx.scene, ctx.page, ctx.blobs)?;
-                self.0.inference(&image, &mask)?
-            }
+        let (image, mask) = match ctx.options.region {
             Some(r) => {
                 let base = match find_image_node(ctx.scene, ctx.page, ImageRole::Inpainted) {
                     Some((_, blob)) => ctx.blobs.load_image(&blob)?,
                     None => load_source_image(ctx.scene, ctx.page, ctx.blobs)?,
                 };
-                let (w, h) = base.dimensions();
-                let x0 = r.x.min(w.saturating_sub(1));
-                let y0 = r.y.min(h.saturating_sub(1));
-                let rw = r.width.min(w - x0).max(1);
-                let rh = r.height.min(h - y0).max(1);
-                let image_crop = DynamicImage::ImageRgba8(base.view(x0, y0, rw, rh).to_image());
-                let mask_crop =
-                    DynamicImage::ImageLuma8(mask.to_luma8().view(x0, y0, rw, rh).to_image());
-                let patched = self.0.inference(&image_crop, &mask_crop)?;
-                let mut out = base;
-                out.copy_from(&patched, x0, y0)?;
-                out
+                let clipped = clip_mask_to_region(&mask, &r);
+                (base, clipped)
+            }
+            None => {
+                let image = load_source_image(ctx.scene, ctx.page, ctx.blobs)?;
+                (image, mask)
             }
         };
 
+        let result = self.0.inference(&image, &mask)?;
         let (w, h) = image_dimensions(&result);
         let blob = ctx.blobs.put_webp(&result)?;
         Ok(vec![upsert_image_blob(
@@ -62,6 +54,23 @@ impl Engine for Model {
             h,
         )])
     }
+}
+
+fn clip_mask_to_region(mask: &DynamicImage, region: &Region) -> DynamicImage {
+    let src = mask.to_luma8();
+    let (w, h) = src.dimensions();
+    let x0 = region.x.min(w);
+    let y0 = region.y.min(h);
+    let x1 = region.x.saturating_add(region.width).min(w);
+    let y1 = region.y.saturating_add(region.height).min(h);
+
+    let mut clipped = GrayImage::new(w, h);
+    for y in y0..y1 {
+        for x in x0..x1 {
+            clipped.put_pixel(x, y, Luma([src.get_pixel(x, y).0[0]]));
+        }
+    }
+    DynamicImage::ImageLuma8(clipped)
 }
 
 inventory::submit! {

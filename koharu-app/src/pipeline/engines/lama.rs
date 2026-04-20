@@ -1,23 +1,26 @@
 //! Lama Manga inpainter. Reads source + segmentation mask from the page,
 //! runs the model, writes the output as `Image { role: Inpainted }`.
 //!
-//! When `ctx.options.region` is set (e.g. repair-brush re-inpaint), the
-//! engine composites onto the existing `Image { Inpainted }` if present
-//! (falling back to `Source`) and processes just that one block. Without
-//! a region, behaves as a full-page pass using the scene's text nodes
-//! as block hints.
+//! Box subdivision (the "which regions to run the model on" question) is
+//! driven by the **mask itself** via `boxes_from_mask` — mirrors IOPaint's
+//! `InpaintModel.__call__`. Text detections are no longer consulted; the
+//! segmentation mask already encodes which pixels to remove.
+//!
+//! When `ctx.options.region` is set (repair-brush re-inpaint), we composite
+//! onto the existing `Image { Inpainted }` if present (falling back to
+//! `Source`) and zero out mask pixels outside the region before dispatch —
+//! so only that region is reprocessed.
 
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use koharu_core::{ImageRole, MaskRole, Op};
+use image::{DynamicImage, GrayImage, Luma};
+use koharu_core::{ImageRole, MaskRole, Op, Region};
 use koharu_ml::lama::Lama;
-use koharu_ml::types::TextRegion;
 
 use crate::pipeline::artifacts::Artifact;
 use crate::pipeline::engine::{Engine, EngineCtx, EngineInfo};
 use crate::pipeline::engines::support::{
-    find_image_node, find_mask_node, image_dimensions, load_source_image, region_to_text_region,
-    text_node_to_region, text_nodes, upsert_image_blob,
+    find_image_node, find_mask_node, image_dimensions, load_source_image, upsert_image_blob,
 };
 
 pub struct Model(Lama);
@@ -29,26 +32,22 @@ impl Engine for Model {
             .ok_or_else(|| anyhow!("no Segment mask on page"))?;
         let mask = ctx.blobs.load_image(&mask_ref)?;
 
-        let (image, text_regions): (_, Vec<TextRegion>) = match ctx.options.region {
+        let (image, mask) = match ctx.options.region {
             Some(r) => {
                 let base = match find_image_node(ctx.scene, ctx.page, ImageRole::Inpainted) {
                     Some((_, blob)) => ctx.blobs.load_image(&blob)?,
                     None => load_source_image(ctx.scene, ctx.page, ctx.blobs)?,
                 };
-                (base, vec![region_to_text_region(&r)])
+                let clipped = clip_mask_to_region(&mask, &r);
+                (base, clipped)
             }
             None => {
                 let image = load_source_image(ctx.scene, ctx.page, ctx.blobs)?;
-                let regions = text_nodes(ctx.scene, ctx.page)
-                    .iter()
-                    .map(|(_, transform, t)| text_node_to_region(transform, t))
-                    .collect();
-                (image, regions)
+                (image, mask)
             }
         };
 
-        let regions_ref = (!text_regions.is_empty()).then_some(text_regions.as_slice());
-        let result = self.0.inference_with_blocks(&image, &mask, regions_ref)?;
+        let result = self.0.inference(&image, &mask)?;
         let (w, h) = image_dimensions(&result);
         let blob = ctx.blobs.put_webp(&result)?;
         Ok(vec![upsert_image_blob(
@@ -60,6 +59,26 @@ impl Engine for Model {
             h,
         )])
     }
+}
+
+/// Zero out every pixel of `mask` that falls outside `region`. The Crop
+/// strategy's `boxes_from_mask` then only finds contours inside the region,
+/// so the inpainter only touches that area.
+fn clip_mask_to_region(mask: &DynamicImage, region: &Region) -> DynamicImage {
+    let src = mask.to_luma8();
+    let (w, h) = src.dimensions();
+    let x0 = region.x.min(w);
+    let y0 = region.y.min(h);
+    let x1 = region.x.saturating_add(region.width).min(w);
+    let y1 = region.y.saturating_add(region.height).min(h);
+
+    let mut clipped = GrayImage::new(w, h);
+    for y in y0..y1 {
+        for x in x0..x1 {
+            clipped.put_pixel(x, y, Luma([src.get_pixel(x, y).0[0]]));
+        }
+    }
+    DynamicImage::ImageLuma8(clipped)
 }
 
 inventory::submit! {

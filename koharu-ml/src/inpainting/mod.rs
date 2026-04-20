@@ -1,3 +1,16 @@
+//! Shared inpainting infrastructure: alpha handling, mask prep, and the
+//! HD-strategy dispatcher used by every erase model (Lama, AoT).
+//!
+//! The strategy dispatcher mirrors IOPaint's `InpaintModel.__call__`: one place
+//! decides between Original / Resize / Crop based on image size and a
+//! per-model config. Concrete models only implement the raw forward pass.
+
+pub mod balloon;
+pub mod strategy;
+
+pub use balloon::try_fill_balloon;
+pub use strategy::{HdStrategy, HdStrategyConfig, InpaintForward, run_inpaint};
+
 use image::{DynamicImage, GrayImage, Luma, RgbImage, Rgba, RgbaImage};
 use imageproc::{distance_transform::Norm, morphology::dilate};
 
