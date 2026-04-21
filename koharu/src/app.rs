@@ -106,10 +106,9 @@ pub async fn run() -> Result<()> {
     let assets = crate::assets::from_context(&mut context);
     let server_state = state.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = server::serve_with_listener_and_assets(listener, server_state, assets).await
-        {
-            tracing::error!("server error: {e:#}");
-        }
+        server::serve_with_listener_and_assets(listener, server_state, assets)
+            .await
+            .expect("failed to start server");
     });
 
     if cli.headless {
@@ -127,9 +126,9 @@ pub async fn run() -> Result<()> {
         .plugin(tauri_plugin_process::init())
         .setup(move |handle| {
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = bootstrap_app(state, config, cli.cpu).await {
-                    tracing::error!("bootstrap error: {e:#}");
-                }
+                bootstrap_app(state, config, cli.cpu)
+                    .await
+                    .expect("failed to bootstrap app");
             });
 
             let cfg = handle.config();

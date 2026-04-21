@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 pub fn install() {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
@@ -14,6 +16,10 @@ pub fn install() {
             .map(|l| format!("{}:{}", l.file(), l.line()))
             .unwrap_or_default();
 
+        if let Some(client) = sentry::Hub::current().client() {
+            client.flush(Some(Duration::from_secs(2)));
+        }
+
         rfd::MessageDialog::new()
             .set_level(rfd::MessageLevel::Error)
             .set_title("Koharu has stopped")
@@ -22,5 +28,7 @@ pub fn install() {
             ))
             .set_buttons(rfd::MessageButtons::Ok)
             .show();
+
+        std::process::exit(1);
     }));
 }
