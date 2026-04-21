@@ -1,3 +1,10 @@
+## [0.47.4](https://github.com/mayocream/koharu/compare/0.47.3..0.47.4) - 2026-04-21
+
+### 🐛 Bug Fixes
+
+- Panic when fail to bootstrap - ([5c01ade](https://github.com/mayocream/koharu/commit/5c01ade0804664e9e5180620bdccc689f64b696c))
+
+
 ## [0.47.3](https://github.com/mayocream/koharu/compare/0.47.2..0.47.3) - 2026-04-21
 
 ### 📚 Documentation
