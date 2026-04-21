@@ -1,3 +1,15 @@
+## [0.47.3](https://github.com/mayocream/koharu/compare/0.47.2..0.47.3) - 2026-04-21
+
+### 📚 Documentation
+
+- Contributing - ([c6efe47](https://github.com/mayocream/koharu/commit/c6efe474dd6d4ddbbeb968c3710873c762914b6a))
+
+### ⚙️ Miscellaneous Tasks
+
+- Panic handler - ([facc424](https://github.com/mayocream/koharu/commit/facc424dfdc3c3f82a287ff95413ce0dac78b3b1))
+- Remove unnecessary dependencies ([#527](https://github.com/mayocream/koharu/issues/527)) - ([3f8d464](https://github.com/mayocream/koharu/commit/3f8d464f5e746ce1ea4ca81ed01b8ca39fddb968))
+
+
 ## [0.47.2](https://github.com/mayocream/koharu/compare/0.47.1..0.47.2) - 2026-04-20
 
 ### ⚡ Performance
