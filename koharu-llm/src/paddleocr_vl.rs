@@ -31,6 +31,9 @@ const DEFAULT_MAX_NEW_TOKENS: usize = 256;
 pub const DEFAULT_REPETITION_PENALTY: f32 = 1.2;
 const DEFAULT_REPETITION_PENALTY_LAST_N: i32 = -1;
 const MAX_UBATCH: u32 = 512;
+const OCR_REPEAT_MAX_UNIT_CHARS: usize = 12;
+const OCR_REPEAT_MIN_REPETITIONS: usize = 4;
+const OCR_REPEAT_MIN_TOTAL_CHARS: usize = 12;
 
 koharu_runtime::declare_hf_model_package!(
     id: "model:paddleocr-vl:weights",
@@ -288,7 +291,9 @@ impl PaddleOcrVl {
         let mut sampler = build_sampler(options);
         let mut decoder = encoding_rs::UTF_8.new_decoder();
         let mut token_ids = Vec::new();
+        let mut token_text_ends = Vec::new();
         let mut text = String::new();
+        let mut stopped_on_repeat = false;
 
         if max_new_tokens > 0 {
             let decoder_start = self.decoder_start_token();
@@ -309,6 +314,19 @@ impl PaddleOcrVl {
                 token_ids
                     .push(u32::try_from(next_token.0).context("generated token id was negative")?);
                 text.push_str(&decode_token(&self.model, next_token, &mut decoder)?);
+                token_text_ends.push(text.len());
+
+                if let Some(trim_at) = repeated_ocr_suffix_start(&text) {
+                    let keep_tokens = token_text_ends
+                        .iter()
+                        .take_while(|&&end| end <= trim_at)
+                        .count();
+                    token_ids.truncate(keep_tokens);
+                    token_text_ends.truncate(keep_tokens);
+                    text.truncate(trim_at);
+                    stopped_on_repeat = true;
+                    break;
+                }
 
                 if token_ids.len() >= max_new_tokens {
                     break;
@@ -337,6 +355,7 @@ impl PaddleOcrVl {
             generation_ms = generation_started.elapsed().as_millis(),
             total_ms = started.elapsed().as_millis(),
             repetition_penalty = options.repetition_penalty,
+            stopped_on_repeat,
             "paddleocr-vl inference timings"
         );
 
@@ -629,12 +648,52 @@ fn token_text(model: &LlamaModel, token: LlamaToken) -> String {
     }
 }
 
+fn repeated_ocr_suffix_start(text: &str) -> Option<usize> {
+    let chars = text
+        .char_indices()
+        .filter(|(_, ch)| !ch.is_whitespace())
+        .collect::<Vec<_>>();
+    let len = chars.len();
+    if len < OCR_REPEAT_MIN_TOTAL_CHARS {
+        return None;
+    }
+
+    let max_unit = OCR_REPEAT_MAX_UNIT_CHARS.min(len / OCR_REPEAT_MIN_REPETITIONS);
+    for unit_len in 1..=max_unit {
+        let unit_start = len - unit_len;
+        let unit = &chars[unit_start..len];
+
+        let mut repetitions = 1usize;
+        while len >= unit_len * (repetitions + 1) {
+            let start = len - unit_len * (repetitions + 1);
+            let end = start + unit_len;
+            if chars[start..end]
+                .iter()
+                .map(|(_, ch)| *ch)
+                .eq(unit.iter().map(|(_, ch)| *ch))
+            {
+                repetitions += 1;
+            } else {
+                break;
+            }
+        }
+
+        let repeated_chars = repetitions * unit_len;
+        if repetitions >= OCR_REPEAT_MIN_REPETITIONS && repeated_chars >= OCR_REPEAT_MIN_TOTAL_CHARS
+        {
+            return Some(chars[len - repeated_chars].0);
+        }
+    }
+
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         DEFAULT_MAX_NEW_TOKENS, DEFAULT_MEDIA_MARKER, DEFAULT_REPETITION_PENALTY,
         PaddleOcrVlGenerateOptions, PaddleOcrVlTask, build_user_message_content,
-        render_chat_prompt, validate_generate_options,
+        render_chat_prompt, repeated_ocr_suffix_start, validate_generate_options,
     };
 
     #[test]
@@ -706,6 +765,47 @@ mod tests {
             error
                 .to_string()
                 .contains("repetition_penalty must be a positive finite number")
+        );
+    }
+
+    #[test]
+    fn repeat_guard_trims_single_glyph_loop() {
+        let text = "\u{25CF}".repeat(12);
+        assert_eq!(repeated_ocr_suffix_start(&text), Some(0));
+    }
+
+    #[test]
+    fn repeat_guard_trims_after_text_prefix() {
+        let text = format!("OCR{}", "\u{25CF}".repeat(12));
+        assert_eq!(repeated_ocr_suffix_start(&text), Some(3));
+    }
+
+    #[test]
+    fn repeat_guard_trims_short_cycle() {
+        assert_eq!(repeated_ocr_suffix_start("-_".repeat(6).as_str()), Some(0));
+    }
+
+    #[test]
+    fn repeat_guard_keeps_short_emphasis_punctuation() {
+        assert_eq!(repeated_ocr_suffix_start("!!!"), None);
+        assert_eq!(repeated_ocr_suffix_start("......"), None);
+    }
+
+    #[test]
+    fn repeat_guard_trims_repeated_text_loop() {
+        assert_eq!(
+            repeated_ocr_suffix_start(
+                "\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}\u{3042}"
+            ),
+            Some(0)
+        );
+    }
+
+    #[test]
+    fn repeat_guard_trims_repeated_word_loop() {
+        assert_eq!(
+            repeated_ocr_suffix_start("test".repeat(4).as_str()),
+            Some(0)
         );
     }
 }
