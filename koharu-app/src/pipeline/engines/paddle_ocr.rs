@@ -17,7 +17,7 @@ use crate::pipeline::artifacts::Artifact;
 use crate::pipeline::engine::{Engine, EngineCtx, EngineInfo};
 use crate::pipeline::engines::support::{load_source_image, text_node_to_region, text_nodes};
 
-const MAX_NEW_TOKENS: usize = 128;
+const MAX_NEW_TOKENS: usize = 256;
 
 pub struct Model(Mutex<PaddleOcrVl>);
 
