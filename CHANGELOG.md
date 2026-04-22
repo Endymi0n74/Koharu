@@ -1,3 +1,14 @@
+## [0.47.6](https://github.com/mayocream/koharu/compare/0.47.5..0.47.6) - 2026-04-22
+
+### 🐛 Bug Fixes
+
+- Add repetition_penalty to PaddleOcrVl - ([ae80ce9](https://github.com/mayocream/koharu/commit/ae80ce9aa54197b8095d3d32a964e704d9ef25c3))
+
+### ⚙️ Miscellaneous Tasks
+
+- Make clippy happy - ([c38ac38](https://github.com/mayocream/koharu/commit/c38ac38062bf2b0f0c1257ae11e1eeec9b4c2994))
+
+
 ## [0.47.5](https://github.com/mayocream/koharu/compare/0.47.4..0.47.5) - 2026-04-22
 
 ### 🐛 Bug Fixes
