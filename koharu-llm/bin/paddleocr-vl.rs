@@ -4,7 +4,10 @@ use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, ValueEnum};
-use koharu_llm::paddleocr_vl::{PaddleOcrVl, PaddleOcrVlOutput, PaddleOcrVlTask};
+use koharu_llm::paddleocr_vl::{
+    DEFAULT_REPETITION_PENALTY, PaddleOcrVl, PaddleOcrVlGenerateOptions, PaddleOcrVlOutput,
+    PaddleOcrVlTask,
+};
 use koharu_llm::safe::llama_backend::LlamaBackend;
 use koharu_runtime::{ComputePolicy, RuntimeManager, default_app_data_root};
 
@@ -45,6 +48,9 @@ struct Cli {
     #[arg(long, default_value_t = 128)]
     max_new_tokens: usize,
 
+    #[arg(long, default_value_t = DEFAULT_REPETITION_PENALTY)]
+    repetition_penalty: f32,
+
     #[arg(long, value_name = "FILE")]
     json_output: Option<PathBuf>,
 
@@ -65,6 +71,15 @@ struct Cli {
 
     #[arg(long, default_value_t = 10)]
     sample_errors: usize,
+}
+
+impl Cli {
+    fn generate_options(&self) -> PaddleOcrVlGenerateOptions {
+        PaddleOcrVlGenerateOptions {
+            max_new_tokens: self.max_new_tokens,
+            repetition_penalty: self.repetition_penalty,
+        }
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -139,9 +154,10 @@ async fn main() -> Result<()> {
     } else {
         PaddleOcrVl::load(&runtime, cli.cpu, backend).await?
     };
+    let generate_options = cli.generate_options();
 
     if let Some(dataset_root) = &cli.dataset_root {
-        let summary = evaluate_dataset(&mut model, dataset_root, &cli, task)?;
+        let summary = evaluate_dataset(&mut model, dataset_root, &cli, task, &generate_options)?;
         println!("{}", serde_json::to_string_pretty(&summary)?);
         if let Some(path) = &cli.json_output {
             std::fs::write(path, serde_json::to_string_pretty(&summary)?)?;
@@ -154,7 +170,7 @@ async fn main() -> Result<()> {
         .iter()
         .map(image::open)
         .collect::<Result<Vec<_>, _>>()?;
-    let outputs = model.inference_images(&images, task, cli.max_new_tokens)?;
+    let outputs = model.inference_images_with_options(&images, task, &generate_options)?;
     for (input, output) in cli.input.iter().zip(&outputs) {
         if cli.input.len() > 1 {
             println!("== {} ==", input.display());
@@ -177,6 +193,7 @@ fn evaluate_dataset(
     dataset_root: &Path,
     cli: &Cli,
     task: PaddleOcrVlTask,
+    generate_options: &PaddleOcrVlGenerateOptions,
 ) -> Result<EvaluationSummary> {
     let started = Instant::now();
     let split_name = dataset_root
@@ -211,7 +228,7 @@ fn evaluate_dataset(
         let image_path = dataset_base.join(&record.relative_path);
         let image = image::open(&image_path)
             .with_context(|| format!("failed to open `{}`", image_path.display()))?;
-        let output = model.inference_with_max_new_tokens(&image, task, cli.max_new_tokens)?;
+        let output = model.inference_with_options(&image, task, generate_options)?;
         let predicted = output.text;
         let expected = record.text.as_str();
         let char_distance = levenshtein_chars(expected, &predicted);
