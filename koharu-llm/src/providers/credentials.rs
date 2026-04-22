@@ -119,9 +119,9 @@ mod filesystem {
             fs::write(&temp_path, secret).map_err(storage_error)?;
             set_mode(&temp_path, 0o600)?;
 
-            fs::rename(&temp_path, &path).or_else(|err| {
+            fs::rename(&temp_path, &path).map_err(|err| {
                 let _ = fs::remove_file(&temp_path);
-                Err(storage_error(err))
+                storage_error(err)
             })?;
             set_mode(&path, 0o600)
         }
