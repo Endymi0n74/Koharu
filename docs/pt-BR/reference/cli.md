@@ -31,7 +31,6 @@ koharu.exe [OPTIONS]
 | `--cpu` | Força o modo CPU mesmo quando uma GPU está disponível |
 | `-p`, `--port <PORT>` | Vincula o servidor HTTP local a uma porta `127.0.0.1` específica em vez de uma aleatória |
 | `--headless` | Executa sem iniciar a GUI desktop |
-| `--no-keyring` | Executa sem keyring e usa variáveis de ambiente no lugar |
 | `--debug` | Habilita saída de console orientada a debug |
 
 ## Notas de comportamento
@@ -42,7 +41,6 @@ Algumas flags afetam mais do que apenas a aparência inicial:
 - com `--headless`, o Koharu pula a janela do Tauri mas ainda serve a Web UI e a API
 - com `--download`, o Koharu encerra após o prefetch de dependências e não permanece em execução
 - com `--cpu`, tanto a stack de visão quanto o caminho do LLM local evitam aceleração por GPU
-- com `--no-keyring`, o Koharu pula todas as operações de keyring; as chaves de API devem ser definidas por variáveis de ambiente
 
 Quando uma porta fixa está definida, os principais endpoints locais são:
 
@@ -86,10 +84,4 @@ Iniciar com logging explícito de debug:
 
 ```bash
 koharu --debug
-```
-
-Uso sem keyring:
-
-```bash
-KOHARU_OPENAI_API_KEY=[key] koharu --no-keyring
 ```

@@ -142,26 +142,8 @@ koharu.exe --debug
 
 No Windows, execuções de debug e headless também influenciam como o Koharu anexa ou cria uma janela de console.
 
-## Rodando sem keyring
+## Armazenamento de credenciais
 
-Por padrão, o Koharu armazena API keys no keyring do sistema. Em ambientes de container ou CI onde não existe um keyring persistente, você pode passar `--no-keyring` para pular essa etapa e fornecer as API keys por variáveis de ambiente.
+Por padrão, o Koharu armazena API keys fora de `config.toml`. macOS e Windows usam o keyring do sistema. Linux usa o armazenamento local de credenciais do Koharu no diretório de dados do app com permissões somente para o usuário dono; esse armazenamento no Linux depende das permissões do filesystem em vez de criptografia em nível de sistema operacional.
 
-O nome da variável para cada provider segue o padrão `KOHARU_<PROVIDER>_API_KEY`:
-
-| Provider | Variável de ambiente |
-| --- | --- |
-| OpenAI | `KOHARU_OPENAI_API_KEY` |
-| Gemini | `KOHARU_GEMINI_API_KEY` |
-| Claude | `KOHARU_CLAUDE_API_KEY` |
-| DeepSeek | `KOHARU_DEEPSEEK_API_KEY` |
-| OpenAI-compatible | `KOHARU_OPENAI_COMPATIBLE_API_KEY` |
-
-Hífens nos IDs de provider são convertidos em underscores no nome da variável.
-
-Exemplo para uma execução headless em container:
-
-```bash
-KOHARU_OPENAI_API_KEY=sk-... koharu --port 9999 --headless --no-keyring
-```
-
-Quando `--no-keyring` está ativo, chamadas para salvar uma API key pela UI ou pela HTTP API são ignoradas.
+Execuções headless e em container usam o mesmo comportamento de armazenamento de credenciais do app desktop. Em containers, mantenha o diretório de dados do app em um volume persistente se quiser que as API keys salvas sobrevivam à substituição do container.

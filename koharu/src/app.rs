@@ -62,10 +62,6 @@ pub async fn run() -> Result<()> {
         .with(crate::tracing::TimingLayer::new())
         .init();
 
-    if cli.no_keyring {
-        koharu_llm::providers::disable_keyring();
-    }
-
     let config: AppConfig = app_config::load()?;
     let http = RuntimeHttpConfig {
         connect_timeout_secs: config.http.connect_timeout.max(1),

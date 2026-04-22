@@ -51,13 +51,17 @@ The `API Keys` tab currently covers these built-in providers:
 
 Current behavior:
 
-- provider API keys are stored through the system keyring rather than plain text in `config.toml`
+- provider API keys are not written to `config.toml`
+- on macOS and Windows, provider API keys are stored through the system keyring
+- on Linux, provider API keys are stored in Koharu's local filesystem credential store under the app data directory with owner-only file permissions
 - provider base URLs are stored in the app config
 - `OpenAI Compatible` requires a custom `Base URL`
 - the app discovers models dynamically for `OpenAI Compatible` by querying the configured endpoint
-- clearing a key removes it from the keyring
+- clearing a key removes it from credential storage
 
 The API response intentionally redacts saved keys rather than returning the raw secret.
+
+The Linux filesystem credential store relies on local filesystem permissions rather than OS-level encryption.
 
 ## Runtime
 
@@ -93,7 +97,7 @@ In packaged app mode, the version check compares the local app version against t
 The current settings behavior is split across storage layers:
 
 - `config.toml` stores shared app config such as `data`, `http`, `pipeline`, and provider `baseUrl`
-- provider API keys are stored through the system keyring
+- provider API keys are stored separately from `config.toml` through the platform credential store described above
 - theme, language, and rendering-font preferences are stored in the frontend preferences layer
 
 That means clearing frontend preferences is not the same as clearing saved provider API keys or shared runtime config.

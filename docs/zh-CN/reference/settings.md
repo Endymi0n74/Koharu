@@ -51,13 +51,17 @@ title: 设置参考
 
 当前行为：
 
-- 提供方 API key 存储在系统 keyring 中，而不是明文写入 `config.toml`
+- 提供方 API key 不会写入 `config.toml`
+- 在 macOS 和 Windows 上，提供方 API key 存储在系统 keyring 中
+- 在 Linux 上，提供方 API key 存储在应用数据目录下的 Koharu 本地文件系统凭据存储中，并使用仅所有者可访问的文件权限
 - 提供方的 `Base URL` 保存在共享应用配置中
 - `OpenAI Compatible` 需要自定义 `Base URL`
 - `OpenAI Compatible` 的模型列表会通过查询已配置端点动态发现
-- 清除密钥会把它从 keyring 中删除
+- 清除密钥会把它从凭据存储中删除
 
 API 响应不会返回原始密钥，而是返回已遮罩的值。
+
+Linux 文件系统凭据存储依赖本地文件系统权限，而不是操作系统级加密。
 
 ## Runtime
 
@@ -93,7 +97,7 @@ API 响应不会返回原始密钥，而是返回已遮罩的值。
 当前设置数据分布在多个存储层中：
 
 - `config.toml` 保存 `data`、`http`、`pipeline` 以及提供方 `baseUrl` 等共享配置
-- 提供方 API key 存储在系统 keyring 中
+- 提供方 API key 通过上文所述的平台凭据存储与 `config.toml` 分开保存
 - 主题、语言和渲染字体存储在前端 preferences 层中
 
 因此，清除前端 preferences 并不等于清除已保存的提供方 API key 或共享运行时配置。

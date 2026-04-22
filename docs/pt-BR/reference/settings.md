@@ -51,13 +51,17 @@ A aba `API Keys` cobre atualmente estes provedores embutidos:
 
 Comportamento atual:
 
-- as chaves de API dos provedores são armazenadas via keyring do sistema em vez de texto plano em `config.toml`
+- as chaves de API dos provedores não são escritas em `config.toml`
+- no macOS e no Windows, as chaves de API dos provedores são armazenadas pelo keyring do sistema
+- no Linux, as chaves de API dos provedores são armazenadas no armazenamento local de credenciais do Koharu sob o diretório de dados do app com permissões somente para o usuário dono
 - as base URLs dos provedores são armazenadas na config do app
 - `OpenAI Compatible` requer uma `Base URL` customizada
 - o app descobre modelos dinamicamente para `OpenAI Compatible` consultando o endpoint configurado
-- limpar uma chave a remove do keyring
+- limpar uma chave a remove do armazenamento de credenciais
 
 O response da API intencionalmente redacta as chaves salvas em vez de retornar o segredo bruto.
+
+O armazenamento local de credenciais no Linux depende das permissões do filesystem em vez de criptografia em nível de sistema operacional.
 
 ## Runtime
 
@@ -93,7 +97,7 @@ No modo de app empacotado, a verificação de versão compara a versão local do
 O comportamento atual das configurações é dividido em camadas de armazenamento:
 
 - `config.toml` armazena a config compartilhada do app, como `data`, `http`, `pipeline` e `baseUrl` dos provedores
-- as chaves de API dos provedores são armazenadas via keyring do sistema
+- as chaves de API dos provedores são armazenadas separadamente de `config.toml` pelo armazenamento de credenciais da plataforma descrito acima
 - as preferências de tema, idioma e fonte de renderização são armazenadas na camada de preferências do frontend
 
 Ou seja, limpar as preferências do frontend não é o mesmo que limpar as chaves de API salvas dos provedores ou a config compartilhada de runtime.

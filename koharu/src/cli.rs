@@ -16,8 +16,6 @@ pub(crate) struct Cli {
     pub(crate) host: Option<String>,
     #[arg(long, help = "Run without GUI")]
     pub(crate) headless: bool,
-    #[arg(long, help = "Use env vars for API keys instead of keyring")]
-    pub(crate) no_keyring: bool,
     #[arg(long, help = "Enable debug console output")]
     pub(crate) debug: bool,
 }

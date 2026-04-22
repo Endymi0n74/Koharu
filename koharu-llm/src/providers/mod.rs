@@ -1,10 +1,8 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::Context;
-use keyring::Entry;
 use reqwest_middleware::ClientWithMiddleware;
 
 use crate::prompt::{BLOCK_TAG_INSTRUCTIONS, system_prompt};
@@ -21,6 +19,7 @@ pub(crate) fn resolve_system_prompt(custom: Option<&str>, target_language: Langu
 pub mod caiyun;
 mod chat_completions;
 pub mod claude;
+mod credentials;
 pub mod deepl;
 pub mod deepseek;
 pub mod gemini;
@@ -28,10 +27,7 @@ pub mod google_translate;
 pub mod openai;
 pub mod openai_compatible;
 
-const API_KEY_SERVICE: &str = "koharu";
-pub const OPENAI_COMPATIBLE_ID: &str = "openai-compatible";
-
-static NO_KEYRING: AtomicBool = AtomicBool::new(false);
+pub use credentials::{get_saved_api_key, set_saved_api_key};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ProviderModelDescriptor {
@@ -76,62 +72,6 @@ pub struct ProviderDescriptor {
     pub supported_languages: ProviderSupportedLanguages,
     pub models: ProviderCatalogModels,
     pub build: fn(ProviderConfig) -> anyhow::Result<Box<dyn AnyProvider>>,
-}
-
-pub fn disable_keyring() {
-    NO_KEYRING.store(true, Ordering::Relaxed);
-}
-
-fn env_key_var(provider: &str) -> String {
-    format!(
-        "KOHARU_{}_API_KEY",
-        provider.to_ascii_uppercase().replace('-', "_")
-    )
-}
-
-fn provider_key_entry(provider: &str) -> anyhow::Result<Entry> {
-    let username = format!("llm_provider_api_key_{provider}");
-    Ok(Entry::new(API_KEY_SERVICE, &username)?)
-}
-
-pub fn get_saved_api_key(provider: &str) -> anyhow::Result<Option<String>> {
-    if NO_KEYRING.load(Ordering::Relaxed) {
-        let var = env_key_var(provider);
-        return Ok(std::env::var(&var)
-            .ok()
-            .map(|v| v.trim().to_string())
-            .filter(|v| !v.is_empty()));
-    }
-
-    let entry = provider_key_entry(provider)?;
-    match entry.get_password() {
-        Ok(value) => Ok(Some(value)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(err) => Err(err.into()),
-    }
-}
-
-pub fn set_saved_api_key(provider: &str, api_key: &str) -> anyhow::Result<()> {
-    if NO_KEYRING.load(Ordering::Relaxed) {
-        tracing::warn!(
-            provider,
-            "keyring is disabled; API key changes are not saved"
-        );
-        return Err(anyhow::anyhow!(
-            "keyring is disabled; API key cannot be saved"
-        ));
-    }
-
-    let entry = provider_key_entry(provider)?;
-    if api_key.trim().is_empty() {
-        match entry.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-            Err(err) => Err(err.into()),
-        }
-    } else {
-        entry.set_password(api_key)?;
-        Ok(())
-    }
 }
 
 pub async fn ensure_provider_success(
@@ -273,7 +213,7 @@ const PROVIDERS: &[ProviderDescriptor] = &[
         build: build_caiyun_mt_provider,
     },
     ProviderDescriptor {
-        id: OPENAI_COMPATIBLE_ID,
+        id: "openai-compatible",
         name: "OpenAI-compatible",
         requires_api_key: false,
         requires_base_url: true,
@@ -395,7 +335,7 @@ fn build_openai_compatible_provider(
 ) -> anyhow::Result<Box<dyn AnyProvider>> {
     Ok(Box::new(openai_compatible::OpenAiCompatibleProvider {
         http_client: Arc::clone(&config.http_client),
-        base_url: required_base_url(&config, OPENAI_COMPATIBLE_ID)?,
+        base_url: required_base_url(&config, "openai-compatible")?,
         api_key: config.api_key,
         temperature: config.temperature,
         max_tokens: config.max_tokens,
@@ -428,7 +368,7 @@ fn build_caiyun_mt_provider(config: ProviderConfig) -> anyhow::Result<Box<dyn An
 
 fn discover_openai_compatible_models(config: ProviderConfig) -> ProviderDiscoveryFuture {
     Box::pin(async move {
-        let base_url = required_base_url(&config, OPENAI_COMPATIBLE_ID)?;
+        let base_url = required_base_url(&config, "openai-compatible")?;
         let models = openai_compatible::list_models(
             config.http_client,
             &base_url,

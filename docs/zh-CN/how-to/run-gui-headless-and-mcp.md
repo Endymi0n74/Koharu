@@ -141,3 +141,9 @@ koharu.exe --debug
 ```
 
 在 Windows 上，debug 与 headless 运行方式还会影响 Koharu 如何附加到现有控制台，或创建新的控制台窗口。
+
+## 凭据存储
+
+Koharu 会把 API key 存储在 `config.toml` 之外。macOS 和 Windows 使用系统 keyring。Linux 使用应用数据目录下的 Koharu 本地文件系统凭据存储，并设置仅所有者可访问的文件权限；这个 Linux 存储依赖文件系统权限，而不是操作系统级加密。
+
+Headless 和容器运行使用与桌面应用相同的凭据存储行为。如果你希望保存的 API key 在容器替换后继续存在，请把应用数据目录放在持久化 volume 上。

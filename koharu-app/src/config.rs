@@ -113,9 +113,8 @@ pub struct ProviderConfig {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
-    /// Populated from the keyring on `load()`, never written to config.toml.
+    /// Populated from credential storage on `load()`, never written to config.toml.
     /// Serializes as `"[REDACTED]"` in API responses.
-    /// Populated from keyring on `load()`. Serializes as `"[REDACTED]"`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(value_type = Option<String>)]
     pub api_key: Option<RedactedSecret>,
@@ -163,7 +162,7 @@ pub fn load() -> Result<AppConfig> {
         save(&config)?;
     }
 
-    // Populate api_key from the keyring for every known provider.
+    // Populate api_key from credential storage for every known provider.
     for provider in &mut config.providers {
         if let Ok(Some(key)) = get_saved_api_key(&provider.id)
             && !key.trim().is_empty()
@@ -348,12 +347,12 @@ fn validate_engine_name(
 }
 
 // ---------------------------------------------------------------------------
-// Secret (keyring) handling
+// Secret handling
 // ---------------------------------------------------------------------------
 
-/// Sync api_key fields to the keyring.
-/// - `Some(RedactedSecret)` with value != "[REDACTED]" → save to keyring
-/// - `None` → clear from keyring
+/// Sync api_key fields to credential storage.
+/// - `Some(RedactedSecret)` with value != "[REDACTED]" → save to credential storage
+/// - `None` → clear from credential storage
 /// - `Some(RedactedSecret)` with value == "[REDACTED]" → unchanged
 pub fn sync_secrets(config: &AppConfig) -> Result<()> {
     for provider in &config.providers {
