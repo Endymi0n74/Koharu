@@ -694,6 +694,42 @@ fn is_fullwidth_punctuation(ch: char) -> bool {
     )
 }
 
+fn reorder_visual(levels: &[unicode_bidi::Level]) -> Vec<usize> {
+    let mut indices: Vec<usize> = (0..levels.len()).collect();
+    if levels.is_empty() {
+        return indices;
+    }
+
+    let max_level = levels.iter().map(|l| l.number()).max().unwrap();
+    let min_odd_level = levels
+        .iter()
+        .map(|l| l.number())
+        .filter(|&n| n % 2 != 0)
+        .min()
+        .unwrap_or(u8::MAX);
+
+    if min_odd_level == u8::MAX {
+        return indices;
+    }
+
+    for level in (min_odd_level..=max_level).rev() {
+        let mut i = 0;
+        while i < levels.len() {
+            if levels[i].number() >= level {
+                let mut j = i;
+                while j < levels.len() && levels[j].number() >= level {
+                    j += 1;
+                }
+                indices[i..j].reverse();
+                i = j;
+            } else {
+                i += 1;
+            }
+        }
+    }
+    indices
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -936,40 +972,4 @@ mod tests {
             "Hello⁉!"
         );
     }
-}
-
-fn reorder_visual(levels: &[unicode_bidi::Level]) -> Vec<usize> {
-    let mut indices: Vec<usize> = (0..levels.len()).collect();
-    if levels.is_empty() {
-        return indices;
-    }
-
-    let max_level = levels.iter().map(|l| l.number()).max().unwrap();
-    let min_odd_level = levels
-        .iter()
-        .map(|l| l.number())
-        .filter(|&n| n % 2 != 0)
-        .min()
-        .unwrap_or(u8::MAX);
-
-    if min_odd_level == u8::MAX {
-        return indices;
-    }
-
-    for level in (min_odd_level..=max_level).rev() {
-        let mut i = 0;
-        while i < levels.len() {
-            if levels[i].number() >= level {
-                let mut j = i;
-                while j < levels.len() && levels[j].number() >= level {
-                    j += 1;
-                }
-                indices[i..j].reverse();
-                i = j;
-            } else {
-                i += 1;
-            }
-        }
-    }
-    indices
 }

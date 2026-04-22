@@ -27,16 +27,15 @@ impl Engine for Model {
         let mut ops = clear_text_nodes_ops(ctx.scene, ctx.page);
         let removed = ops.len();
         let base_len = ctx.scene.page(ctx.page).map(|p| p.nodes.len()).unwrap_or(0);
-        let mut running_len = base_len.saturating_sub(removed);
+        let insertion_start = base_len.saturating_sub(removed);
         ops.reserve(blocks.len());
-        for (bbox, text) in blocks {
+        for (at, (bbox, text)) in (insertion_start..).zip(blocks) {
             let node = new_text_node(bbox, text);
             ops.push(Op::AddNode {
                 page: ctx.page,
                 node,
-                at: running_len,
+                at,
             });
-            running_len += 1;
         }
         Ok(ops)
     }

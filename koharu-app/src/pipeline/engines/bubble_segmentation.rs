@@ -47,7 +47,7 @@ impl Engine for Model {
         //
         // Cap at 255 IDs; typical manga pages have well under 20 bubbles.
         let mut regions: Vec<_> = result.regions.iter().collect();
-        regions.sort_by(|a, b| b.area.cmp(&a.area));
+        regions.sort_by_key(|region| std::cmp::Reverse(region.area));
         for (i, region) in regions.iter().take(255).enumerate() {
             let id = (i + 1) as u8;
             let x0 = region.bbox[0].floor().max(0.0) as u32;

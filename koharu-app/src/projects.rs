@@ -114,7 +114,7 @@ pub fn list_projects(config: &AppConfig) -> Result<Vec<ProjectSummary>> {
             updated_at_ms,
         });
     }
-    out.sort_by(|a, b| b.updated_at_ms.cmp(&a.updated_at_ms));
+    out.sort_by_key(|project| std::cmp::Reverse(project.updated_at_ms));
     Ok(out)
 }
 
