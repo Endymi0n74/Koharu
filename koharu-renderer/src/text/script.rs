@@ -65,15 +65,15 @@ pub(crate) fn detect_scripts(text: &str) -> ScriptFlags {
             | IcuScript::Katakana
             | IcuScript::Hangul
             | IcuScript::Bopomofo => has_cjk = true,
-            IcuScript::Arabic
+            rtl @ (IcuScript::Arabic
             | IcuScript::Hebrew
             | IcuScript::Syriac
             | IcuScript::Thaana
             | IcuScript::Nko
-            | IcuScript::Adlam => {
-                if rtl_script.is_none() {
-                    rtl_script = Some(script_map.get(c));
-                }
+            | IcuScript::Adlam)
+                if rtl_script.is_none() =>
+            {
+                rtl_script = Some(rtl);
             }
             IcuScript::Thai | IcuScript::Lao | IcuScript::Khmer | IcuScript::Myanmar => {
                 has_thai = true
