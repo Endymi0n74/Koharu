@@ -1,3 +1,14 @@
+## [0.47.5](https://github.com/mayocream/koharu/compare/0.47.4..0.47.5) - 2026-04-22
+
+### 🐛 Bug Fixes
+
+- Keyring on Linux - ([6ee6aed](https://github.com/mayocream/koharu/commit/6ee6aed139d5a83a4c77b40e500ec13111da7d61))
+
+### ⚙️ Miscellaneous Tasks
+
+- Make clippy happy - ([0472ea9](https://github.com/mayocream/koharu/commit/0472ea9fe8256c6c20653ec9c3e72b9f57fa8ef1))
+
+
 ## [0.47.4](https://github.com/mayocream/koharu/compare/0.47.3..0.47.4) - 2026-04-21
 
 ### 🐛 Bug Fixes
