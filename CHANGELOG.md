@@ -1,3 +1,14 @@
+## [0.47.7](https://github.com/mayocream/koharu/compare/0.47.6..0.47.7) - 2026-04-22
+
+### 🐛 Bug Fixes
+
+- Repeat guard for paddleocr-vl - ([103bb2c](https://github.com/mayocream/koharu/commit/103bb2c5252886ef12d97a68b80f2f73e9f8b0bf))
+
+### ⚙️ Miscellaneous Tasks
+
+- Adjust MAX_NEW_TOKENS to 256 - ([4cff3ea](https://github.com/mayocream/koharu/commit/4cff3eaf9d0ed0cdda17529f2acff60a3c7bd178))
+
+
 ## [0.47.6](https://github.com/mayocream/koharu/compare/0.47.5..0.47.6) - 2026-04-22
 
 ### 🐛 Bug Fixes
