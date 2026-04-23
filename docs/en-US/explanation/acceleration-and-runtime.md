@@ -11,13 +11,13 @@ Koharu supports multiple runtime backends so the same pipeline can run across a 
 CUDA is the primary GPU backend on systems with supported NVIDIA hardware.
 
 - Koharu supports NVIDIA GPUs with compute capability 7.5 or higher
-- Koharu bundles CUDA toolkit 13.1
+- Koharu bundles CUDA toolkit 13.0
 
 On first run, Koharu extracts the required dynamic libraries into the application data directory.
 
 !!! note
 
-    CUDA acceleration depends on a recent NVIDIA driver. If the driver does not support CUDA 13.1, Koharu falls back to CPU.
+    CUDA acceleration depends on a recent NVIDIA driver. If the driver does not support CUDA 13.0 or newer, Koharu falls back to CPU. The local LLM CUDA path on Windows requires CUDA 13.1+.
 
 ## Metal on Apple Silicon
 

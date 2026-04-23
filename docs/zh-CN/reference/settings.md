@@ -4,11 +4,12 @@ title: 设置参考
 
 # 设置参考
 
-当前 Koharu 的 Settings 页面主要包含以下 5 个区域：
+当前 Koharu 的 Settings 页面主要包含以下 6 个区域：
 
 - `Appearance`
 - `Engines`
 - `API Keys`
+- `Keybinds`
 - `Runtime`
 - `About`
 
@@ -47,7 +48,17 @@ title: 设置参考
 - `Gemini`
 - `Claude`
 - `DeepSeek`
+- `DeepL`
+- `Google Cloud Translation`
+- `Caiyun`
 - `OpenAI Compatible`
+
+每个提供方都以折叠面板形式展示，并带有一个状态指示点：
+
+- 绿色：已就绪（密钥已保存且发现成功）
+- 琥珀色：缺少必需的配置项（API key，或 `OpenAI Compatible` 的 base URL）
+- 红色：在已配置的端点上发现失败
+- 灰色：尚未配置
 
 当前行为：
 
@@ -55,13 +66,29 @@ title: 设置参考
 - 在 macOS 和 Windows 上，提供方 API key 存储在系统 keyring 中
 - 在 Linux 上，提供方 API key 存储在应用数据目录下的 Koharu 本地文件系统凭据存储中，并使用仅所有者可访问的文件权限
 - 提供方的 `Base URL` 保存在共享应用配置中
-- `OpenAI Compatible` 需要自定义 `Base URL`
-- `OpenAI Compatible` 的模型列表会通过查询已配置端点动态发现
+- `OpenAI Compatible` 需要自定义 `Base URL`；模型列表通过对该 URL 调用 `GET /v1/models` 动态发现
+- 机器翻译提供方（`DeepL`、`Google Cloud Translation`、`Caiyun`）只需要 API key；`Caiyun` 仅支持有限的目标语言
 - 清除密钥会把它从凭据存储中删除
 
 API 响应不会返回原始密钥，而是返回已遮罩的值。
 
 Linux 文件系统凭据存储依赖本地文件系统权限，而不是操作系统级加密。
+
+## Keybinds
+
+`Keybinds` 标签页可用于重新绑定工具切换、笔刷大小快捷键以及撤销/重做的按键。
+
+当前行为：
+
+- 选择 / 块 / 笔刷 / 橡皮 / 修复笔刷工具的默认按键分别为 `V`/`M`/`B`/`E`/`R`
+- 笔刷大小步进的默认按键为 `[` 和 `]`
+- 撤销与重做的默认按键为 `Ctrl + Z` 和 `Ctrl + Shift + Z`（macOS 上为 `Cmd + Z` 和 `Cmd + Shift + Z`）
+- 画布缩放（`Ctrl` + 滚轮）、平移（`Ctrl` + 拖动）、全选（`Ctrl + A`）以及旧版 `Ctrl + Y` 重做备用方式不可重新绑定
+- 编辑器中会高亮显示冲突；在同一界面也可以恢复默认值
+
+快捷键偏好保存在前端 preferences 层中，而不是 `config.toml` 里。
+
+完整的默认列表请参见 [键盘快捷键](keyboard-shortcuts.md)。
 
 ## Runtime
 

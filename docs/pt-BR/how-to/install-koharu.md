@@ -51,13 +51,13 @@ Alguns detalhes práticos importam:
 
 - detection e inpainting se beneficiam mais de CUDA ou Metal
 - Vulkan é basicamente o caminho de fallback de GPU para OCR e inferência de LLM local
-- se o Koharu não conseguir verificar que seu driver NVIDIA suporta CUDA 13.1, ele faz fallback para CPU
+- se o Koharu não conseguir verificar que seu driver NVIDIA suporta CUDA 13.0 ou superior, ele faz fallback para CPU
 
 Em sistemas com CUDA, o Koharu empacota e inicializa as peças de runtime de que precisa, em vez de exigir que você configure manualmente cada caminho de biblioteca.
 
 !!! note
 
-    Mantenha seu driver NVIDIA atualizado. O Koharu verifica suporte a CUDA 13.1 e faz fallback para CPU se o driver for muito antigo.
+    Mantenha seu driver NVIDIA atualizado. O Koharu requer um driver com suporte a CUDA 13.0 ou superior para a aceleração GPU de visão, e a CUDA 13.1+ no Windows para o caminho CUDA do LLM local. Se o driver for muito antigo, o Koharu faz fallback para CPU.
 
 ## Após a instalação
 

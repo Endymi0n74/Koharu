@@ -10,7 +10,7 @@ Koharu can run as a normal desktop app, a headless local server with a Web UI, o
 
 No matter how you launch Koharu, the runtime model is the same:
 
-- the server binds to `127.0.0.1`
+- the server binds to `127.0.0.1` by default (override with `--host`)
 - the UI and API are served by the same local process
 - the page pipeline, model loading, and exports use the same internal code paths
 
@@ -61,6 +61,16 @@ koharu.exe --port 9999
 ```
 
 If you do not specify `--port`, Koharu still starts the server, but the chosen port is dynamic.
+
+## Bind to a non-loopback address
+
+By default the server binds to `127.0.0.1`, which means only the same machine can reach it. Pass `--host` to bind elsewhere.
+
+```bash
+koharu --host 0.0.0.0 --port 4000 --headless
+```
+
+This is useful in containers, VMs, or remote-development setups where the desktop client lives on a different host than the Koharu process. Anything other than `127.0.0.1` is a deliberate choice — there is no built-in authentication on the local API, so only set `--host` when you actually want non-loopback access and have your own access controls in place.
 
 ## Connect to the local API
 

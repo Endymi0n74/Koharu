@@ -8,15 +8,15 @@ Koharu はローカルの Streamable HTTP 上で組み込み MCP サーバーを
 
 ## Koharu が MCP 経由で公開しているもの
 
-Koharu の MCP サーバーは、デスクトップアプリや headless Web UI と同じローカルランタイムを使います。実際のツール範囲は次の通りです。
+Koharu の MCP サーバーは、デスクトップアプリや headless Web UI と同じローカルランタイムを使います。現在のツールサーフェスは意図的に小さく、プロジェクトのライフサイクル、履歴レイヤー、パイプラインジョブを中心に絞り込まれています。
 
-- ドキュメントの読み込みと確認
-- original / segment / inpainted / rendered レイヤーの画像プレビュー
-- detect、OCR、inpaint、render、およびフルパイプライン処理
-- LLM モデル一覧、読み込み、アンロード、翻訳
-- テキストブロック編集と export
+- `koharu.open_project` / `koharu.close_project`
+- `koharu.apply` / `koharu.undo` / `koharu.redo`
+- `koharu.start_pipeline`
 
-つまり、MCP クライアントは Koharu の GUI が使っているのと同じ漫画ワークフローを操作できます。
+シーンスナップショット、ページサムネイル、blob 取得、フォント一覧、LLM 制御、export、設定など、より詳細な検査や編集が必要な場合、エージェントは `http://127.0.0.1:<PORT>/api/v1` にある Koharu の HTTP API を直接呼び出します。HTTP API と MCP サーバーは同一プロセス、同一状態を共有するので、エージェントは 1 つのワークフローの中で両者を自由に組み合わせられます。
+
+ツールの全リストとパラメータスキーマは [MCP ツールリファレンス](../reference/mcp-tools.md) を参照してください。
 
 ## 1. 安定したポートで Koharu を起動する
 
@@ -97,14 +97,14 @@ Antigravity では raw MCP config を使って、Koharu のローカル MCP URL 
 
 まずは簡単な質問から始めるのが安全です。
 
-- `What tools are available from Koharu?`
-- `How many documents are currently loaded in Koharu?`
+- `What Koharu MCP tools do you have available?`
+- `Open the Koharu project at C:\\projects\\my-manga.khrproj.`
 
-動作したら、次のようなページ操作に進めます。
+動作したら、次のような実作業に進めます。
 
-- `Open C:\\manga\\page-01.png in Koharu and run detect and OCR.`
-- `Show me the segment mask for document 0.`
-- `Run the full pipeline on document 0 and export the rendered page.`
+- `Open the project at C:\\projects\\my-manga.khrproj and start a pipeline with steps detect, ocr, llm-translate, aot-inpainting, koharu-renderer.`
+- `Undo the last edit in Koharu.`
+- `Apply this Op to add a new text block to page <id>: { ... }`
 
 ## Claude Desktop
 
@@ -178,13 +178,13 @@ Claude Desktop の現在のローカル MCP 設定は command ベースです。
 Claude Desktop で新しいチャットを開き、次のように聞いてください。
 
 - `What Koharu MCP tools do you have available?`
-- `Check whether Koharu has any loaded documents.`
+- `Open the Koharu project at D:\\projects\\my-manga.khrproj.`
 
-その後、実際のページ操作に進みます。
+その後、実際の作業に進みます。
 
-- `Open D:\\manga\\page-01.png in Koharu.`
-- `Run detect, OCR, inpaint, translate, and render for document 0.`
-- `Show me the rendered output for document 0.`
+- `Run a Koharu pipeline with steps detect, ocr, llm-translate, aot-inpainting, koharu-renderer on the project I just opened.`
+- `Use Koharu's HTTP API at http://127.0.0.1:9999/api/v1/operations to check pipeline status.`
+- `Use Koharu's HTTP API to export the project as PSD.`
 
 ## Claude Code
 
@@ -223,12 +223,14 @@ claude mcp add-from-claude-desktop --scope user
 
 ## 最初に試すとよいタスク
 
-接続後は、いきなりフルバッチ処理に行くより、次の順で試すほうが切り分けしやすくなります。
+クライアントが接続できたら、次のあたりが取り掛かりに向いています。
 
-- 読み込み済みドキュメント数を問い合わせる
-- 画像ページを 1 枚ディスクから開く
-- まず detect と OCR だけ実行する
-- フル export 前に segment または rendered layer を確認する
+- どの Koharu MCP ツールが使えるかをエージェントに尋ねる
+- 既存の Koharu プロジェクトディレクトリを開く
+- 小さな step リスト (例: `detect`、`ocr`) でパイプラインを開始する
+- フルパイプラインを走らせる前に、エージェントに HTTP 経由で `GET /api/v1/scene.json` を読ませて結果を確認させる
+
+小さな MCP ツールサーフェスと直接の HTTP 呼び出しを併用するのは意図した設計です。プロトコル面のサーフェスは最小限のまま、エージェントはエディタの完全な状態にアクセスできます。
 
 ## よくある間違い
 

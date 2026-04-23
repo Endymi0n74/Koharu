@@ -10,128 +10,64 @@ Koharu 在以下地址暴露 MCP 工具：
 http://127.0.0.1:<PORT>/mcp
 ```
 
-这些工具与 GUI 和 HTTP API 共享同一个运行时状态。
+MCP 服务器使用 `rmcp 1.5` 的 streamable HTTP 传输，并与 GUI 和 HTTP API 共享同一个项目、场景与管线状态。
 
-## 总体行为
+## MCP 服务器目前暴露的内容
 
-当前实现中的重要细节：
+当前实现刻意只暴露一个小而底层的接口面，聚焦在项目生命周期、历史层和管线任务上。细粒度编辑通过 `koharu.apply` 携带 `Op` 负载完成，而不是为每个字段单独提供工具。
 
-- 基于图像的工具可以返回文本以及内联图片内容
-- `open_documents` 会替换当前文档集，而不是追加
-- `process` 会启动完整管线，但不会自己流式输出进度
-- `llm_load` 与 `process` 当前更接近本地模型参数形式，不会暴露 HTTP API 的全部字段
+如果你需要更丰富的查询能力（页面缩略图、图像图层、字体列表、场景快照），请直接使用 [HTTP API](http-api.md)。两者运行在同一个端口上，并共享同一个进程内的状态。
 
-## 检查类工具
+## 工具列表
 
-| 工具 | 作用 | 关键参数 |
-| --- | --- | --- |
-| `app_version` | 获取应用版本 | 无 |
-| `device` | 获取 ML 设备与 GPU 相关信息 | 无 |
-| `get_documents` | 获取当前加载文档数量 | 无 |
-| `get_document` | 获取单个文档的元数据和文本块 | `index` |
-| `list_font_families` | 列出可用渲染字体 | 无 |
-| `llm_list` | 列出翻译模型 | 无 |
-| `llm_ready` | 检查当前是否已加载 LLM | 无 |
+| 工具                    | 作用                                              | 参数                                                                              |
+| ----------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `koharu.apply`          | 对当前场景应用一个 `Op`                            | `op`：带 JSON tag 的 `Op` 值                                                       |
+| `koharu.undo`           | 撤销最近一次 op                                   | 无                                                                                |
+| `koharu.redo`           | 重新应用最近一次撤销的 op                          | 无                                                                                |
+| `koharu.open_project`   | 打开或创建一个 Koharu 项目目录                     | `path`，可选 `createName`                                                          |
+| `koharu.close_project`  | 关闭当前项目                                      | 无                                                                                |
+| `koharu.start_pipeline` | 启动一次管线运行；返回 `jobId`                     | `steps[]`，可选 `pages[]`、`targetLanguage`、`systemPrompt`、`defaultFont`         |
 
-## 图像与文本块预览工具
+### `koharu.apply`
 
-| 工具 | 作用 | 关键参数 |
-| --- | --- | --- |
-| `view_image` | 预览整张文档的某个图层 | `index`、`layer`、可选 `max_size` |
-| `view_text_block` | 预览裁剪后的单个文本块 | `index`、`text_block_index`、可选 `layer` |
+通过历史层向场景应用一次修改。`op` 值就是 HTTP API 在 `POST /history/apply` 处接受的同一个带 JSON tag 的 `Op` 枚举——常见变体包括 `AddPage`、`RemovePage`、`AddNode`、`UpdateNode`、`RemoveNode` 与 `Batch`。
 
-`view_image` 支持的图层：
+返回 `{ epoch }`——op 应用后场景的新 epoch。
 
-- `original`
-- `segment`
-- `inpainted`
-- `rendered`
+### `koharu.undo` / `koharu.redo`
 
-`view_text_block` 支持的图层：
+在历史栈上向任一方向移动一格。两者都返回 `{ epoch }`，当到达栈边界（已无可撤销或可重做的内容）时，`epoch` 为 `null`。
 
-- `original`
-- `rendered`
+### `koharu.open_project`
 
-## 文档与导出工具
+打开一个已存在的项目目录，或在指定路径创建一个新项目。传入 `createName` 会在该路径下新建项目；省略它则直接打开已存在的内容。
 
-| 工具 | 作用 | 关键参数 |
-| --- | --- | --- |
-| `open_documents` | 从磁盘加载图片，并替换当前文档集 | `paths` |
-| `export_document` | 将渲染结果写到磁盘 | `index`、`output_path` |
+返回当前会话的 `{ name, path }`。
 
-`open_documents` 期望的是文件系统路径，而不是上传文件 blob。
+### `koharu.close_project`
 
-`export_document` 当前只导出 rendered 图层。PSD 导出可通过 HTTP API 使用，但目前还没有对应的独立 MCP 工具。
+关闭当前会话。在新项目被打开之前，任何需要项目的后续调用都会返回 `invalid request` 错误。
 
-## 管线工具
+### `koharu.start_pipeline`
 
-| 工具 | 作用 | 关键参数 |
-| --- | --- | --- |
-| `detect` | 运行文本检测与字体预测 | `index` |
-| `ocr` | 对检测块执行 OCR | `index` |
-| `inpaint` | 使用当前掩码去除文字 | `index` |
-| `render` | 把译文绘制回页面 | `index`、可选 `text_block_index`、`shader_effect`、`font_family` |
-| `process` | 依次执行 detect -> OCR -> inpaint -> translate -> render | 可选 `document_id`、`llm_target`、`language`、`shader_effect`、`font_family` |
+在后台启动一次管线运行。`steps` 是通过管线 `Registry` 注册的引擎 id 的有序列表（会与 `GET /api/v1/engines` 校验）。省略 `pages` 表示在项目里所有页面上运行；传入 `PageId` 列表则把范围限定到子集。
 
-`process` 是粗粒度的便捷工具。如果你想要更细的控制或更好排查问题，建议拆开使用各阶段工具。
+调用立即返回 `{ jobId }`。进度与完成事件通过 HTTP `/events` 流推送，事件类型为 `JobStarted`、`JobProgress`、`JobWarning` 与 `JobFinished`。MCP 传输本身不流式输出任务进度——你需要通过 SSE 来观察。
 
-## LLM 工具
+## 建议的 Agent 流程
 
-| 工具 | 作用 | 关键参数 |
-| --- | --- | --- |
-| `llm_load` | 加载一个翻译模型 target | `target`、可选 `options.temperature`、`options.max_tokens`、`options.custom_system_prompt` |
-| `llm_offload` | 卸载当前模型 | 无 |
-| `llm_generate` | 翻译单个文本块或全部文本块 | `index`、可选 `text_block_index`、`language` |
+大多数 Agent 会话的结构如下：
 
-`llm_generate` 要求 LLM 已经先被加载。
+1. `koharu.open_project`：指向某个受管理的项目目录
+2. 通过 HTTP 读取 `GET /api/v1/scene.json` 检查场景
+3. 二选一：
+    - 通过 `koharu.apply` 携带显式 `Op` 负载进行局部编辑，或者
+    - 通过 `koharu.start_pipeline` 运行端到端管线，并监听 `GET /api/v1/events`
+4. 通过 HTTP `POST /api/v1/projects/current/export` 导出
+5. `koharu.close_project`
 
-## 文本块编辑工具
-
-| 工具 | 作用 | 关键参数 |
-| --- | --- | --- |
-| `update_text_block` | 修改文本、译文、框几何或样式 | `index`、`text_block_index`、可选文本与样式字段 |
-| `add_text_block` | 添加新的空文本块 | `index`、`x`、`y`、`width`、`height` |
-| `remove_text_block` | 删除某个文本块 | `index`、`text_block_index` |
-
-当前 update 工具能改的字段包括：
-
-- `translation`
-- `x`
-- `y`
-- `width`
-- `height`
-- `font_families`
-- `font_size`
-- `color`
-- `shader_effect`
-
-## 掩码与清理工具
-
-| 工具 | 作用 | 关键参数 |
-| --- | --- | --- |
-| `dilate_mask` | 扩张当前文本掩码 | `index`、`radius` |
-| `erode_mask` | 收缩当前文本掩码 | `index`、`radius` |
-| `inpaint_region` | 只对指定矩形区域重新修复 | `index`、`x`、`y`、`width`、`height` |
-
-当自动分割结果已经接近正确，但仍需要手工清理时，这些工具很有用。
-
-## 建议的提示流程
-
-为了让 Agent 行为更稳定，下面这个顺序通常效果不错：
-
-1. `open_documents`
-2. `get_documents`
-3. `detect`
-4. `ocr`
-5. `get_document`
-6. `llm_load`
-7. `llm_generate`
-8. `inpaint`
-9. `render`
-10. `view_image`
-11. `export_document`
-
-如果你需要检查某个问题文本块，建议先用 `view_text_block`，再让 Agent 修改排版或翻译。
+当某次 op 出错、想撤回而不是手算逆操作时，`koharu.undo` 与 `koharu.redo` 很有用。
 
 ## 相关页面
 

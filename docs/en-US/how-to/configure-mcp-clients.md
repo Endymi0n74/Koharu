@@ -8,15 +8,15 @@ Koharu exposes a built-in MCP server over local Streamable HTTP. This page shows
 
 ## What Koharu exposes over MCP
 
-Koharu's MCP server is the same local runtime used by the desktop app and headless Web UI. In practice, the MCP tools cover:
+Koharu's MCP server is the same local runtime used by the desktop app and headless Web UI. The current tool surface is intentionally small and centred on the project lifecycle, the history layer, and pipeline jobs:
 
-- document loading and inspection
-- image previews for original, segment, inpainted, and rendered layers
-- detect, OCR, inpaint, render, and full pipeline processing
-- LLM model listing, loading, unloading, and translation
-- text-block editing and export
+- `koharu.open_project` / `koharu.close_project`
+- `koharu.apply` / `koharu.undo` / `koharu.redo`
+- `koharu.start_pipeline`
 
-That means an MCP client can drive the same manga workflow as Koharu's GUI.
+For richer inspection and editing — scene snapshots, page thumbnails, blob fetches, font lists, LLM control, exports, configuration — agents call Koharu's HTTP API at `http://127.0.0.1:<PORT>/api/v1` directly. The HTTP API and MCP server share the same process and state, so an agent can mix the two freely in a single workflow.
+
+For the full tool list and parameter schemas, see [MCP Tools Reference](../reference/mcp-tools.md).
 
 ## 1. Start Koharu on a stable port
 
@@ -97,14 +97,14 @@ If you already have other MCP servers configured, add `koharu` alongside them in
 
 Ask Antigravity something simple first:
 
-- `What tools are available from Koharu?`
-- `How many documents are currently loaded in Koharu?`
+- `What Koharu MCP tools do you have available?`
+- `Open the Koharu project at C:\\projects\\my-manga.khrproj.`
 
-If that works, move on to page actions such as:
+If that works, move on to actual work such as:
 
-- `Open C:\\manga\\page-01.png in Koharu and run detect and OCR.`
-- `Show me the segment mask for document 0.`
-- `Run the full pipeline on document 0 and export the rendered page.`
+- `Open the project at C:\\projects\\my-manga.khrproj and start a pipeline with steps detect, ocr, llm-translate, aot-inpainting, koharu-renderer.`
+- `Undo the last edit in Koharu.`
+- `Apply this Op to add a new text block to page <id>: { ... }`
 
 ## Claude Desktop
 
@@ -178,13 +178,13 @@ Notes:
 Open a new Claude Desktop chat and ask:
 
 - `What Koharu MCP tools do you have available?`
-- `Check whether Koharu has any loaded documents.`
+- `Open the Koharu project at D:\\projects\\my-manga.khrproj.`
 
-Then move to actual page work:
+Then move to actual work:
 
-- `Open D:\\manga\\page-01.png in Koharu.`
-- `Run detect, OCR, inpaint, translate, and render for document 0.`
-- `Show me the rendered output for document 0.`
+- `Run a Koharu pipeline with steps detect, ocr, llm-translate, aot-inpainting, koharu-renderer on the project I just opened.`
+- `Use Koharu's HTTP API at http://127.0.0.1:9999/api/v1/operations to check pipeline status.`
+- `Use Koharu's HTTP API to export the project as PSD.`
 
 ## Claude Code
 
@@ -225,12 +225,12 @@ claude mcp add-from-claude-desktop --scope user
 
 Once the client is connected, these are good first tasks:
 
-- ask Koharu for the loaded document count
-- open one page image from disk
-- run detect and OCR only first
-- inspect the segment or rendered layer before running a full export
+- ask the agent which Koharu MCP tools are available
+- open an existing Koharu project directory
+- start a pipeline with a small step list (e.g. `detect`, `ocr`)
+- have the agent read `GET /api/v1/scene.json` over HTTP to inspect the result before running the full pipeline
 
-This makes failures easier to diagnose than jumping straight into a full batch pipeline.
+Mixing the small MCP tool surface with direct HTTP calls is intentional — it keeps the protocol surface tiny while still giving agents access to the full editor state.
 
 ## Common mistakes
 

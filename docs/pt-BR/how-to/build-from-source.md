@@ -24,7 +24,7 @@ O build desktop padrão é ciente de plataforma:
 
 ## Pré-requisitos
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 ou superior
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 ou superior (Rust 2024 edition)
 - [Bun](https://bun.sh/) 1.0 ou superior
 
 Para builds a partir do código-fonte no Windows, instale:

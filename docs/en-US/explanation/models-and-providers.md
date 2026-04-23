@@ -82,23 +82,30 @@ The local picker also includes general-purpose families that are not translation
 
 Koharu can also translate through remote or self-hosted APIs instead of downloading a local model.
 
-Supported providers include:
+Supported provider families are:
 
-- OpenAI
-- Gemini
-- Claude
-- DeepSeek
-- OpenAI-compatible APIs such as LM Studio, OpenRouter, or any endpoint that exposes `/v1/models` and `/v1/chat/completions`
+- LLM-backed: `OpenAI`, `Gemini`, `Claude`, `DeepSeek`, plus any `OpenAI-compatible` endpoint that exposes `/v1/models` and `/v1/chat/completions` (LM Studio, OpenRouter, vLLM, etc.)
+- Machine-translation: `DeepL`, `Google Cloud Translation`, `Caiyun`
 
-### Current built-in remote models
+Machine-translation providers are pure translation services rather than chat models. They take source text and a target language, and return a translation; there is no system prompt and no model picker.
 
-The current built-in defaults for the provider picker are:
+### Current built-in remote LLM models
+
+The built-in defaults for the LLM-backed providers are:
 
 - OpenAI: `gpt-5-mini` (`GPT-5 mini`)
 - Gemini: `gemini-3.1-flash-lite-preview` (`Gemini 3.1 Flash-Lite Preview`)
 - Claude: `claude-haiku-4-5` (`Claude Haiku 4.5`)
 - DeepSeek: `deepseek-chat` (`DeepSeek-V3.2-Chat`)
 - OpenAI-compatible APIs: models are discovered dynamically from the configured endpoint
+
+### Machine-translation providers
+
+| Provider | What you need | Notes |
+| --- | --- | --- |
+| `DeepL` | DeepL API key | Optional custom base URL for DeepL Pro vs. Free endpoints |
+| `Google Cloud Translation` | Google Cloud API key | Uses the v2 REST endpoint |
+| `Caiyun` | Caiyun token | Limited target-language coverage |
 
 Remote providers are configured in **Settings > API Keys**.
 

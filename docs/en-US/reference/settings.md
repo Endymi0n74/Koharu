@@ -4,11 +4,12 @@ title: Settings Reference
 
 # Settings Reference
 
-Koharu's Settings screen currently exposes five main areas:
+Koharu's Settings screen currently exposes six main areas:
 
 - `Appearance`
 - `Engines`
 - `API Keys`
+- `Keybinds`
 - `Runtime`
 - `About`
 
@@ -47,7 +48,17 @@ The `API Keys` tab currently covers these built-in providers:
 - `Gemini`
 - `Claude`
 - `DeepSeek`
+- `DeepL`
+- `Google Cloud Translation`
+- `Caiyun`
 - `OpenAI Compatible`
+
+Each provider appears as an accordion with a status dot:
+
+- green — ready (key saved and discovery succeeded)
+- amber — missing required configuration (API key or, for `OpenAI Compatible`, a base URL)
+- red — discovery failed against the configured endpoint
+- grey — no configuration yet
 
 Current behavior:
 
@@ -55,13 +66,29 @@ Current behavior:
 - on macOS and Windows, provider API keys are stored through the system keyring
 - on Linux, provider API keys are stored in Koharu's local filesystem credential store under the app data directory with owner-only file permissions
 - provider base URLs are stored in the app config
-- `OpenAI Compatible` requires a custom `Base URL`
-- the app discovers models dynamically for `OpenAI Compatible` by querying the configured endpoint
+- `OpenAI Compatible` requires a custom `Base URL`; models are discovered dynamically by calling `GET /v1/models` against that URL
+- machine-translation providers (`DeepL`, `Google Cloud Translation`, `Caiyun`) only need an API key; `Caiyun` supports a limited set of target languages
 - clearing a key removes it from credential storage
 
 The API response intentionally redacts saved keys rather than returning the raw secret.
 
 The Linux filesystem credential store relies on local filesystem permissions rather than OS-level encryption.
+
+## Keybinds
+
+The `Keybinds` tab lets you rebind tool-switch and brush-size shortcuts plus the undo and redo bindings.
+
+Current behavior:
+
+- defaults are `V`/`M`/`B`/`E`/`R` for the Select / Block / Brush / Eraser / Repair Brush tools
+- defaults are `[` and `]` for the brush size step
+- defaults are `Ctrl + Z` and `Ctrl + Shift + Z` (`Cmd + Z` and `Cmd + Shift + Z` on macOS) for undo and redo
+- the canvas zoom (`Ctrl` + wheel), pan (`Ctrl` + drag), select-all (`Ctrl + A`), and the legacy `Ctrl + Y` redo fallback are not rebindable
+- conflicts are highlighted in the editor; you can reset to defaults from the same screen
+
+Keybind preferences are stored in the frontend preferences layer, not in `config.toml`.
+
+For the full default list, see [Keyboard Shortcuts](keyboard-shortcuts.md).
 
 ## Runtime
 

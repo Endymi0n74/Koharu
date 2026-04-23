@@ -82,23 +82,30 @@ Koharu 通过 [llama.cpp](https://github.com/ggml-org/llama.cpp) 支持本地 GG
 
 Koharu 也可以通过远程或自托管 API 翻译，而不下载本地模型。
 
-支持的提供商包括：
+支持的提供商家族包括：
 
-- OpenAI
-- Gemini
-- Claude
-- DeepSeek
-- OpenAI 兼容 API，例如 LM Studio、OpenRouter，或任何暴露 `/v1/models` 与 `/v1/chat/completions` 的端点
+- LLM 驱动：`OpenAI`、`Gemini`、`Claude`、`DeepSeek`，以及任何暴露 `/v1/models` 与 `/v1/chat/completions` 的 `OpenAI 兼容` 端点（LM Studio、OpenRouter、vLLM 等）
+- 机器翻译：`DeepL`、`Google Cloud Translation`、`Caiyun`
 
-### 当前内置远程模型
+机器翻译提供商是纯翻译服务，而不是聊天模型。它们接受源文本和目标语言并返回译文，没有 system prompt，也没有模型选择器。
 
-当前在提供商选择器中直接内置的默认模型如下：
+### 当前内置远程 LLM 模型
+
+LLM 驱动提供商当前内置的默认模型如下：
 
 - OpenAI: `gpt-5-mini` (`GPT-5 mini`)
 - Gemini: `gemini-3.1-flash-lite-preview` (`Gemini 3.1 Flash-Lite Preview`)
 - Claude: `claude-haiku-4-5` (`Claude Haiku 4.5`)
 - DeepSeek: `deepseek-chat` (`DeepSeek-V3.2-Chat`)
 - OpenAI 兼容 API：模型列表会从你配置的端点动态发现
+
+### 机器翻译提供商
+
+| 提供商 | 需要的内容 | 备注 |
+| --- | --- | --- |
+| `DeepL` | DeepL API key | 可选自定义 base URL，用于切换 DeepL Pro 和 Free 端点 |
+| `Google Cloud Translation` | Google Cloud API key | 使用 v2 REST 端点 |
+| `Caiyun` | Caiyun token | 目标语言覆盖范围有限 |
 
 远程提供商在 **Settings > API Keys** 中配置。
 

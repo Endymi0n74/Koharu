@@ -51,13 +51,13 @@ Koharu は次をサポートしています。
 
 - 検出と inpainting は CUDA または Metal の恩恵が大きい
 - Vulkan は主に OCR とローカル LLM 推論のための代替 GPU 経路
-- NVIDIA ドライバが CUDA 13.1 に対応していると確認できない場合、Koharu は CPU にフォールバックする
+- NVIDIA ドライバが CUDA 13.0 以降に対応していると確認できない場合、Koharu は CPU にフォールバックする
 
 CUDA 対応環境では、必要なランタイム部品を手作業でライブラリパス設定しなくてもよいように、Koharu が自前で同梱・初期化します。
 
 !!! note
 
-    NVIDIA ドライバは最新に保ってください。Koharu は CUDA 13.1 対応を確認し、ドライバが古い場合は CPU にフォールバックします。
+    NVIDIA ドライバは最新に保ってください。Koharu は vision GPU アクセラレーション用に CUDA 13.0 以降対応のドライバを必要とし、Windows のローカル LLM CUDA 経路では CUDA 13.1+ を要求します。ドライバが古い場合は CPU にフォールバックします。
 
 ## インストール後に決めること
 

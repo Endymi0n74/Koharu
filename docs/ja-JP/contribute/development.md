@@ -13,7 +13,7 @@ cd koharu
 
 ## 前提ツール
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 以降
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 以降 (Rust 2024 edition)
 - [Bun](https://bun.sh/) 1.0 以降
 
 ### Windows

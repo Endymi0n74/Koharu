@@ -24,7 +24,7 @@ The default desktop build is platform-aware:
 
 ## Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 or later
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 or later (Rust 2024 edition)
 - [Bun](https://bun.sh/) 1.0 or later
 
 For Windows source builds, install:

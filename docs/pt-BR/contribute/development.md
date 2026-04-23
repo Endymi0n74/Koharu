@@ -13,7 +13,7 @@ cd koharu
 
 ## Pré-requisitos
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 ou mais recente
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 ou mais recente (Rust 2024 edition)
 - [Bun](https://bun.sh/) 1.0 ou mais recente
 
 ### Windows

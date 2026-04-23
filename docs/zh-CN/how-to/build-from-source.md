@@ -24,7 +24,7 @@ title: 从源码构建
 
 ## 前置条件
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 或更高版本
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 或更高版本（Rust 2024 edition）
 - [Bun](https://bun.sh/) 1.0 或更高版本
 
 在 Windows 上从源码构建时，还需要：

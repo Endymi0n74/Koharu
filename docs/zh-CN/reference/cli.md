@@ -29,7 +29,8 @@ koharu.exe [OPTIONS]
 | --- | --- |
 | `-d`, `--download` | 预取运行时库与默认视觉 / OCR 栈，然后退出 |
 | `--cpu` | 即使检测到 GPU，也强制使用 CPU |
-| `-p`, `--port <PORT>` | 把本地 HTTP 服务绑定到指定的 `127.0.0.1` 端口，而不是随机端口 |
+| `-p`, `--port <PORT>` | 把本地 HTTP 服务绑定到指定端口，而不是随机端口 |
+| `--host <HOST>` | 把 HTTP 服务绑定到指定主机，而不是默认的 `127.0.0.1` |
 | `--headless` | 不启动桌面 GUI，仅运行本地服务 |
 | `--debug` | 输出面向调试的控制台日志 |
 
@@ -38,6 +39,7 @@ koharu.exe [OPTIONS]
 有些参数影响的不只是启动外观：
 
 - 不传 `--port` 时，Koharu 会选择一个随机本地端口
+- 不传 `--host` 时，Koharu 仅绑定 `127.0.0.1`，所以 API 只能从同一台机器访问
 - 使用 `--headless` 时，不打开 Tauri 窗口，但仍然提供 Web UI 与 API
 - 使用 `--download` 时，预取完依赖后即退出，不会继续常驻
 - 使用 `--cpu` 时，视觉栈和本地 LLM 都不会使用 GPU 加速
@@ -85,3 +87,11 @@ http://localhost:9999/mcp
 ```bash
 koharu --debug
 ```
+
+绑定到所有网络接口，让局域网内的其他机器也能访问 Web UI 与 API：
+
+```bash
+koharu --host 0.0.0.0 --port 4000 --headless
+```
+
+这是在容器或虚拟机中运行 Koharu、且桌面客户端位于另一台主机时的常见模式。任何不同于 `127.0.0.1` 的地址都会刻意暴露给网络，因此只有当你确实需要非环回访问时，才设置 `--host`。

@@ -51,13 +51,13 @@ Some practical details matter:
 
 - detection and inpainting benefit most from CUDA or Metal
 - Vulkan is mainly the fallback GPU path for OCR and local LLM inference
-- if Koharu cannot verify that your NVIDIA driver supports CUDA 13.1, it falls back to CPU
+- if Koharu cannot verify that your NVIDIA driver supports CUDA 13.0 or newer, it falls back to CPU
 
 On CUDA-capable systems, Koharu bundles and initializes the runtime pieces it needs instead of requiring you to configure every library path manually.
 
 !!! note
 
-    Keep your NVIDIA driver up to date. Koharu checks for CUDA 13.1 support and falls back to CPU if the driver is too old.
+    Keep your NVIDIA driver up to date. Koharu requires a driver supporting CUDA 13.0 or newer for vision GPU acceleration, and CUDA 13.1+ on Windows for the local LLM CUDA path. If the driver is too old, Koharu falls back to CPU.
 
 ## After installation
 

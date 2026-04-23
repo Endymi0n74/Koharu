@@ -76,13 +76,14 @@ For a deeper explanation of Koharu's runtime and model download paths, plus brow
 
 ## Koharu falls back to CPU even though you have an NVIDIA GPU
 
-This is expected when Koharu cannot confirm support for CUDA 13.1.
+This is expected when Koharu cannot confirm support for CUDA 13.0.
 
 The current runtime behavior is:
 
 - detect an NVIDIA driver
 - query driver compatibility
-- continue on CUDA only when the driver reports CUDA 13.1 support
+- continue on CUDA only when the driver reports CUDA 13.0 or newer
+- on Windows, require CUDA 13.1+ specifically for the local LLM CUDA path
 - otherwise fall back to CPU
 
 Try this:

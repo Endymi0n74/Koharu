@@ -8,15 +8,15 @@ O Koharu expõe um servidor MCP embutido via Streamable HTTP local. Esta página
 
 ## O que o Koharu expõe via MCP
 
-O servidor MCP do Koharu é o mesmo runtime local usado pelo app desktop e pela Web UI headless. Na prática, as tools MCP cobrem:
+O servidor MCP do Koharu é o mesmo runtime local usado pelo app desktop e pela Web UI headless. A superfície de tools atual é deliberadamente pequena e centrada no ciclo de vida do projeto, na camada de histórico e nos jobs de pipeline:
 
-- carregamento e inspeção de documentos
-- previews de imagem para as camadas original, segment, inpainted e rendered
-- detect, OCR, inpaint, render e processamento completo do pipeline
-- listagem, load, unload e tradução de LLMs
-- edição e export de blocos de texto
+- `koharu.open_project` / `koharu.close_project`
+- `koharu.apply` / `koharu.undo` / `koharu.redo`
+- `koharu.start_pipeline`
 
-Isso significa que um cliente MCP pode dirigir o mesmo workflow de mangá que a GUI do Koharu.
+Para inspeção e edição mais ricas — snapshots de cena, thumbnails de página, fetch de blobs, listas de fontes, controle do LLM, exports, configuração — os agentes chamam diretamente a API HTTP do Koharu em `http://127.0.0.1:<PORT>/api/v1`. A API HTTP e o servidor MCP compartilham o mesmo processo e o mesmo estado, então um agente pode misturar os dois livremente em um único workflow.
+
+Para a lista completa de tools e os schemas de parâmetros, veja [Referência das ferramentas MCP](../reference/mcp-tools.md).
 
 ## 1. Inicie o Koharu em uma porta estável
 
@@ -97,14 +97,14 @@ Se você já tem outros servidores MCP configurados, adicione `koharu` junto del
 
 Peça ao Antigravity algo simples primeiro:
 
-- `What tools are available from Koharu?`
-- `How many documents are currently loaded in Koharu?`
+- `What Koharu MCP tools do you have available?`
+- `Open the Koharu project at C:\\projects\\my-manga.khrproj.`
 
-Se isso funcionar, avance para ações em páginas como:
+Se isso funcionar, avance para trabalho real, como:
 
-- `Open C:\\manga\\page-01.png in Koharu and run detect and OCR.`
-- `Show me the segment mask for document 0.`
-- `Run the full pipeline on document 0 and export the rendered page.`
+- `Open the project at C:\\projects\\my-manga.khrproj and start a pipeline with steps detect, ocr, llm-translate, aot-inpainting, koharu-renderer.`
+- `Undo the last edit in Koharu.`
+- `Apply this Op to add a new text block to page <id>: { ... }`
 
 ## Claude Desktop
 
@@ -178,13 +178,13 @@ Notas:
 Abra um novo chat no Claude Desktop e pergunte:
 
 - `What Koharu MCP tools do you have available?`
-- `Check whether Koharu has any loaded documents.`
+- `Open the Koharu project at D:\\projects\\my-manga.khrproj.`
 
-Depois passe para trabalho real em páginas:
+Depois passe para trabalho real:
 
-- `Open D:\\manga\\page-01.png in Koharu.`
-- `Run detect, OCR, inpaint, translate, and render for document 0.`
-- `Show me the rendered output for document 0.`
+- `Run a Koharu pipeline with steps detect, ocr, llm-translate, aot-inpainting, koharu-renderer on the project I just opened.`
+- `Use Koharu's HTTP API at http://127.0.0.1:9999/api/v1/operations to check pipeline status.`
+- `Use Koharu's HTTP API to export the project as PSD.`
 
 ## Claude Code
 
@@ -225,12 +225,12 @@ claude mcp add-from-claude-desktop --scope user
 
 Depois que o cliente estiver conectado, estas são boas primeiras tarefas:
 
-- perguntar ao Koharu a contagem de documentos carregados
-- abrir uma imagem de página do disco
-- rodar só detect e OCR primeiro
-- inspecionar a camada de segment ou rendered antes de rodar um export completo
+- perguntar ao agente quais tools MCP do Koharu estão disponíveis
+- abrir um diretório de projeto Koharu existente
+- iniciar um pipeline com uma lista pequena de steps (ex.: `detect`, `ocr`)
+- pedir ao agente para ler `GET /api/v1/scene.json` via HTTP para inspecionar o resultado antes de rodar o pipeline completo
 
-Isso torna falhas mais fáceis de diagnosticar do que pular direto para um pipeline em lote completo.
+Misturar a pequena superfície de tools MCP com chamadas HTTP diretas é intencional — mantém a superfície do protocolo enxuta e ainda dá aos agentes acesso ao estado completo do editor.
 
 ## Erros comuns
 

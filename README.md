@@ -48,9 +48,27 @@ For installation and first-run guidance, see [Install Koharu](https://koharu.rs/
 
 ### Hotkeys
 
+Canvas:
+
 - <kbd>Ctrl</kbd> + Mouse Wheel: Zoom in/out
 - <kbd>Ctrl</kbd> + Drag: Pan the canvas
-- <kbd>Del</kbd>: Delete selected text block
+
+Tools:
+
+- <kbd>V</kbd>: Select tool
+- <kbd>M</kbd>: Block tool
+- <kbd>B</kbd>: Brush tool
+- <kbd>E</kbd>: Eraser tool
+- <kbd>R</kbd>: Repair Brush tool
+- <kbd>[</kbd> / <kbd>]</kbd>: Decrease / increase brush size
+
+History and selection:
+
+- <kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Cmd</kbd> + <kbd>Z</kbd>: Undo
+- <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> / <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd>: Redo
+- <kbd>Ctrl</kbd> + <kbd>A</kbd> / <kbd>Cmd</kbd> + <kbd>A</kbd>: Select all text blocks on the current page
+
+For the full list and customization details, see [Keyboard Shortcuts](https://koharu.rs/reference/keyboard-shortcuts/).
 
 ### Export
 
@@ -236,6 +254,10 @@ Koharu supports hosted APIs from [OpenAI](https://platform.openai.com/), [Gemini
 
 Built-in cloud defaults: OpenAI `gpt-5-mini`, Gemini `gemini-3.1-flash-lite-preview`, Claude `claude-haiku-4-5`, and DeepSeek `deepseek-chat`.
 
+#### Machine Translation Providers
+
+For pure machine-translation use cases, Koharu also supports [DeepL](https://www.deepl.com/), [Google Cloud Translation](https://cloud.google.com/translate), and [Caiyun](https://fanyi.caiyunapp.com/). These providers translate without an LLM-style chat or system prompt; you provide an API key and Koharu uses the upstream translate endpoint directly.
+
 #### OpenAI-Compatible Providers
 
 Koharu supports OpenAI-compatible endpoints such as LM Studio, OpenRouter, and other self-hosted or third-party APIs that expose `/v1/models` and `/v1/chat/completions`.
@@ -265,7 +287,7 @@ docker pull ghcr.io/mayocream/koharu:latest
 Then run the container with the desired port mapping:
 
 ```bash
-docker run -p 4000:4000 ghcr.io/mayocream/koharu:latest
+docker run -p 4000:4000 --gpus all ghcr.io/mayocream/koharu:latest
 ```
 
 ## Troubleshooting
@@ -285,7 +307,7 @@ To build Koharu from source, follow the steps below.
 
 ### Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 or later
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 or later (Rust 2024 edition)
 - [Bun](https://bun.sh/) 1.0 or later
 
 Optional dependencies for GPU acceleration builds:

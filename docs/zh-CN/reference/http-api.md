@@ -17,180 +17,219 @@ http://127.0.0.1:<PORT>/api/v1
 当前实现中的重要行为：
 
 - API 与 GUI 或 headless 运行时由同一个进程提供
-- 服务器默认绑定到 `127.0.0.1`
-- API 与 MCP 服务器共享同一批已加载文档、模型和管线状态
+- 服务器默认绑定到 `127.0.0.1`；使用 `--host` 可绑定到其他地址
+- API 与 MCP 服务器共享同一个已加载的项目、模型和管线状态
 - 没有提供 `--port` 时，Koharu 会选择一个随机本地端口
+- 在应用完成启动之前，除 `/api/v1/downloads`、`/api/v1/operations` 与 `/api/v1/events` 之外的所有路由都会返回 `503 Service Unavailable`
+
+## 资源模型
+
+API 是以项目为中心的。同一时间只会打开一个项目，它包含：
+
+- 一组 `Pages`，按 `PageId` 索引
+- 每个页面下的 `Nodes`（图像图层、掩码、文本块），通过 `NodeId` 引用
+- 一个内容寻址的 `Blob` 存储，按 Blake3 哈希保存原始图像字节
+- 由这些组件构建出的 `Scene` 快照，并通过 `epoch` 计数器递进
+- 一段 `Op` 修改历史，可以撤销与重做
+
+所有修改都必须经过历史层（`POST /history/apply`），以保证场景、自动保存和事件订阅者都保持同步。
 
 ## 常见响应类型
 
 高频返回结构包括：
 
 - `MetaInfo`：应用版本与 ML 设备
-- `DocumentSummary`：文档 id、名称、尺寸、修订号、图层可用性和文本块数量
-- `DocumentDetail`：完整文档元数据和所有文本块
-- `JobState`：当前管线任务进度
-- `LlmState`：当前 LLM 加载状态
-- `ImportResult`：导入文档数量及摘要
-- `ExportResult`：导出文件数量
+- `EngineCatalog`：每个管线阶段可安装的引擎 id
+- `ProjectSummary`：id、名称、路径、页数、最近一次打开时间
+- `SceneSnapshot`：`{ epoch, scene }`
+- `LlmState`：当前 LLM 加载状态（status、target、error）
+- `LlmCatalog`：按系列分组的本地 + 提供商模型
+- `JobSummary`：`{ id, kind, status, error }`
+- `DownloadProgress`：包 id、字节数、状态
 
 ## 端点
 
-### 元信息与字体
+### 元信息
 
-| 方法  | 路径     | 用途                       |
-| ----- | -------- | -------------------------- |
-| `GET` | `/meta`  | 获取应用版本与当前 ML 后端 |
-| `GET` | `/fonts` | 列出可用于渲染的字体族     |
+| 方法  | 路径       | 用途                            |
+| ----- | ---------- | ------------------------------- |
+| `GET` | `/meta`    | 获取应用版本与当前 ML 后端      |
+| `GET` | `/engines` | 列出每个管线阶段已注册的引擎    |
 
-### 文档
+### 字体
 
-| 方法   | 路径                                     | 用途                             |
-| ------ | ---------------------------------------- | -------------------------------- |
-| `GET`  | `/documents`                             | 列出已加载文档                   |
-| `POST` | `/documents/import?mode=replace`         | 用上传图片替换当前文档集         |
-| `POST` | `/documents/import?mode=append`          | 将上传图片追加到当前文档集       |
-| `GET`  | `/documents/{documentId}`                | 获取一个文档及其全部文本块元数据 |
-| `GET`  | `/documents/{documentId}/thumbnail`      | 获取缩略图                       |
-| `GET`  | `/documents/{documentId}/layers/{layer}` | 获取指定图层                     |
+| 方法   | 路径                              | 用途                                          |
+| ------ | --------------------------------- | --------------------------------------------- |
+| `GET`  | `/fonts`                          | 系统字体 + Google Fonts 的合并目录，用于渲染   |
+| `GET`  | `/google-fonts`                   | 单独列出 Google Fonts 目录                     |
+| `POST` | `/google-fonts/{family}/fetch`    | 下载并缓存某个 Google Fonts 字体族             |
+| `GET`  | `/google-fonts/{family}/{file}`   | 提供已缓存的 TTF/WOFF 文件                     |
 
-导入接口使用 multipart form data，并通过重复的 `files` 字段传入文件。
+### 项目
 
-当前实现支持的文档图层包括：
+每个项目都位于受管理的 `{data.path}/projects/` 目录下；客户端永远不需要传入文件系统路径。
 
-- `original`
-- `segment`
-- `inpainted`
-- `brush`
-- `rendered`
+| 方法     | 路径                          | 用途                                              |
+| -------- | ----------------------------- | ------------------------------------------------- |
+| `GET`    | `/projects`                   | 列出受管理的项目                                  |
+| `POST`   | `/projects`                   | 创建新项目（请求体 `{ name }`）                    |
+| `POST`   | `/projects/import`            | 把一个 `.khr` 归档解压到新目录并打开                |
+| `PUT`    | `/projects/current`           | 通过 `id` 打开一个受管理项目                       |
+| `DELETE` | `/projects/current`           | 关闭当前会话                                      |
+| `POST`   | `/projects/current/export`    | 导出当前项目；返回二进制字节                       |
 
-### 页面管线
+`POST /projects/current/export` 接受 `{ format, pages? }`，其中 `format` 是 `khr`、`psd`、`rendered`、`inpainted` 之一。当某种格式会产生多个文件时，响应类型是 `application/zip`。
 
-| 方法   | 路径                                     | 用途                          |
-| ------ | ---------------------------------------- | ----------------------------- |
-| `POST` | `/documents/{documentId}/detect`         | 检测文本块和版面结构          |
-| `POST` | `/documents/{documentId}/ocr`            | 对检测出的文本块执行 OCR      |
-| `POST` | `/documents/{documentId}/inpaint`        | 使用当前掩码去除原始文字      |
-| `POST` | `/documents/{documentId}/render`         | 渲染译文                      |
-| `POST` | `/documents/{documentId}/translate`      | 翻译单个文本块或整页          |
-| `PUT`  | `/documents/{documentId}/mask-region`    | 替换或更新分割掩码局部区域    |
-| `PUT`  | `/documents/{documentId}/brush-region`   | 向 brush 图层写入一个局部补丁 |
-| `POST` | `/documents/{documentId}/inpaint-region` | 仅对指定矩形区域重新修复      |
+### 页面
 
-常用请求细节：
+| 方法   | 路径                                    | 用途                                                |
+| ------ | --------------------------------------- | --------------------------------------------------- |
+| `POST` | `/pages`                                | 通过 multipart 上传 N 张图片创建页面                  |
+| `POST` | `/pages/from-paths`                     | Tauri 专用的快速通道，按绝对路径导入                   |
+| `POST` | `/pages/{id}/image-layers`              | 从上传文件添加一个 Custom 图像节点                     |
+| `PUT`  | `/pages/{id}/masks/{role}`              | 用原始 PNG 字节 upsert 一个掩码节点                   |
+| `GET`  | `/pages/{id}/thumbnail`                 | 获取页面缩略图（以 WebP 缓存）                        |
 
-- `/render` 接受 `textBlockId`、`shaderEffect`、`shaderStroke` 和 `fontFamily`
-- `/translate` 接受 `textBlockId` 和 `language`
-- `/mask-region` 接受 `data` 以及可选的 `region`
-- `/brush-region` 接受 `data` 以及必需的 `region`
-- `/inpaint-region` 接受矩形 `region`
+`role` 是 `segment` 或 `brushInpaint`。`POST /pages` 接受可选字段 `replace=true`；导入时会按文件名自然顺序排序。
 
-### 文本块
+### Scene 与 blobs
 
-| 方法     | 路径                                                | 用途                                        |
-| -------- | --------------------------------------------------- | ------------------------------------------- |
-| `POST`   | `/documents/{documentId}/text-blocks`               | 通过 `x`、`y`、`width`、`height` 创建文本块 |
-| `PATCH`  | `/documents/{documentId}/text-blocks/{textBlockId}` | 更新文本、译文、框几何或样式                |
-| `DELETE` | `/documents/{documentId}/text-blocks/{textBlockId}` | 删除文本块                                  |
+| 方法  | 路径               | 用途                                                              |
+| ----- | ------------------ | ----------------------------------------------------------------- |
+| `GET` | `/scene.json`      | 完整的场景快照，供 web/UI 客户端使用                                |
+| `GET` | `/scene.bin`       | postcard 编码的 `Snapshot { epoch, scene }`，供 Tauri 客户端使用     |
+| `GET` | `/blobs/{hash}`    | 按 Blake3 哈希返回 blob 的原始字节                                  |
 
-当前文本块 patch 结构包含：
+`/scene.bin` 会在 `x-koharu-epoch` 响应头里附带当前 epoch。
 
-- `text`
-- `translation`
-- `x`
-- `y`
-- `width`
-- `height`
-- `style`
+### 历史（修改）
 
-`style` 当前可以包含字体族、字号、RGBA 颜色、文本对齐、italic / bold 标记以及描边配置。
+所有场景修改都从这里走。每个响应都返回 `{ epoch }`。
 
-### 导出
+| 方法   | 路径                | 用途                                  |
+| ------ | ------------------- | ------------------------------------- |
+| `POST` | `/history/apply`    | 应用一个 `Op`（包括 `Op::Batch`）       |
+| `POST` | `/history/undo`     | 撤销上一次应用的 op                     |
+| `POST` | `/history/redo`     | 重新应用上一次撤销的 op                 |
 
-| 方法   | 路径                                             | 用途                 |
-| ------ | ------------------------------------------------ | -------------------- |
-| `GET`  | `/documents/{documentId}/export?layer=rendered`  | 导出单张渲染图       |
-| `GET`  | `/documents/{documentId}/export?layer=inpainted` | 导出单张修复图       |
-| `GET`  | `/documents/{documentId}/export/psd`             | 导出单个分层 PSD     |
-| `POST` | `/exports?layer=rendered`                        | 批量导出所有渲染页面 |
-| `POST` | `/exports?layer=inpainted`                       | 批量导出所有修复页面 |
+`Op` 是一个带判别字段的联合类型，覆盖添加/删除/更新节点、添加/删除页面、批量操作以及其他场景过渡。请求体是带 JSON tag 的变体。
 
-单文档导出端点返回二进制文件内容。批量导出返回 JSON，其中包含写出的文件数量。
+### 管线
+
+| 方法   | 路径          | 用途                              |
+| ------ | ------------- | --------------------------------- |
+| `POST` | `/pipelines`  | 以 operation 形式启动一次管线运行  |
+
+请求体字段：
+
+- `steps`：按顺序执行的引擎 id（会与注册表校验）
+- `pages`：可选的 `PageId` 子集；省略时处理整个项目
+- `region`：可选的 inpainter 边界框（修复笔刷流程使用）
+- `targetLanguage`、`systemPrompt`、`defaultFont`：每次运行可覆盖的可选参数
+
+响应携带 `operationId`。进度与完成事件会通过 `/events` 以 `JobStarted`、`JobProgress`、`JobWarning`、`JobFinished` 推送。
+
+### Operations
+
+`/operations` 是正在运行和最近完成的任务（管线 + 下载）的统一登记表。
+
+| 方法     | 路径                  | 用途                                                 |
+| -------- | --------------------- | ---------------------------------------------------- |
+| `GET`    | `/operations`         | 所有正在运行或最近的 operation 的快照                  |
+| `DELETE` | `/operations/{id}`    | 取消一次管线运行；对下载尽力而为地清理                  |
+
+### Downloads
+
+| 方法   | 路径          | 用途                                            |
+| ------ | ------------- | ----------------------------------------------- |
+| `GET`  | `/downloads`  | 所有正在进行或最近的下载快照                      |
+| `POST` | `/downloads`  | 启动一次模型包下载（`{ modelId }`）                |
+
+`modelId` 是通过 `declare_hf_model_package!` 声明的包 id（例如 `"model:comic-text-detector:yolo-v5"`）。响应是 `{ operationId }`，其值复用包 id。
 
 ### LLM 控制
 
-| 方法     | 路径           | 用途                             |
-| -------- | -------------- | -------------------------------- |
-| `GET`    | `/llm/catalog` | 获取按本地/提供商分组的 LLM 目录 |
-| `GET`    | `/llm`         | 获取当前 LLM 状态                |
-| `PUT`    | `/llm`         | 加载本地或提供商 target          |
-| `DELETE` | `/llm`         | 卸载当前模型                     |
+已加载模型是位于 `/llm/current` 的单例资源。
 
-常用请求细节：
+| 方法     | 路径             | 用途                                          |
+| -------- | ---------------- | --------------------------------------------- |
+| `GET`    | `/llm/current`   | 当前状态（status、target、error）              |
+| `PUT`    | `/llm/current`   | 加载指定的 target（local 或 provider）         |
+| `DELETE` | `/llm/current`   | 卸载 / 释放当前模型                            |
+| `GET`    | `/llm/catalog`   | 列出可用的本地模型 + 提供商支持的模型           |
 
-- `/llm/catalog` 支持可选查询参数 `language`
-- `PUT /llm` 接受 `target` 与可选 `options { temperature, maxTokens, customSystemPrompt }`
-- provider target 使用 `{ kind: "provider", providerId, modelId }`，local target 使用 `{ kind: "local", modelId }`
+`PUT /llm/current` 接受 `LlmLoadRequest`：
 
-### 提供商配置
+- provider target：`{ kind: "provider", providerId, modelId }`
+- local target：`{ kind: "local", modelId }`
+- 可选的 `options { temperature, maxTokens, customSystemPrompt }`
 
-提供商设置现在统一放在 `GET /config` 和 `PUT /config` 中。
+`PUT /llm/current` 在加载任务入队后立即返回 `204`。实际就绪状态会作为 `LlmLoaded` 事件发布到 `/events`。
 
-- `llm.providers` 保存 `baseUrl` 等非秘密配置
-- 读取配置时只返回 `hasApiKey`，不会返回原始 API key
-- 设置或清除 API key 也通过 `PUT /config` 完成
+### 配置
 
-当前内置 provider id 包括：
+| 方法     | 路径                              | 用途                                            |
+| -------- | --------------------------------- | ----------------------------------------------- |
+| `GET`    | `/config`                         | 读取当前 `AppConfig`                             |
+| `PATCH`  | `/config`                         | 应用 `ConfigPatch`；持久化并广播变更               |
+| `PUT`    | `/config/providers/{id}/secret`   | 保存（或覆盖）某个 provider 的 API key             |
+| `DELETE` | `/config/providers/{id}/secret`   | 清除某个 provider 已保存的 API key                |
+
+`AppConfig` 暴露顶层的 `data`、`http`、`pipeline` 与 `providers`：
+
+- `data.path`：本地数据目录，用于运行时、模型缓存与项目
+- `http { connectTimeout, readTimeout, maxRetries }`：下载与 provider 请求共用的 HTTP 客户端
+- `pipeline { detector, fontDetector, segmenter, bubbleSegmenter, ocr, translator, inpainter, renderer }`：每个阶段选用的引擎 id
+- `providers[] { id, baseUrl?, apiKey? }`：保存的 API key 在往返中始终以遮蔽占位符 `"[REDACTED]"` 出现，绝不返回原始密钥
+
+内置 provider id：
 
 - `openai`
 - `gemini`
 - `claude`
 - `deepseek`
+- `deepl`
+- `google-translate`
+- `caiyun`
 - `openai-compatible`
 
-### 管线任务
-
-| 方法     | 路径             | 用途                   |
-| -------- | ---------------- | ---------------------- |
-| `POST`   | `/jobs/pipeline` | 启动完整处理任务       |
-| `DELETE` | `/jobs/{jobId}`  | 取消一个正在运行的任务 |
-
-管线任务请求可以包含：
-
-- `documentId`：只处理某一页；留空时处理所有已加载页面
-- `llm { target, options }`：选择 LLM 目标以及可选生成参数
-- 渲染设置，例如 `shaderEffect`、`shaderStroke`、`fontFamily`
-- `language`
+API key 保存在平台凭据存储中，而不是 `config.toml` 里。PATCH `apiKey: ""` 会清除已保存的 key；PATCH `"[REDACTED]"` 表示保持原值不变。专门的 `/config/providers/{id}/secret` 路由是显式管理某个 provider 密钥的非 PATCH 方式。
 
 ## 事件流
 
-Koharu 还通过以下地址暴露 server-sent events：
+Koharu 通过以下地址暴露 Server-Sent Events：
 
 ```text
 GET /events
 ```
 
-当前事件名包括：
+行为：
 
-- `snapshot`
-- `documents.changed`
-- `document.changed`
-- `job.changed`
-- `download.changed`
-- `llm.changed`
+- 全新连接（不带 `Last-Event-ID` 请求头）会先收到一个 `Snapshot` 事件，包含当前的任务和下载登记表
+- 重连时，服务器会按顺序回放缓冲区中 `seq > Last-Event-ID` 的事件；如果请求的 id 已经从环形缓冲区中滚出，则会重新发送一个 `Snapshot`
+- 每个实时事件都会用其 `seq` 作为 SSE `id:` 字段
+- 维持 15 秒的 keep-alive
 
-该事件流会先发送一个初始 `snapshot` 事件，并使用 15 秒 keepalive。
+当前事件变体包括：
+
+- `Snapshot`：用于全新客户端与延迟恢复客户端的完整状态种子
+- `JobStarted`、`JobProgress`、`JobWarning`、`JobFinished`：管线任务生命周期
+- `DownloadProgress`：包下载进度
+- `ConfigChanged`：通过 `PATCH /config` 或 secret 路由应用了配置变更
+- `LlmLoaded`、`LlmUnloaded`：LLM 生命周期切换
+- `SceneAdvanced`：场景修改使 epoch 推进时触发
 
 ## 典型工作流
 
-单页 API 的常见调用顺序是：
+新建一个项目时常见的 API 调用顺序：
 
-1. `POST /documents/import?mode=replace`
-2. `POST /documents/{documentId}/detect`
-3. `POST /documents/{documentId}/ocr`
-4. `PUT /llm`
-5. `POST /documents/{documentId}/translate`
-6. `POST /documents/{documentId}/inpaint`
-7. `POST /documents/{documentId}/render`
-8. `GET /documents/{documentId}/export?layer=rendered`
+1. `POST /projects`：创建项目
+2. `POST /pages`（或 Tauri 下的 `/pages/from-paths`）：导入图片
+3. `PUT /llm/current`：加载翻译模型（本地或 provider）
+4. `POST /pipelines`：启动 `detect → ocr → translate → inpaint → render`
+5. 监听 `GET /events` 直到 `JobFinished`
+6. `POST /projects/current/export`，`format = "rendered"` 或 `"psd"`
+
+如果你需要更精细的控制，可以直接 `POST /history/apply` 携带显式 `Op` 负载，而不是运行整条管线。
 
 如果你更想用面向 Agent 的接口，而不是手动编排 HTTP 端点，请参见 [MCP 工具参考](mcp-tools.md)。

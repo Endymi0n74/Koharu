@@ -17,182 +17,219 @@ Esta é a mesma API usada pela UI desktop e pela Web UI em modo headless.
 Comportamento atual importante:
 
 - a API é servida pelo mesmo processo da GUI ou do runtime headless
-- o servidor faz bind em `127.0.0.1` por padrão
-- a API e o servidor MCP compartilham os mesmos documentos carregados, modelos e estado do pipeline
+- o servidor faz bind em `127.0.0.1` por padrão; use `--host` para fazer bind em outro lugar
+- a API e o servidor MCP compartilham o mesmo projeto carregado, modelos e estado do pipeline
 - quando nenhum `--port` é fornecido, o Koharu escolhe uma porta local aleatória
+- tudo, exceto `/api/v1/downloads`, `/api/v1/operations` e `/api/v1/events`, retorna `503 Service Unavailable` até o app terminar a inicialização
+
+## Modelo de recursos
+
+A API é centrada em projetos. Apenas um projeto fica aberto por vez e contém:
+
+- uma lista de `Pages` indexada por `PageId`
+- `Nodes` por página (camadas de imagem, máscaras, blocos de texto) referenciados por `NodeId`
+- um armazenamento `Blob` endereçado por conteúdo, que guarda os bytes brutos das imagens por hash Blake3
+- um snapshot de `Scene` montado a partir dessas peças, avançado por um contador `epoch`
+- um histórico de mutações `Op` que podem ser desfeitas ou refeitas
+
+As mutações sempre passam pela camada de histórico (`POST /history/apply`), de modo que a cena, o autosave e os assinantes de eventos permaneçam sincronizados.
 
 ## Formatos comuns de response
 
 Tipos de response frequentemente usados incluem:
 
-- `MetaInfo`: versão do app e dispositivo de ML
-- `DocumentSummary`: id do documento, nome, tamanho, revisão, disponibilidade de layers e contagem de blocos de texto
-- `DocumentDetail`: metadados completos do documento mais os blocos de texto
-- `JobState`: progresso do job atual do pipeline
-- `LlmState`: estado atual de carga do LLM
-- `ImportResult`: contagem de documentos importados e seus resumos
-- `ExportResult`: contagem de arquivos exportados
+- `MetaInfo` — versão do app e label do dispositivo de ML
+- `EngineCatalog` — ids das engines instaláveis por etapa do pipeline
+- `ProjectSummary` — id, nome, caminho, contagem de páginas, último acesso
+- `SceneSnapshot` — `{ epoch, scene }`
+- `LlmState` — estado atual de carga do LLM (status, target, error)
+- `LlmCatalog` — modelos locais + de provedor agrupados por família
+- `JobSummary` — `{ id, kind, status, error }`
+- `DownloadProgress` — id do pacote, contagens de bytes, status
 
 ## Endpoints
 
-### Meta e fontes
+### Meta
 
-| Método | Path     | Finalidade                                    |
-| ------ | -------- | --------------------------------------------- |
-| `GET`  | `/meta`  | obtém a versão do app e o backend de ML ativo |
-| `GET`  | `/fonts` | lista as famílias de fontes disponíveis para renderização |
+| Método | Path        | Finalidade                                          |
+| ------ | ----------- | --------------------------------------------------- |
+| `GET`  | `/meta`     | obtém a versão do app e o backend de ML ativo       |
+| `GET`  | `/engines`  | lista as engines de pipeline registradas por etapa  |
 
-### Documentos
+### Fontes
 
-| Método | Path                                     | Finalidade                                            |
-| ------ | ---------------------------------------- | ----------------------------------------------------- |
-| `GET`  | `/documents`                             | lista os documentos carregados                        |
-| `POST` | `/documents/import?mode=replace`         | substitui o conjunto atual de documentos pelas imagens enviadas |
-| `POST` | `/documents/import?mode=append`          | adiciona as imagens enviadas ao conjunto atual de documentos |
-| `GET`  | `/documents/{documentId}`                | obtém um documento e todos os metadados dos blocos de texto |
-| `GET`  | `/documents/{documentId}/thumbnail`      | obtém uma imagem em miniatura                         |
-| `GET`  | `/documents/{documentId}/layers/{layer}` | obtém um layer de imagem                              |
+| Método | Path                                  | Finalidade                                                       |
+| ------ | ------------------------------------- | ---------------------------------------------------------------- |
+| `GET`  | `/fonts`                              | catálogo combinado de fontes do sistema + Google Fonts para render |
+| `GET`  | `/google-fonts`                       | catálogo do Google Fonts como uma lista isolada                  |
+| `POST` | `/google-fonts/{family}/fetch`        | baixa e faz cache de uma família do Google Fonts                 |
+| `GET`  | `/google-fonts/{family}/{file}`       | serve o arquivo TTF/WOFF em cache                                |
 
-O endpoint de importação usa multipart form data com campos `files` repetidos.
+### Projetos
 
-Os layers de documento atualmente expostos pela implementação incluem:
+Todo projeto vive sob o diretório gerenciado `{data.path}/projects/`; clientes nunca fornecem caminhos do filesystem.
 
-- `original`
-- `segment`
-- `inpainted`
-- `brush`
-- `rendered`
+| Método   | Path                              | Finalidade                                                          |
+| -------- | --------------------------------- | ------------------------------------------------------------------- |
+| `GET`    | `/projects`                       | lista os projetos gerenciados                                       |
+| `POST`   | `/projects`                       | cria um novo projeto (body `{ name }`)                              |
+| `POST`   | `/projects/import`                | extrai um arquivo `.khr` em um diretório novo e o abre              |
+| `PUT`    | `/projects/current`               | abre um projeto gerenciado por `id`                                 |
+| `DELETE` | `/projects/current`               | fecha a sessão atual                                                |
+| `POST`   | `/projects/current/export`        | exporta o projeto atual; retorna bytes binários                     |
 
-### Pipeline da página
+`POST /projects/current/export` aceita `{ format, pages? }` onde `format` é um de `khr`, `psd`, `rendered`, `inpainted`. Quando o formato produz múltiplos arquivos, a response é `application/zip`.
 
-| Método | Path                                     | Finalidade                                           |
-| ------ | ---------------------------------------- | ---------------------------------------------------- |
-| `POST` | `/documents/{documentId}/detect`         | detecta blocos de texto e layout                     |
-| `POST` | `/documents/{documentId}/ocr`            | executa OCR nos blocos de texto detectados           |
-| `POST` | `/documents/{documentId}/inpaint`        | remove o texto original usando a máscara atual       |
-| `POST` | `/documents/{documentId}/render`         | renderiza o texto traduzido                          |
-| `POST` | `/documents/{documentId}/translate`      | gera traduções para um bloco ou para a página inteira |
-| `PUT`  | `/documents/{documentId}/mask-region`    | substitui ou atualiza parte da máscara de segmentação |
-| `PUT`  | `/documents/{documentId}/brush-region`   | grava um patch no layer de brush                     |
-| `POST` | `/documents/{documentId}/inpaint-region` | refaz o inpaint apenas em uma região retangular      |
+### Páginas
 
-Detalhes úteis de request:
+| Método | Path                                    | Finalidade                                                  |
+| ------ | --------------------------------------- | ----------------------------------------------------------- |
+| `POST` | `/pages`                                | cria páginas a partir de N arquivos de imagem enviados (multipart) |
+| `POST` | `/pages/from-paths`                     | caminho rápido só para Tauri que importa por caminho absoluto |
+| `POST` | `/pages/{id}/image-layers`              | adiciona um node de imagem Custom a partir de um arquivo enviado |
+| `PUT`  | `/pages/{id}/masks/{role}`              | faz upsert de um node de máscara a partir de bytes PNG brutos |
+| `GET`  | `/pages/{id}/thumbnail`                 | obtém a thumbnail da página (cache em WebP)                 |
 
-- `/render` aceita `textBlockId`, `shaderEffect`, `shaderStroke` e `fontFamily`
-- `/translate` aceita `textBlockId` e `language`
-- `/mask-region` aceita `data` mais um `region` opcional
-- `/brush-region` aceita `data` mais um `region` obrigatório
-- `/inpaint-region` aceita um `region` retangular
+`role` é `segment` ou `brushInpaint`. `POST /pages` aceita um campo opcional `replace=true`; a importação é ordenada pelo nome de arquivo em ordem natural.
 
-## Blocos de texto
+### Cena e blobs
 
-| Método   | Path                                                | Finalidade                                               |
-| -------- | --------------------------------------------------- | -------------------------------------------------------- |
-| `POST`   | `/documents/{documentId}/text-blocks`               | cria um novo bloco de texto a partir de `x`, `y`, `width`, `height` |
-| `PATCH`  | `/documents/{documentId}/text-blocks/{textBlockId}` | aplica patch em texto, tradução, geometria da caixa ou estilo |
-| `DELETE` | `/documents/{documentId}/text-blocks/{textBlockId}` | remove um bloco de texto                                 |
+| Método | Path                | Finalidade                                                              |
+| ------ | ------------------- | ----------------------------------------------------------------------- |
+| `GET`  | `/scene.json`       | snapshot completo da cena para clientes web/UI                          |
+| `GET`  | `/scene.bin`        | `Snapshot { epoch, scene }` codificado em postcard para o cliente Tauri |
+| `GET`  | `/blobs/{hash}`     | bytes brutos do blob por hash Blake3                                    |
 
-O formato atual de patch do bloco de texto inclui:
+`/scene.bin` inclui o epoch atual no header de response `x-koharu-epoch`.
 
-- `text`
-- `translation`
-- `x`
-- `y`
-- `width`
-- `height`
-- `style`
+### Histórico (mutações)
 
-`style` pode incluir famílias de fontes, tamanho da fonte, cor RGBA, alinhamento do texto, flags de itálico e negrito, e configuração de stroke.
+Todas as mutações da cena passam por aqui. Cada response retorna `{ epoch }`.
 
-## Export
+| Método | Path                | Finalidade                                  |
+| ------ | ------------------- | ------------------------------------------- |
+| `POST` | `/history/apply`    | aplica um `Op` (incluindo `Op::Batch`)      |
+| `POST` | `/history/undo`     | reverte a última op aplicada                |
+| `POST` | `/history/redo`     | reaplica a última op desfeita               |
 
-| Método | Path                                             | Finalidade                    |
-| ------ | ------------------------------------------------ | ----------------------------- |
-| `GET`  | `/documents/{documentId}/export?layer=rendered`  | exporta uma imagem renderizada |
-| `GET`  | `/documents/{documentId}/export?layer=inpainted` | exporta uma imagem com inpaint |
-| `GET`  | `/documents/{documentId}/export/psd`             | exporta um PSD com layers      |
-| `POST` | `/exports?layer=rendered`                        | exporta todas as páginas renderizadas |
-| `POST` | `/exports?layer=inpainted`                       | exporta todas as páginas com inpaint  |
+`Op` é a união discriminada que cobre add/remove/update node, add/remove page, batch e outras transições da cena. O body é a variante com tag JSON.
 
-Endpoints de export de documento único retornam conteúdo binário do arquivo. O export em lote retorna JSON com o número de arquivos gravados.
+### Pipelines
 
-## Controle do LLM
+| Método | Path          | Finalidade                                       |
+| ------ | ------------- | ------------------------------------------------ |
+| `POST` | `/pipelines`  | inicia uma execução de pipeline como uma operação |
 
-| Método   | Path           | Finalidade                                      |
-| -------- | -------------- | ----------------------------------------------- |
-| `GET`    | `/llm/catalog` | lista o catálogo agrupado de LLMs locais/provedores |
-| `GET`    | `/llm`         | obtém o status atual do LLM                     |
-| `PUT`    | `/llm`         | carrega um modelo local ou baseado em provedor  |
-| `DELETE` | `/llm`         | descarrega o modelo atual                       |
+Campos do body:
 
-Detalhes úteis de request:
+- `steps` — ids das engines a executar em ordem (validados contra o registry)
+- `pages` — subconjunto opcional de `PageId`s; omita para processar o projeto inteiro
+- `region` — bounding box opcional para o inpainter (fluxo de pincel de reparo)
+- `targetLanguage`, `systemPrompt`, `defaultFont` — overrides opcionais por execução
 
-- `/llm/catalog` aceita `language` opcional
-- `PUT /llm` aceita `target` mais `options { temperature, maxTokens, customSystemPrompt }` opcional
-- targets de provedor usam `{ kind: "provider", providerId, modelId }`; targets locais usam `{ kind: "local", modelId }`
+A response carrega um `operationId`. O progresso e a conclusão chegam em `/events` como `JobStarted`, `JobProgress`, `JobWarning` e `JobFinished`.
 
-## Configuração de provedores
+### Operações
 
-As configurações de provedor e de runtime agora ficam em `GET /config` e `PUT /config`.
+`/operations` é o registry unificado para jobs em andamento e recém-concluídos (pipelines + downloads).
 
-- o body de configuração atualmente inclui os top-level `data`, `http`, `pipeline` e `providers`
-- `providers` armazena campos como `id` e `base_url`
-- chaves de API de provedor salvas são retornadas como placeholders redatados em vez do segredo bruto
-- `http { connect_timeout, read_timeout, max_retries }` controla o client HTTP compartilhado do runtime usado para downloads e requests de provedores
-- `pipeline` armazena o id da engine selecionada para cada etapa do pipeline
+| Método   | Path                  | Finalidade                                                         |
+| -------- | --------------------- | ------------------------------------------------------------------ |
+| `GET`    | `/operations`         | snapshot de toda operação em andamento ou recente                  |
+| `DELETE` | `/operations/{id}`    | cancela uma execução de pipeline; remoção best-effort para downloads |
 
-Os ids de provedores embutidos atuais incluem:
+### Downloads
+
+| Método | Path                | Finalidade                                       |
+| ------ | ------------------- | ------------------------------------------------ |
+| `GET`  | `/downloads`        | snapshot de todo download ativo ou recente       |
+| `POST` | `/downloads`        | inicia o download de um pacote de modelo (`{ modelId }`) |
+
+`modelId` é um id de pacote declarado via `declare_hf_model_package!` (ex.: `"model:comic-text-detector:yolo-v5"`). A response é `{ operationId }`, reutilizando o id do pacote.
+
+### Controle do LLM
+
+O modelo carregado é um recurso singleton em `/llm/current`.
+
+| Método   | Path             | Finalidade                                       |
+| -------- | ---------------- | ------------------------------------------------ |
+| `GET`    | `/llm/current`   | estado atual (status, target, error)             |
+| `PUT`    | `/llm/current`   | carrega o target informado (local ou de provedor) |
+| `DELETE` | `/llm/current`   | descarrega / libera o modelo                     |
+| `GET`    | `/llm/catalog`   | lista os modelos locais + de provedor disponíveis |
+
+`PUT /llm/current` aceita um `LlmLoadRequest`:
+
+- targets de provedor — `{ kind: "provider", providerId, modelId }`
+- targets locais — `{ kind: "local", modelId }`
+- `options { temperature, maxTokens, customSystemPrompt }` opcional
+
+`PUT /llm/current` retorna `204` assim que a tarefa de carga é enfileirada. O estado pronto efetivo é publicado como `LlmLoaded` em `/events`.
+
+### Configuração
+
+| Método   | Path                                    | Finalidade                                          |
+| -------- | --------------------------------------- | --------------------------------------------------- |
+| `GET`    | `/config`                               | lê o `AppConfig` atual                              |
+| `PATCH`  | `/config`                               | aplica um `ConfigPatch`; persiste e faz broadcast   |
+| `PUT`    | `/config/providers/{id}/secret`         | salva (ou sobrescreve) a chave de API de um provedor |
+| `DELETE` | `/config/providers/{id}/secret`         | limpa a chave de API armazenada de um provedor      |
+
+`AppConfig` expõe os top-level `data`, `http`, `pipeline` e `providers`:
+
+- `data.path` — diretório de dados local usado para runtime, cache de modelos e projetos
+- `http { connectTimeout, readTimeout, maxRetries }` — client HTTP compartilhado usado por downloads e requests baseados em provedor
+- `pipeline { detector, fontDetector, segmenter, bubbleSegmenter, ocr, translator, inpainter, renderer }` — id da engine selecionada para cada etapa
+- `providers[] { id, baseUrl?, apiKey? }` — chaves de API salvas vão e voltam como o placeholder redatado `"[REDACTED]"`; nunca o segredo bruto
+
+Ids de provedores embutidos:
 
 - `openai`
 - `gemini`
 - `claude`
 - `deepseek`
+- `deepl`
+- `google-translate`
+- `caiyun`
 - `openai-compatible`
 
-## Jobs do pipeline
-
-| Método   | Path             | Finalidade                       |
-| -------- | ---------------- | -------------------------------- |
-| `POST`   | `/jobs/pipeline` | inicia um job de processamento completo |
-| `DELETE` | `/jobs/{jobId}`  | cancela um job de pipeline em execução  |
-
-O request de job do pipeline pode incluir:
-
-- `documentId` para mirar em uma página, ou omiti-lo para processar todas as páginas carregadas
-- `llm { target, options }` para escolher um modelo local/provedor e overrides opcionais de geração
-- configurações de render como `shaderEffect`, `shaderStroke` e `fontFamily`
-- `language`
+As chaves de API ficam armazenadas no credential store da plataforma, não em `config.toml`. Fazer PATCH de `apiKey: ""` limpa a chave salva; fazer PATCH de `"[REDACTED]"` mantém o valor inalterado. As rotas dedicadas `/config/providers/{id}/secret` são a forma explícita, fora do PATCH, de gerenciar o segredo de um provedor.
 
 ## Stream de eventos
 
-O Koharu também expõe server-sent events em:
+O Koharu expõe um stream de Server-Sent Events em:
 
 ```text
 GET /events
 ```
 
-Os nomes de eventos atuais são:
+Comportamento:
 
-- `snapshot`
-- `documents.changed`
-- `document.changed`
-- `job.changed`
-- `download.changed`
-- `llm.changed`
+- uma conexão nova (sem header `Last-Event-ID`) começa com um evento `Snapshot` contendo os registries atuais de jobs e downloads
+- na reconexão, o servidor reenvia, em ordem, os eventos com `seq > Last-Event-ID` que ainda estão no buffer; se o id solicitado já saiu do ring, o servidor reenvia um `Snapshot`
+- cada evento ao vivo é emitido com seu `seq` no campo `id:` do SSE
+- um keepalive de 15 segundos é mantido
 
-O stream envia um evento `snapshot` inicial e usa um keepalive de 15 segundos.
+As variantes de evento atualmente incluem:
+
+- `Snapshot` — estado completo inicial para clientes novos e em recuperação de atraso
+- `JobStarted`, `JobProgress`, `JobWarning`, `JobFinished` — ciclo de vida do job de pipeline
+- `DownloadProgress` — ticks de progresso de download de pacote
+- `ConfigChanged` — config foi aplicada via `PATCH /config` ou via uma rota de segredo
+- `LlmLoaded`, `LlmUnloaded` — transições do ciclo de vida do LLM
+- `SceneAdvanced` — emitido quando uma mutação de cena avança o epoch
 
 ## Workflow típico
 
-A ordem normal da API para uma página é:
+A ordem normal da API para um projeto novo é:
 
-1. `POST /documents/import?mode=replace`
-2. `POST /documents/{documentId}/detect`
-3. `POST /documents/{documentId}/ocr`
-4. `PUT /llm`
-5. `POST /documents/{documentId}/translate`
-6. `POST /documents/{documentId}/inpaint`
-7. `POST /documents/{documentId}/render`
-8. `GET /documents/{documentId}/export?layer=rendered`
+1. `POST /projects` — cria o projeto
+2. `POST /pages` (ou `/pages/from-paths` no Tauri) — importa as imagens
+3. `PUT /llm/current` — carrega um modelo de tradução (local ou de provedor)
+4. `POST /pipelines` — dispara `detect → ocr → translate → inpaint → render`
+5. acompanha `GET /events` até `JobFinished`
+6. `POST /projects/current/export` com `format = "rendered"` ou `"psd"`
+
+Para controle mais fino, faça `POST /history/apply` com payloads `Op` explícitos em vez de rodar um pipeline completo.
 
 Se você prefere acesso orientado a agentes em vez de orquestrar endpoints HTTP, veja a [Referência das ferramentas MCP](mcp-tools.md).

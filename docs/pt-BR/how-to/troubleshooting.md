@@ -76,13 +76,14 @@ Para uma explicação mais aprofundada dos caminhos de download de runtime e mod
 
 ## O Koharu faz fallback para CPU mesmo com uma GPU NVIDIA
 
-Isso é esperado quando o Koharu não consegue confirmar suporte a CUDA 13.1.
+Isso é esperado quando o Koharu não consegue confirmar suporte a CUDA 13.0.
 
 O comportamento atual do runtime é:
 
 - detectar um driver NVIDIA
 - consultar a compatibilidade do driver
-- continuar em CUDA apenas quando o driver reporta suporte a CUDA 13.1
+- continuar em CUDA apenas quando o driver reporta CUDA 13.0 ou superior
+- no Windows, exigir CUDA 13.1+ especificamente para o caminho CUDA do LLM local
 - senão, fazer fallback para CPU
 
 Tente isto:

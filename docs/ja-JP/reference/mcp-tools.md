@@ -4,134 +4,70 @@ title: MCP ツールリファレンス
 
 # MCP ツールリファレンス
 
-Koharu は次の MCP ツール群を公開しています。
+Koharu は次の場所で MCP ツールを公開しています。
 
 ```text
 http://127.0.0.1:<PORT>/mcp
 ```
 
-これらのツールは、GUI や HTTP API と同じランタイム状態に対して動作します。
+MCP サーバーは `rmcp 1.5` の streamable HTTP transport を使い、GUI および HTTP API と同じプロジェクト、シーン、パイプライン状態に対して動作します。
 
-## 全般的な挙動
+## 現在の MCP サーバーが公開しているもの
 
-実装上、重要な点は次の通りです。
+現在の実装は意図的に、プロジェクトのライフサイクル、履歴レイヤー、パイプラインジョブを中心とした小さく低レベルなサーフェスだけを公開しています。フィールド単位の細かな編集は、専用ツールではなく `koharu.apply` に `Op` ペイロードを渡して行います。
 
-- 画像を扱うツールは、テキストとインライン画像コンテンツの両方を返せる
-- `open_documents` は現在のドキュメント集合を追加ではなく置き換える
-- `process` はフルパイプラインを開始するが、自身では進捗をストリームしない
-- `llm_load` と `process` は現在ローカルモデル寄りの引数を受け付けており、HTTP API の全フィールドは公開していない
+ページサムネイル、画像レイヤー、フォント一覧、シーンスナップショットなど、より詳細な検査が必要な場合は [HTTP API](http-api.md) を直接使ってください。両者は同じポートで並走し、同一プロセス内の状態を共有します。
 
-## 確認系ツール
+## ツール
 
-| Tool | 役割 | 主な引数 |
-| --- | --- | --- |
-| `app_version` | アプリバージョンを取得する | なし |
-| `device` | ML デバイスや GPU 関連情報を取得する | なし |
-| `get_documents` | 読み込み済みドキュメント数を取得する | なし |
-| `get_document` | 1 件のドキュメント情報と text block を取得する | `index` |
-| `list_font_families` | 利用可能な render font を一覧する | なし |
-| `llm_list` | 翻訳モデル一覧を取得する | なし |
-| `llm_ready` | LLM が現在読み込まれているか確認する | なし |
+| ツール                  | 役割                                                       | パラメータ                                                                       |
+| ----------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `koharu.apply`          | 有効なシーンに `Op` を適用する                             | `op` — JSON タグ付きの `Op` 値                                                   |
+| `koharu.undo`           | 直近の op を取り消す                                       | なし                                                                             |
+| `koharu.redo`           | 直近に取り消された op を再適用する                         | なし                                                                             |
+| `koharu.open_project`   | Koharu プロジェクトディレクトリを開く、または作成する      | `path`、任意で `createName`                                                      |
+| `koharu.close_project`  | 現在のプロジェクトを閉じる                                 | なし                                                                             |
+| `koharu.start_pipeline` | パイプライン実行を開始し `jobId` を返す                    | `steps[]`、任意で `pages[]`、`targetLanguage`、`systemPrompt`、`defaultFont`     |
 
-## 画像とブロックのプレビュー系ツール
+### `koharu.apply`
 
-| Tool | 役割 | 主な引数 |
-| --- | --- | --- |
-| `view_image` | ドキュメント全体のレイヤーをプレビューする | `index`, `layer`, 任意で `max_size` |
-| `view_text_block` | 1 つの切り出し text block をプレビューする | `index`, `text_block_index`, 任意で `layer` |
+履歴レイヤー経由でシーンに 1 つの変更を適用します。`op` には HTTP API の `POST /history/apply` が受け付けるのと同じ JSON タグ付き `Op` enum を渡します。代表的な variant には `AddPage`、`RemovePage`、`AddNode`、`UpdateNode`、`RemoveNode`、`Batch` があります。
 
-`view_image` で使える layer:
+レスポンスは `{ epoch }` で、op 適用後の新しいシーン epoch を返します。
 
-- `original`
-- `segment`
-- `inpainted`
-- `rendered`
+### `koharu.undo` / `koharu.redo`
 
-`view_text_block` で使える layer:
+履歴スタックを 1 ステップずつ進めたり戻したりします。両方とも `{ epoch }` を返し、スタック端 (取り消すまたは再適用するものがない場合) では `epoch` が `null` になります。
 
-- `original`
-- `rendered`
+### `koharu.open_project`
 
-## ドキュメント読み込みと export 系ツール
+既存のプロジェクトディレクトリを開くか、指定パスに新しく作成します。`createName` を渡すとそのパス配下に新規プロジェクトを作成し、省略するとそこにある既存のものを開きます。
 
-| Tool | 役割 | 主な引数 |
-| --- | --- | --- |
-| `open_documents` | ディスク上の画像ファイルを読み込み、現在の集合を置き換える | `paths` |
-| `export_document` | rendered document をディスクへ書き出す | `index`, `output_path` |
+レスポンスはアクティブになったセッションの `{ name, path }` を返します。
 
-`open_documents` はアップロード済みファイル blob ではなく、ファイルシステムパスを受け取ります。
+### `koharu.close_project`
 
-`export_document` が現在書き出せるのは rendered image だけです。PSD export は HTTP API では使えますが、専用の MCP ツールはまだありません。
+現在のセッションを閉じます。これ以降、プロジェクトを必要とする呼び出しは、別のプロジェクトを開くまで `invalid request` エラーを返します。
 
-## パイプライン系ツール
+### `koharu.start_pipeline`
 
-| Tool | 役割 | 主な引数 |
-| --- | --- | --- |
-| `detect` | テキスト検出とフォント推定を実行する | `index` |
-| `ocr` | 検出済みブロックに OCR をかける | `index` |
-| `inpaint` | 現在の mask を使って文字を除去する | `index` |
-| `render` | 翻訳済みテキストをページに描き戻す | `index`, 任意で `text_block_index`, `shader_effect`, `font_family` |
-| `process` | detect -> OCR -> inpaint -> translate -> render をまとめて開始する | 任意で `document_id`, `llm_target`, `language`, `shader_effect`, `font_family` |
+バックグラウンドでパイプライン実行をスポーンします。`steps` はパイプラインの `Registry` に登録された engine id の順序付きリストです (`GET /api/v1/engines` で検証されます)。`pages` を省略するとプロジェクト内全ページが対象になり、`PageId` のリストを渡すと対象を絞り込めます。
 
-`process` は粗粒度の convenience tool です。より細かな制御や切り分けが必要なら、各段階ツールを個別に使ってください。
+レスポンスは即座に `{ jobId }` を返します。進捗と完了は HTTP の `/events` ストリームに `JobStarted`、`JobProgress`、`JobWarning`、`JobFinished` として配信されます。MCP transport 自体はジョブ進捗をストリームしないので、SSE を購読してください。
 
-## LLM 系ツール
+## 推奨されるエージェントフロー
 
-| Tool | 役割 | 主な引数 |
-| --- | --- | --- |
-| `llm_load` | 翻訳モデル target を読み込む | `target`, 任意で `options.temperature`, `options.max_tokens`, `options.custom_system_prompt` |
-| `llm_offload` | 現在のモデルをアンロードする | なし |
-| `llm_generate` | 1 ブロックまたは全ブロックを翻訳する | `index`, 任意で `text_block_index`, `language` |
+ほとんどのエージェントセッションは次のような流れになります。
 
-`llm_generate` を使うには、事前に LLM が読み込まれている必要があります。
+1. `koharu.open_project` — 管理対象のプロジェクトディレクトリを指定する
+2. HTTP 経由で `GET /api/v1/scene.json` を読み、シーンを確認する
+3. 次のいずれか:
+    - 明示的な `Op` ペイロードで `koharu.apply` を呼び、絞り込んだ編集を行う
+    - `koharu.start_pipeline` でエンドツーエンドのパイプラインを実行し、`GET /api/v1/events` を監視する
+4. HTTP 経由で `POST /api/v1/projects/current/export` から書き出す
+5. `koharu.close_project`
 
-## Text-block 編集系ツール
-
-| Tool | 役割 | 主な引数 |
-| --- | --- | --- |
-| `update_text_block` | テキスト、翻訳、box geometry、style を patch する | `index`, `text_block_index`, 任意で text / style フィールド |
-| `add_text_block` | 空の text block を追加する | `index`, `x`, `y`, `width`, `height` |
-| `remove_text_block` | 1 つの text block を削除する | `index`, `text_block_index` |
-
-現在の update ツールで変更できるのは次です。
-
-- `translation`
-- `x`
-- `y`
-- `width`
-- `height`
-- `font_families`
-- `font_size`
-- `color`
-- `shader_effect`
-
-## Mask とクリーンアップ系ツール
-
-| Tool | 役割 | 主な引数 |
-| --- | --- | --- |
-| `dilate_mask` | 現在の text mask を膨張させる | `index`, `radius` |
-| `erode_mask` | 現在の text mask を縮小する | `index`, `radius` |
-| `inpaint_region` | 特定矩形だけ再 inpaint する | `index`, `x`, `y`, `width`, `height` |
-
-これらは、自動生成された segmentation mask が惜しいところまで来ているが、手動調整がまだ必要な場合に便利です。
-
-## 推奨されるプロンプトフロー
-
-エージェントを安定して動かすには、次の順番が扱いやすいです。
-
-1. `open_documents`
-2. `get_documents`
-3. `detect`
-4. `ocr`
-5. `get_document`
-6. `llm_load`
-7. `llm_generate`
-8. `inpaint`
-9. `render`
-10. `view_image`
-11. `export_document`
-
-問題のある block を確認したい場合は、エージェントにレイアウトや翻訳を直させる前に `view_text_block` を使ってください。
+`koharu.undo` と `koharu.redo` は、間違った op を適用してしまい、逆 op を手で計算するより取り消した方が早いときに便利です。
 
 ## 関連ページ
 

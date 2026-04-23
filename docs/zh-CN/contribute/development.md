@@ -13,7 +13,7 @@ cd koharu
 
 ## 前置依赖
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 或更新
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 或更新（Rust 2024 edition）
 - [Bun](https://bun.sh/) 1.0 或更新
 
 ### Windows

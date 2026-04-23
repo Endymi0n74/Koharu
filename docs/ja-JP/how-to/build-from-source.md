@@ -24,7 +24,7 @@ title: ソースからビルドする
 
 ## 前提条件
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.92 以降
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 以降 (Rust 2024 edition)
 - [Bun](https://bun.sh/) 1.0 以降
 
 Windows でソースビルドする場合は、次も必要です。

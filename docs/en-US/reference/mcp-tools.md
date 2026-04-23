@@ -10,128 +10,64 @@ Koharu exposes MCP tools at:
 http://127.0.0.1:<PORT>/mcp
 ```
 
-These tools operate on the same runtime state as the GUI and HTTP API.
+The MCP server uses the streamable HTTP transport from `rmcp 1.5` and operates on the same project, scene, and pipeline state as the GUI and HTTP API.
 
-## General behavior
+## What the MCP server exposes today
 
-Important implementation details:
+The current implementation deliberately exposes a small, low-level surface centred on the project lifecycle, the history layer, and pipeline jobs. Fine-grained edits go through `koharu.apply` with an `Op` payload rather than dedicated per-field tools.
 
-- image-based tools can return text plus inline image content
-- `open_documents` replaces the current document set rather than appending
-- `process` starts the full pipeline but does not itself stream progress
-- `llm_load` and `process` currently accept local-model-style parameters and do not expose every HTTP API field
+If you need richer inspection (page thumbnails, image layers, font lists, scene snapshots), use the [HTTP API](http-api.md) directly. The two run side-by-side on the same port and share a single in-process state.
 
-## Inspection tools
+## Tools
 
-| Tool | What it does | Key parameters |
-| --- | --- | --- |
-| `app_version` | get the application version | none |
-| `device` | get ML device and GPU-related info | none |
-| `get_documents` | get the number of loaded documents | none |
-| `get_document` | get one document's metadata and text blocks | `index` |
-| `list_font_families` | list available render fonts | none |
-| `llm_list` | list translation models | none |
-| `llm_ready` | check whether an LLM is currently loaded | none |
+| Tool                    | Purpose                                                  | Parameters                                                                       |
+| ----------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `koharu.apply`          | apply an `Op` to the active scene                        | `op` — JSON-tagged `Op` value                                                    |
+| `koharu.undo`           | revert the most recent op                                | none                                                                             |
+| `koharu.redo`           | re-apply the most recent undone op                       | none                                                                             |
+| `koharu.open_project`   | open or create a Koharu project directory                | `path`, optional `createName`                                                    |
+| `koharu.close_project`  | close the active project                                 | none                                                                             |
+| `koharu.start_pipeline` | start a pipeline run; returns a `jobId`                  | `steps[]`, optional `pages[]`, `targetLanguage`, `systemPrompt`, `defaultFont`   |
 
-## Image and block preview tools
+### `koharu.apply`
 
-| Tool | What it does | Key parameters |
-| --- | --- | --- |
-| `view_image` | preview a whole document layer | `index`, `layer`, optional `max_size` |
-| `view_text_block` | preview one cropped text block | `index`, `text_block_index`, optional `layer` |
+Applies a single mutation to the scene through the history layer. The `op` value is the same JSON-tagged `Op` enum the HTTP API accepts at `POST /history/apply` — common variants include `AddPage`, `RemovePage`, `AddNode`, `UpdateNode`, `RemoveNode`, and `Batch`.
 
-Valid `view_image` layers:
+Returns `{ epoch }` — the new scene epoch after the op is applied.
 
-- `original`
-- `segment`
-- `inpainted`
-- `rendered`
+### `koharu.undo` / `koharu.redo`
 
-Valid `view_text_block` layers:
+Walk the history stack one step in either direction. Both return `{ epoch }` where `epoch` is `null` at a stack boundary (nothing left to undo or redo).
 
-- `original`
-- `rendered`
+### `koharu.open_project`
 
-## Document and export tools
+Opens an existing project directory or creates one at the supplied path. Pass `createName` to create a new project under the path; omit it to open whatever is already there.
 
-| Tool | What it does | Key parameters |
-| --- | --- | --- |
-| `open_documents` | load image files from disk and replace the current set | `paths` |
-| `export_document` | write the rendered document to disk | `index`, `output_path` |
+Returns `{ name, path }` for the now-active session.
 
-`open_documents` expects filesystem paths, not uploaded file blobs.
+### `koharu.close_project`
 
-`export_document` currently exports the rendered image path only. PSD export is available through the HTTP API but does not currently have a dedicated MCP tool.
+Closes the current session. Subsequent calls that require a project return an `invalid request` error until another project is opened.
 
-## Pipeline tools
+### `koharu.start_pipeline`
 
-| Tool | What it does | Key parameters |
-| --- | --- | --- |
-| `detect` | run text detection and font prediction | `index` |
-| `ocr` | run OCR on detected blocks | `index` |
-| `inpaint` | remove text using the current mask | `index` |
-| `render` | draw translated text back onto the page | `index`, optional `text_block_index`, `shader_effect`, `font_family` |
-| `process` | start detect -> OCR -> inpaint -> translate -> render | optional `document_id`, `llm_target`, `language`, `shader_effect`, `font_family` |
+Spawns a pipeline run in the background. `steps` is an ordered list of engine ids registered through the pipeline `Registry` (validated against `GET /api/v1/engines`). Omit `pages` to run on every page in the project; pass a list of `PageId`s to scope the run to a subset.
 
-`process` is the coarse-grained convenience tool. If you need finer control or easier debugging, use the stage tools separately.
+Returns `{ jobId }` immediately. Progress and completion are published on the HTTP `/events` stream as `JobStarted`, `JobProgress`, `JobWarning`, and `JobFinished`. The MCP transport itself does not stream job progress — you watch SSE for that.
 
-## LLM tools
+## Suggested agent flow
 
-| Tool | What it does | Key parameters |
-| --- | --- | --- |
-| `llm_load` | load a translation model target | `target`, optional `options.temperature`, `options.max_tokens`, `options.custom_system_prompt` |
-| `llm_offload` | unload the current model | none |
-| `llm_generate` | translate one block or all blocks | `index`, optional `text_block_index`, `language` |
+Most agent sessions look like this:
 
-`llm_generate` expects an LLM to already be loaded.
+1. `koharu.open_project` — point at a managed project directory
+2. read `GET /api/v1/scene.json` over HTTP to inspect the scene
+3. either:
+    - apply scoped edits via `koharu.apply` with explicit `Op` payloads, or
+    - run an end-to-end pipeline via `koharu.start_pipeline` and watch `GET /api/v1/events`
+4. export through `POST /api/v1/projects/current/export` over HTTP
+5. `koharu.close_project`
 
-## Text-block editing tools
-
-| Tool | What it does | Key parameters |
-| --- | --- | --- |
-| `update_text_block` | patch text, translation, box geometry, or style | `index`, `text_block_index`, optional text and style fields |
-| `add_text_block` | add a new empty text block | `index`, `x`, `y`, `width`, `height` |
-| `remove_text_block` | remove one text block | `index`, `text_block_index` |
-
-The current update tool can change:
-
-- `translation`
-- `x`
-- `y`
-- `width`
-- `height`
-- `font_families`
-- `font_size`
-- `color`
-- `shader_effect`
-
-## Mask and cleanup tools
-
-| Tool | What it does | Key parameters |
-| --- | --- | --- |
-| `dilate_mask` | expand the current text mask | `index`, `radius` |
-| `erode_mask` | shrink the current text mask | `index`, `radius` |
-| `inpaint_region` | re-inpaint a specific rectangle only | `index`, `x`, `y`, `width`, `height` |
-
-These are useful when the automatic segmentation mask is close but still needs manual cleanup.
-
-## Suggested prompt flow
-
-For reliable agent behavior, this sequence works well:
-
-1. `open_documents`
-2. `get_documents`
-3. `detect`
-4. `ocr`
-5. `get_document`
-6. `llm_load`
-7. `llm_generate`
-8. `inpaint`
-9. `render`
-10. `view_image`
-11. `export_document`
-
-If you need to inspect a problem block, use `view_text_block` before asking the agent to patch layout or translation.
+`koharu.undo` and `koharu.redo` are useful when an op turns out to be wrong and you want to back out instead of computing the inverse manually.
 
 ## Related pages
 

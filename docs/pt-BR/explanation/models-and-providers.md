@@ -82,23 +82,30 @@ O seletor local também inclui famílias de propósito geral que não são espec
 
 O Koharu também pode traduzir através de APIs remotas ou auto-hospedadas em vez de baixar um modelo local.
 
-Os provedores suportados incluem:
+As famílias de provedores suportados são:
 
-- OpenAI
-- Gemini
-- Claude
-- DeepSeek
-- APIs compatíveis com OpenAI, como LM Studio, OpenRouter ou qualquer endpoint que exponha `/v1/models` e `/v1/chat/completions`
+- baseados em LLM: `OpenAI`, `Gemini`, `Claude`, `DeepSeek`, mais qualquer endpoint `OpenAI-compatible` que exponha `/v1/models` e `/v1/chat/completions` (LM Studio, OpenRouter, vLLM, etc.)
+- tradução automática: `DeepL`, `Google Cloud Translation`, `Caiyun`
 
-### Modelos remotos internos atuais
+Provedores de tradução automática são serviços de tradução puros, não modelos de chat. Eles recebem o texto fonte e um idioma de destino e devolvem uma tradução; não há system prompt nem seletor de modelo.
 
-Os padrões internos atuais para o seletor de provedor são:
+### Modelos remotos de LLM internos atuais
+
+Os padrões internos atuais para os provedores baseados em LLM são:
 
 - OpenAI: `gpt-5-mini` (`GPT-5 mini`)
 - Gemini: `gemini-3.1-flash-lite-preview` (`Gemini 3.1 Flash-Lite Preview`)
 - Claude: `claude-haiku-4-5` (`Claude Haiku 4.5`)
 - DeepSeek: `deepseek-chat` (`DeepSeek-V3.2-Chat`)
 - APIs compatíveis com OpenAI: os modelos são descobertos dinamicamente a partir do endpoint configurado
+
+### Provedores de tradução automática
+
+| Provedor | O que você precisa | Notas |
+| --- | --- | --- |
+| `DeepL` | Chave de API do DeepL | Base URL customizada opcional para os endpoints do DeepL Pro vs. Free |
+| `Google Cloud Translation` | Chave de API do Google Cloud | Usa o endpoint REST v2 |
+| `Caiyun` | Token do Caiyun | Cobertura limitada de idiomas de destino |
 
 Os provedores remotos são configurados em **Configurações > Chaves de API**.
 

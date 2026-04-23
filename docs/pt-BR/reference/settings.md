@@ -4,11 +4,12 @@ title: Referência de configurações
 
 # Referência de configurações
 
-A tela de configurações do Koharu atualmente expõe cinco áreas principais:
+A tela de configurações do Koharu atualmente expõe seis áreas principais:
 
 - `Appearance`
 - `Engines`
 - `API Keys`
+- `Keybinds`
 - `Runtime`
 - `About`
 
@@ -47,7 +48,17 @@ A aba `API Keys` cobre atualmente estes provedores embutidos:
 - `Gemini`
 - `Claude`
 - `DeepSeek`
+- `DeepL`
+- `Google Cloud Translation`
+- `Caiyun`
 - `OpenAI Compatible`
+
+Cada provedor aparece como um accordion com um indicador de status (status dot):
+
+- verde — pronto (chave salva e descoberta bem-sucedida)
+- âmbar — falta configuração obrigatória (chave de API ou, para `OpenAI Compatible`, uma base URL)
+- vermelho — a descoberta falhou contra o endpoint configurado
+- cinza — sem configuração ainda
 
 Comportamento atual:
 
@@ -55,13 +66,29 @@ Comportamento atual:
 - no macOS e no Windows, as chaves de API dos provedores são armazenadas pelo keyring do sistema
 - no Linux, as chaves de API dos provedores são armazenadas no armazenamento local de credenciais do Koharu sob o diretório de dados do app com permissões somente para o usuário dono
 - as base URLs dos provedores são armazenadas na config do app
-- `OpenAI Compatible` requer uma `Base URL` customizada
-- o app descobre modelos dinamicamente para `OpenAI Compatible` consultando o endpoint configurado
+- `OpenAI Compatible` requer uma `Base URL` customizada; os modelos são descobertos dinamicamente chamando `GET /v1/models` contra essa URL
+- provedores de tradução automática (`DeepL`, `Google Cloud Translation`, `Caiyun`) precisam apenas de uma chave de API; o `Caiyun` suporta um conjunto limitado de idiomas de destino
 - limpar uma chave a remove do armazenamento de credenciais
 
 O response da API intencionalmente redacta as chaves salvas em vez de retornar o segredo bruto.
 
 O armazenamento local de credenciais no Linux depende das permissões do filesystem em vez de criptografia em nível de sistema operacional.
+
+## Keybinds
+
+A aba `Keybinds` permite remapear os atalhos de troca de ferramenta e de tamanho de pincel, além dos atalhos de desfazer e refazer.
+
+Comportamento atual:
+
+- os padrões são `V`/`M`/`B`/`E`/`R` para as ferramentas Selecionar / Bloco / Pincel / Borracha / Pincel de Reparo
+- os padrões são `[` e `]` para o passo do tamanho do pincel
+- os padrões são `Ctrl + Z` e `Ctrl + Shift + Z` (`Cmd + Z` e `Cmd + Shift + Z` no macOS) para desfazer e refazer
+- o zoom do canvas (`Ctrl` + roda), o pan (`Ctrl` + arrastar), o select-all (`Ctrl + A`) e o fallback legado de refazer com `Ctrl + Y` não são remapeáveis
+- conflitos são destacados no editor; você pode redefinir tudo para os padrões na mesma tela
+
+As preferências de atalhos ficam armazenadas na camada de preferências do frontend, não em `config.toml`.
+
+Para a lista completa de padrões, veja [Atalhos de teclado](keyboard-shortcuts.md).
 
 ## Runtime
 

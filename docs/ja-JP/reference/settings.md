@@ -4,11 +4,12 @@ title: 設定リファレンス
 
 # 設定リファレンス
 
-現在の Koharu の Settings 画面は、主に次の 5 セクションで構成されています。
+現在の Koharu の Settings 画面は、主に次の 6 セクションで構成されています。
 
 - `Appearance`
 - `Engines`
 - `API Keys`
+- `Keybinds`
 - `Runtime`
 - `About`
 
@@ -47,7 +48,17 @@ title: 設定リファレンス
 - `Gemini`
 - `Claude`
 - `DeepSeek`
+- `DeepL`
+- `Google Cloud Translation`
+- `Caiyun`
 - `OpenAI Compatible`
+
+各プロバイダはステータスドット付きのアコーディオンとして表示されます。
+
+- 緑 — 利用可能 (キーが保存され、モデル discovery に成功)
+- 黄 — 必須項目が未設定 (API キー、または `OpenAI Compatible` の場合は base URL)
+- 赤 — 設定されたエンドポイントに対する discovery が失敗
+- 灰 — まだ何も設定されていない
 
 現在の挙動:
 
@@ -55,13 +66,29 @@ title: 設定リファレンス
 - macOS と Windows では、provider の API キーはシステム keyring に保存されます
 - Linux では、provider の API キーはアプリデータディレクトリ配下の Koharu ローカルファイルシステム認証情報ストアに保存され、所有ユーザーのみが読める権限が設定されます
 - provider の `Base URL` は共有アプリ設定に保存されます
-- `OpenAI Compatible` ではカスタム `Base URL` が必須です
-- `OpenAI Compatible` のモデル一覧は設定済みエンドポイントへの問い合わせで動的取得されます
+- `OpenAI Compatible` ではカスタム `Base URL` が必須です。モデルはその URL に対して `GET /v1/models` を呼び出して動的に取得されます
+- 機械翻訳プロバイダ (`DeepL`、`Google Cloud Translation`、`Caiyun`) は API キーのみで使えます。`Caiyun` は対応ターゲット言語が限られます
 - キーをクリアすると認証情報ストレージから削除されます
 
 API レスポンスでは保存済みキーは生値ではなく、マスク済みの値として返されます。
 
 Linux のファイルシステム認証情報ストアは、OS レベルの暗号化ではなくローカルファイルシステム権限に依存します。
+
+## キーバインド
+
+`Keybinds` タブでは、ツール切り替えとブラシサイズのショートカット、および undo / redo のキー割り当てを変更できます。
+
+現在の挙動:
+
+- 既定値は Select / Block / Brush / Eraser / Repair Brush の各ツールに対して `V` / `M` / `B` / `E` / `R`
+- ブラシサイズの増減は既定で `[` と `]`
+- undo と redo は既定で `Ctrl + Z` と `Ctrl + Shift + Z` (macOS では `Cmd + Z` と `Cmd + Shift + Z`)
+- キャンバスのズーム (`Ctrl` + ホイール)、パン (`Ctrl` + ドラッグ)、全選択 (`Ctrl + A`)、レガシーの `Ctrl + Y` redo フォールバックは再割り当てできません
+- キーが競合する場合はエディタ上で強調表示され、同じ画面から既定値へ戻すこともできます
+
+キーバインド設定は `config.toml` ではなく、フロントエンドの preferences 層に保存されます。
+
+既定値の全リストは [キーボードショートカット](keyboard-shortcuts.md) を参照してください。
 
 ## Runtime
 
