@@ -1,3 +1,19 @@
+## [0.47.8](https://github.com/mayocream/koharu/compare/0.47.7..0.47.8) - 2026-04-23
+
+### 🐛 Bug Fixes
+
+- Show auto when not manual override for font size - ([e2f1d2b](https://github.com/mayocream/koharu/commit/e2f1d2b9462f2cab3b57e80888cb8e45cb03f6c6))
+
+### 📚 Documentation
+
+- Update to match current implementation - ([0f2a31b](https://github.com/mayocream/koharu/commit/0f2a31bc7ec2a390513181031249d1027a0c5114))
+- Improve readme - ([6095446](https://github.com/mayocream/koharu/commit/6095446104dd9715fa0f625dbc0fa2d4537a4a4b))
+
+### ⚙️ Miscellaneous Tasks
+
+- Rust 1.95.0 clippy fix - ([a1ba983](https://github.com/mayocream/koharu/commit/a1ba983ee5f23d94d4d746f99159fbed7c67dc62))
+
+
 ## [0.47.7](https://github.com/mayocream/koharu/compare/0.47.6..0.47.7) - 2026-04-22
 
 ### 🐛 Bug Fixes
