@@ -182,10 +182,9 @@ export function RenderControlsPanel() {
   const currentStrokeColorHex = colorToHex(currentStroke.color ?? DEFAULT_STROKE_COLOR)
   const currentStrokeWidth = currentStroke.widthPx ?? DEFAULT_STROKE_WIDTH
   const currentEffect = normalizeEffect(selectedStyle?.effect ?? renderEffect)
-  const currentFontSize: number | undefined =
-    (selectedNode?.data.style?.fontSize ?? undefined) ||
-    selectedNode?.data.fontPrediction?.fontSizePx ||
-    (selectedNode?.data.detectedFontSizePx ?? undefined)
+  // The scene only persists manual overrides in `style.fontSize`. Font detector
+  // metadata describes the source text, not the renderer's current auto-fit size.
+  const currentFontSize: number | undefined = selectedNode?.data.style?.fontSize ?? undefined
 
   const effectiveAlign: TextAlign =
     selectedNode?.data.style?.textAlign ??

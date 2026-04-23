@@ -4,9 +4,9 @@ import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RenderControlsPanel } from '@/components/panels/RenderControlsPanel'
-import { useSelectionStore } from '@/lib/stores/selectionStore'
-import { usePreferencesStore } from '@/lib/stores/preferencesStore'
 import * as sceneActions from '@/lib/io/scene'
+import { usePreferencesStore } from '@/lib/stores/preferencesStore'
+import { useSelectionStore } from '@/lib/stores/selectionStore'
 
 import { renderWithQuery } from '../helpers'
 import { server } from '../msw/server'
@@ -140,5 +140,33 @@ describe('RenderControlsPanel Font Assignment', () => {
 
     // Verify default font changed
     expect(usePreferencesStore.getState().defaultFont).toBe('Custom')
+  })
+
+  it('shows auto when a selected block has no manual font size override', async () => {
+    server.use(
+      http.get('/api/v1/scene.json', () =>
+        HttpResponse.json(
+          sceneWithTextNodes([
+            {
+              id: 't1',
+              kind: {
+                text: {
+                  style: { fontFamilies: ['Arial'] },
+                  fontPrediction: { fontSizePx: 66, strokeWidthPx: 0, textColor: [0, 0, 0] },
+                  detectedFontSizePx: 30,
+                },
+              },
+            },
+          ]),
+        ),
+      ),
+    )
+
+    renderWithQuery(<RenderControlsPanel />)
+    useSelectionStore.getState().select('t1', false)
+
+    const input = (await screen.findByTestId('render-font-size')) as HTMLInputElement
+    await waitFor(() => expect(input.value).toBe(''))
+    expect(input).toHaveAttribute('placeholder', 'auto')
   })
 })
