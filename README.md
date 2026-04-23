@@ -98,9 +98,7 @@ Those values are loaded at startup, so changing them saves the config and restar
 
 Koharu includes built-in Google Fonts support for translated text rendering, so you can use web fonts without managing font files by hand.
 
-Google Fonts are fetched on demand from a bundled catalog. Koharu caches downloaded files under the app data directory and reuses them for later renders, so you usually only need an internet connection the first time a family is used on that machine.
-
-The catalog includes a small set of comic-friendly recommended families. Once cached, a Google Font behaves like any other local render font.
+Google Fonts are fetched on demand from a bundled catalog. Koharu caches downloaded files under the app data directory and reuses them for later renders, so you usually only need an internet connection the first time a family is used on that machine. Once cached, a Google Font behaves like any other local render font.
 
 ### Text Rendering
 
@@ -112,9 +110,9 @@ It supports vertical CJK layout, right-to-left scripts, font fallback, vertical 
 
 Koharu supports CUDA, experimental ZLUDA, Metal, and Vulkan. CPU fallback is always available when the accelerated path is unavailable or not worth the setup cost on your system.
 
-### CUDA (NVIDIA GPUs on Windows)
+### CUDA (NVIDIA GPUs on Windows and Linux)
 
-On Windows, Koharu ships with CUDA support so it can use NVIDIA GPUs for the full local pipeline.
+On Windows and Linux, Koharu ships with CUDA support so it can use NVIDIA GPUs for the full local pipeline.
 
 Koharu bundles CUDA Toolkit 13.0. The required DLLs are extracted to the application data directory on first run.
 
@@ -197,7 +195,7 @@ This model helps infer source font and color characteristics for rendering.
 
 The required models are downloaded automatically on first use.
 
-Some models are consumed directly from upstream Hugging Face repos, while Rust-friendly `safetensors` conversions are hosted on [Hugging Face](https://huggingface.co/mayocream) when Koharu needs a converted bundle.
+Some models are consumed directly from upstream Hugging Face repos, while Rust-friendly safetensors conversions are hosted on [Hugging Face](https://huggingface.co/mayocream) when Koharu needs a converted bundle.
 
 For a closer look at the pipeline, see [Models and Providers](https://koharu.rs/explanation/models-and-providers/) and the [Technical Deep Dive](https://koharu.rs/explanation/technical-deep-dive/).
 
@@ -242,8 +240,6 @@ Built-in cloud defaults: OpenAI `gpt-5-mini`, Gemini `gemini-3.1-flash-lite-prev
 
 Koharu supports OpenAI-compatible endpoints such as LM Studio, OpenRouter, and other self-hosted or third-party APIs that expose `/v1/models` and `/v1/chat/completions`.
 
-Built-in OpenAI-compatible behavior: models are discovered from the configured endpoint.
-
 Cloud providers can be configured with API keys. OpenAI-compatible providers also need a custom base URL. API keys are stored securely in your system keychain instead of plain text config files. API keys are optional for local servers such as LM Studio, but are usually required for hosted services such as OpenRouter.
 
 Use a remote provider to avoid local model downloads, reduce VRAM or RAM requirements, or integrate with an existing hosted or self-hosted endpoint. Keep in mind that the OCR text selected for translation is sent to the provider you configured.
@@ -257,7 +253,31 @@ You can download the latest release of Koharu from the [releases page](https://g
 We provide prebuilt binaries for Windows, macOS, and Linux. For the standard install flow, see [Install Koharu](https://koharu.rs/how-to/install-koharu/). If something goes wrong, see [Troubleshooting](https://koharu.rs/how-to/troubleshooting/).
 
 Koharu can run offline with local models once the required runtimes, models, and fonts are already present on disk.
-For portable deployments, place a `config.toml` next to the binary to keep the default config, runtime, and model directories beside the app.
+
+### Docker
+
+Koharu also publishes official Docker images for headless use. You can pull the latest image from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/mayocream/koharu:latest
+```
+
+Then run the container with the desired port mapping:
+
+```bash
+docker run -p 4000:4000 ghcr.io/mayocream/koharu:latest
+```
+
+## Troubleshooting
+
+Koharu provides a diagnostic mode that outputs detailed logs and system information to help identify issues with installation, GPU acceleration, model loading, and more. To enable it, run:
+
+```bash
+# macOS / Linux
+koharu --debug
+# Windows
+koharu.exe --debug
+```
 
 ## Development
 
@@ -267,6 +287,9 @@ To build Koharu from source, follow the steps below.
 
 - [Rust](https://www.rust-lang.org/tools/install) 1.92 or later
 - [Bun](https://bun.sh/) 1.0 or later
+
+Optional dependencies for GPU acceleration builds:
+
 - [LLVM](https://llvm.org/) 15 or later (for GPU acceleration builds)
 - [CUDA Toolkit](https://developer.nvidia.com/cuda-13-0-0-download-archive) 13.0 (for CUDA and ZLUDA support on Windows)
 - [AMD HIP SDK](https://www.amd.com/en/developer/resources/rocm-hub/hip-sdk.html) (for ZLUDA support on Windows)
