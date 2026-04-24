@@ -29,8 +29,8 @@ use self::{
 
 const FLUX2_REPO: &str = "unsloth/FLUX.2-klein-4B-GGUF";
 const FLUX2_GGUF: &str = "flux-2-klein-4b-Q4_K_M.gguf";
-const VAE_REPO: &str = "black-forest-labs/FLUX.2-klein-4B";
-const VAE_FILE: &str = "vae/diffusion_pytorch_model.safetensors";
+const VAE_REPO: &str = "black-forest-labs/FLUX.2-small-decoder";
+const VAE_FILE: &str = "diffusion_pytorch_model.safetensors";
 const INPAINT_CROP_CONTEXT: u32 = 64;
 
 #[derive(Debug, Clone, Copy)]
@@ -49,7 +49,7 @@ koharu_runtime::declare_hf_model_package!(
     order: 140,
 );
 koharu_runtime::declare_hf_model_package!(
-    id: "model:flux2-klein-4b:vae",
+    id: "model:flux2-klein-4b:small-decoder",
     repo: VAE_REPO,
     file: VAE_FILE,
     bootstrap: false,

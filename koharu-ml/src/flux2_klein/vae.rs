@@ -9,6 +9,7 @@ pub struct Flux2VaeConfig {
     pub out_channels: usize,
     pub latent_channels: usize,
     pub block_out_channels: Vec<usize>,
+    pub decoder_block_out_channels: Vec<usize>,
     pub layers_per_block: usize,
     pub norm_num_groups: usize,
     pub batch_norm_eps: f64,
@@ -21,6 +22,7 @@ impl Default for Flux2VaeConfig {
             out_channels: 3,
             latent_channels: 32,
             block_out_channels: vec![128, 256, 512, 512],
+            decoder_block_out_channels: vec![96, 192, 384, 384],
             layers_per_block: 2,
             norm_num_groups: 32,
             batch_norm_eps: 1e-4,
@@ -421,7 +423,7 @@ impl Decoder {
             padding: 1,
             ..Default::default()
         };
-        let mid_channels = *cfg.block_out_channels.last().unwrap();
+        let mid_channels = *cfg.decoder_block_out_channels.last().unwrap();
         let conv_in = conv2d(
             cfg.latent_channels,
             mid_channels,
@@ -431,7 +433,7 @@ impl Decoder {
         )?;
         let mid_block = UNetMidBlock2D::new(mid_channels, cfg.norm_num_groups, vb.pp("mid_block"))?;
         let reversed_channels = cfg
-            .block_out_channels
+            .decoder_block_out_channels
             .iter()
             .rev()
             .copied()
