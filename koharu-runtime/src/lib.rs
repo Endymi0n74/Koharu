@@ -18,6 +18,7 @@ pub use inventory;
 pub use loader::{load_library_by_name, load_library_by_path};
 pub use packages::{PackageCatalog as Catalog, PackageFuture, PackageKind, PackageRegistration};
 pub use runtime::{
-    ComputePolicy, Runtime, RuntimeHttpConfig, RuntimeManager, default_app_data_root,
+    ComputePolicy, Runtime, RuntimeHttpClient, RuntimeHttpConfig, RuntimeManager,
+    default_app_data_root,
 };
 pub use secrets::{SecretStore, delete_secret, get_secret, set_secret};

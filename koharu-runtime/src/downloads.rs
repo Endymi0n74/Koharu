@@ -12,14 +12,10 @@ use hf_hub::{
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use koharu_core::events::{DownloadProgress, DownloadStatus};
 use reqwest::header::{CONTENT_LENGTH, RANGE};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::broadcast;
 
-use crate::runtime::RuntimeHttpConfig;
-
-const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+use crate::runtime::{RuntimeHttpClient, RuntimeHttpConfig};
 
 /// 10 MiB per ranged GET — same size hf-hub's `.high()` mode uses. Short enough
 /// that reqwest's read_timeout catches a stalled connection quickly, and the
@@ -38,7 +34,7 @@ const HF_METADATA_TIMEOUT: Duration = Duration::from_secs(30);
 pub struct Downloads {
     downloads_root: PathBuf,
     huggingface_cache: Cache,
-    client: Arc<ClientWithMiddleware>,
+    client: RuntimeHttpClient,
     tx: broadcast::Sender<DownloadProgress>,
     progress: Arc<MultiProgress>,
 }
@@ -49,18 +45,7 @@ impl Downloads {
         huggingface_root: PathBuf,
         http: &RuntimeHttpConfig,
     ) -> Result<Self> {
-        let base = reqwest::Client::builder()
-            .user_agent(USER_AGENT)
-            .connect_timeout(Duration::from_secs(http.connect_timeout_secs))
-            .read_timeout(Duration::from_secs(http.read_timeout_secs))
-            .build()?;
-        let client = Arc::new(
-            ClientBuilder::new(base)
-                .with(RetryTransientMiddleware::new_with_policy(
-                    ExponentialBackoff::builder().build_with_max_retries(http.max_retries),
-                ))
-                .build(),
-        );
+        let client = http.build_client()?;
 
         Ok(Self {
             downloads_root,
@@ -71,7 +56,7 @@ impl Downloads {
         })
     }
 
-    pub fn client(&self) -> Arc<ClientWithMiddleware> {
+    pub fn client(&self) -> RuntimeHttpClient {
         Arc::clone(&self.client)
     }
 

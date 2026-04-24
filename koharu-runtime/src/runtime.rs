@@ -1,13 +1,19 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
-use reqwest_middleware::ClientWithMiddleware;
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use tokio::sync::broadcast;
 
 use crate::downloads::Downloads;
 use crate::packages::PackageCatalog;
+
+const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
+pub type RuntimeHttpClient = Arc<ClientWithMiddleware>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComputePolicy {
@@ -29,6 +35,23 @@ impl Default for RuntimeHttpConfig {
             read_timeout_secs: 300,
             max_retries: 3,
         }
+    }
+}
+
+impl RuntimeHttpConfig {
+    pub fn build_client(&self) -> Result<RuntimeHttpClient> {
+        let base = reqwest::Client::builder()
+            .user_agent(USER_AGENT)
+            .connect_timeout(Duration::from_secs(self.connect_timeout_secs))
+            .read_timeout(Duration::from_secs(self.read_timeout_secs))
+            .build()?;
+        Ok(Arc::new(
+            ClientBuilder::new(base)
+                .with(RetryTransientMiddleware::new_with_policy(
+                    ExponentialBackoff::builder().build_with_max_retries(self.max_retries),
+                ))
+                .build(),
+        ))
     }
 }
 
@@ -104,7 +127,7 @@ impl Runtime {
         matches!(self.inner.compute, ComputePolicy::PreferGpu)
     }
 
-    pub fn http_client(&self) -> Arc<ClientWithMiddleware> {
+    pub fn http_client(&self) -> RuntimeHttpClient {
         self.inner.downloads.client()
     }
 

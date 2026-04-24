@@ -4,6 +4,7 @@ members = [
     "koharu-llm",
     "koharu-ml",
     "koharu-runtime",
+    "koharu-ai",
     "koharu-psd",
     "koharu-renderer",
     "koharu-app",
@@ -35,6 +36,7 @@ koharu-app = { path = "koharu-app", default-features = false }
 koharu-core = { path = "koharu-core", default-features = false }
 koharu-llm = { path = "koharu-llm" }
 koharu-runtime = { path = "koharu-runtime", default-features = false }
+koharu-ai = { path = "koharu-ai", default-features = false }
 koharu-ml = { path = "koharu-ml", default-features = false }
 koharu-psd = { path = "koharu-psd", default-features = false }
 koharu-renderer = { path = "koharu-renderer", default-features = false }
@@ -73,6 +75,7 @@ strum = { version = "0.28", features = ["derive"] }
 zip = { version = "8.5", default-features = false, features = ["deflate"] }
 dirs = "6.0"
 futures = "0.3"
+eventsource-stream = "0.2.3"
 reqwest = { version = "0.13", features = ["stream", "json", "form", "blocking", "multipart"] }
 secrecy = { version = "0.10", features = ["serde"] }
 reqwest-middleware = "0.5"
