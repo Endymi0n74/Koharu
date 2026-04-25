@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use image::{DynamicImage, GrayImage, Luma};
 use koharu_core::{ImageRole, MaskRole, Op, Region};
 use koharu_ml::flux2_klein::{Flux2InpaintOptions, Flux2Klein};
-use koharu_ml::inpainting::mask::expand_glyph_mask_for_inpainting;
+use koharu_ml::inpainting::mask::expand_mask_to_bubble_region_for_inpainting;
 
 use crate::pipeline::artifacts::Artifact;
 use crate::pipeline::engine::{Engine, EngineCtx, EngineInfo};
@@ -47,7 +47,8 @@ impl Engine for Model {
             .into_iter()
             .map(|(_, transform, text)| text_node_to_region(transform, text))
             .collect::<Vec<_>>();
-        let expanded = expand_glyph_mask_for_inpainting(&mask, &bubble_mask, &text_blocks);
+        let expanded =
+            expand_mask_to_bubble_region_for_inpainting(&mask, &bubble_mask, &text_blocks);
         let mask = match ctx.options.region {
             Some(r) => DynamicImage::ImageLuma8(clip_gray_mask_to_region(&expanded, &r)),
             None => DynamicImage::ImageLuma8(expanded),
