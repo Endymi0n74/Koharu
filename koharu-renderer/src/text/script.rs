@@ -1,5 +1,7 @@
 use harfrust::{Direction, Script, Tag};
 use icu::properties::{CodePointMapData, props::Script as IcuScript};
+use icu_casemap::CaseMapper;
+use icu_locale::LanguageIdentifier;
 use unicode_bidi::BidiInfo;
 
 use crate::layout::WritingMode;
@@ -41,9 +43,14 @@ pub fn is_latin_only(text: &str) -> bool {
     })
 }
 
-pub fn normalize_translation_for_layout(text: &str) -> String {
+pub fn normalize_translation_for_layout(text: &str, language: Option<&str>) -> String {
     if is_latin_only(text) {
-        text.to_uppercase()
+        let mapper = CaseMapper::new();
+        let lang_id: LanguageIdentifier = language
+            .and_then(|l| l.parse().ok())
+            .unwrap_or_else(|| "und".parse().unwrap());
+
+        mapper.uppercase_to_string(text, &lang_id).to_string()
     } else {
         text.to_string()
     }
@@ -246,8 +253,20 @@ mod tests {
 
     #[test]
     fn normalize_uppercases_latin_only() {
-        assert_eq!(normalize_translation_for_layout("hello!"), "HELLO!");
-        assert_eq!(normalize_translation_for_layout("中文"), "中文");
+        assert_eq!(normalize_translation_for_layout("hello!", None), "HELLO!");
+        assert_eq!(normalize_translation_for_layout("中文", None), "中文");
+    }
+
+    #[test]
+    fn normalize_handles_turkish_i() {
+        assert_eq!(
+            normalize_translation_for_layout("kimse", Some("tr")),
+            "KİMSE"
+        );
+        assert_eq!(
+            normalize_translation_for_layout("dolaşıyordu", Some("tr")),
+            "DOLAŞIYORDU"
+        );
     }
 
     #[test]

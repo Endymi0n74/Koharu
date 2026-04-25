@@ -19,7 +19,9 @@ once_cell = { workspace = true }
 serde = { workspace = true }
 skrifa = { workspace = true }
 harfrust = { workspace = true }
-icu = { workspace = true }
+icu = { workspace = true, features = ["compiled_data"] }
+icu_casemap = { workspace = true, features = ["compiled_data"] }
+icu_locale = { workspace = true }
 unicode-bidi = { workspace = true }
 fontdb = { workspace = true }
 fontdue = { workspace = true }

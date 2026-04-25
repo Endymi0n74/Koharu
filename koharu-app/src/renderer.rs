@@ -58,6 +58,7 @@ pub struct PageRenderOptions {
     pub shader_effect: TextShaderEffect,
     pub shader_stroke: Option<TextStrokeStyle>,
     pub document_font: Option<String>,
+    pub target_language: Option<String>,
 }
 
 /// Per-block sprite output. `transform` becomes `TextData.sprite_transform`
@@ -177,6 +178,7 @@ impl Renderer {
                 &opts.shader_effect,
                 &opts.shader_stroke,
                 opts.document_font.as_deref(),
+                opts.target_language.as_deref(),
                 min_font,
             ) {
                 Ok(Some(out)) => rendered_blocks.push(out),
@@ -208,13 +210,14 @@ impl Renderer {
         effect: &TextShaderEffect,
         global_stroke: &Option<TextStrokeStyle>,
         document_font: Option<&str>,
+        target_language: Option<&str>,
         min_font_size: f32,
     ) -> Result<Option<RenderedBlock>> {
         let translation = block.translation.trim();
         if translation.is_empty() {
             return Ok(None);
         }
-        let normalized = normalize_translation_for_layout(translation);
+        let normalized = normalize_translation_for_layout(translation, target_language);
 
         let layout_source = layout_source_from_input(block, translation);
 
