@@ -7,7 +7,7 @@ use eventsource_stream::Eventsource;
 use futures::StreamExt;
 use koharu_ai::codex::{
     CodexClient, CodexConfig, CodexImageGenerationRequest, CodexInputImage, CodexTaskRequest,
-    DEFAULT_RESPONSES_URL,
+    DEFAULT_RESPONSES_URL, image_response_stream_result,
 };
 use serde_json::Value;
 
@@ -207,8 +207,10 @@ async fn image_cmd(client: &CodexClient, command: ImageCommand) -> anyhow::Resul
     }
 
     let response = client.create_response_raw(&request).await?;
-    let Some(url) = image_response_stream_url(response).await? else {
-        anyhow::bail!("No image URL or image result found in response stream");
+    let result = image_response_stream_result(response).await?;
+    let Some(url) = result.image_url else {
+        let response_text = result.response_text.as_deref().unwrap_or("none");
+        anyhow::bail!("No image URL or image result found in response stream: {response_text}");
     };
     println!("{url}");
     Ok(())
@@ -252,77 +254,6 @@ async fn print_response_stream(response: reqwest::Response) -> anyhow::Result<()
     Ok(())
 }
 
-async fn image_response_stream_url(response: reqwest::Response) -> anyhow::Result<Option<String>> {
-    let mut stream = response.bytes_stream().eventsource();
-    let mut result = None;
-
-    while let Some(event) = stream.next().await {
-        let event = event?;
-        let Ok(data) = serde_json::from_str::<Value>(&event.data) else {
-            continue;
-        };
-        if let Some(url) = extract_image_url(&data) {
-            result = Some(url);
-        }
-    }
-
-    Ok(result)
-}
-
-fn extract_image_url(value: &Value) -> Option<String> {
-    match value {
-        Value::Object(map) => {
-            if matches!(
-                map.get("type").and_then(Value::as_str),
-                Some("image_generation_call")
-            ) && let Some(url) = extract_image_result(map.get("result")?)
-            {
-                return Some(url);
-            }
-
-            if let Some(call) = map.get("image_generation_call")
-                && let Some(url) = extract_image_url(call)
-            {
-                return Some(url);
-            }
-
-            if let Some(url) = map.get("url").and_then(Value::as_str)
-                && (url.starts_with("http://")
-                    || url.starts_with("https://")
-                    || url.starts_with("data:image/"))
-            {
-                return Some(url.to_string());
-            }
-
-            for child in map.values() {
-                if let Some(url) = extract_image_url(child) {
-                    return Some(url);
-                }
-            }
-            None
-        }
-        Value::Array(items) => items.iter().find_map(extract_image_url),
-        _ => None,
-    }
-}
-
-fn extract_image_result(value: &Value) -> Option<String> {
-    match value {
-        Value::String(value) if value.starts_with("http://") || value.starts_with("https://") => {
-            Some(value.clone())
-        }
-        Value::String(value) if value.starts_with("data:image/") => Some(value.clone()),
-        Value::String(value) if !value.is_empty() => Some(format!("data:image/png;base64,{value}")),
-        Value::Object(map) => map
-            .get("url")
-            .and_then(Value::as_str)
-            .map(ToOwned::to_owned)
-            .or_else(|| map.values().find_map(extract_image_url)),
-        Value::Array(items) => items.iter().find_map(extract_image_url),
-        _ => None,
-    }
-}
-
 fn image_data_url(path: &Path) -> anyhow::Result<String> {
     let bytes = std::fs::read(path)?;
     let b64 = base64::engine::general_purpose::STANDARD.encode(bytes);
@@ -346,6 +277,7 @@ fn image_mime_type(path: &Path) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use koharu_ai::codex::extract_image_url;
 
     #[test]
     fn extracts_nested_image_generation_url() {

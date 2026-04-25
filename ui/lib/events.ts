@@ -6,6 +6,7 @@ import { getGetCurrentLlmQueryKey, getGetSceneJsonQueryKey } from '@/lib/api/def
 import type { AppEvent } from '@/lib/api/schemas'
 import { queryClient } from '@/lib/queryClient'
 import { useDownloadsStore } from '@/lib/stores/downloadsStore'
+import { useEditorUiStore } from '@/lib/stores/editorUiStore'
 import { useEventsStore } from '@/lib/stores/eventsStore'
 import { useJobsStore } from '@/lib/stores/jobsStore'
 
@@ -157,6 +158,9 @@ function dispatch(event: AppEvent): void {
 
     case 'jobFinished':
       useJobsStore.getState().finished(event.id, event.status, event.error)
+      if (event.status === 'failed' && event.error) {
+        useEditorUiStore.getState().showError(event.error)
+      }
       lastPageByJob.delete(event.id)
       // Pipelines mutate the scene server-side without op-level SSE frames;
       // refetch so the final page's nodes + blobs land in the UI.

@@ -23,6 +23,7 @@ use koharu_core::{AppEvent, DownloadProgress, JobSummary, LlmStateStatus};
 use koharu_runtime::{ComputePolicy, RuntimeManager};
 use tokio::sync::Mutex;
 
+use crate::ai::AiManager;
 use crate::autosave::{self, AutosaveSignal};
 use crate::bus::EventBus;
 use crate::config::AppConfig;
@@ -62,6 +63,7 @@ pub struct App {
     pub jobs: Arc<DashMap<String, JobSummary>>,
     pub downloads: Arc<DashMap<String, DownloadProgress>>,
     pub bus: Arc<EventBus>,
+    pub ai: Arc<AiManager>,
     pub llm: Arc<llm::Model>,
     pub renderer: Arc<renderer::Renderer>,
     /// Autosave handle (tx + join) for the currently-open session. `None` = no project open.
@@ -92,6 +94,7 @@ impl App {
     ) -> Result<Self> {
         let backend = shared_llama_backend(&runtime)?;
         let llm = Arc::new(llm::Model::new((*runtime).clone(), cpu, backend));
+        let ai = Arc::new(AiManager::new(&runtime));
         let renderer = Arc::new(renderer::Renderer::new()?);
         Ok(Self {
             config: Arc::new(ArcSwap::from_pointee(config)),
@@ -101,6 +104,7 @@ impl App {
             jobs: shared.jobs,
             downloads: shared.downloads,
             bus: shared.bus,
+            ai,
             llm,
             renderer,
             autosave: Mutex::new(None),

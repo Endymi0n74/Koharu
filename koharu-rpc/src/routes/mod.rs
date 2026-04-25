@@ -2,6 +2,7 @@
 //! `OpenApiRouter<ApiState>` that can be merged into the top-level router in
 //! `api.rs`.
 
+pub mod ai;
 pub mod config;
 pub mod downloads;
 pub mod fonts;

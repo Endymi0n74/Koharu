@@ -9,12 +9,14 @@ use serde_json::Value;
 use super::config::CodexConfig;
 use super::device::{DeviceAuthorization, DeviceCode};
 use super::error::{CodexError, Result};
+use super::image::{CodexImageGenerationRequest, CodexInputImage, image_response_stream_result};
 use super::requests::{
     TokenExchangeRequest, TokenExchangeResponse, TokenPollRequest, TokenPollSuccessResponse,
     TokenRefreshRequest, TokenRefreshResponse, UserCodeRequest, UserCodeResponse,
 };
 use super::token_store::TokenStore;
 use super::tokens::CodexTokens;
+use crate::provider::{AiImageProvider, AiImageRequest, AiImageResult};
 
 const USER_AGENT: &str = concat!("koharu-ai/", env!("CARGO_PKG_VERSION"));
 
@@ -305,4 +307,39 @@ async fn ensure_success(endpoint: &str, response: reqwest::Response) -> Result<r
         status,
         body,
     })
+}
+
+#[async_trait::async_trait]
+impl AiImageProvider for CodexClient {
+    async fn generate_image(&self, request: AiImageRequest) -> anyhow::Result<AiImageResult> {
+        let action = request.action.unwrap_or_else(|| {
+            if request.input_image.is_some() {
+                "edit".to_string()
+            } else {
+                "generate".to_string()
+            }
+        });
+
+        let mut codex_request = CodexImageGenerationRequest::new(request.model, request.prompt)
+            .with_instructions(request.instructions)
+            .with_quality(request.quality)
+            .with_action(action);
+        if let Some(size) = request.size {
+            codex_request = codex_request.with_size(size);
+        }
+        if let Some(image) = request.input_image {
+            codex_request = codex_request
+                .with_input_image(CodexInputImage::new(image.data_url).with_detail(image.detail));
+        }
+
+        let response = self.create_response_raw(&codex_request).await?;
+        let result = image_response_stream_result(response).await?;
+        let image_url = result.image_url.ok_or_else(|| {
+            let response_text = result.response_text.as_deref().unwrap_or("none");
+            anyhow::anyhow!(
+                "Codex returned no image URL or image result. Response text: {response_text}"
+            )
+        })?;
+        Ok(AiImageResult { image_url })
+    }
 }

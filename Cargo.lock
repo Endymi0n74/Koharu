@@ -4514,6 +4514,7 @@ name = "koharu-ai"
 version = "0.48.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "base64 0.22.1",
  "clap",
  "eventsource-stream",
@@ -4535,6 +4536,7 @@ dependencies = [
  "arc-swap",
  "async-trait",
  "atomicwrites",
+ "base64 0.22.1",
  "blake3",
  "camino",
  "chrono",
@@ -4546,6 +4548,7 @@ dependencies = [
  "imageproc",
  "indexmap 2.14.0",
  "inventory",
+ "koharu-ai",
  "koharu-core",
  "koharu-llm",
  "koharu-ml",

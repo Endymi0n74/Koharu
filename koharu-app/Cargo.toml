@@ -19,6 +19,7 @@ path = "bin/pipeline.rs"
 clap = { workspace = true }
 tracing-subscriber = { workspace = true }
 koharu-core = { workspace = true }
+koharu-ai = { workspace = true }
 koharu-ml = { workspace = true }
 koharu-renderer = { workspace = true }
 koharu-llm = { workspace = true }
@@ -27,6 +28,7 @@ anyhow = { workspace = true }
 arc-swap = { workspace = true }
 async-trait = { workspace = true }
 atomicwrites = { workspace = true }
+base64 = { workspace = true }
 blake3 = { workspace = true }
 camino = { workspace = true }
 chrono = { workspace = true }

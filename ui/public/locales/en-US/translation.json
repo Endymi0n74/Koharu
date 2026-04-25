@@ -3,6 +3,8 @@
     "initializing": "Initializing...",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "copy": "Copy",
+    "copied": "Copied",
     "save": "Save",
     "saved": "Saved!"
   },
@@ -95,6 +97,7 @@
     "processing": "Processing",
     "mask": "Mask",
     "llm": "LLM",
+    "ai": "AI",
     "render": "Render"
   },
   "layers": {
@@ -191,6 +194,22 @@
       "pt-BR": "Brazilian Portuguese",
       "be-BY": "Belarusian (Belarus)"
     }
+  },
+  "ai": {
+    "model": "Model",
+    "prompt": "Prompt",
+    "generate": "Generate image",
+    "noPage": "Select a page first.",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signedIn": "Signed in",
+    "signedOut": "Signed out",
+    "signInTitle": "Sign in to Codex",
+    "signInPending": "Waiting for authorization",
+    "signInComplete": "Signed in",
+    "signInFailed": "Sign-in failed",
+    "userCode": "Code",
+    "openBrowser": "Open browser"
   },
   "render": {
     "effectLabel": "Text effect",
@@ -310,6 +329,10 @@
     "deviceMl": "ML Compute",
     "apiKeys": "API Keys",
     "apiKeysDescription": "Manage your API keys for different providers. Your keys are stored securely on your device keychain and are never shared with anyone.",
+    "ai": "AI",
+    "codex": "Codex",
+    "codexDescription": "Sign in with your ChatGPT Codex account for image generation.",
+    "codexTwoFactorDescription": "Enable two-factor authentication on your ChatGPT account before signing in here. Codex device-code login requires 2FA to complete successfully.",
     "freeTier": "Free Tier",
     "localLlm": "Local LLM",
     "localLlmTitle": "Local LLM",

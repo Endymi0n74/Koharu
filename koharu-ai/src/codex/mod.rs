@@ -16,7 +16,8 @@ pub use device::{DeviceAuthorization, DeviceCode};
 pub use error::{CodexError, Result};
 pub use image::{
     CodexImageGenerationConfig, CodexImageGenerationRequest, CodexImageGenerationTool,
-    CodexInputImage,
+    CodexImageStreamResult, CodexInputImage, extract_image_url, image_response_stream_result,
+    image_response_stream_url,
 };
 pub use responses::{CodexInputContent, CodexInputItem};
 pub use task::CodexTaskRequest;

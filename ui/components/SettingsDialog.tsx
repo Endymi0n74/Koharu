@@ -17,6 +17,11 @@ import {
   SaveIcon,
   RotateCcwIcon,
   AlertTriangleIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  LogInIcon,
+  LogOutIcon,
+  SparklesIcon,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -57,10 +62,15 @@ import {
   getGetCatalogQueryKey as getGetLlmCatalogQueryKey,
   getMeta,
   patchConfig,
+  deleteCodexSession,
+  getGetCodexAuthStatusQueryKey,
+  startCodexDeviceLogin,
+  useGetCodexAuthStatus,
 } from '@/lib/api/default/default'
 import type {
   AppConfig,
   ConfigPatch,
+  CodexDeviceLogin,
   EngineCatalog as GetEngineCatalog200,
   LlmProviderCatalog,
   ProviderConfig,
@@ -127,6 +137,7 @@ const TABS = [
   { id: 'appearance', icon: PaletteIcon, labelKey: 'settings.appearance' },
   { id: 'engines', icon: CpuIcon, labelKey: 'settings.engines' },
   { id: 'providers', icon: KeyIcon, labelKey: 'settings.apiKeys' },
+  { id: 'ai', icon: SparklesIcon, labelKey: 'settings.ai' },
   { id: 'keybinds', icon: KeyboardIcon, labelKey: 'settings.keybinds' },
   { id: 'runtime', icon: HardDriveIcon, labelKey: 'settings.runtime' },
   { id: 'about', icon: InfoIcon, labelKey: 'settings.about' },
@@ -386,6 +397,7 @@ export function SettingsDialog({
                   }}
                 />
               )}
+              {tab === 'ai' && <CodexSettingsPane />}
               {tab === 'runtime' && (
                 <StoragePane
                   dataPath={dataPathDraft}
@@ -675,6 +687,187 @@ function ProvidersPane({
 }
 
 // ── Keybinds ──────────────────────────────────────────────────────
+
+function CodexSettingsPane() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [login, setLogin] = useState<CodexDeviceLogin | null>(null)
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const { data: auth, refetch } = useGetCodexAuthStatus()
+
+  const loginStatus = auth?.login?.status
+  const signedIn = auth?.signedIn === true
+
+  useEffect(() => {
+    if (!loginOpen && loginStatus !== 'pending') return
+    const id = window.setInterval(() => void refetch(), 2000)
+    return () => window.clearInterval(id)
+  }, [loginOpen, loginStatus, refetch])
+
+  useEffect(() => {
+    if (loginOpen && (signedIn || loginStatus === 'succeeded')) {
+      const id = window.setTimeout(() => setLoginOpen(false), 700)
+      return () => window.clearTimeout(id)
+    }
+  }, [loginOpen, loginStatus, signedIn])
+
+  const statusLabel = useMemo(() => {
+    if (signedIn) return auth?.accountId ? auth.accountId : t('ai.signedIn')
+    if (loginStatus === 'failed') return t('ai.signInFailed')
+    if (loginStatus === 'pending') return t('ai.signInPending')
+    return t('ai.signedOut')
+  }, [auth?.accountId, loginStatus, signedIn, t])
+
+  const invalidateAuth = () =>
+    queryClient.invalidateQueries({ queryKey: getGetCodexAuthStatusQueryKey() })
+
+  const handleSignIn = async () => {
+    setBusy(true)
+    setActionError(null)
+    try {
+      const next = await startCodexDeviceLogin()
+      setLogin(next)
+      setCopied(false)
+      setLoginOpen(true)
+      void invalidateAuth()
+      void openExternalUrl(next.verificationUrl)
+    } catch (err) {
+      setActionError(String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    setBusy(true)
+    setActionError(null)
+    try {
+      await deleteCodexSession()
+      await invalidateAuth()
+    } catch (err) {
+      setActionError(String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCopyCode = async () => {
+    if (!login?.userCode || typeof navigator === 'undefined') return
+    await navigator.clipboard?.writeText(login.userCode)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  return (
+    <Section title={t('settings.codex')} description={t('settings.codexDescription')}>
+      <div className='rounded-md border border-amber-200/70 bg-amber-50/80 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-100'>
+        {t('settings.codexTwoFactorDescription')}
+      </div>
+      <div className='rounded-md border border-border bg-card p-3'>
+        <div className='flex items-center justify-between gap-3'>
+          <div className='flex min-w-0 items-center gap-2'>
+            <div className='flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary'>
+              <SparklesIcon className='size-4' />
+            </div>
+            <div className='min-w-0'>
+              <div className='text-sm font-medium text-foreground'>Codex</div>
+              <div className='truncate text-xs text-muted-foreground'>{statusLabel}</div>
+            </div>
+          </div>
+          {signedIn ? (
+            <Button
+              variant='outline'
+              size='sm'
+              className='gap-1.5'
+              disabled={busy}
+              onClick={() => void handleLogout()}
+            >
+              <LogOutIcon className='size-3.5' />
+              {t('ai.signOut')}
+            </Button>
+          ) : (
+            <Button
+              variant='default'
+              size='sm'
+              className='gap-1.5'
+              disabled={busy}
+              onClick={() => void handleSignIn()}
+            >
+              {busy ? (
+                <LoaderIcon className='size-3.5 animate-spin' />
+              ) : (
+                <LogInIcon className='size-3.5' />
+              )}
+              {t('ai.signIn')}
+            </Button>
+          )}
+        </div>
+        {(actionError || (auth?.login?.status === 'failed' && auth.login.error)) && (
+          <p className='mt-2 line-clamp-3 text-xs text-destructive'>
+            {actionError || auth?.login?.error}
+          </p>
+        )}
+      </div>
+
+      <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
+        <DialogContent className='w-[340px] max-w-[92vw] gap-3 p-4'>
+          <DialogTitle className='text-sm'>{t('ai.signInTitle')}</DialogTitle>
+          <DialogDescription className='sr-only'>{t('ai.signIn')}</DialogDescription>
+          <div className='flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2'>
+            <div className='min-w-0'>
+              <div className='text-[10px] font-semibold tracking-wide text-muted-foreground uppercase'>
+                {t('ai.userCode')}
+              </div>
+              <div className='mt-0.5 font-mono text-xl font-semibold tracking-widest'>
+                {login?.userCode ?? '...'}
+              </div>
+            </div>
+            <Button
+              variant='outline'
+              size='icon-sm'
+              disabled={!login}
+              aria-label={copied ? t('common.copied') : t('common.copy')}
+              onClick={() => void handleCopyCode()}
+            >
+              <CopyIcon className='size-3.5' />
+            </Button>
+          </div>
+          <Button
+            variant='outline'
+            size='sm'
+            className='w-full gap-1.5'
+            disabled={!login}
+            onClick={() => login && void openExternalUrl(login.verificationUrl)}
+          >
+            <ExternalLinkIcon className='size-3.5' />
+            {t('ai.openBrowser')}
+          </Button>
+          <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+            {signedIn || loginStatus === 'succeeded' ? (
+              <>
+                <CheckCircleIcon className='size-4 text-green-500' />
+                {t('ai.signInComplete')}
+              </>
+            ) : loginStatus === 'failed' ? (
+              <>
+                <AlertCircleIcon className='size-4 text-destructive' />
+                <span className='line-clamp-2'>{auth?.login?.error ?? t('ai.signInFailed')}</span>
+              </>
+            ) : (
+              <>
+                <LoaderIcon className='size-4 animate-spin' />
+                {t('ai.signInPending')}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Section>
+  )
+}
 
 const SHORTCUT_ITEMS = [
   { key: 'select', labelKey: 'toolRail.select' },

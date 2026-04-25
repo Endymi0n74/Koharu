@@ -15,6 +15,10 @@ type PreferencesState = {
   setDefaultFont: (font?: string) => void
   customSystemPrompt?: string
   setCustomSystemPrompt: (prompt?: string) => void
+  codexImagePrompt?: string
+  setCodexImagePrompt: (prompt?: string) => void
+  codexImageModel?: string
+  setCodexImageModel: (model?: string) => void
   shortcuts: {
     select: string
     block: string
@@ -47,6 +51,9 @@ const initialPreferences = {
     undo: getPlatform() === 'mac' ? 'Cmd+Z' : 'Ctrl+Z',
     redo: getPlatform() === 'mac' ? 'Cmd+Shift+Z' : 'Ctrl+Shift+Z',
   },
+  codexImagePrompt:
+    'Translate all visible text to natural English, remove the original lettering, and redraw the page as a clean manga image while preserving the artwork, panel layout, speech bubbles, tone, and composition.',
+  codexImageModel: 'gpt-5.5',
 }
 
 export const usePreferencesStore = create<PreferencesState>()(
@@ -62,6 +69,8 @@ export const usePreferencesStore = create<PreferencesState>()(
         })),
       setDefaultFont: (font) => set({ defaultFont: font }),
       setCustomSystemPrompt: (prompt) => set({ customSystemPrompt: prompt }),
+      setCodexImagePrompt: (prompt) => set({ codexImagePrompt: prompt }),
+      setCodexImageModel: (model) => set({ codexImageModel: model }),
       setShortcuts: (shortcuts) =>
         set((state) => ({
           shortcuts: {
@@ -79,7 +88,7 @@ export const usePreferencesStore = create<PreferencesState>()(
     }),
     {
       name: 'koharu-config',
-      version: 5,
+      version: 6,
       migrate: (persisted: any, version: number) => {
         if (version < 2 && persisted) {
           delete persisted.localLlm
@@ -107,12 +116,18 @@ export const usePreferencesStore = create<PreferencesState>()(
             persisted.shortcuts.redo = isMac ? 'Cmd+Shift+Z' : 'Ctrl+Shift+Z'
           }
         }
+        if (version < 6 && persisted) {
+          persisted.codexImagePrompt ??= initialPreferences.codexImagePrompt
+          persisted.codexImageModel ??= initialPreferences.codexImageModel
+        }
         return persisted
       },
       partialize: (state) => ({
         brushConfig: state.brushConfig,
         defaultFont: state.defaultFont,
         customSystemPrompt: state.customSystemPrompt,
+        codexImagePrompt: state.codexImagePrompt,
+        codexImageModel: state.codexImageModel,
         shortcuts: state.shortcuts,
       }),
     },
