@@ -286,6 +286,14 @@ We provide prebuilt binaries for Windows, macOS, and Linux. For the standard ins
 
 Koharu can run offline with local models once the required runtimes, models, and fonts are already present on disk.
 
+### WinGet
+
+On Windows, you can install Koharu with [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):
+
+```bash
+winget install koharu
+```
+
 ### Docker
 
 Koharu also publishes official Docker images for headless use. You can pull the latest image from GitHub Container Registry:
