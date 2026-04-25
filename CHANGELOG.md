@@ -1,3 +1,18 @@
+## [0.49.0](https://github.com/mayocream/koharu/compare/0.48.0..0.49.0) - 2026-04-25
+
+### ⛰️  Features
+
+- Codex integration - ([9d8af42](https://github.com/mayocream/koharu/commit/9d8af427a563432957c9f1acb70189829966a943))
+
+### 🐛 Bug Fixes
+
+- Only apply speech bubble mask logic to flux.2 - ([5e29e13](https://github.com/mayocream/koharu/commit/5e29e136b0a31161e79edf19fba649d07a04d69e))
+
+### 📚 Documentation
+
+- Add FLUX.2 Klein 4B - ([9d33bb6](https://github.com/mayocream/koharu/commit/9d33bb6a73d76ca564baf65b08b9fb33dc061ea1))
+
+
 ## [0.48.0](https://github.com/mayocream/koharu/compare/0.47.8..0.48.0) - 2026-04-24
 
 ### ⛰️  Features
