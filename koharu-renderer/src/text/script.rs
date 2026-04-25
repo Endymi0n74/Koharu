@@ -1,7 +1,5 @@
 use harfrust::{Direction, Script, Tag};
-use icu::properties::{CodePointMapData, props::Script as IcuScript};
-use icu_casemap::CaseMapper;
-use icu_locale::LanguageIdentifier;
+use icu_properties::{CodePointMapData, props::Script as IcuScript};
 use unicode_bidi::BidiInfo;
 
 use crate::layout::WritingMode;
@@ -30,19 +28,6 @@ pub fn writing_mode_for_block(block: &RenderBlock) -> WritingMode {
                 WritingMode::Horizontal
             }
         }
-    }
-}
-
-pub fn normalize_translation_for_layout(text: &str, language: Option<&str>) -> String {
-    if !is_cjk_text(text) {
-        let mapper = CaseMapper::new();
-        let lang_id: LanguageIdentifier = language
-            .and_then(|l| l.parse().ok())
-            .unwrap_or_else(|| "und".parse().unwrap());
-
-        mapper.uppercase_to_string(text, &lang_id).to_string()
-    } else {
-        text.to_string()
     }
 }
 
@@ -230,49 +215,7 @@ mod tests {
     use crate::layout::WritingMode;
     use crate::types::RenderBlock;
 
-    use super::{
-        font_families_for_text, normalize_translation_for_layout, shaping_direction_for_text,
-        writing_mode_for_block,
-    };
-
-    #[test]
-    fn normalize_uppercases_latin_only() {
-        assert_eq!(normalize_translation_for_layout("hello!", None), "HELLO!");
-        assert_eq!(normalize_translation_for_layout("中文", None), "中文");
-    }
-
-    #[test]
-    fn normalize_handles_turkish_i() {
-        assert_eq!(
-            normalize_translation_for_layout("kimse", Some("tr")),
-            "KİMSE"
-        );
-        // Test with subtag
-        assert_eq!(
-            normalize_translation_for_layout("ışık", Some("tr-TR")),
-            "IŞIK"
-        );
-    }
-
-    #[test]
-    fn normalize_handles_other_scripts() {
-        // Cyrillic
-        assert_eq!(normalize_translation_for_layout("привет", None), "ПРИВЕТ");
-        // Greek
-        assert_eq!(
-            normalize_translation_for_layout("γειά σου", None),
-            "ΓΕΙΆ ΣΟΥ"
-        );
-    }
-
-    #[test]
-    fn normalize_skips_cjk_scripts() {
-        assert_eq!(normalize_translation_for_layout("你好", None), "你好");
-        assert_eq!(
-            normalize_translation_for_layout("안녕하세요", None),
-            "안녕하세요"
-        );
-    }
+    use super::{font_families_for_text, shaping_direction_for_text, writing_mode_for_block};
 
     #[test]
     fn font_family_selection_returns_candidates() {

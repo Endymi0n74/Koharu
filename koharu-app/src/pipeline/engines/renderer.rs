@@ -76,7 +76,6 @@ impl Engine for Model {
             shader_effect: Default::default(),
             shader_stroke: None,
             document_font: ctx.options.default_font.clone(),
-            target_language: ctx.options.target_language.clone(),
         };
 
         // `render_page` is synchronous and CPU-bound. It runs inline on the

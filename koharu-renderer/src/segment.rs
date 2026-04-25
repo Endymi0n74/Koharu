@@ -1,9 +1,7 @@
 use std::ops::Range;
 
-use icu::{
-    properties::{CodePointMapData, props::LineBreak},
-    segmenter::{LineSegmenter, LineSegmenterBorrowed, options::LineBreakOptions},
-};
+use icu_properties::{CodePointMapData, props::LineBreak};
+use icu_segmenter::{LineSegmenter, LineSegmenterBorrowed, options::LineBreakOptions};
 
 /// A line break candidate with its byte offset and whether it is mandatory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

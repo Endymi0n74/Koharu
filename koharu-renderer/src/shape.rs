@@ -1,5 +1,6 @@
 use anyhow::Result;
 use harfrust::{Direction, Feature, Script, ShaperData, Tag, UnicodeBuffer};
+use icu_properties::{CodePointMapData, props::Script as IcuScript};
 use skrifa::raw::TableProvider;
 
 use crate::font::Font;
@@ -125,7 +126,7 @@ pub(crate) fn shape_script_runs<'a>(
         return Ok(Vec::new());
     }
 
-    let script_map = icu::properties::CodePointMapData::<icu::properties::props::Script>::new();
+    let script_map = CodePointMapData::<IcuScript>::new();
     let mut runs = Vec::new();
 
     let mut char_iter = text.char_indices().peekable();
@@ -136,14 +137,12 @@ pub(crate) fn shape_script_runs<'a>(
         while let Some(&(next_start, next_ch)) = char_iter.peek() {
             let next_script = script_map.get(next_ch);
             if next_script == script
-                || next_script == icu::properties::props::Script::Common
-                || next_script == icu::properties::props::Script::Inherited
+                || next_script == IcuScript::Common
+                || next_script == IcuScript::Inherited
             {
                 char_iter.next();
                 end = next_start + next_ch.len_utf8();
-            } else if script == icu::properties::props::Script::Common
-                || script == icu::properties::props::Script::Inherited
-            {
+            } else if script == IcuScript::Common || script == IcuScript::Inherited {
                 script = next_script;
                 char_iter.next();
                 end = next_start + next_ch.len_utf8();
@@ -192,28 +191,14 @@ pub(crate) fn shape_script_runs<'a>(
             let mut run_opts = options.clone();
             // Apply the detected script to this specific run.
             run_opts.script = match script {
-                icu::properties::props::Script::Arabic => {
-                    Script::from_iso15924_tag(Tag::new(b"Arab"))
-                }
-                icu::properties::props::Script::Hebrew => {
-                    Script::from_iso15924_tag(Tag::new(b"Hebr"))
-                }
-                icu::properties::props::Script::Syriac => {
-                    Script::from_iso15924_tag(Tag::new(b"Syrc"))
-                }
-                icu::properties::props::Script::Thaana => {
-                    Script::from_iso15924_tag(Tag::new(b"Thaa"))
-                }
-                icu::properties::props::Script::Nko => Script::from_iso15924_tag(Tag::new(b"Nkoo")),
-                icu::properties::props::Script::Adlam => {
-                    Script::from_iso15924_tag(Tag::new(b"Adlm"))
-                }
-                icu::properties::props::Script::Thai => {
-                    Script::from_iso15924_tag(Tag::new(b"Thai"))
-                }
-                icu::properties::props::Script::Han
-                | icu::properties::props::Script::Hiragana
-                | icu::properties::props::Script::Katakana => {
+                IcuScript::Arabic => Script::from_iso15924_tag(Tag::new(b"Arab")),
+                IcuScript::Hebrew => Script::from_iso15924_tag(Tag::new(b"Hebr")),
+                IcuScript::Syriac => Script::from_iso15924_tag(Tag::new(b"Syrc")),
+                IcuScript::Thaana => Script::from_iso15924_tag(Tag::new(b"Thaa")),
+                IcuScript::Nko => Script::from_iso15924_tag(Tag::new(b"Nkoo")),
+                IcuScript::Adlam => Script::from_iso15924_tag(Tag::new(b"Adlm")),
+                IcuScript::Thai => Script::from_iso15924_tag(Tag::new(b"Thai")),
+                IcuScript::Han | IcuScript::Hiragana | IcuScript::Katakana => {
                     Script::from_iso15924_tag(Tag::new(b"Hani"))
                 }
                 _ => None,

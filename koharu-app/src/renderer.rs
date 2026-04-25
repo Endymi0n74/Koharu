@@ -26,9 +26,7 @@ use koharu_renderer::{
     renderer::{RenderOptions, RenderStrokeOptions, TinySkiaRenderer},
     text::{
         latin::{BubbleIndex, LayoutBox, layout_box_from_block},
-        script::{
-            font_families_for_text, normalize_translation_for_layout, writing_mode_for_block,
-        },
+        script::{font_families_for_text, writing_mode_for_block},
     },
     types::{RenderBlock, TextDirection as RendererTextDirection},
 };
@@ -58,7 +56,6 @@ pub struct PageRenderOptions {
     pub shader_effect: TextShaderEffect,
     pub shader_stroke: Option<TextStrokeStyle>,
     pub document_font: Option<String>,
-    pub target_language: Option<String>,
 }
 
 /// Per-block sprite output. `transform` becomes `TextData.sprite_transform`
@@ -178,7 +175,6 @@ impl Renderer {
                 &opts.shader_effect,
                 &opts.shader_stroke,
                 opts.document_font.as_deref(),
-                opts.target_language.as_deref(),
                 min_font,
             ) {
                 Ok(Some(out)) => rendered_blocks.push(out),
@@ -210,14 +206,12 @@ impl Renderer {
         effect: &TextShaderEffect,
         global_stroke: &Option<TextStrokeStyle>,
         document_font: Option<&str>,
-        target_language: Option<&str>,
         min_font_size: f32,
     ) -> Result<Option<RenderedBlock>> {
         let translation = block.translation.trim();
         if translation.is_empty() {
             return Ok(None);
         }
-        let normalized = normalize_translation_for_layout(translation, target_language);
 
         let layout_source = layout_source_from_input(block, translation);
 
@@ -234,7 +228,7 @@ impl Renderer {
         {
             style.font_families.push(font.to_string());
         }
-        apply_default_font_families(&mut style.font_families, &normalized);
+        apply_default_font_families(&mut style.font_families, translation);
 
         let font = self.select_font(&style)?;
         let block_effect = style.effect.unwrap_or(*effect);
@@ -258,7 +252,7 @@ impl Renderer {
         let max_font = max_font_size_for_box(layout_box, min_font_size);
         let layout = fit_font_size(
             &layout_builder,
-            &normalized,
+            translation,
             layout_box.width,
             layout_box.height,
             style.font_size,
@@ -280,7 +274,7 @@ impl Renderer {
                 .with_font_size(layout.font_size)
                 .with_max_width(layout.width)
                 .with_max_height(layout_box.height)
-                .run(&normalized)?
+                .run(translation)?
         } else {
             layout
         };
