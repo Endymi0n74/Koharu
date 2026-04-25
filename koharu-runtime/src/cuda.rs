@@ -14,7 +14,7 @@ const CUDA_13_1_DRIVER_VERSION: i32 = 13010;
 const CUDA_EXTRACT_REVISION: u32 = 2;
 const CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR: i32 = 75;
 const CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR: i32 = 76;
-const MIN_COMPUTE_CAPABILITY: (i32, i32) = (7, 5); // Turing (RTX 20xx) and above
+const MIN_COMPUTE_CAPABILITY: (i32, i32) = (8, 0); // Ampere (RTX 30xx) and above
 
 type CuInit = unsafe extern "C" fn(flags: u32) -> i32;
 type CuDriverGetVersion = unsafe extern "C" fn(driver_version: *mut i32) -> i32;
@@ -158,7 +158,7 @@ pub fn driver_version() -> Result<CudaDriverVersion> {
 
 /// Query the compute capability of CUDA device 0.
 ///
-/// Returns `(major, minor)` e.g. `(7, 5)` for Turing, `(8, 6)` for Ampere.
+/// Returns `(major, minor)` e.g. `(8, 0)` for Ampere, `(8, 9)` for Ada.
 pub fn compute_capability() -> Result<(i32, i32)> {
     let library_name = if cfg!(target_os = "windows") {
         "nvcuda.dll"
@@ -245,7 +245,7 @@ pub fn check_cuda_driver_support() -> bool {
         }
     }
 
-    // Check GPU compute capability (need >= 7.5 / Turing)
+    // Check GPU compute capability (need >= 8.0 / Ampere)
     match compute_capability() {
         Ok((major, minor)) if (major, minor) >= MIN_COMPUTE_CAPABILITY => {
             tracing::info!("GPU compute capability: {major}.{minor}");
@@ -254,7 +254,7 @@ pub fn check_cuda_driver_support() -> bool {
         Ok((major, minor)) => {
             tracing::warn!(
                 "GPU compute capability {major}.{minor} is below the minimum \
-                 required {}.{}; falling back to CPU. A Turing (RTX 20xx) or \
+                 required {}.{}; falling back to CPU. An Ampere (RTX 30xx) or \
                  newer GPU is required for GPU acceleration.",
                 MIN_COMPUTE_CAPABILITY.0,
                 MIN_COMPUTE_CAPABILITY.1,
