@@ -112,6 +112,12 @@ LLM 驱动提供商当前内置的默认模型如下：
 
 如果你需要 LM Studio、OpenRouter 或类似端点的逐步配置说明，请参见 [使用 OpenAI 兼容 API](../how-to/use-openai-compatible-api.md)。
 
+### Codex 图像生成
+
+Koharu 也可以使用 Codex 进行端到端 image-to-image 生成。它不会把文本块翻译和本地文字渲染作为独立步骤处理，而是把源页面图像和提示词发送给 Codex，并接收生成后的页面图像。
+
+这是远程图像生成流程，不是本地模型。它需要拥有 Codex 访问权限的 ChatGPT 账号，并且必须启用双重身份验证才能完成设备码登录。使用说明和注意事项见 [使用 Codex 图像生成](../how-to/use-codex-image-generation.md)。
+
 ## 如何在本地与远程之间选择
 
 以下情况更适合本地模型：

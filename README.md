@@ -39,6 +39,7 @@ Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) and 
 - Inpainting to remove source lettering from the page
 - Translation with local or remote LLM backends
 - Advanced text rendering with vertical CJK and RTL support
+- Codex image-to-image generation for end-to-end page redraws from a source image and prompt
 - Layered PSD export with editable text
 - Local HTTP API and MCP server for automation
 
@@ -254,6 +255,14 @@ LLMs are downloaded on demand when you activate a model. For constrained memory 
 Koharu supports hosted APIs from [OpenAI](https://platform.openai.com/), [Gemini](https://ai.google.dev/), [Claude](https://www.anthropic.com/api), and [DeepSeek](https://platform.deepseek.com/) instead of a local GGUF model.
 
 Built-in cloud defaults: OpenAI `gpt-5-mini`, Gemini `gemini-3.1-flash-lite-preview`, Claude `claude-haiku-4-5`, and DeepSeek `deepseek-chat`.
+
+#### Codex Image-to-Image Generation
+
+Koharu can use Codex for end-to-end image-to-image generation. This workflow sends the current source page image plus a user prompt to Codex, then stores the generated image as a rendered page result.
+
+This feature requires a ChatGPT account with Codex access. Two-factor authentication must be enabled on the account before device-code login can complete successfully.
+
+Codex image generation is useful when you want the model to translate visible text, remove the original lettering, and redraw the page in one pass. Because the image request is processed by the ChatGPT Codex backend, failures can include upstream OpenAI request IDs and may need to be retried.
 
 #### Machine Translation Providers
 

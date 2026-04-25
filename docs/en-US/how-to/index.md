@@ -13,6 +13,7 @@ How-to guides focus on concrete tasks you may want to complete with Koharu.
 - [Run GUI, Headless, and MCP Modes](run-gui-headless-and-mcp.md): local deployment patterns and runtime flags
 - [Configure MCP Clients](configure-mcp-clients.md): connect Antigravity, Claude Desktop, or Claude Code to Koharu's local MCP endpoint
 - [Use OpenAI-Compatible APIs](use-openai-compatible-api.md): connect LM Studio, OpenRouter, and other OpenAI-style chat-completions endpoints
+- [Use Codex Image Generation](use-codex-image-generation.md): use Codex for end-to-end image-to-image page redraws
 - [Export Pages and Manage Projects](export-and-manage-projects.md): rendered images, PSD handoff, and page-set management
 - [Build From Source](build-from-source.md): local build flow with Bun, Tauri, and platform features
 - [Troubleshooting](troubleshooting.md): common startup, download, GPU, pipeline, and connectivity failures

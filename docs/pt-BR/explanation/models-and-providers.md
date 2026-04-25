@@ -112,6 +112,12 @@ Os provedores remotos são configurados em **Configurações > Chaves de API**.
 
 Para um guia passo a passo de configuração para LM Studio, OpenRouter e endpoints similares, veja [Usar APIs Compatíveis com OpenAI](../how-to/use-openai-compatible-api.md).
 
+### Geração de imagem com Codex
+
+O Koharu também pode usar o Codex para geração image-to-image de ponta a ponta. Em vez de traduzir blocos de texto e renderizar texto localmente como etapas separadas, esse fluxo envia a imagem de página de origem e o prompt ao Codex e recebe uma imagem de página gerada.
+
+Esse é um fluxo remoto de geração de imagem, não um modelo local. Ele exige uma conta ChatGPT com acesso ao Codex e autenticação de dois fatores habilitada para concluir o login por código de dispositivo. Consulte [Usar Geração de Imagem com Codex](../how-to/use-codex-image-generation.md) para notas de uso e limitações.
+
 ## Escolhendo entre local e remoto
 
 Use modelos locais quando você quer:
