@@ -57,7 +57,7 @@ Na prática, os modelos locais geralmente são transformers decoder-only quantiz
 
 ### Modelos locais internos focados em tradução para saída em inglês
 
-- [vntl-llama3-8b-v2](https://huggingface.co/lmg-anon/vntl-llama3-8b-v2-gguf): cerca de 8,5 GB na forma Q8_0, melhor quando a qualidade da tradução importa mais
+- [vntl-llama3-8b-v2](https://huggingface.co/lmg-anon/vntl-llama3-8b-v2-gguf): um GGUF Q5_K_M, melhor quando a qualidade da tradução importa mais
 - [lfm2.5-1.2b-instruct](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF): uma opção menor multilíngue do tipo instruct para sistemas com pouca memória ou iteração mais rápida
 - [sugoi-14b-ultra](https://huggingface.co/sugoitoolkit/Sugoi-14B-Ultra-GGUF) e [sugoi-32b-ultra](https://huggingface.co/sugoitoolkit/Sugoi-32B-Ultra-GGUF): escolhas maiores orientadas para tradução quando você quer mais folga
 
@@ -78,6 +78,8 @@ O seletor local também inclui famílias de propósito geral que não são espec
 - Gemma 4 uncensored: `gemma4-e2b-uncensored`, `gemma4-e4b-uncensored`
 - Qwen 3.5: `qwen3.5-0.8b`, `qwen3.5-2b`, `qwen3.5-4b`, `qwen3.5-9b`, `qwen3.5-27b`, `qwen3.5-35b-a3b`
 - Qwen 3.5 uncensored: `qwen3.5-2b-uncensored`, `qwen3.5-4b-uncensored`, `qwen3.5-9b-uncensored`, `qwen3.5-27b-uncensored`, `qwen3.5-35b-a3b-uncensored`
+- Qwen 3.6: `qwen3.6-27b`, `qwen3.6-35b-a3b`
+- Qwen 3.6 uncensored: `qwen3.6-27b-uncensored`, `qwen3.6-35b-a3b-uncensored`
 
 ## Provedores remotos
 

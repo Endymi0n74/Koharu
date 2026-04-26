@@ -190,7 +190,15 @@ impl MtmdContext {
     /// Check whether non-causal attention mask is needed before `llama_decode`.
     #[must_use]
     pub fn decode_use_non_causal(&self) -> bool {
-        unsafe { crate::sys::mtmd_decode_use_non_causal(self.context.as_ptr()) }
+        unsafe { crate::sys::mtmd_decode_use_non_causal(self.context.as_ptr(), std::ptr::null()) }
+    }
+
+    /// Check whether non-causal attention mask is needed before decoding a chunk.
+    #[must_use]
+    pub fn decode_use_non_causal_for_chunk(&self, chunk: &MtmdInputChunk) -> bool {
+        unsafe {
+            crate::sys::mtmd_decode_use_non_causal(self.context.as_ptr(), chunk.chunk.as_ptr())
+        }
     }
 
     /// Check whether the current model uses M-RoPE for `llama_decode`.

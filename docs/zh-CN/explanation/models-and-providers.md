@@ -57,7 +57,7 @@ Koharu 通过 [llama.cpp](https://github.com/ggml-org/llama.cpp) 支持本地 GG
 
 ### 面向英文输出的翻译型内置本地模型
 
-- [vntl-llama3-8b-v2](https://huggingface.co/lmg-anon/vntl-llama3-8b-v2-gguf)：Q8_0 约 8.5 GB，更适合追求翻译质量
+- [vntl-llama3-8b-v2](https://huggingface.co/lmg-anon/vntl-llama3-8b-v2-gguf)：Q5_K_M GGUF，更适合追求翻译质量
 - [lfm2.5-1.2b-instruct](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF)：更小的多语言 instruction 模型，适合低内存机器或更快的迭代
 - [sugoi-14b-ultra](https://huggingface.co/sugoitoolkit/Sugoi-14B-Ultra-GGUF) 和 [sugoi-32b-ultra](https://huggingface.co/sugoitoolkit/Sugoi-32B-Ultra-GGUF)：更大的翻译取向模型，适合有更多 VRAM / RAM 的环境
 
@@ -78,6 +78,8 @@ Koharu 通过 [llama.cpp](https://github.com/ggml-org/llama.cpp) 支持本地 GG
 - Gemma 4 uncensored：`gemma4-e2b-uncensored`、`gemma4-e4b-uncensored`
 - Qwen 3.5：`qwen3.5-0.8b`、`qwen3.5-2b`、`qwen3.5-4b`、`qwen3.5-9b`、`qwen3.5-27b`、`qwen3.5-35b-a3b`
 - Qwen 3.5 uncensored：`qwen3.5-2b-uncensored`、`qwen3.5-4b-uncensored`、`qwen3.5-9b-uncensored`、`qwen3.5-27b-uncensored`、`qwen3.5-35b-a3b-uncensored`
+- Qwen 3.6：`qwen3.6-27b`、`qwen3.6-35b-a3b`
+- Qwen 3.6 uncensored：`qwen3.6-27b-uncensored`、`qwen3.6-35b-a3b-uncensored`
 
 ## 远程提供商
 

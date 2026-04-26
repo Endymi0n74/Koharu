@@ -363,11 +363,6 @@ impl<'model> LlamaContext<'model> {
         tracing::debug!("Remove lora adapter");
         Ok(())
     }
-
-    /// Print a breakdown of per-device memory use to the default logger.
-    pub fn print_memory_breakdown(&self) {
-        unsafe { crate::sys::llama_memory_breakdown_print(self.context.as_ptr()) }
-    }
 }
 
 impl Drop for LlamaContext<'_> {

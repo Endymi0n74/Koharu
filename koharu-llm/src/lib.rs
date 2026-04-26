@@ -51,7 +51,7 @@ pub enum ModelId {
         serialize = "vntl-llama3-8b-v2",
         props(
             repo = "lmg-anon/vntl-llama3-8b-v2-gguf",
-            filename = "vntl-llama3-8b-v2-hf-q8_0.gguf",
+            filename = "vntl-llama3-8b-v2-hf-q5_k_m.gguf",
             languages = "en-US"
         )
     )]
@@ -60,7 +60,7 @@ pub enum ModelId {
         serialize = "lfm2.5-1.2b-instruct",
         props(
             repo = "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
-            filename = "LFM2.5-1.2B-Instruct-Q8_0.gguf",
+            filename = "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
             languages = "en-US,ar-SA,zh-CN,fr-FR,de-DE,ja-JP,ko-KR,pt-PT,es-ES"
         )
     )]
@@ -69,7 +69,7 @@ pub enum ModelId {
         serialize = "sakura-galtransl-7b-v3.7",
         props(
             repo = "SakuraLLM/Sakura-GalTransl-7B-v3.7",
-            filename = "Sakura-Galtransl-7B-v3.7.gguf",
+            filename = "Sakura-Galtransl-7B-v3.7-IQ4_XS.gguf",
             languages = "zh-CN"
         )
     )]
@@ -87,7 +87,7 @@ pub enum ModelId {
         serialize = "hunyuan-mt-7b",
         props(
             repo = "Mungert/Hunyuan-MT-7B-GGUF",
-            filename = "Hunyuan-MT-7B-q6_k_m.gguf",
+            filename = "Hunyuan-MT-7B-q4_k_m.gguf",
             languages = "zh-CN,en-US,fr-FR,pt-PT,pt-BR,es-ES,ja-JP,tr-TR,ru-RU,ar-SA,ko-KR,th-TH,it-IT,de-DE,vi-VN,ms-MY,id-ID,fil-PH,hi-IN,zh-TW,pl-PL,cs-CZ,nl-NL,km-KH,my-MM,fa-IR,gu-IN,ur-PK,te-IN,mr-IN,he-IL,bn-BD,ta-IN,uk-UA,bo-CN,kk-KZ,mn-MN,ug-CN,yue-HK"
         )
     )]
@@ -96,7 +96,7 @@ pub enum ModelId {
         serialize = "sugoi-14b-ultra",
         props(
             repo = "sugoitoolkit/Sugoi-14B-Ultra-GGUF",
-            filename = "Sugoi-14B-Ultra-Q8_0.gguf",
+            filename = "Sugoi-14B-Ultra-Q4_K_M.gguf",
             languages = "en-US"
         )
     )]
@@ -114,7 +114,7 @@ pub enum ModelId {
         serialize = "gemma4-e2b-it",
         props(
             repo = "unsloth/gemma-4-E2B-it-GGUF",
-            filename = "gemma-4-e2b-it-Q8_0.gguf",
+            filename = "gemma-4-E2B-it-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -123,7 +123,7 @@ pub enum ModelId {
         serialize = "gemma4-e4b-it",
         props(
             repo = "unsloth/gemma-4-E4B-it-GGUF",
-            filename = "gemma-4-e4b-it-Q8_0.gguf",
+            filename = "gemma-4-E4B-it-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -132,7 +132,7 @@ pub enum ModelId {
         serialize = "gemma4-26b-a4b-it",
         props(
             repo = "unsloth/gemma-4-26B-A4B-it-GGUF",
-            filename = "gemma-4-26B-A4B-it-Q8_0.gguf",
+            filename = "gemma-4-26B-A4B-it-UD-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -150,7 +150,7 @@ pub enum ModelId {
         serialize = "gemma4-e2b-uncensored",
         props(
             repo = "HauhauCS/Gemma-4-E2B-Uncensored-HauhauCS-Aggressive",
-            filename = "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+            filename = "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf",
             languages = "*"
         )
     )]
@@ -168,7 +168,7 @@ pub enum ModelId {
         serialize = "qwen3.5-0.8b",
         props(
             repo = "unsloth/Qwen3.5-0.8B-GGUF",
-            filename = "Qwen3.5-0.8B-Q8_0.gguf",
+            filename = "Qwen3.5-0.8B-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -177,7 +177,7 @@ pub enum ModelId {
         serialize = "qwen3.5-2b",
         props(
             repo = "unsloth/Qwen3.5-2B-GGUF",
-            filename = "Qwen3.5-2B-Q8_0.gguf",
+            filename = "Qwen3.5-2B-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -186,7 +186,7 @@ pub enum ModelId {
         serialize = "qwen3.5-4b",
         props(
             repo = "unsloth/Qwen3.5-4B-GGUF",
-            filename = "Qwen3.5-4B-Q8_0.gguf",
+            filename = "Qwen3.5-4B-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -195,7 +195,7 @@ pub enum ModelId {
         serialize = "qwen3.5-9b",
         props(
             repo = "unsloth/Qwen3.5-9B-GGUF",
-            filename = "Qwen3.5-9B-Q8_0.gguf",
+            filename = "Qwen3.5-9B-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -213,16 +213,34 @@ pub enum ModelId {
         serialize = "qwen3.5-35b-a3b",
         props(
             repo = "unsloth/Qwen3.5-35B-A3B-GGUF",
-            filename = "Qwen3.5-35B-A3B-Q8_0.gguf",
+            filename = "Qwen3.5-35B-A3B-Q4_K_M.gguf",
             languages = "*"
         )
     )]
     Qwen3_5_35bA3b,
     #[strum(
+        serialize = "qwen3.6-27b",
+        props(
+            repo = "unsloth/Qwen3.6-27B-GGUF",
+            filename = "Qwen3.6-27B-IQ4_XS.gguf",
+            languages = "*"
+        )
+    )]
+    Qwen3_6_27b,
+    #[strum(
+        serialize = "qwen3.6-35b-a3b",
+        props(
+            repo = "unsloth/Qwen3.6-35B-A3B-GGUF",
+            filename = "Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+            languages = "*"
+        )
+    )]
+    Qwen3_6_35bA3b,
+    #[strum(
         serialize = "qwen3.5-2b-uncensored",
         props(
             repo = "HauhauCS/Qwen3.5-2B-Uncensored-HauhauCS-Aggressive",
-            filename = "Qwen3.5-2B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf",
+            filename = "Qwen3.5-2B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -231,7 +249,7 @@ pub enum ModelId {
         serialize = "qwen3.5-4b-uncensored",
         props(
             repo = "HauhauCS/Qwen3.5-4B-Uncensored-HauhauCS-Aggressive",
-            filename = "Qwen3.5-4B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf",
+            filename = "Qwen3.5-4B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -240,7 +258,7 @@ pub enum ModelId {
         serialize = "qwen3.5-9b-uncensored",
         props(
             repo = "HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive",
-            filename = "Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf",
+            filename = "Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf",
             languages = "*"
         )
     )]
@@ -258,11 +276,29 @@ pub enum ModelId {
         serialize = "qwen3.5-35b-a3b-uncensored",
         props(
             repo = "HauhauCS/Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive",
-            filename = "Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf",
+            filename = "Qwen3.5-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf",
             languages = "*"
         )
     )]
     Qwen3_5_35bA3bUncensored,
+    #[strum(
+        serialize = "qwen3.6-27b-uncensored",
+        props(
+            repo = "HauhauCS/Qwen3.6-27B-Uncensored-HauhauCS-Aggressive",
+            filename = "Qwen3.6-27B-Uncensored-HauhauCS-Aggressive-IQ4_XS.gguf",
+            languages = "*"
+        )
+    )]
+    Qwen3_6_27bUncensored,
+    #[strum(
+        serialize = "qwen3.6-35b-a3b-uncensored",
+        props(
+            repo = "HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive",
+            filename = "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-IQ4_XS.gguf",
+            languages = "*"
+        )
+    )]
+    Qwen3_6_35bA3bUncensored,
 }
 
 impl ModelId {
@@ -316,6 +352,19 @@ impl ModelId {
                 top_p: Some(1.0),
                 min_p: Some(0.0),
                 presence_penalty: 2.0,
+                repeat_penalty: 1.0,
+                ..Default::default()
+            },
+            // Qwen3.6 non-thinking: temp=0.7, top_k=20, top_p=0.8, presence=1.5
+            Self::Qwen3_6_27b
+            | Self::Qwen3_6_35bA3b
+            | Self::Qwen3_6_27bUncensored
+            | Self::Qwen3_6_35bA3bUncensored => GenerateOptions {
+                temperature: 0.7,
+                top_k: Some(20),
+                top_p: Some(0.8),
+                min_p: Some(0.0),
+                presence_penalty: 1.5,
                 repeat_penalty: 1.0,
                 ..Default::default()
             },
