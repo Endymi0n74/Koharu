@@ -1,3 +1,11 @@
+## [0.52.0](https://github.com/mayocream/koharu/compare/0.51.0..0.52.0) - 2026-04-26
+
+### 🐛 Bug Fixes
+
+- *(llm)* Update Gemma 4 model IDs with hyphens ([#581](https://github.com/mayocream/koharu/issues/581)) - ([9f3eb17](https://github.com/mayocream/koharu/commit/9f3eb17ce8ade1e5f409d8ef526b64c33218ba9a))
+- ZLUDA compatibility issues ([#582](https://github.com/mayocream/koharu/issues/582)) - ([e9fa6cd](https://github.com/mayocream/koharu/commit/e9fa6cdb4daf3acb76ae58b4e42409e268ee8ed6))
+
+
 ## [0.51.0](https://github.com/mayocream/koharu/compare/0.50.2..0.51.0) - 2026-04-26
 
 ### ⛰️  Features
