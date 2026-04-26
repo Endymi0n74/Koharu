@@ -353,7 +353,7 @@ export function Workspace() {
                             data-testid='workspace-inpainted-image'
                             data={inpaintedData}
                             visible={showInpaintedImage}
-                            transition={false}
+                            transition={true}
                           />
                         )}
                         <canvas
@@ -395,7 +395,7 @@ export function Workspace() {
                           <Image
                             data-testid='workspace-rendered-image'
                             data={renderedData}
-                            transition={false}
+                            transition={true}
                             style={{ zIndex: 40 }}
                           />
                         )}
