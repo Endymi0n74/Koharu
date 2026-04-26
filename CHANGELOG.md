@@ -1,3 +1,10 @@
+## [0.50.2](https://github.com/mayocream/koharu/compare/0.50.1..0.50.2) - 2026-04-26
+
+### ⚡ Performance
+
+- Prefer bf16 - ([7f6f616](https://github.com/mayocream/koharu/commit/7f6f616fdb76c415cab97ca9122e85a887be09e9))
+
+
 ## [0.50.1](https://github.com/mayocream/koharu/compare/0.50.0..0.50.1) - 2026-04-26
 
 ### 🐛 Bug Fixes
