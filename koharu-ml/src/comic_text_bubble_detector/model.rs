@@ -95,6 +95,15 @@ fn load_layer_norm(vb: VarBuilder, hidden_size: usize, eps: f64) -> Result<Layer
     Ok(layer_norm(hidden_size, eps, vb)?)
 }
 
+fn softmax_f32(xs: &Tensor, dim: D) -> Result<Tensor> {
+    let dtype = xs.dtype();
+    if dtype == DType::F32 {
+        Ok(softmax(xs, dim)?)
+    } else {
+        Ok(softmax(&xs.to_dtype(DType::F32)?, dim)?.to_dtype(dtype)?)
+    }
+}
+
 fn pad_all_sides_one(xs: &Tensor) -> candle_core::Result<Tensor> {
     xs.pad_with_zeros(2, 1, 1)?.pad_with_zeros(3, 1, 1)
 }
@@ -539,7 +548,8 @@ impl RTDetrV2MultiheadAttention {
     ) -> Result<Tensor> {
         let (batch_size, sequence_length, hidden_size) = hidden_states.dims3()?;
         let query_key_input = match position_embeddings {
-            Some(position_embeddings) => hidden_states.broadcast_add(position_embeddings)?,
+            Some(position_embeddings) => hidden_states
+                .broadcast_add(&position_embeddings.to_dtype(hidden_states.dtype())?)?,
             None => hidden_states.clone(),
         };
         let shape = (
@@ -570,7 +580,7 @@ impl RTDetrV2MultiheadAttention {
         let mut attention_scores =
             query_states.matmul(&key_states.transpose(2, 3)?.contiguous()?)?;
         attention_scores = (attention_scores * self.scaling)?;
-        let attention_probs = softmax(&attention_scores, D::Minus1)?;
+        let attention_probs = softmax_f32(&attention_scores, D::Minus1)?;
         let context = attention_probs.matmul(&value_states)?;
         let context = context.transpose(1, 2)?.contiguous()?.reshape((
             batch_size,
@@ -985,11 +995,10 @@ impl RTDetrV2HybridEncoder {
             let src_flatten = feature_maps[*encoder_index]
                 .flatten_from(2)?
                 .transpose(1, 2)?;
-            let pos_embed = self.position_embedding.forward(
-                width,
-                height,
-                feature_maps[*encoder_index].device(),
-            )?;
+            let pos_embed = self
+                .position_embedding
+                .forward(width, height, feature_maps[*encoder_index].device())?
+                .to_dtype(src_flatten.dtype())?;
             let encoded = self.encoder[index].forward(&src_flatten, &pos_embed)?;
             feature_maps[*encoder_index] = encoded.transpose(1, 2)?.reshape((
                 batch_size,
@@ -1088,7 +1097,8 @@ impl RTDetrV2MultiscaleDeformableAttention {
         spatial_shapes_list: &[(usize, usize)],
     ) -> Result<Tensor> {
         let hidden_states = match position_embeddings {
-            Some(position_embeddings) => hidden_states.broadcast_add(position_embeddings)?,
+            Some(position_embeddings) => hidden_states
+                .broadcast_add(&position_embeddings.to_dtype(hidden_states.dtype())?)?,
             None => hidden_states.clone(),
         };
         let (batch_size, num_queries, _) = hidden_states.dims3()?;
@@ -1119,7 +1129,7 @@ impl RTDetrV2MultiscaleDeformableAttention {
             self.n_points,
             2,
         ))?;
-        let attention_weights = softmax(
+        let attention_weights = softmax_f32(
             &self.attention_weights.forward(&hidden_states)?.reshape((
                 batch_size,
                 num_queries,
@@ -1346,9 +1356,10 @@ impl RTDetrV2Decoder {
             )?;
 
             let delta = self.bbox_embed[index].forward(&hidden_states)?;
-            reference_points = inverse_sigmoid_to_sigmoid(
-                &delta.broadcast_add(&inverse_sigmoid_tensor(&reference_points)?)?,
-            )?;
+            let reference_points_unact =
+                inverse_sigmoid_tensor(&reference_points)?.to_dtype(delta.dtype())?;
+            reference_points =
+                inverse_sigmoid_to_sigmoid(&delta.broadcast_add(&reference_points_unact)?)?;
             logits = Some(self.class_embed[index].forward(&hidden_states)?);
             pred_boxes = Some(reference_points.clone());
         }
@@ -1619,8 +1630,12 @@ fn batch_gather_rows(tensor: &Tensor, indices: &Tensor) -> Result<Tensor> {
 }
 
 fn inverse_sigmoid_tensor(tensor: &Tensor) -> Result<Tensor> {
+    let dtype = tensor.dtype();
     let tensor = tensor.to_dtype(DType::F32)?.clamp(1e-5, 1.0 - 1e-5)?;
-    Ok(tensor.broadcast_div(&tensor.affine(-1.0, 1.0)?)?.log()?)
+    Ok(tensor
+        .broadcast_div(&tensor.affine(-1.0, 1.0)?)?
+        .log()?
+        .to_dtype(dtype)?)
 }
 
 fn inverse_sigmoid_to_sigmoid(tensor: &Tensor) -> Result<Tensor> {
@@ -1637,6 +1652,9 @@ fn multi_scale_deformable_attention(
     offset_scale: f64,
 ) -> Result<Tensor> {
     let (batch_size, sequence_length, num_heads, head_dim) = value.dims4()?;
+    let reference_points = reference_points.to_dtype(DType::F32)?;
+    let sampling_offsets = sampling_offsets.to_dtype(DType::F32)?;
+    let attention_weights = attention_weights.to_dtype(DType::F32)?;
     let [_, num_queries, _, num_levels, num_points, _] =
         <[usize; 6]>::try_from(sampling_offsets.dims().to_vec()).map_err(|_| {
             anyhow::anyhow!(

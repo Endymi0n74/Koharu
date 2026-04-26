@@ -46,6 +46,7 @@ pub struct PPDocLayoutV3 {
     config: PPDocLayoutV3Config,
     preprocessor: PPDocLayoutV3PreprocessorConfig,
     device: Device,
+    dtype: DType,
     mean: Tensor,
     std: Tensor,
 }
@@ -53,6 +54,7 @@ pub struct PPDocLayoutV3 {
 impl PPDocLayoutV3 {
     pub async fn load(runtime: &RuntimeManager, cpu: bool) -> Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let downloads = runtime.downloads();
         let config_path = downloads.huggingface_model(HF_REPO, "config.json").await?;
         let preprocessor_path = downloads
@@ -63,22 +65,26 @@ impl PPDocLayoutV3 {
         let preprocessor =
             loading::read_json::<PPDocLayoutV3PreprocessorConfig>(&preprocessor_path)
                 .with_context(|| format!("failed to load {}", preprocessor_path.display()))?;
-        let mean = Tensor::from_slice(&preprocessor.image_mean, (1, 3, 1, 1), &device)?
-            .to_dtype(DType::F32)?;
-        let std = Tensor::from_slice(&preprocessor.image_std, (1, 3, 1, 1), &device)?
-            .to_dtype(DType::F32)?;
+        let mean =
+            Tensor::from_slice(&preprocessor.image_mean, (1, 3, 1, 1), &device)?.to_dtype(dtype)?;
+        let std =
+            Tensor::from_slice(&preprocessor.image_std, (1, 3, 1, 1), &device)?.to_dtype(dtype)?;
         let weights_path = downloads
             .huggingface_model(HF_REPO, "model.safetensors")
             .await?;
-        let model = loading::load_mmaped_safetensors_path(&weights_path, &device, |vb| {
-            PPDocLayoutV3ForObjectDetection::load(vb, &config, &device)
-        })?;
+        let model = loading::load_mmaped_safetensors_path_with_dtype(
+            &weights_path,
+            &device,
+            dtype,
+            |vb| PPDocLayoutV3ForObjectDetection::load(vb, &config, &device),
+        )?;
 
         Ok(Self {
             model,
             config,
             preprocessor,
             device,
+            dtype,
             mean,
             std,
         })
@@ -116,6 +122,7 @@ impl PPDocLayoutV3 {
             images,
             &self.preprocessor,
             &self.device,
+            self.dtype,
             &self.mean,
             &self.std,
         )?;
@@ -376,6 +383,7 @@ fn preprocess_images(
     images: &[DynamicImage],
     preprocessor: &PPDocLayoutV3PreprocessorConfig,
     device: &Device,
+    dtype: DType,
     mean: &Tensor,
     std: &Tensor,
 ) -> Result<Tensor> {
@@ -395,7 +403,7 @@ fn preprocess_images(
     let tensor = Tensor::from_vec(batch, (images.len(), target_h, target_w, 3), &Device::Cpu)?
         .to_device(device)?
         .permute((0, 3, 1, 2))?
-        .to_dtype(DType::F32)?;
+        .to_dtype(dtype)?;
     let tensor = if preprocessor.do_rescale {
         tensor.affine(preprocessor.rescale_factor as f64, 0.0)?
     } else {
@@ -416,9 +424,18 @@ fn post_process_outputs(
     threshold: f32,
     include_polygons: bool,
 ) -> Result<Vec<LayoutDetectionResult>> {
-    let logits = outputs.logits.to_device(&Device::Cpu)?;
-    let boxes = outputs.pred_boxes.to_device(&Device::Cpu)?;
-    let order_logits = outputs.order_logits.to_device(&Device::Cpu)?;
+    let logits = outputs
+        .logits
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?;
+    let boxes = outputs
+        .pred_boxes
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?;
+    let order_logits = outputs
+        .order_logits
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?;
 
     let (batch_size, num_queries, num_classes) = logits.dims3()?;
     if batch_size != images.len() {
@@ -429,7 +446,10 @@ fn post_process_outputs(
     let boxes = boxes.flatten_all()?.to_vec1::<f32>()?;
     let order_logits = order_logits.flatten_all()?.to_vec1::<f32>()?;
     let (masks, mask_h, mask_w) = if include_polygons {
-        let masks = outputs.out_masks.to_device(&Device::Cpu)?;
+        let masks = outputs
+            .out_masks
+            .to_dtype(DType::F32)?
+            .to_device(&Device::Cpu)?;
         let (_, _, mask_h, mask_w) = masks.dims4()?;
         (Some(masks.flatten_all()?.to_vec1::<f32>()?), mask_h, mask_w)
     } else {

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use candle_core::{DType, Module, ModuleT, Tensor};
+use candle_core::{Module, ModuleT, Tensor};
 use candle_nn::{BatchNorm, Conv2d, Conv2dConfig, Linear, VarBuilder};
 use clap::ValueEnum;
 
@@ -68,7 +68,8 @@ impl Model {
         // For models that only output font logits (e.g., DeepFont), pad zeros for direction/regression.
         if dim == FONT_COUNT {
             let device = logits.device();
-            let zeros = Tensor::zeros((logits.dim(0)?, REGRESSION_DIM + 2), DType::F32, device)?;
+            let zeros =
+                Tensor::zeros((logits.dim(0)?, REGRESSION_DIM + 2), logits.dtype(), device)?;
             return Tensor::cat(&[logits, zeros], 1);
         }
 

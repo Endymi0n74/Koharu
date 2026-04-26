@@ -24,6 +24,7 @@ const CPU_MAX_PIXELS: u64 = 1_280 * 1_280;
 pub struct MangaTextSegmentation {
     model: model::MangaTextSegmentationModel,
     device: Device,
+    dtype: DType,
     mean: Tensor,
     std: Tensor,
 }
@@ -44,17 +45,19 @@ impl MangaTextSegmentation {
 
     pub fn load_from_path(path: impl AsRef<Path>, cpu: bool) -> Result<Self> {
         let device = device(cpu)?;
-        let model = loading::load_mmaped_safetensors_path(
+        let dtype = loading::model_dtype(&device);
+        let model = loading::load_mmaped_safetensors_path_with_dtype(
             path.as_ref(),
             &device,
+            dtype,
             model::MangaTextSegmentationModel::load,
         )?;
-        let mean =
-            Tensor::from_slice(&IMAGENET_MEAN, (1, 3, 1, 1), &device)?.to_dtype(DType::F32)?;
-        let std = Tensor::from_slice(&IMAGENET_STD, (1, 3, 1, 1), &device)?.to_dtype(DType::F32)?;
+        let mean = Tensor::from_slice(&IMAGENET_MEAN, (1, 3, 1, 1), &device)?.to_dtype(dtype)?;
+        let std = Tensor::from_slice(&IMAGENET_STD, (1, 3, 1, 1), &device)?.to_dtype(dtype)?;
         Ok(Self {
             model,
             device,
+            dtype,
             mean,
             std,
         })
@@ -92,6 +95,7 @@ impl MangaTextSegmentation {
         } else {
             probabilities
         }
+        .to_dtype(DType::F32)?
         .to_device(&Device::Cpu)?;
         let values = probabilities.flatten_all()?.to_vec1::<f32>()?;
         tracing::info!(
@@ -138,7 +142,7 @@ impl MangaTextSegmentation {
             &self.device,
         )?
         .permute((0, 3, 1, 2))?
-        .to_dtype(DType::F32)?;
+        .to_dtype(self.dtype)?;
         let tensor = (tensor * (1.0 / 255.0))?
             .broadcast_sub(&self.mean)?
             .broadcast_div(&self.std)?;

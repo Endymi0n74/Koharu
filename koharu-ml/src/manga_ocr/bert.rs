@@ -175,6 +175,15 @@ impl Module for Dropout {
     }
 }
 
+fn softmax_f32(xs: &Tensor, dim: D) -> candle_core::Result<Tensor> {
+    let dtype = xs.dtype();
+    if dtype == DType::F32 {
+        candle_nn::ops::softmax(xs, dim)
+    } else {
+        candle_nn::ops::softmax(&xs.to_dtype(DType::F32)?, dim)?.to_dtype(dtype)
+    }
+}
+
 struct BertSelfAttention {
     query: Linear,
     key: Linear,
@@ -233,7 +242,7 @@ impl BertSelfAttention {
         if let Some(mask) = attention_mask {
             attention_scores = attention_scores.broadcast_add(mask)?;
         }
-        let attention_probs = candle_nn::ops::softmax(&attention_scores, D::Minus1)?;
+        let attention_probs = softmax_f32(&attention_scores, D::Minus1)?;
         let attention_probs = self.dropout.forward(&attention_probs)?;
         let context_layer = attention_probs.matmul(&value)?;
         context_layer.transpose(1, 2)?.contiguous()?.reshape((

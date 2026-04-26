@@ -47,6 +47,7 @@ pub struct AotInpainting {
     model: AotGenerator,
     config: AotInpaintingConfig,
     device: Device,
+    dtype: DType,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -113,17 +114,22 @@ impl AotInpainting {
         cpu: bool,
     ) -> Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let config = loading::read_json::<AotInpaintingConfig>(config_path.as_ref())
             .with_context(|| format!("failed to parse {}", config_path.as_ref().display()))?;
         config.validate()?;
-        let model = loading::load_mmaped_safetensors_path(weights_path.as_ref(), &device, |vb| {
-            AotGenerator::load(&vb, &config.spec())
-        })?;
+        let model = loading::load_mmaped_safetensors_path_with_dtype(
+            weights_path.as_ref(),
+            &device,
+            dtype,
+            |vb| AotGenerator::load(&vb, &config.spec()),
+        )?;
 
         Ok(Self {
             model,
             config,
             device,
+            dtype,
         })
     }
 
@@ -199,7 +205,7 @@ impl AotInpainting {
             &self.device,
         )?
         .permute((0, 3, 1, 2))?
-        .to_dtype(DType::F32)?
+        .to_dtype(self.dtype)?
             / 127.5)?;
         let image_tensor = (image_tensor - 1.0)?;
 
@@ -209,7 +215,7 @@ impl AotInpainting {
             &self.device,
         )?
         .permute((0, 3, 1, 2))?
-        .to_dtype(DType::F32)?;
+        .to_dtype(self.dtype)?;
         let mask_tensor = (mask_tensor / 255.0)?;
         let mask_inv = (Tensor::ones_like(&mask_tensor)? - &mask_tensor)?;
         let mask_inv_rgb = mask_inv.broadcast_as((1, 3, h as usize, w as usize))?;
@@ -220,7 +226,10 @@ impl AotInpainting {
     }
 
     fn postprocess(&self, output: &Tensor) -> Result<RgbImage> {
-        let output = output.to_device(&Device::Cpu)?.squeeze(0)?;
+        let output = output
+            .to_dtype(DType::F32)?
+            .to_device(&Device::Cpu)?
+            .squeeze(0)?;
         let (channels, height, width) = output.dims3()?;
         if channels != 3 {
             bail!("expected 3 output channels, got {channels}");

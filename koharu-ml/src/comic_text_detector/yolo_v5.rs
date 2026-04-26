@@ -1,4 +1,4 @@
-use candle_core::{DType, Device, IndexOp, Result, Tensor};
+use candle_core::{Device, IndexOp, Result, Tensor};
 use candle_nn::{
     BatchNorm, Conv2d, Conv2dConfig, Module, ModuleT, VarBuilder, batch_norm, conv2d,
     conv2d_no_bias,
@@ -338,8 +338,9 @@ impl YoloV3Head {
         ny: usize,
         dev: &Device,
     ) -> Result<(Tensor, Tensor)> {
-        let gx = Tensor::arange(0, nx as u32, dev)?.to_dtype(DType::F32)?;
-        let gy = Tensor::arange(0, ny as u32, dev)?.to_dtype(DType::F32)?;
+        let dtype = self.anchors.dtype();
+        let gx = Tensor::arange(0, nx as u32, dev)?.to_dtype(dtype)?;
+        let gy = Tensor::arange(0, ny as u32, dev)?.to_dtype(dtype)?;
 
         let gx = gx.reshape((1, 1, 1, nx))?.repeat((1, 1, ny, 1))?;
         let gy = gy.reshape((1, 1, ny, 1))?.repeat((1, 1, 1, nx))?;

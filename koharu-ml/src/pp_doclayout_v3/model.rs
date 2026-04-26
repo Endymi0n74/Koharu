@@ -117,6 +117,15 @@ fn load_layer_norm(vb: VarBuilder, hidden_size: usize, eps: f64) -> Result<Layer
     Ok(layer_norm(hidden_size, eps, vb)?)
 }
 
+fn softmax_f32(xs: &Tensor, dim: D) -> Result<Tensor> {
+    let dtype = xs.dtype();
+    if dtype == DType::F32 {
+        Ok(softmax(xs, dim)?)
+    } else {
+        Ok(softmax(&xs.to_dtype(DType::F32)?, dim)?.to_dtype(dtype)?)
+    }
+}
+
 fn pad_bottom_right_one(xs: &Tensor) -> candle_core::Result<Tensor> {
     xs.pad_with_zeros(2, 0, 1)?.pad_with_zeros(3, 0, 1)
 }
@@ -693,7 +702,8 @@ impl PPDocLayoutV3SelfAttention {
     ) -> Result<Tensor> {
         let (batch_size, sequence_length, hidden_size) = hidden_states.dims3()?;
         let query_key_input = match position_embeddings {
-            Some(position_embeddings) => hidden_states.broadcast_add(position_embeddings)?,
+            Some(position_embeddings) => hidden_states
+                .broadcast_add(&position_embeddings.to_dtype(hidden_states.dtype())?)?,
             None => hidden_states.clone(),
         };
 
@@ -726,9 +736,10 @@ impl PPDocLayoutV3SelfAttention {
         let mut attention_scores = query_states.matmul(&key_states_t)?;
         attention_scores = (attention_scores * self.scaling)?;
         if let Some(attention_mask) = attention_mask {
-            attention_scores = attention_scores.broadcast_add(attention_mask)?;
+            attention_scores = attention_scores
+                .broadcast_add(&attention_mask.to_dtype(attention_scores.dtype())?)?;
         }
-        let attention_probs = softmax(&attention_scores, D::Minus1)?;
+        let attention_probs = softmax_f32(&attention_scores, D::Minus1)?;
         let context = attention_probs.matmul(&value_states)?;
         let context = context.transpose(1, 2)?.contiguous()?.reshape((
             batch_size,
@@ -1084,7 +1095,8 @@ impl PPDocLayoutV3AIFILayer {
         let mut hidden = xs.flatten_from(2)?.transpose(1, 2)?;
         let position_embedding = self
             .position_embedding
-            .forward(width, height, xs.device())?;
+            .forward(width, height, xs.device())?
+            .to_dtype(hidden.dtype())?;
         for layer in &self.layers {
             hidden = layer.forward(&hidden, Some(&position_embedding))?;
         }
@@ -1486,7 +1498,8 @@ impl PPDocLayoutV3MultiscaleDeformableAttention {
         spatial_shapes_list: &[(usize, usize)],
     ) -> Result<Tensor> {
         let hidden_states = match position_embeddings {
-            Some(position_embeddings) => hidden_states.broadcast_add(position_embeddings)?,
+            Some(position_embeddings) => hidden_states
+                .broadcast_add(&position_embeddings.to_dtype(hidden_states.dtype())?)?,
             None => hidden_states.clone(),
         };
         let (batch_size, num_queries, _) = hidden_states.dims3()?;
@@ -1517,7 +1530,7 @@ impl PPDocLayoutV3MultiscaleDeformableAttention {
             self.n_points,
             2,
         ))?;
-        let attention_weights = softmax(
+        let attention_weights = softmax_f32(
             &self.attention_weights.forward(&hidden_states)?.reshape((
                 batch_size,
                 num_queries,
@@ -1748,9 +1761,9 @@ impl PPDocLayoutV3Decoder {
             )?;
 
             let predicted_corners = bbox_head.forward(&hidden_states)?;
-            reference_points = sigmoid(
-                &predicted_corners.broadcast_add(&inverse_sigmoid_tensor(&reference_points)?)?,
-            )?;
+            let reference_points_unact =
+                inverse_sigmoid_tensor(&reference_points)?.to_dtype(predicted_corners.dtype())?;
+            reference_points = sigmoid(&predicted_corners.broadcast_add(&reference_points_unact)?)?;
 
             let out_query = norm.forward(&hidden_states)?;
             let mask_query_embed = mask_query_head.forward(&out_query)?;
@@ -1964,7 +1977,8 @@ impl PPDocLayoutV3ForObjectDetection {
             let enc_out_masks =
                 batched_mask_projection(&mask_query_embed, &encoder_outputs.mask_feat)?;
             reference_points_unact =
-                inverse_sigmoid_tensor(&mask_to_box_coordinate(&enc_out_masks, 0.0)?)?;
+                inverse_sigmoid_tensor(&mask_to_box_coordinate(&enc_out_masks, 0.0)?)?
+                    .to_dtype(target.dtype())?;
         }
 
         let decoder_outputs = self.decoder.forward(
@@ -2097,8 +2111,12 @@ fn batched_mask_projection(mask_query_embed: &Tensor, mask_feat: &Tensor) -> Res
 }
 
 fn inverse_sigmoid_tensor(tensor: &Tensor) -> Result<Tensor> {
+    let dtype = tensor.dtype();
     let tensor = tensor.to_dtype(DType::F32)?.clamp(1e-5, 1.0 - 1e-5)?;
-    Ok(tensor.broadcast_div(&tensor.affine(-1.0, 1.0)?)?.log()?)
+    Ok(tensor
+        .broadcast_div(&tensor.affine(-1.0, 1.0)?)?
+        .log()?
+        .to_dtype(dtype)?)
 }
 
 fn mask_to_box_coordinate(mask_logits: &Tensor, threshold: f32) -> Result<Tensor> {
@@ -2199,6 +2217,9 @@ fn multi_scale_deformable_attention(
     n_points: usize,
 ) -> Result<Tensor> {
     let (batch_size, sequence_length, num_heads, head_dim) = value.dims4()?;
+    let reference_points = reference_points.to_dtype(DType::F32)?;
+    let sampling_offsets = sampling_offsets.to_dtype(DType::F32)?;
+    let attention_weights = attention_weights.to_dtype(DType::F32)?;
     let sampling_dims = sampling_offsets.dims().to_vec();
     let (num_queries, num_levels, num_points) = match sampling_dims.as_slice() {
         [_, queries, _, levels, points, _] => (*queries, *levels, *points),

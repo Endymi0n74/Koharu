@@ -35,6 +35,7 @@ pub(crate) struct Mit48pxModel {
     color_pred_fg_ind: Linear,
     color_pred_bg_ind: Linear,
     device: Device,
+    dtype: DType,
 }
 
 #[derive(Clone)]
@@ -46,7 +47,7 @@ struct Hypothesis {
 }
 
 fn topk_last_dim(tensor: &Tensor, topk: usize) -> Result<TopkOutput> {
-    let rows = tensor.to_vec2::<f32>()?;
+    let rows = tensor.to_dtype(DType::F32)?.to_vec2::<f32>()?;
     let mut values = Vec::with_capacity(rows.len());
     let mut indices = Vec::with_capacity(rows.len());
 
@@ -93,10 +94,11 @@ impl Hypothesis {
         decoder_layers: usize,
         embd_dim: usize,
         device: &Device,
+        dtype: DType,
     ) -> Result<Self> {
         let mut cached_activations = Vec::with_capacity(decoder_layers + 1);
         for _ in 0..=decoder_layers {
-            cached_activations.push(Tensor::zeros((1, 0, embd_dim), DType::F32, device)?);
+            cached_activations.push(Tensor::zeros((1, 0, embd_dim), dtype, device)?);
         }
         Ok(Self {
             sample_index,
@@ -160,6 +162,7 @@ impl Mit48pxModel {
         vb: VarBuilder,
         device: Device,
     ) -> Result<Self> {
+        let dtype = vb.dtype();
         let backbone = ConvNextFeatureExtractor::new(vb.pp("backbone"))?;
         let encoders = (0..config.encoder_layers)
             .map(|index| TransformerEncoderLayer::new(vb.pp(format!("encoders.{index}"))))
@@ -190,6 +193,7 @@ impl Mit48pxModel {
             color_pred_fg_ind,
             color_pred_bg_ind,
             device,
+            dtype,
         })
     }
 
@@ -216,6 +220,7 @@ impl Mit48pxModel {
                     self.decoders.len(),
                     self.config.embd_dim,
                     &self.device,
+                    self.dtype,
                 )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -400,7 +405,7 @@ impl Mit48pxModel {
     fn next_token_candidates(&self, decoded: &Tensor, beam_size: usize) -> Result<TopkOutput> {
         let pred_feats = self.pred1.forward(decoded)?.gelu_erf()?;
         let logits = self.pred.forward(&pred_feats)?;
-        let log_probs = candle_nn::ops::log_softmax(&logits, D::Minus1)?;
+        let log_probs = candle_nn::ops::log_softmax(&logits.to_dtype(DType::F32)?, D::Minus1)?;
         topk_last_dim(&log_probs, beam_size)
     }
 
@@ -410,6 +415,7 @@ impl Mit48pxModel {
         let fg_colors = self
             .color_pred_fg
             .forward(&color_feats)?
+            .to_dtype(DType::F32)?
             .squeeze(0)?
             .to_vec2::<f32>()?
             .into_iter()
@@ -418,6 +424,7 @@ impl Mit48pxModel {
         let bg_colors = self
             .color_pred_bg
             .forward(&color_feats)?
+            .to_dtype(DType::F32)?
             .squeeze(0)?
             .to_vec2::<f32>()?
             .into_iter()
@@ -426,6 +433,7 @@ impl Mit48pxModel {
         let fg_indicators = self
             .color_pred_fg_ind
             .forward(&color_feats)?
+            .to_dtype(DType::F32)?
             .squeeze(0)?
             .to_vec2::<f32>()?
             .into_iter()
@@ -434,6 +442,7 @@ impl Mit48pxModel {
         let bg_indicators = self
             .color_pred_bg_ind
             .forward(&color_feats)?
+            .to_dtype(DType::F32)?
             .squeeze(0)?
             .to_vec2::<f32>()?
             .into_iter()
@@ -871,7 +880,8 @@ impl XposMultiheadAttention {
                 f32::NEG_INFINITY,
                 attn_weights_4d.shape().dims(),
                 attn_weights_4d.device(),
-            )?;
+            )?
+            .to_dtype(attn_weights_4d.dtype())?;
             attn_weights = mask.where_cond(&neg_inf, &attn_weights_4d)?.reshape((
                 batch * self.num_heads,
                 tgt_len,
@@ -879,7 +889,9 @@ impl XposMultiheadAttention {
             ))?;
         }
 
-        let attn_weights = candle_nn::ops::softmax_last_dim(&attn_weights)?;
+        let attn_dtype = attn_weights.dtype();
+        let attn_weights = candle_nn::ops::softmax_last_dim(&attn_weights.to_dtype(DType::F32)?)?
+            .to_dtype(attn_dtype)?;
         let attn = attn_weights
             .matmul(&v)?
             .reshape((batch, self.num_heads, tgt_len, self.head_dim))?

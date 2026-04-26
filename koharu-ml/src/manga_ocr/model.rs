@@ -106,7 +106,7 @@ impl VisionEncoderDecoder {
                 }
 
                 let last_idx = seq_lengths[batch_idx].saturating_sub(1);
-                let last_logits = logits.i((batch_idx, last_idx, ..))?;
+                let last_logits = logits.i((batch_idx, last_idx, ..))?.to_dtype(DType::F32)?;
                 let next_id = sampler.sample(&last_logits)?;
                 seq.push(next_id);
                 if next_id == self.eos_token_id {

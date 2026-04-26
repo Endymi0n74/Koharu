@@ -57,6 +57,7 @@ pub struct ComicTextDetector {
     unet: unet::UNet,
     dbnet: Option<dbnet::DbNet>,
     device: Device,
+    dtype: DType,
 }
 
 impl ComicTextDetector {
@@ -77,24 +78,32 @@ impl ComicTextDetector {
         load_dbnet: bool,
     ) -> anyhow::Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let downloads = runtime.downloads();
         let yolo_path = downloads
             .huggingface_model(HF_REPO, "yolo-v5.safetensors")
             .await?;
-        let yolo = loading::load_mmaped_safetensors_path(&yolo_path, &device, |vb| {
-            yolo_v5::YoloV5::load(vb, 2, 3)
-        })?;
+        let yolo =
+            loading::load_mmaped_safetensors_path_with_dtype(&yolo_path, &device, dtype, |vb| {
+                yolo_v5::YoloV5::load(vb, 2, 3)
+            })?;
         let unet_path = downloads
             .huggingface_model(HF_REPO, "unet.safetensors")
             .await?;
-        let unet = loading::load_mmaped_safetensors_path(&unet_path, &device, unet::UNet::load)?;
+        let unet = loading::load_mmaped_safetensors_path_with_dtype(
+            &unet_path,
+            &device,
+            dtype,
+            unet::UNet::load,
+        )?;
         let dbnet = if load_dbnet {
             let dbnet_path = downloads
                 .huggingface_model(HF_REPO, "dbnet.safetensors")
                 .await?;
-            Some(loading::load_mmaped_safetensors_path(
+            Some(loading::load_mmaped_safetensors_path_with_dtype(
                 &dbnet_path,
                 &device,
+                dtype,
                 dbnet::DbNet::load,
             )?)
         } else {
@@ -106,13 +115,14 @@ impl ComicTextDetector {
             unet,
             dbnet,
             device,
+            dtype,
         })
     }
 
     #[instrument(level = "debug", skip_all)]
     pub fn inference(&self, image: &DynamicImage) -> anyhow::Result<ComicTextDetection> {
         let original_dimensions = image.dimensions();
-        let (image_tensor, resized_dimensions) = preprocess(image, &self.device)?;
+        let (image_tensor, resized_dimensions) = preprocess(image, &self.device, self.dtype)?;
         let (predictions, mask, shrink_threshold) = self.forward(&image_tensor)?;
 
         let bboxes = postprocess_yolo(&predictions, original_dimensions, resized_dimensions)?;
@@ -145,7 +155,7 @@ impl ComicTextDetector {
     #[instrument(level = "debug", skip_all)]
     pub fn inference_segmentation(&self, image: &DynamicImage) -> anyhow::Result<GrayImage> {
         let original_dimensions = image.dimensions();
-        let (image_tensor, resized_dimensions) = preprocess(image, &self.device)?;
+        let (image_tensor, resized_dimensions) = preprocess(image, &self.device, self.dtype)?;
         let mask = self.forward_mask(&image_tensor)?;
         postprocess_unet_mask(&mask, original_dimensions, resized_dimensions)
     }
@@ -184,7 +194,11 @@ impl ComicTextDetector {
 }
 
 #[instrument(level = "debug", skip_all)]
-fn preprocess(image: &DynamicImage, device: &Device) -> anyhow::Result<(Tensor, (u32, u32))> {
+fn preprocess(
+    image: &DynamicImage,
+    device: &Device,
+    dtype: DType,
+) -> anyhow::Result<(Tensor, (u32, u32))> {
     let (orig_w, orig_h) = image.dimensions();
     let image_size = match device {
         Device::Cpu => CPU_DETECT_SIZE,
@@ -208,7 +222,7 @@ fn preprocess(image: &DynamicImage, device: &Device) -> anyhow::Result<(Tensor, 
     .pad_with_zeros(3, 0, image_size as usize - w)?
         * (1. / 255.))?;
 
-    Ok((tensor, (width, height)))
+    Ok((tensor.to_dtype(dtype)?, (width, height)))
 }
 
 #[instrument(level = "debug", skip(predictions))]
@@ -217,7 +231,7 @@ fn postprocess_yolo(
     original_dimensions: (u32, u32),
     resized_dimensions: (u32, u32),
 ) -> anyhow::Result<Vec<Bbox<usize>>> {
-    let predictions = predictions.squeeze(0)?;
+    let predictions = predictions.squeeze(0)?.to_dtype(DType::F32)?;
     let (_, num_outputs) = predictions.dims2()?;
     if num_outputs < 6 {
         bail!("invalid prediction shape: expected at least 6 outputs, got {num_outputs}");
@@ -272,9 +286,9 @@ fn postprocess_mask(
     resized_dimensions: (u32, u32),
 ) -> anyhow::Result<GrayImage> {
     let shrink_and_thresh = shrink_thresh.squeeze(0)?;
-    let shrink = shrink_and_thresh.i(0)?;
-    let thresh = shrink_and_thresh.i(1)?;
-    let unet_mask = mask.squeeze(0)?;
+    let shrink = shrink_and_thresh.i(0)?.to_dtype(DType::F32)?;
+    let thresh = shrink_and_thresh.i(1)?.to_dtype(DType::F32)?;
+    let unet_mask = mask.squeeze(0)?.to_dtype(DType::F32)?;
 
     let (_, h_db, w_db) = shrink_and_thresh.dims3()?;
     let (_, h_unet, w_unet) = unet_mask.dims3()?;
@@ -334,7 +348,11 @@ fn tensor_channel_to_gray_resized(
     height: u32,
 ) -> anyhow::Result<GrayImage> {
     let (th, tw) = tensor.dims2()?;
-    let values: Vec<f32> = tensor.to_device(&Device::Cpu)?.flatten_all()?.to_vec1()?;
+    let values: Vec<f32> = tensor
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?
+        .flatten_all()?
+        .to_vec1()?;
     let pixels: Vec<u8> = values
         .iter()
         .map(|&v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)

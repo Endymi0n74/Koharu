@@ -45,6 +45,7 @@ pub struct SpeechBubbleSegmentation {
     model: YoloV8Seg,
     config: SpeechBubbleSegmentationConfig,
     device: Device,
+    dtype: DType,
 }
 
 #[derive(Debug, Clone)]
@@ -148,25 +149,32 @@ impl SpeechBubbleSegmentation {
         cpu: bool,
     ) -> Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let config = loading::read_json::<SpeechBubbleSegmentationConfig>(config_path.as_ref())
             .with_context(|| format!("failed to parse {}", config_path.as_ref().display()))?;
         config.validate()?;
         let multiples = variant_multiples(&config)?;
-        let model = loading::load_mmaped_safetensors_path(weights_path.as_ref(), &device, |vb| {
-            YoloV8Seg::load(
-                vb,
-                multiples,
-                config.num_classes,
-                config.num_masks,
-                config.num_prototypes,
-                config.reg_max,
-            )
-        })?;
+        let model = loading::load_mmaped_safetensors_path_with_dtype(
+            weights_path.as_ref(),
+            &device,
+            dtype,
+            |vb| {
+                YoloV8Seg::load(
+                    vb,
+                    multiples,
+                    config.num_classes,
+                    config.num_masks,
+                    config.num_prototypes,
+                    config.reg_max,
+                )
+            },
+        )?;
 
         Ok(Self {
             model,
             config,
             device,
+            dtype,
         })
     }
 
@@ -258,7 +266,7 @@ impl SpeechBubbleSegmentation {
             &self.device,
         )?
         .permute((0, 3, 1, 2))?
-        .to_dtype(DType::F32)?;
+        .to_dtype(self.dtype)?;
         let pixel_values = (pixel_values * (1.0 / 255.0))?;
 
         Ok(PreparedInput {
@@ -306,8 +314,16 @@ fn postprocess(
     confidence_threshold: f32,
     nms_threshold: f32,
 ) -> Result<SpeechBubbleSegmentationResult> {
-    let pred = outputs.pred.to_device(&Device::Cpu)?.i(0)?;
-    let proto = outputs.proto.to_device(&Device::Cpu)?.i(0)?;
+    let pred = outputs
+        .pred
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?
+        .i(0)?;
+    let proto = outputs
+        .proto
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?
+        .i(0)?;
     let raw_regions =
         extract_regions(&pred, prepared, config, confidence_threshold, nms_threshold)?;
     let mut probability_map =

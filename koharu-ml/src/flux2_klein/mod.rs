@@ -147,16 +147,18 @@ impl Flux2Klein {
             );
         }
         let prompt_embedder = Flux2PromptEmbedder::new(&model_device);
-        let vae =
-            loading::load_mmaped_safetensors_path(&paths.vae_safetensors, &model_device, |vb| {
-                Flux2Vae::new(vb)
-            })
-            .with_context(|| {
-                format!(
-                    "failed to load Flux2 VAE from {}",
-                    paths.vae_safetensors.display()
-                )
-            })?;
+        let vae = loading::load_mmaped_safetensors_path_with_dtype(
+            &paths.vae_safetensors,
+            &model_device,
+            vae_dtype(&model_device),
+            |vb| Flux2Vae::new(vb),
+        )
+        .with_context(|| {
+            format!(
+                "failed to load Flux2 VAE from {}",
+                paths.vae_safetensors.display()
+            )
+        })?;
 
         Ok(Self {
             transformer,
@@ -454,7 +456,8 @@ impl Flux2Klein {
     }
 
     fn encode_image_latents(&self, image: &RgbImage) -> Result<Tensor> {
-        let image_tensor = image_to_tensor(image, &self.device)?;
+        let image_tensor =
+            image_to_tensor(image, &self.device)?.to_dtype(vae_dtype(&self.device))?;
         let latents = self.vae.encode_patchified_normalized(&image_tensor)?;
         drop(image_tensor);
         Ok(latents.to_dtype(DType::F32)?)
@@ -466,7 +469,8 @@ impl Flux2Klein {
         packed_h: usize,
         packed_w: usize,
     ) -> Result<RgbImage> {
-        let patchified = unpack_latents(&packed_latents, packed_h, packed_w)?;
+        let patchified = unpack_latents(&packed_latents, packed_h, packed_w)?
+            .to_dtype(vae_dtype(&self.device))?;
         drop(packed_latents);
         let decoded = self.vae.decode_patchified_normalized(&patchified)?;
         drop(patchified);
@@ -493,6 +497,14 @@ impl Drop for CudaTemporaryMemoryCleanup<'_> {
 }
 
 fn transformer_dtype(device: &Device) -> DType {
+    if device.is_cuda() {
+        return DType::BF16;
+    }
+
+    DType::F32
+}
+
+fn vae_dtype(device: &Device) -> DType {
     if device.is_cuda() {
         return DType::BF16;
     }

@@ -27,11 +27,23 @@ pub struct MangaOcr {
     tokenizer: Tokenizer,
     preprocessor: PreprocessorConfig,
     device: Device,
+    dtype: DType,
+}
+
+struct ImagePreprocessOptions<'a> {
+    image_size: u32,
+    image_mean: &'a [f32; 3],
+    image_std: &'a [f32; 3],
+    do_resize: bool,
+    do_normalize: bool,
+    device: &'a Device,
+    dtype: DType,
 }
 
 impl MangaOcr {
     pub async fn load(runtime: &RuntimeManager, cpu: bool) -> Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let hf = runtime.downloads();
         let config_path = hf.huggingface_model(HF_REPO, "config.json").await?;
         let preprocessor_path = hf
@@ -49,15 +61,19 @@ impl MangaOcr {
         let tokenizer = load_tokenizer(None, &vocab_path, &special_tokens_path)?;
         let model_device = device.clone();
         let weights = hf.huggingface_model(HF_REPO, "model.safetensors").await?;
-        let model = loading::load_mmaped_safetensors_path(&weights, &device, move |vb| {
-            VisionEncoderDecoder::from_config(config, vb, model_device.clone())
-        })?;
+        let model = loading::load_mmaped_safetensors_path_with_dtype(
+            &weights,
+            &device,
+            dtype,
+            move |vb| VisionEncoderDecoder::from_config(config, vb, model_device.clone()),
+        )?;
 
         Ok(Self {
             model,
             tokenizer,
             preprocessor,
             device,
+            dtype,
         })
     }
 
@@ -67,15 +83,16 @@ impl MangaOcr {
             return Ok(Vec::new());
         }
 
-        let pixel_values = preprocess_images(
-            images,
-            self.preprocessor.size,
-            &self.preprocessor.image_mean,
-            &self.preprocessor.image_std,
-            self.preprocessor.do_resize,
-            self.preprocessor.do_normalize,
-            &self.device,
-        )?;
+        let options = ImagePreprocessOptions {
+            image_size: self.preprocessor.size,
+            image_mean: &self.preprocessor.image_mean,
+            image_std: &self.preprocessor.image_std,
+            do_resize: self.preprocessor.do_resize,
+            do_normalize: self.preprocessor.do_normalize,
+            device: &self.device,
+            dtype: self.dtype,
+        };
+        let pixel_values = preprocess_images(images, &options)?;
         let token_ids = self.forward(&pixel_values)?;
         let texts = token_ids
             .into_iter()
@@ -96,24 +113,11 @@ impl MangaOcr {
 #[instrument(level = "debug", skip_all)]
 fn preprocess_images(
     images: &[image::DynamicImage],
-    image_size: u32,
-    image_mean: &[f32; 3],
-    image_std: &[f32; 3],
-    do_resize: bool,
-    do_normalize: bool,
-    device: &Device,
+    options: &ImagePreprocessOptions<'_>,
 ) -> Result<Tensor> {
     let mut batch = Vec::with_capacity(images.len());
     for image in images {
-        let processed = preprocess_single_image(
-            image,
-            image_size,
-            image_mean,
-            image_std,
-            do_resize,
-            do_normalize,
-            device,
-        )?;
+        let processed = preprocess_single_image(image, options)?;
         batch.push(processed);
     }
 
@@ -123,16 +127,11 @@ fn preprocess_images(
 #[instrument(level = "debug", skip_all)]
 fn preprocess_single_image(
     image: &image::DynamicImage,
-    image_size: u32,
-    image_mean: &[f32; 3],
-    image_std: &[f32; 3],
-    do_resize: bool,
-    do_normalize: bool,
-    device: &Device,
+    options: &ImagePreprocessOptions<'_>,
 ) -> Result<Tensor> {
     let (orig_w, orig_h) = image.dimensions();
-    let (width, height) = if do_resize {
-        (image_size as usize, image_size as usize)
+    let (width, height) = if options.do_resize {
+        (options.image_size as usize, options.image_size as usize)
     } else {
         (orig_w as usize, orig_h as usize)
     };
@@ -140,44 +139,44 @@ fn preprocess_single_image(
     let tensor = Tensor::from_vec(
         image.grayscale().to_rgb8().into_raw(),
         (1, orig_h as usize, orig_w as usize, 3),
-        device,
+        options.device,
     )?
     .permute((0, 3, 1, 2))?
     .to_dtype(DType::F32)?;
 
-    let tensor = if do_resize {
+    let tensor = if options.do_resize {
         tensor.interpolate2d(height, width)?
     } else {
         tensor
     };
 
     let tensor = (tensor * (1.0 / 255.0))?;
-    let tensor = if do_normalize {
+    let tensor = if options.do_normalize {
         let std = [
-            if image_std[0] == 0.0 {
+            if options.image_std[0] == 0.0 {
                 1.0
             } else {
-                image_std[0]
+                options.image_std[0]
             },
-            if image_std[1] == 0.0 {
+            if options.image_std[1] == 0.0 {
                 1.0
             } else {
-                image_std[1]
+                options.image_std[1]
             },
-            if image_std[2] == 0.0 {
+            if options.image_std[2] == 0.0 {
                 1.0
             } else {
-                image_std[2]
+                options.image_std[2]
             },
         ];
-        let mean_t = Tensor::from_slice(image_mean, (1, 3, 1, 1), device)?;
-        let std_t = Tensor::from_slice(&std, (1, 3, 1, 1), device)?;
+        let mean_t = Tensor::from_slice(options.image_mean, (1, 3, 1, 1), options.device)?;
+        let std_t = Tensor::from_slice(&std, (1, 3, 1, 1), options.device)?;
         tensor.broadcast_sub(&mean_t)?.broadcast_div(&std_t)?
     } else {
         tensor
     };
 
-    Ok(tensor)
+    Ok(tensor.to_dtype(options.dtype)?)
 }
 
 #[instrument(level = "debug", skip_all)]

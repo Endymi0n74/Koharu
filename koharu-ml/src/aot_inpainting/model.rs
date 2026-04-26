@@ -262,6 +262,8 @@ fn relu_nf(xs: &Tensor) -> candle_core::Result<Tensor> {
 }
 
 fn my_layer_norm(xs: &Tensor) -> candle_core::Result<Tensor> {
+    let dtype = xs.dtype();
+    let xs = xs.to_dtype(candle_core::DType::F32)?;
     let (batch, channels, height, width) = xs.dims4()?;
     let flat = xs.flatten_from(2)?;
     let mean = flat.mean_keepdim(2)?;
@@ -269,7 +271,9 @@ fn my_layer_norm(xs: &Tensor) -> candle_core::Result<Tensor> {
     let normalized = ((flat.broadcast_sub(&mean)? * 2.0)?)
         .broadcast_div(&std)?
         .broadcast_sub(&Tensor::ones_like(&flat)?)?;
-    (normalized * 5.0)?.reshape((batch, channels, height, width))
+    (normalized * 5.0)?
+        .reshape((batch, channels, height, width))?
+        .to_dtype(dtype)
 }
 
 fn load_plain_conv2d(
@@ -342,6 +346,9 @@ fn load_scaled_ws_transpose_conv2d(
 }
 
 fn standardize_conv2d_weight(weight: Tensor, gain: Tensor) -> candle_core::Result<Tensor> {
+    let dtype = weight.dtype();
+    let weight = weight.to_dtype(candle_core::DType::F32)?;
+    let gain = gain.to_dtype(candle_core::DType::F32)?;
     let (out_channels, in_channels, kernel_h, kernel_w) = weight.dims4()?;
     let flat = weight.flatten_from(1)?;
     let fan_in = flat.dim(1)? as f64;
@@ -356,18 +363,19 @@ fn standardize_conv2d_weight(weight: Tensor, gain: Tensor) -> candle_core::Resul
     let scale = variance.maximum(&eps)?.sqrt()?.recip()?;
     let scale = scale.broadcast_mul(&gain.reshape((out_channels, 1))?)?;
     let shift = mean.broadcast_mul(&scale)?;
-    flat.broadcast_mul(&scale)?.broadcast_sub(&shift)?.reshape((
-        out_channels,
-        in_channels,
-        kernel_h,
-        kernel_w,
-    ))
+    flat.broadcast_mul(&scale)?
+        .broadcast_sub(&shift)?
+        .reshape((out_channels, in_channels, kernel_h, kernel_w))?
+        .to_dtype(dtype)
 }
 
 fn standardize_transpose_conv2d_weight(
     weight: Tensor,
     gain: Tensor,
 ) -> candle_core::Result<Tensor> {
+    let dtype = weight.dtype();
+    let weight = weight.to_dtype(candle_core::DType::F32)?;
+    let gain = gain.to_dtype(candle_core::DType::F32)?;
     let (in_channels, out_channels, kernel_h, kernel_w) = weight.dims4()?;
     let flat = weight.flatten_from(1)?;
     let fan_in = flat.dim(1)? as f64;
@@ -382,12 +390,10 @@ fn standardize_transpose_conv2d_weight(
     let scale = variance.maximum(&eps)?.sqrt()?.recip()?;
     let scale = scale.broadcast_mul(&gain.reshape((in_channels, 1))?)?;
     let shift = mean.broadcast_mul(&scale)?;
-    flat.broadcast_mul(&scale)?.broadcast_sub(&shift)?.reshape((
-        in_channels,
-        out_channels,
-        kernel_h,
-        kernel_w,
-    ))
+    flat.broadcast_mul(&scale)?
+        .broadcast_sub(&shift)?
+        .reshape((in_channels, out_channels, kernel_h, kernel_w))?
+        .to_dtype(dtype)
 }
 
 fn reflect_pad2d(xs: &Tensor, pad: usize) -> candle_core::Result<Tensor> {

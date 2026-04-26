@@ -1,4 +1,4 @@
-use candle_core::{D, DType, IndexOp, Result, Tensor};
+use candle_core::{D, IndexOp, Result, Tensor};
 use candle_nn::{
     BatchNorm, Conv2d, Conv2dConfig, ConvTranspose2d, ConvTranspose2dConfig, Module, VarBuilder,
     batch_norm, conv_transpose2d, conv2d, conv2d_no_bias,
@@ -399,12 +399,13 @@ fn make_anchors(
     grid_cell_offset: f64,
 ) -> Result<(Tensor, Tensor)> {
     let device = xs0.device();
+    let dtype = xs0.dtype();
     let mut anchor_points = Vec::new();
     let mut stride_tensors = Vec::new();
     for (xs, stride) in [(xs0, strides.0), (xs1, strides.1), (xs2, strides.2)] {
         let (_, _, h, w) = xs.dims4()?;
-        let sx = (Tensor::arange(0, w as u32, device)?.to_dtype(DType::F32)? + grid_cell_offset)?;
-        let sy = (Tensor::arange(0, h as u32, device)?.to_dtype(DType::F32)? + grid_cell_offset)?;
+        let sx = (Tensor::arange(0, w as u32, device)?.to_dtype(dtype)? + grid_cell_offset)?;
+        let sy = (Tensor::arange(0, h as u32, device)?.to_dtype(dtype)? + grid_cell_offset)?;
         let sx = sx
             .reshape((1, sx.elem_count()))?
             .repeat((h, 1))?
@@ -414,7 +415,7 @@ fn make_anchors(
             .repeat((1, w))?
             .flatten_all()?;
         anchor_points.push(Tensor::stack(&[&sx, &sy], D::Minus1)?);
-        stride_tensors.push((Tensor::ones(h * w, DType::F32, device)? * stride as f64)?);
+        stride_tensors.push((Tensor::ones(h * w, dtype, device)? * stride as f64)?);
     }
     let anchor_points = Tensor::cat(anchor_points.as_slice(), 0)?;
     let stride_tensor = Tensor::cat(stride_tensors.as_slice(), 0)?.unsqueeze(1)?;

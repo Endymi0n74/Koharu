@@ -54,7 +54,11 @@ fn scaled_dot_product_attention(q: &Tensor, k: &Tensor, v: &Tensor) -> Result<Te
         let len = chunk_size.min(seq_len - start);
         let q_chunk = q.narrow(2, start, len)?;
         let attn_weights = (q_chunk.matmul(&k_t)? * scale)?;
-        chunks.push(candle_nn::ops::softmax_last_dim(&attn_weights)?.matmul(&v)?);
+        let attn_dtype = attn_weights.dtype();
+        let attn_weights =
+            candle_nn::ops::softmax_last_dim(&attn_weights.to_dtype(candle_core::DType::F32)?)?
+                .to_dtype(attn_dtype)?;
+        chunks.push(attn_weights.matmul(&v)?);
     }
     Tensor::cat(&chunks, 2)
 }

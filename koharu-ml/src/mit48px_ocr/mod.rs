@@ -75,6 +75,7 @@ pub struct Mit48pxOcr {
     config: Mit48pxConfig,
     dictionary: Vec<String>,
     device: Device,
+    dtype: DType,
 }
 
 impl Mit48pxOcr {
@@ -102,18 +103,20 @@ impl Mit48pxOcr {
 
     fn load_from_files(files: ModelFiles, cpu: bool) -> Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let config: Mit48pxConfig =
             loading::read_json(&files.config).context("failed to parse mit48px config")?;
         let dictionary = read_dictionary(&files.dictionary)?;
         let data = std::fs::read(&files.weights)
             .with_context(|| format!("failed to read {}", files.weights.display()))?;
-        let vb = VarBuilder::from_buffered_safetensors(data, DType::F32, &device)?;
+        let vb = VarBuilder::from_buffered_safetensors(data, dtype, &device)?;
         let model = Mit48pxModel::new(config.clone(), dictionary.len(), vb, device.clone())?;
         Ok(Self {
             model,
             config,
             dictionary,
             device,
+            dtype,
         })
     }
 
@@ -125,7 +128,7 @@ impl Mit48pxOcr {
 
         let mut predictions = Vec::with_capacity(regions.len());
         for chunk in regions.chunks(OCR_CHUNK_SIZE) {
-            let batch = preprocess_regions(chunk, &self.config, &self.device)?;
+            let batch = preprocess_regions(chunk, &self.config, &self.device, self.dtype)?;
             let raw = self.model.infer_batch(&batch.tensor, &batch.widths)?;
             for prediction in raw {
                 predictions.push(self.decode_prediction(prediction));
@@ -278,6 +281,7 @@ fn preprocess_regions(
     regions: &[DynamicImage],
     config: &Mit48pxConfig,
     device: &Device,
+    dtype: DType,
 ) -> Result<PreparedBatch> {
     let mut resized = Vec::<RgbImage>::with_capacity(regions.len());
     let mut widths = Vec::with_capacity(regions.len());
@@ -310,8 +314,9 @@ fn preprocess_regions(
         }
     }
 
-    let tensor =
-        Tensor::from_vec(flat, (resized.len(), height, width, 3), device)?.permute((0, 3, 1, 2))?;
+    let tensor = Tensor::from_vec(flat, (resized.len(), height, width, 3), device)?
+        .permute((0, 3, 1, 2))?
+        .to_dtype(dtype)?;
     Ok(PreparedBatch { tensor, widths })
 }
 
@@ -397,7 +402,12 @@ mod tests {
     fn preprocessing_resizes_to_48px_and_matches_ballonstranslator_width_padding()
     -> anyhow::Result<()> {
         let image = DynamicImage::ImageRgb8(RgbImage::from_pixel(25, 10, image::Rgb([255, 0, 0])));
-        let batch = preprocess_regions(&[image], &test_config(), &candle_core::Device::Cpu)?;
+        let batch = preprocess_regions(
+            &[image],
+            &test_config(),
+            &candle_core::Device::Cpu,
+            candle_core::DType::F32,
+        )?;
         assert_eq!(batch.widths, vec![120]);
         assert_eq!(batch.tensor.dims(), &[1, 3, 48, 127]);
         Ok(())

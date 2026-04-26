@@ -3,6 +3,7 @@ mod model;
 use std::{collections::BTreeMap, time::Instant};
 
 use anyhow::{Context, Result, bail};
+use candle_core::DType;
 use image::{DynamicImage, GenericImageView, imageops::FilterType};
 use koharu_runtime::RuntimeManager;
 use serde::{Deserialize, Serialize};
@@ -44,12 +45,14 @@ pub struct ComicTextBubbleDetector {
     config: RTDetrV2Config,
     preprocessor: RTDetrImageProcessorConfig,
     device: Device,
+    dtype: DType,
     slicer: ImageSlicer,
 }
 
 impl ComicTextBubbleDetector {
     pub async fn load(runtime: &RuntimeManager, cpu: bool) -> Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let downloads = runtime.downloads();
         let config_path = downloads.huggingface_model(HF_REPO, "config.json").await?;
         let preprocessor_path = downloads
@@ -64,15 +67,19 @@ impl ComicTextBubbleDetector {
         config.validate()?;
         let preprocessor = loading::read_json::<RTDetrImageProcessorConfig>(&preprocessor_path)
             .with_context(|| format!("failed to parse {}", preprocessor_path.display()))?;
-        let model = loading::load_mmaped_safetensors_path(&weights_path, &device, |vb| {
-            RTDetrV2ForObjectDetection::load(vb, &config)
-        })?;
+        let model = loading::load_mmaped_safetensors_path_with_dtype(
+            &weights_path,
+            &device,
+            dtype,
+            |vb| RTDetrV2ForObjectDetection::load(vb, &config),
+        )?;
 
         Ok(Self {
             model,
             config,
             preprocessor,
             device,
+            dtype,
             slicer: ImageSlicer::default(),
         })
     }
@@ -121,7 +128,7 @@ impl ComicTextBubbleDetector {
         image: &DynamicImage,
         threshold: f32,
     ) -> Result<Vec<ComicTextBubbleRegion>> {
-        let pixel_values = preprocess_image(image, &self.preprocessor, &self.device)?;
+        let pixel_values = preprocess_image(image, &self.preprocessor, &self.device, self.dtype)?;
         let outputs = self.model.forward(&pixel_values)?;
         post_process_object_detection(&self.config, &outputs, image.dimensions(), threshold)
     }
@@ -365,6 +372,7 @@ fn preprocess_image(
     image: &DynamicImage,
     preprocessor: &RTDetrImageProcessorConfig,
     device: &Device,
+    dtype: DType,
 ) -> Result<candle_core::Tensor> {
     let target_h = preprocessor.size.height;
     let target_w = preprocessor.size.width;
@@ -378,15 +386,17 @@ fn preprocess_image(
         candle_core::Tensor::from_vec(rgb.into_raw(), (1, target_h, target_w, 3), &Device::Cpu)?
             .to_device(device)?
             .permute((0, 3, 1, 2))?
-            .to_dtype(candle_core::DType::F32)?;
+            .to_dtype(dtype)?;
     let tensor = if preprocessor.do_rescale {
         tensor.affine(preprocessor.rescale_factor as f64, 0.0)?
     } else {
         tensor
     };
     if preprocessor.do_normalize {
-        let mean = candle_core::Tensor::from_slice(&preprocessor.image_mean, (1, 3, 1, 1), device)?;
-        let std = candle_core::Tensor::from_slice(&preprocessor.image_std, (1, 3, 1, 1), device)?;
+        let mean = candle_core::Tensor::from_slice(&preprocessor.image_mean, (1, 3, 1, 1), device)?
+            .to_dtype(dtype)?;
+        let std = candle_core::Tensor::from_slice(&preprocessor.image_std, (1, 3, 1, 1), device)?
+            .to_dtype(dtype)?;
         Ok(tensor.broadcast_sub(&mean)?.broadcast_div(&std)?)
     } else {
         Ok(tensor)
@@ -399,8 +409,14 @@ fn post_process_object_detection(
     target_size: (u32, u32),
     threshold: f32,
 ) -> Result<Vec<ComicTextBubbleRegion>> {
-    let logits = outputs.logits.to_device(&Device::Cpu)?;
-    let pred_boxes = outputs.pred_boxes.to_device(&Device::Cpu)?;
+    let logits = outputs
+        .logits
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?;
+    let pred_boxes = outputs
+        .pred_boxes
+        .to_dtype(DType::F32)?
+        .to_device(&Device::Cpu)?;
     let (batch_size, num_queries, num_classes) = logits.dims3()?;
     if batch_size != 1 {
         bail!("only single-image inference is supported, got batch_size={batch_size}");

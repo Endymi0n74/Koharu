@@ -6,6 +6,14 @@ use candle_core::{DType, Device};
 use candle_nn::VarBuilder;
 use serde::de::DeserializeOwned;
 
+pub fn model_dtype(device: &Device) -> DType {
+    if device.is_cuda() {
+        DType::BF16
+    } else {
+        DType::F32
+    }
+}
+
 pub async fn resolve_manifest_path<F>(manifest: F) -> Result<PathBuf>
 where
     F: Future<Output = Result<PathBuf>>,
@@ -36,7 +44,20 @@ where
     Build: FnOnce(VarBuilder) -> std::result::Result<T, E>,
     E: Into<anyhow::Error>,
 {
-    let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[weights], DType::F32, device)? };
+    load_mmaped_safetensors_path_with_dtype(weights, device, DType::F32, build)
+}
+
+pub fn load_mmaped_safetensors_path_with_dtype<T, Build, E>(
+    weights: &Path,
+    device: &Device,
+    dtype: DType,
+    build: Build,
+) -> Result<T>
+where
+    Build: FnOnce(VarBuilder) -> std::result::Result<T, E>,
+    E: Into<anyhow::Error>,
+{
+    let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[weights], dtype, device)? };
     build(vb).map_err(Into::into)
 }
 
@@ -63,9 +84,22 @@ where
     Build: FnOnce(VarBuilder) -> std::result::Result<T, E>,
     E: Into<anyhow::Error>,
 {
+    load_buffered_safetensors_path_with_dtype(weights, device, DType::F32, build)
+}
+
+pub fn load_buffered_safetensors_path_with_dtype<T, Build, E>(
+    weights: &Path,
+    device: &Device,
+    dtype: DType,
+    build: Build,
+) -> Result<T>
+where
+    Build: FnOnce(VarBuilder) -> std::result::Result<T, E>,
+    E: Into<anyhow::Error>,
+{
     let data =
         std::fs::read(weights).with_context(|| format!("failed to read {}", weights.display()))?;
-    let vb = VarBuilder::from_buffered_safetensors(data, DType::F32, device)?;
+    let vb = VarBuilder::from_buffered_safetensors(data, dtype, device)?;
     build(vb).map_err(Into::into)
 }
 

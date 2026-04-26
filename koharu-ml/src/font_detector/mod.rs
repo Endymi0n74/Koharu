@@ -37,6 +37,7 @@ pub struct FontDetector {
     model: models::Model,
     labels: FontLabels,
     device: Device,
+    dtype: DType,
 }
 
 impl FontDetector {
@@ -50,18 +51,23 @@ impl FontDetector {
         kind: ModelKind,
     ) -> Result<Self> {
         let device = device(cpu)?;
+        let dtype = loading::model_dtype(&device);
         let downloads = runtime.downloads();
         let weights_path = downloads
             .huggingface_model(HF_REPO, "yuzumarker-font-detection.safetensors")
             .await?;
-        let model = loading::load_mmaped_safetensors_path(&weights_path, &device, move |vb| {
-            models::Model::load(vb.pp("model._orig_mod.model"), kind)
-        })?;
+        let model = loading::load_mmaped_safetensors_path_with_dtype(
+            &weights_path,
+            &device,
+            dtype,
+            move |vb| models::Model::load(vb.pp("model._orig_mod.model"), kind),
+        )?;
         let labels = FontLabels::load(runtime).await?;
 
         Ok(Self {
             model,
             device,
+            dtype,
             labels,
         })
     }
@@ -84,11 +90,17 @@ impl FontDetector {
             .collect::<Vec<_>>()
             .into_iter()
             .collect::<Result<Vec<_>>>()?;
-        let batch = Tensor::stack(&processed, 0)?.to_device(&self.device)?;
+        let batch = Tensor::stack(&processed, 0)?
+            .to_device(&self.device)?
+            .to_dtype(self.dtype)?;
         let preprocess_elapsed = preprocess_started.elapsed();
 
         let forward_started = Instant::now();
-        let logits = self.model.forward(&batch, false)?.to_device(&Device::Cpu)?;
+        let logits = self
+            .model
+            .forward(&batch, false)?
+            .to_dtype(DType::F32)?
+            .to_device(&Device::Cpu)?;
         let forward_elapsed = forward_started.elapsed();
 
         let postprocess_started = Instant::now();
