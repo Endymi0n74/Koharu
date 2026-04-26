@@ -66,9 +66,11 @@ function DownloadCard({
     <BubbleCard>
       <div className='flex items-start gap-3'>
         <div className='mt-1 h-2.5 w-2.5 animate-pulse rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.16)]' />
-        <div className='flex-1'>
+        <div className='min-w-0 flex-1'>
           <div className='text-sm font-semibold text-foreground'>{t('download.title')}</div>
-          <div className='truncate text-xs text-muted-foreground'>{filename}</div>
+          <div className='block max-w-full truncate text-xs text-muted-foreground' title={filename}>
+            {filename}
+          </div>
           <ProgressBar percent={percent} />
         </div>
       </div>
