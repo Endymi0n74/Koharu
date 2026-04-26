@@ -1,3 +1,14 @@
+## [0.51.0](https://github.com/mayocream/koharu/compare/0.50.2..0.51.0) - 2026-04-26
+
+### ⛰️  Features
+
+- Gemma models to gemini models ([#578](https://github.com/mayocream/koharu/issues/578)) - ([fa7b9b7](https://github.com/mayocream/koharu/commit/fa7b9b7603d142cffc8f0e540f7eb26b6791fb92))
+
+### 🐛 Bug Fixes
+
+- Prefer 4000 port - ([a214dcf](https://github.com/mayocream/koharu/commit/a214dcfa89208aa7e3dc4bcb64286daf21c8dfd8))
+
+
 ## [0.50.2](https://github.com/mayocream/koharu/compare/0.50.1..0.50.2) - 2026-04-26
 
 ### ⚡ Performance
