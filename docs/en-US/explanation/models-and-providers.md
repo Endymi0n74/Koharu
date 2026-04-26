@@ -94,12 +94,12 @@ Machine-translation providers are pure translation services rather than chat mod
 
 ### Current built-in remote LLM models
 
-The built-in defaults for the LLM-backed providers are:
+The built-in catalog for LLM-backed providers includes:
 
-- OpenAI: `gpt-5-mini` (`GPT-5 mini`)
-- Gemini: `gemini-3.1-flash-lite-preview` (`Gemini 3.1 Flash-Lite Preview`)
-- Claude: `claude-haiku-4-5` (`Claude Haiku 4.5`)
-- DeepSeek: `deepseek-chat` (`DeepSeek-V3.2-Chat`)
+- OpenAI: GPT-5.5, GPT-5.4, GPT-5.x, GPT-4.1, o-series, GPT-4o, and legacy GPT chat models
+- Gemini: Gemini 3.1, Gemini 3, Gemini 2.5, Gemini 2.0 text-output models, plus Gemma 4 hosted through the Gemini API
+- Claude: current Claude Opus, Sonnet, and Haiku 4.x models, plus deprecated Claude 4 snapshots that remain available until their upstream retirement dates
+- DeepSeek: DeepSeek V4 Flash, DeepSeek V4 Pro, and the `deepseek-chat` / `deepseek-reasoner` compatibility aliases
 - OpenAI-compatible APIs: models are discovered dynamically from the configured endpoint
 
 ### Machine-translation providers

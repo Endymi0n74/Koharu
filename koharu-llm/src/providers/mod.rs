@@ -118,12 +118,114 @@ pub struct ProviderConfig {
     pub max_tokens: Option<u32>,
 }
 
-const OPENAI_MODELS: &[ProviderModelDescriptor] = &[ProviderModelDescriptor {
-    id: "gpt-5-mini",
-    name: "GPT-5 mini",
-}];
+const OPENAI_MODELS: &[ProviderModelDescriptor] = &[
+    ProviderModelDescriptor {
+        id: "gpt-5.5",
+        name: "GPT-5.5",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5.4",
+        name: "GPT-5.4",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5.4-mini",
+        name: "GPT-5.4 mini",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5.4-nano",
+        name: "GPT-5.4 nano",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5.2",
+        name: "GPT-5.2",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5.1",
+        name: "GPT-5.1",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5",
+        name: "GPT-5",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5-mini",
+        name: "GPT-5 mini",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5-nano",
+        name: "GPT-5 nano",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-5-chat-latest",
+        name: "GPT-5 Chat latest",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-4.1",
+        name: "GPT-4.1",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-4.1-mini",
+        name: "GPT-4.1 mini",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-4.1-nano",
+        name: "GPT-4.1 nano",
+    },
+    ProviderModelDescriptor {
+        id: "o3",
+        name: "o3",
+    },
+    ProviderModelDescriptor {
+        id: "o4-mini",
+        name: "o4-mini",
+    },
+    ProviderModelDescriptor {
+        id: "o3-mini",
+        name: "o3-mini",
+    },
+    ProviderModelDescriptor {
+        id: "o1",
+        name: "o1",
+    },
+    ProviderModelDescriptor {
+        id: "o1-mini",
+        name: "o1-mini",
+    },
+    ProviderModelDescriptor {
+        id: "o1-preview",
+        name: "o1 preview",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-4o",
+        name: "GPT-4o",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-4o-mini",
+        name: "GPT-4o mini",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-4-turbo",
+        name: "GPT-4 Turbo",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-4",
+        name: "GPT-4",
+    },
+    ProviderModelDescriptor {
+        id: "gpt-3.5-turbo",
+        name: "GPT-3.5 Turbo",
+    },
+];
 
 const GEMINI_MODELS: &[ProviderModelDescriptor] = &[
+    ProviderModelDescriptor {
+        id: "gemini-3.1-pro-preview",
+        name: "Gemini 3.1 Pro Preview",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-3.1-pro-preview-customtools",
+        name: "Gemini 3.1 Pro Preview Custom Tools",
+    },
     ProviderModelDescriptor {
         id: "gemini-3.1-flash-lite-preview",
         name: "Gemini 3.1 Flash-Lite Preview",
@@ -131,6 +233,34 @@ const GEMINI_MODELS: &[ProviderModelDescriptor] = &[
     ProviderModelDescriptor {
         id: "gemini-3-flash-preview",
         name: "Gemini 3 Flash Preview",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-2.5-pro",
+        name: "Gemini 2.5 Pro",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-2.5-flash",
+        name: "Gemini 2.5 Flash",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-2.5-flash-lite",
+        name: "Gemini 2.5 Flash-Lite",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-2.0-flash",
+        name: "Gemini 2.0 Flash",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-2.0-flash-001",
+        name: "Gemini 2.0 Flash 001",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-2.0-flash-lite",
+        name: "Gemini 2.0 Flash-Lite",
+    },
+    ProviderModelDescriptor {
+        id: "gemini-2.0-flash-lite-001",
+        name: "Gemini 2.0 Flash-Lite 001",
     },
     ProviderModelDescriptor {
         id: "gemma-4-31b-it",
@@ -142,15 +272,67 @@ const GEMINI_MODELS: &[ProviderModelDescriptor] = &[
     },
 ];
 
-const CLAUDE_MODELS: &[ProviderModelDescriptor] = &[ProviderModelDescriptor {
-    id: "claude-haiku-4-5",
-    name: "Claude Haiku 4.5",
-}];
+const CLAUDE_MODELS: &[ProviderModelDescriptor] = &[
+    ProviderModelDescriptor {
+        id: "claude-opus-4-7",
+        name: "Claude Opus 4.7",
+    },
+    ProviderModelDescriptor {
+        id: "claude-sonnet-4-6",
+        name: "Claude Sonnet 4.6",
+    },
+    ProviderModelDescriptor {
+        id: "claude-haiku-4-5",
+        name: "Claude Haiku 4.5",
+    },
+    ProviderModelDescriptor {
+        id: "claude-opus-4-6",
+        name: "Claude Opus 4.6",
+    },
+    ProviderModelDescriptor {
+        id: "claude-opus-4-5-20251101",
+        name: "Claude Opus 4.5",
+    },
+    ProviderModelDescriptor {
+        id: "claude-opus-4-1-20250805",
+        name: "Claude Opus 4.1",
+    },
+    ProviderModelDescriptor {
+        id: "claude-sonnet-4-5-20250929",
+        name: "Claude Sonnet 4.5",
+    },
+    ProviderModelDescriptor {
+        id: "claude-haiku-4-5-20251001",
+        name: "Claude Haiku 4.5 snapshot",
+    },
+    ProviderModelDescriptor {
+        id: "claude-opus-4-20250514",
+        name: "Claude Opus 4 (deprecated)",
+    },
+    ProviderModelDescriptor {
+        id: "claude-sonnet-4-20250514",
+        name: "Claude Sonnet 4 (deprecated)",
+    },
+];
 
-const DEEPSEEK_MODELS: &[ProviderModelDescriptor] = &[ProviderModelDescriptor {
-    id: "deepseek-chat",
-    name: "DeepSeek-V3.2-Chat",
-}];
+const DEEPSEEK_MODELS: &[ProviderModelDescriptor] = &[
+    ProviderModelDescriptor {
+        id: "deepseek-v4-flash",
+        name: "DeepSeek V4 Flash",
+    },
+    ProviderModelDescriptor {
+        id: "deepseek-v4-pro",
+        name: "DeepSeek V4 Pro",
+    },
+    ProviderModelDescriptor {
+        id: "deepseek-chat",
+        name: "DeepSeek Chat",
+    },
+    ProviderModelDescriptor {
+        id: "deepseek-reasoner",
+        name: "DeepSeek Reasoner",
+    },
+];
 
 const MT_MODELS: &[ProviderModelDescriptor] = &[ProviderModelDescriptor {
     id: "mt",
@@ -394,4 +576,64 @@ fn discover_openai_compatible_models(config: ProviderConfig) -> ProviderDiscover
             })
             .collect())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ids(models: &[ProviderModelDescriptor]) -> Vec<&'static str> {
+        models.iter().map(|model| model.id).collect()
+    }
+
+    fn assert_contains_all(provider: &str, models: &[ProviderModelDescriptor], expected: &[&str]) {
+        let ids = ids(models);
+        for expected_id in expected {
+            assert!(
+                ids.contains(expected_id),
+                "{provider} model catalog should include {expected_id}"
+            );
+        }
+    }
+
+    #[test]
+    fn static_llm_provider_catalogs_cover_current_model_families() {
+        assert_contains_all(
+            "openai",
+            OPENAI_MODELS,
+            &[
+                "gpt-5.5",
+                "gpt-5.4-mini",
+                "gpt-5-mini",
+                "gpt-4.1",
+                "gpt-4o",
+                "o3",
+            ],
+        );
+        assert_contains_all(
+            "gemini",
+            GEMINI_MODELS,
+            &[
+                "gemini-3.1-pro-preview",
+                "gemini-3.1-flash-lite-preview",
+                "gemini-2.5-flash",
+                "gemma-4-26b-a4b-it",
+            ],
+        );
+        assert_contains_all(
+            "claude",
+            CLAUDE_MODELS,
+            &["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"],
+        );
+        assert_contains_all(
+            "deepseek",
+            DEEPSEEK_MODELS,
+            &[
+                "deepseek-v4-flash",
+                "deepseek-v4-pro",
+                "deepseek-chat",
+                "deepseek-reasoner",
+            ],
+        );
+    }
 }

@@ -94,12 +94,12 @@ Provedores de tradução automática são serviços de tradução puros, não mo
 
 ### Modelos remotos de LLM internos atuais
 
-Os padrões internos atuais para os provedores baseados em LLM são:
+O catálogo interno dos provedores baseados em LLM inclui:
 
-- OpenAI: `gpt-5-mini` (`GPT-5 mini`)
-- Gemini: `gemini-3.1-flash-lite-preview` (`Gemini 3.1 Flash-Lite Preview`)
-- Claude: `claude-haiku-4-5` (`Claude Haiku 4.5`)
-- DeepSeek: `deepseek-chat` (`DeepSeek-V3.2-Chat`)
+- OpenAI: GPT-5.5, GPT-5.4, GPT-5.x, GPT-4.1, série o, GPT-4o e modelos GPT chat legados
+- Gemini: modelos de saída de texto Gemini 3.1, Gemini 3, Gemini 2.5 e Gemini 2.0, além do Gemma 4 hospedado pela Gemini API
+- Claude: modelos Claude Opus, Sonnet e Haiku 4.x atuais, além de snapshots Claude 4 obsoletos que continuam disponíveis até as datas de desativação upstream
+- DeepSeek: DeepSeek V4 Flash, DeepSeek V4 Pro e os aliases de compatibilidade `deepseek-chat` / `deepseek-reasoner`
 - APIs compatíveis com OpenAI: os modelos são descobertos dinamicamente a partir do endpoint configurado
 
 ### Provedores de tradução automática

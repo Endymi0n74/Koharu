@@ -256,7 +256,7 @@ LLMs are downloaded on demand when you activate a model. For constrained memory 
 
 Koharu supports hosted APIs from [OpenAI](https://platform.openai.com/), [Gemini](https://ai.google.dev/), [Claude](https://www.anthropic.com/api), and [DeepSeek](https://platform.deepseek.com/) instead of a local GGUF model.
 
-Built-in cloud defaults: OpenAI `gpt-5-mini`, Gemini `gemini-3.1-flash-lite-preview`, Claude `claude-haiku-4-5`, and DeepSeek `deepseek-chat`.
+Built-in cloud catalogs include current text-output models for OpenAI, Gemini, Claude, and DeepSeek, including GPT-5.5/5.4/5.x, Gemini 3.1/3/2.5/2.0, Claude Opus/Sonnet/Haiku 4.x, DeepSeek V4, and compatibility aliases such as `deepseek-chat` and `deepseek-reasoner`.
 
 #### Codex Image-to-Image Generation
 
