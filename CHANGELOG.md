@@ -1,3 +1,22 @@
+## [0.50.1](https://github.com/mayocream/koharu/compare/0.50.0..0.50.1) - 2026-04-26
+
+### 🐛 Bug Fixes
+
+- Include cudnn in zluda - ([33c0aff](https://github.com/mayocream/koharu/commit/33c0affbda03e8d9e79a18e23cc05f2d2dc48fe8))
+- Do not uppercase translation - ([1afef77](https://github.com/mayocream/koharu/commit/1afef7742589212f49608f6f3574169172af25e1))
+
+### 📚 Documentation
+
+- Winget - ([8f9f0eb](https://github.com/mayocream/koharu/commit/8f9f0eb1ca3a3ebf8e75c825ec8d3ac1073486c4))
+
+### ⚙️ Miscellaneous Tasks
+
+- Update ko_KR/translation.json ([#573](https://github.com/mayocream/koharu/issues/573)) - ([60a2be4](https://github.com/mayocream/koharu/commit/60a2be40843d8463bfa9746d83d92de8ec506158))
+
+## New Contributors ❤️
+
+* @Rerica0302 made their first contribution in [#573](https://github.com/mayocream/koharu/pull/573)
+
 ## [0.50.0](https://github.com/mayocream/koharu/compare/0.49.0..0.50.0) - 2026-04-25
 
 ### ⛰️  Features
