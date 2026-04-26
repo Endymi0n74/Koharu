@@ -91,10 +91,22 @@ pub async fn run() -> Result<()> {
     #[cfg(target_os = "windows")]
     crate::windows::register_khr().ok();
 
-    let default_port = if cfg!(debug_assertions) { 9999 } else { 0 };
     let bind_host = cli.host.as_deref().unwrap_or("127.0.0.1");
-    let bind_port = cli.port.unwrap_or(default_port);
-    let listener: TcpListener = TcpListener::bind((bind_host, bind_port)).await?;
+    let bind_port = cli.port.unwrap_or(4000);
+    let listener: TcpListener = if cfg!(debug_assertions) || cli.port.is_some() {
+        TcpListener::bind((bind_host, bind_port)).await?
+    } else {
+        let mut port = bind_port;
+        loop {
+            match TcpListener::bind((bind_host, port)).await {
+                Ok(listener) => break listener,
+                Err(err) if err.kind() == std::io::ErrorKind::AddrInUse && port < u16::MAX => {
+                    port += 1;
+                }
+                Err(err) => return Err(err.into()),
+            }
+        }
+    };
     let port = listener.local_addr()?.port();
     tracing::info!(port, "starting server");
 
