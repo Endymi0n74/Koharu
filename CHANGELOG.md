@@ -1,3 +1,22 @@
+## [0.54.0](https://github.com/mayocream/koharu/compare/0.53.0..0.54.0) - 2026-04-28
+
+### ⛰️  Features
+
+- Add more cloud models - ([9c119a1](https://github.com/mayocream/koharu/commit/9c119a1e45c9036941da00b1089da8924e074a61))
+
+### 🐛 Bug Fixes
+
+- *(editor)* Delete key removes all selected text blocks ([#559](https://github.com/mayocream/koharu/issues/559)) ([#599](https://github.com/mayocream/koharu/issues/599)) - ([91cce6f](https://github.com/mayocream/koharu/commit/91cce6f72b11e081f300e3251e8d6c31f18cf20f))
+- Revert inpainting logic for AOT/Lama ([#609](https://github.com/mayocream/koharu/issues/609)) - ([8e92960](https://github.com/mayocream/koharu/commit/8e92960faf404cb2e3482eaeb5402813d4a7ca9b))
+
+### Fix
+
+- Brush and Mask Layer not syncing on undo/redo ([#557](https://github.com/mayocream/koharu/issues/557)) - ([3cc8ac9](https://github.com/mayocream/koharu/commit/3cc8ac9506375c18b1f73457202df08f131baa32))
+
+## New Contributors ❤️
+
+* @mvanhorn made their first contribution in [#599](https://github.com/mayocream/koharu/pull/599)
+
 ## [0.53.0](https://github.com/mayocream/koharu/compare/0.52.0..0.53.0) - 2026-04-26
 
 ### ⛰️  Features
@@ -595,7 +614,7 @@
 
 * @gabrieljcodes made their first contribution in [#317](https://github.com/mayocream/koharu/pull/317)
 * @DevNergis made their first contribution
-* @toufudealer made their first contribution in [#315](https://github.com/mayocream/koharu/pull/315)
+* @kyoshau made their first contribution in [#315](https://github.com/mayocream/koharu/pull/315)
 
 ## [0.41.4](https://github.com/mayocream/koharu/compare/0.41.3..0.41.4) - 2026-03-30
 
