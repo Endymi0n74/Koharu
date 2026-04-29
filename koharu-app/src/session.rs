@@ -21,7 +21,7 @@ use anyhow::{Context, Result};
 use atomicwrites::{AtomicFile, OverwriteBehavior};
 use camino::{Utf8Path, Utf8PathBuf};
 use chrono::Utc;
-use fs4::fs_std::FileExt;
+use fs4::FileExt;
 use koharu_core::{Scene, op::Op};
 use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
@@ -99,8 +99,7 @@ impl ProjectSession {
             .truncate(false)
             .open(lock_path.as_std_path())
             .with_context(|| format!("open lock file {}", lock_path))?;
-        lock.try_lock_exclusive()
-            .context("project is already open elsewhere")?;
+        FileExt::try_lock(&lock).context("project is already open elsewhere")?;
 
         let blobs = Arc::new(BlobStore::open(dir.join(BLOBS_DIR).as_std_path())?);
 
