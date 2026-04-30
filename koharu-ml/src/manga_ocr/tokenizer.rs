@@ -32,7 +32,9 @@ pub fn load_tokenizer(
         }
     }
     if !added.is_empty() {
-        tokenizer.add_special_tokens(&added);
+        tokenizer
+            .add_special_tokens(added)
+            .map_err(|e| anyhow!(e))?;
     }
 
     Ok(tokenizer)
