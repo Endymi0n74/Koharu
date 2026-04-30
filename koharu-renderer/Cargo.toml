@@ -16,7 +16,6 @@ anyhow = { workspace = true }
 image = { workspace = true }
 imageproc = { workspace = true }
 once_cell = { workspace = true }
-serde = { workspace = true }
 skrifa = { workspace = true }
 harfrust = { workspace = true }
 hypher = { workspace = true }
@@ -27,7 +26,6 @@ fontdb = { workspace = true }
 fontdue = { workspace = true }
 tiny-skia = { workspace = true }
 tracing = { workspace = true }
-rayon = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }

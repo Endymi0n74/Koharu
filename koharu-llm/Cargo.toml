@@ -29,9 +29,7 @@ path = "bin/paddleocr-vl.rs"
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-flate2 = { workspace = true }
 futures = { workspace = true }
-hf-hub = { workspace = true }
 image = { workspace = true }
 koharu-runtime = { workspace = true }
 libloading = { workspace = true }
@@ -44,13 +42,11 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 strum = { workspace = true }
 url = { workspace = true }
-tar = "0.4"
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-core = "0.1"
-zip = { workspace = true }
 encoding_rs = "0.8"
 enumflags2 = "0.7.12"
 

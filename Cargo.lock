@@ -4205,19 +4205,13 @@ name = "koharu"
 version = "0.55.0"
 dependencies = [
  "anyhow",
- "camino",
  "clap",
  "console",
- "dirs",
  "git-version",
  "koharu-app",
- "koharu-core",
  "koharu-llm",
- "koharu-ml",
- "koharu-renderer",
  "koharu-rpc",
  "koharu-runtime",
- "once_cell",
  "rfd 0.17.2",
  "sentry",
  "serde_json",
@@ -4269,11 +4263,8 @@ dependencies = [
  "chrono",
  "clap",
  "dashmap",
- "dirs",
  "fs4",
  "image",
- "imageproc",
- "indexmap 2.14.0",
  "inventory",
  "koharu-ai",
  "koharu-core",
@@ -4282,26 +4273,19 @@ dependencies = [
  "koharu-renderer",
  "koharu-runtime",
  "lru",
- "natord",
- "open",
  "parking_lot",
  "petgraph",
- "petname",
  "postcard",
- "rayon",
  "reqwest-middleware",
- "rfd 0.17.2",
  "secrecy",
  "serde",
  "serde_json",
  "strum",
  "tempfile",
- "thiserror 2.0.18",
  "tokio",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
  "tracing-subscriber",
- "url",
  "utoipa",
  "uuid",
  "walkdir",
@@ -4358,7 +4342,6 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
- "tracing",
  "uuid",
 ]
 
@@ -4373,7 +4356,6 @@ dependencies = [
  "enumflags2",
  "flate2",
  "futures",
- "hf-hub",
  "image",
  "koharu-runtime",
  "libloading 0.8.9",
@@ -4395,7 +4377,6 @@ dependencies = [
  "tracing-core",
  "tracing-subscriber",
  "url",
- "zip 8.6.0",
 ]
 
 [[package]]
@@ -4410,24 +4391,18 @@ dependencies = [
  "clap",
  "cudarc 0.19.4",
  "dirs",
- "futures",
  "image",
  "imageproc",
  "koharu-runtime",
- "libloading 0.8.9",
- "minijinja",
- "num_cpus",
  "objc2",
  "objc2-foundation",
  "objc2-metal",
  "objc2-metal-performance-shaders",
  "objc2-metal-performance-shaders-graph",
  "rayon",
- "reqwest 0.13.3",
  "rustfft",
  "serde",
  "serde_json",
- "strum",
  "tokenizers",
  "tokio",
  "tracing",
@@ -4457,8 +4432,6 @@ dependencies = [
  "image",
  "imageproc",
  "once_cell",
- "rayon",
- "serde",
  "skrifa",
  "tiny-skia",
  "tokio",
@@ -4480,7 +4453,6 @@ dependencies = [
  "insta",
  "koharu-app",
  "koharu-core",
- "koharu-llm",
  "koharu-psd",
  "koharu-runtime",
  "natord",
@@ -4490,7 +4462,6 @@ dependencies = [
  "schemars 1.2.1",
  "serde",
  "serde_json",
- "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
  "tower-http",
@@ -4522,12 +4493,10 @@ dependencies = [
  "reqwest-middleware",
  "reqwest-retry",
  "serde",
- "serde_json",
  "tar",
  "tempfile",
  "tokio",
  "tracing",
- "url",
  "windows-sys 0.61.2",
  "zip 8.6.0",
 ]
@@ -5843,28 +5812,6 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap 2.14.0",
  "serde",
-]
-
-[[package]]
-name = "petname"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ce610bff48dd7b6a127e45631795fbb0b302b99a39bef7e6da3d297e8eb2b6b"
-dependencies = [
- "clap",
- "petname-macros",
- "rand 0.10.1",
-]
-
-[[package]]
-name = "petname-macros"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "324239bd00dcf61f1a0e301d4d8f6f8c080a755248fc3fdc817ee1fdbbc27b8b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
 ]
 
 [[package]]

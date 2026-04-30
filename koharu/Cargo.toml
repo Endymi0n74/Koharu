@@ -23,19 +23,13 @@ include = [
 
 [dependencies]
 koharu-app = { workspace = true }
-koharu-core = { workspace = true }
-koharu-ml = { workspace = true }
-koharu-renderer = { workspace = true }
 koharu-rpc = { workspace = true }
 koharu-runtime = { workspace = true }
 koharu-llm = { workspace = true }
 anyhow = { workspace = true }
-camino = { workspace = true }
 clap = { workspace = true }
-dirs = { workspace = true }
 git-version = { workspace = true }
 serde_json = { workspace = true }
-once_cell = { workspace = true }
 rfd = { workspace = true }
 tauri = { workspace = true }
 tauri-plugin-dialog = { workspace = true }
@@ -55,8 +49,11 @@ windows-sys = { workspace = true }
 winreg = { workspace = true }
 
 [features]
-cuda = ["koharu-ml/cuda"]
-metal = ["koharu-ml/metal"]
+cuda = ["koharu-app/cuda"]
+metal = ["koharu-app/metal"]
 
 [build-dependencies]
 tauri-build = { workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["serde_json"]

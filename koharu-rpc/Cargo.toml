@@ -14,7 +14,6 @@ publish.workspace = true
 [dependencies]
 koharu-app = { workspace = true }
 koharu-core = { workspace = true }
-koharu-llm = { workspace = true }
 koharu-psd = { workspace = true }
 koharu-runtime = { workspace = true }
 anyhow = { workspace = true }
@@ -31,7 +30,6 @@ rmcp = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tower-http = { workspace = true }
