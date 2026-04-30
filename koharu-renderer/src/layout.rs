@@ -517,9 +517,20 @@ impl<'a> TextLayout<'a> {
             if self.writing_mode.is_vertical() {
                 let actual_width = (max_x - min_x).max(0.0);
                 if max_width_finite {
-                    width = actual_width.max(self.max_width.unwrap());
+                    // Use tight bounds for Center alignment to ensure visual balance.
+                    width = if effective_alignment == TextAlign::Center {
+                        actual_width
+                    } else {
+                        actual_width.max(self.max_width.unwrap())
+                    };
+
                     if effective_alignment != TextAlign::Left {
-                        let remaining = (width - actual_width).max(0.0);
+                        let anchor = if effective_alignment == TextAlign::Center {
+                            actual_width
+                        } else {
+                            width
+                        };
+                        let remaining = (anchor - actual_width).max(0.0);
                         let offset = match effective_alignment {
                             TextAlign::Center => remaining * 0.5,
                             TextAlign::Right => remaining,
@@ -535,11 +546,16 @@ impl<'a> TextLayout<'a> {
                     width = actual_width;
                 }
             } else {
-                width = (max_x - min_x).max(if max_extent.is_finite() {
-                    max_extent
+                let actual_width = (max_x - min_x).max(0.0);
+                width = if effective_alignment == TextAlign::Center && max_extent_finite {
+                    actual_width
                 } else {
-                    0.0
-                });
+                    actual_width.max(if max_extent.is_finite() {
+                        max_extent
+                    } else {
+                        0.0
+                    })
+                };
             }
             height = (max_y - min_y).max(0.0);
 
@@ -562,8 +578,11 @@ impl<'a> TextLayout<'a> {
                 && max_extent_finite
                 && effective_alignment != TextAlign::Left
             {
+                // Anchor to the run width. If Center, this is a tight width.
+                // If Right, this is the container width.
+                let anchor = width;
                 for line in &mut lines {
-                    let remaining = (max_extent - line.advance).max(0.0);
+                    let remaining = (anchor - line.advance).max(0.0);
                     let offset = match effective_alignment {
                         TextAlign::Left => 0.0,
                         TextAlign::Center => remaining * 0.5,
@@ -960,10 +979,10 @@ mod tests {
             .with_alignment(TextAlign::Center)
             .run("A")?;
 
-        assert_eq!(layout.width, max_width);
-        // The block is centered horizontally.
-        assert!(layout.lines[0].baseline.0 > 40.0);
-        assert!(layout.lines[0].baseline.0 < 60.0);
+        // Under the new tight-bounds strategy, the run width is now the actual content width (tightly cropped).
+        // The visual centering on the page is handled by the renderer centering this tight sprite.
+        assert!(layout.width < max_width);
+        assert!(layout.width > 10.0); // Should be around one line height (16px+)
 
         Ok(())
     }
@@ -1084,5 +1103,39 @@ mod tests {
             normalize_vertical_emphasis_punctuation("Hello!?!"),
             "Hello⁉!"
         );
+    }
+
+    #[test]
+    fn horizontal_center_alignment_with_overflow_is_aligned_relative_to_widest()
+    -> anyhow::Result<()> {
+        let font = any_system_font();
+        // A very narrow container.
+        let max_width = 20.0;
+        // A very long word that is guaranteed to overflow 20px in any font.
+        let text = "LONGWORDTHATWILLOVERFLOW,\nHI";
+        let layout = TextLayout::new(&font, Some(20.0))
+            .with_max_width(max_width)
+            .with_alignment(TextAlign::Center)
+            .run(text)?;
+
+        let w0 = layout.lines[0].advance;
+        let w1 = layout.lines[1].advance;
+
+        // Ensure we are actually testing the overflow case.
+        assert!(
+            w0 > max_width,
+            "Test error: widest line {w0} did not overflow max_width {max_width}"
+        );
+
+        let c0 = layout.lines[0].baseline.0 + w0 * 0.5;
+        let c1 = layout.lines[1].baseline.0 + w1 * 0.5;
+
+        // In a fixed system, the center of the short line should match the center
+        // of the overflowing line, NOT the center of the original max_width constraint.
+        assert!(
+            (c0 - c1).abs() < 1.0,
+            "expected line centres to match even with overflow, got c0={c0} c1={c1} (max_width={max_width})",
+        );
+        Ok(())
     }
 }
