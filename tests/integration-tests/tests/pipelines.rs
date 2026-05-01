@@ -1,6 +1,8 @@
 //! Pipelines + operations + downloads. We don't run real engines (would require
 //! loading multi-gigabyte models); we verify the routes surface.
 
+use std::io::Cursor;
+
 use koharu_client::apis::default_api as api;
 use koharu_client::models;
 use koharu_core::{ImageRole, JobStatus, NodeKind, PageId};
@@ -123,9 +125,10 @@ async fn cancel_operation_via_download_id_is_204() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn renderer_pipeline_noops_on_pages_without_text_blocks() -> anyhow::Result<()> {
+async fn renderer_pipeline_creates_final_render_for_pages_without_text_blocks() -> anyhow::Result<()>
+{
     let app = TestApp::spawn().await?;
-    app.open_fresh_project("render-noop").await?;
+    app.open_fresh_project("render-textless").await?;
 
     let png = TestApp::tiny_png(24, 24, [255, 255, 255, 255]);
     let page_ids = import_pages(&app, vec![("a.png", png.clone()), ("b.png", png)]).await?;
@@ -151,18 +154,54 @@ async fn renderer_pipeline_noops_on_pages_without_text_blocks() -> anyhow::Resul
     assert_eq!(job.status, JobStatus::Completed);
     assert_eq!(job.error, None);
 
-    let session = app.app.current_session().expect("session");
-    let scene = session.scene.read();
-    for page_id in page_ids {
-        let page_id = page_id.parse::<uuid::Uuid>().map(PageId)?;
-        let page = scene.page(page_id).expect("page exists");
-        let rendered = page
-            .nodes
-            .values()
-            .filter(|node| matches!(&node.kind, NodeKind::Image(img) if img.role == ImageRole::Rendered))
-            .count();
-        assert_eq!(rendered, 0, "renderer should no-op on textless page");
+    {
+        let session = app.app.current_session().expect("session");
+        let scene = session.scene.read();
+        for page_id in &page_ids {
+            let page_id = page_id.parse::<uuid::Uuid>().map(PageId)?;
+            let page = scene.page(page_id).expect("page exists");
+            let rendered = page
+                .nodes
+                .values()
+                .filter(|node| {
+                    matches!(&node.kind, NodeKind::Image(img) if img.role == ImageRole::Rendered)
+                })
+                .count();
+            assert_eq!(
+                rendered, 1,
+                "renderer should create a final render for textless page"
+            );
+        }
     }
+
+    let res = app
+        .client_config
+        .client
+        .post(format!("{}/projects/current/export", app.base_url))
+        .json(&models::ExportProjectRequest {
+            format: models::ExportFormat::Rendered,
+            pages: None,
+        })
+        .send()
+        .await?
+        .error_for_status()?;
+    let body = res.bytes().await?;
+    let mut archive = zip::ZipArchive::new(Cursor::new(body.to_vec()))?;
+    assert_eq!(
+        archive.len(),
+        2,
+        "rendered export should include every page"
+    );
+
+    let mut names = Vec::new();
+    for i in 0..archive.len() {
+        names.push(archive.by_index(i)?.name().to_string());
+    }
+    names.sort();
+    assert!(
+        names.iter().all(|name| name.ends_with(".png")),
+        "rendered export entries should be PNGs: {names:?}",
+    );
 
     Ok(())
 }

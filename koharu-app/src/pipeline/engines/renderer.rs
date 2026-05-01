@@ -69,10 +69,6 @@ impl Engine for Model {
             })
             .collect();
 
-        if inputs.is_empty() {
-            return Ok(Vec::new());
-        }
-
         let page_opts = PageRenderOptions {
             shader_effect: Default::default(),
             shader_stroke: None,

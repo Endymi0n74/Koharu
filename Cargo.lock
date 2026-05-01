@@ -4468,6 +4468,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "uuid",
+ "zip 8.6.0",
 ]
 
 [[package]]
