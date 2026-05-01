@@ -4,6 +4,7 @@
 //! `inventory::submit! { EngineInfo { … } }`. The registry picks them up
 //! automatically at link time.
 
+pub mod anime_text;
 pub mod aot;
 pub mod bubble_segmentation;
 pub mod comic_text_bubble;

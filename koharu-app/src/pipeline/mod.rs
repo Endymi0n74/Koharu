@@ -350,3 +350,19 @@ pub fn catalog() -> EngineCatalog {
             .collect(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn catalog_includes_anime_text_detector() {
+        let catalog = catalog();
+
+        assert!(catalog.detectors.iter().any(|engine| {
+            engine.id == "anime-text"
+                && engine.name == "Anime Text YOLO (N)"
+                && engine.produces.iter().map(String::as_str).eq(["TextBoxes"])
+        }));
+    }
+}

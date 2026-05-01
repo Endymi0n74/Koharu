@@ -103,6 +103,10 @@ name = "speech-bubble-segmentation"
 path = "bin/speech-bubble-segmentation.rs"
 
 [[bin]]
+name = "anime-text"
+path = "bin/anime-text.rs"
+
+[[bin]]
 name = "aot-inpainting"
 path = "bin/aot-inpainting.rs"
 

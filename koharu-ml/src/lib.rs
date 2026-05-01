@@ -1,5 +1,6 @@
 mod hf_hub;
 
+pub mod anime_text;
 pub mod aot_inpainting;
 pub mod comic_text_bubble_detector;
 pub mod comic_text_detector;

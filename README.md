@@ -186,6 +186,7 @@ Koharu uses multiple pretrained models, each tuned for a specific part of the pa
 
 These models find text regions, speech bubbles, and page structure.
 
+- [anime-text-yolo](https://huggingface.co/mayocream/anime-text-yolo) for text block detection
 - [comic-text-bubble-detector](https://huggingface.co/ogkalu/comic-text-and-bubble-detector) for joint text block and speech bubble detection
 - [comic-text-detector](https://huggingface.co/mayocream/comic-text-detector) for text segmentation masks
 - [PP-DocLayoutV3](https://huggingface.co/PaddlePaddle/PP-DocLayoutV3_safetensors) for document layout analysis
