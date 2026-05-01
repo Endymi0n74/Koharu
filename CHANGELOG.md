@@ -1,3 +1,18 @@
+## [0.56.0](https://github.com/mayocream/koharu/compare/0.55.0..0.56.0) - 2026-05-01
+
+### ⛰️  Features
+
+- Better text rendering - ([973be25](https://github.com/mayocream/koharu/commit/973be2580d97903bac328714f0c9306b32c2761b))
+
+### ⚙️ Miscellaneous Tasks
+
+- Cleanup unused deps - ([6f82531](https://github.com/mayocream/koharu/commit/6f825319a04ad719521be040a3cc357cdb100f6e))
+
+### Fix
+
+- Centering Inconsistencies on Text Render ([#630](https://github.com/mayocream/koharu/issues/630)) - ([800c909](https://github.com/mayocream/koharu/commit/800c9090688056a6354bedfb497b4069ddbf63bf))
+
+
 ## [0.55.0](https://github.com/mayocream/koharu/compare/0.54.0..0.55.0) - 2026-04-28
 
 ### ⛰️  Features
