@@ -1,8 +1,14 @@
-use std::ops::Range;
+use std::{ops::Range, sync::LazyLock};
 
 use hypher::{Lang, hyphenate_bounded};
-use icu_properties::{CodePointMapData, props::LineBreak};
+use icu_properties::{
+    CodePointMapData,
+    props::{LineBreak, Script as IcuScript},
+};
 use icu_segmenter::{LineSegmenter, LineSegmenterBorrowed, options::LineBreakOptions};
+use jieba_rs::Jieba;
+
+static JIEBA: LazyLock<Jieba> = LazyLock::new(Jieba::new);
 
 /// A line break candidate with its byte offset and whether it is mandatory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,6 +54,7 @@ struct HyphenationConfig {
 pub struct LineBreaker {
     segmenter: LineSegmenterBorrowed<'static>,
     hyphenation: Option<HyphenationConfig>,
+    chinese_word_segmentation: bool,
 }
 
 fn trim_mandatory_break_suffix(text: &str, start: usize, end: usize) -> usize {
@@ -72,7 +79,18 @@ impl LineBreaker {
         Self {
             segmenter: LineSegmenter::new_auto(LineBreakOptions::default()),
             hyphenation: None,
+            chinese_word_segmentation: false,
         }
+    }
+
+    /// Keep Chinese Jieba words together when selecting discretionary line breaks.
+    ///
+    /// ICU still supplies the base Unicode line-break rules; this pass only
+    /// removes non-mandatory break opportunities that fall inside likely
+    /// Chinese word tokens.
+    pub fn with_chinese_word_segmentation(mut self) -> Self {
+        self.chinese_word_segmentation = true;
+        self
     }
 
     /// Enable discretionary word hyphenation for long Latin words.
@@ -95,7 +113,8 @@ impl LineBreaker {
 
     /// Returns a vector of line break opportunities in the given text.
     pub fn line_break_opportunities(&self, text: &str) -> Vec<LineBreakOpportunity> {
-        self.segmenter
+        let opportunities = self
+            .segmenter
             .segment_str(text)
             .map(|break_pos| LineBreakOpportunity {
                 offset: break_pos,
@@ -109,7 +128,13 @@ impl LineBreaker {
                     )
                 }),
             })
-            .collect()
+            .collect();
+
+        if self.chinese_word_segmentation && should_segment_as_chinese(text) {
+            apply_chinese_word_segmentation(text, opportunities)
+        } else {
+            opportunities
+        }
     }
 
     /// Returns shaped-text segments where mandatory break characters are excluded
@@ -204,6 +229,73 @@ pub fn hyphenation_lang_from_tag(value: &str) -> Option<Lang> {
     Lang::from_iso(primary.as_bytes().try_into().ok()?)
 }
 
+fn apply_chinese_word_segmentation(
+    text: &str,
+    opportunities: Vec<LineBreakOpportunity>,
+) -> Vec<LineBreakOpportunity> {
+    let protected_ranges = chinese_word_ranges(text);
+    if protected_ranges.is_empty() {
+        return opportunities;
+    }
+
+    opportunities
+        .into_iter()
+        .filter(|opportunity| {
+            opportunity.is_mandatory
+                || !protected_ranges
+                    .iter()
+                    .any(|range| opportunity.offset > range.start && opportunity.offset < range.end)
+        })
+        .collect()
+}
+
+fn chinese_word_ranges(text: &str) -> Vec<Range<usize>> {
+    let mut offset = 0usize;
+    JIEBA
+        .cut(text, true)
+        .into_iter()
+        .filter_map(|word| {
+            let start = offset;
+            let end = start + word.len();
+            offset = end;
+
+            is_chinese_word_token(word).then_some(start..end)
+        })
+        .collect()
+}
+
+fn should_segment_as_chinese(text: &str) -> bool {
+    let script_map = CodePointMapData::<IcuScript>::new();
+    let mut has_chinese = false;
+
+    for ch in text.chars() {
+        match script_map.get(ch) {
+            IcuScript::Han | IcuScript::Bopomofo => has_chinese = true,
+            IcuScript::Hiragana | IcuScript::Katakana => return false,
+            _ => {}
+        }
+    }
+
+    has_chinese
+}
+
+fn is_chinese_word_token(word: &str) -> bool {
+    let script_map = CodePointMapData::<IcuScript>::new();
+    let mut has_chinese = false;
+    let mut char_count = 0usize;
+
+    for ch in word.chars() {
+        char_count += 1;
+        match script_map.get(ch) {
+            IcuScript::Han | IcuScript::Bopomofo => has_chinese = true,
+            IcuScript::Hiragana | IcuScript::Katakana | IcuScript::Hangul => return false,
+            _ => {}
+        }
+    }
+
+    has_chinese && char_count > 1
+}
+
 fn hyphenatable_word_bounds(text: &str) -> Option<(usize, usize)> {
     let start = text.find(|ch: char| ch.is_alphabetic())?;
     let end = text
@@ -277,6 +369,57 @@ mod tests {
         assert_eq!(segments[1].next_offset, text.len());
         assert!(!segments[1].is_mandatory);
         assert_eq!(segments[1].break_suffix, None);
+    }
+
+    #[test]
+    fn chinese_word_segmentation_keeps_jieba_words_together() {
+        let text = "\u{5357}\u{4eac}\u{5e02}\u{957f}\u{6c5f}\u{5927}\u{6865}";
+        let linebreaker = LineBreaker::new().with_chinese_word_segmentation();
+        let segments: Vec<&str> = linebreaker
+            .line_segments(text)
+            .iter()
+            .map(|segment| &text[segment.range.clone()])
+            .collect();
+
+        assert_eq!(
+            segments,
+            vec![
+                "\u{5357}\u{4eac}\u{5e02}",
+                "\u{957f}\u{6c5f}\u{5927}\u{6865}",
+            ]
+        );
+    }
+
+    #[test]
+    fn chinese_word_segmentation_preserves_icu_punctuation_rules() {
+        let text = "\u{5c0f}\u{8bf4}\u{ff0c}\u{4f60}\u{597d}";
+        let linebreaker = LineBreaker::new().with_chinese_word_segmentation();
+        let segments: Vec<&str> = linebreaker
+            .line_segments(text)
+            .iter()
+            .map(|segment| &text[segment.range.clone()])
+            .collect();
+
+        assert_eq!(
+            segments,
+            vec!["\u{5c0f}\u{8bf4}\u{ff0c}", "\u{4f60}\u{597d}",]
+        );
+    }
+
+    #[test]
+    fn chinese_word_segmentation_does_not_resegment_kana_text() {
+        let text = "\u{543e}\u{8f29}\u{306f}\u{732b}";
+        let linebreaker = LineBreaker::new().with_chinese_word_segmentation();
+        let segments: Vec<&str> = linebreaker
+            .line_segments(text)
+            .iter()
+            .map(|segment| &text[segment.range.clone()])
+            .collect();
+
+        assert_eq!(
+            segments,
+            vec!["\u{543e}", "\u{8f29}", "\u{306f}", "\u{732b}",]
+        );
     }
 
     #[test]

@@ -220,12 +220,12 @@ impl<'a> TextLayout<'a> {
     fn run_with_size(&self, text: &str, font_size: f32) -> Result<LayoutRun<'a>> {
         let _s = tracing::debug_span!("layout_size", font_size = font_size as u32).entered();
         let shaper = TextShaper::new();
-        let line_breaker = match (self.writing_mode.is_vertical(), self.hyphenation_lang) {
-            (false, Some(lang)) => {
-                LineBreaker::new().with_hyphenation(lang, HYPHENATION_MIN_WORD_LEN)
-            }
-            _ => LineBreaker::new(),
-        };
+        let mut line_breaker = LineBreaker::new().with_chinese_word_segmentation();
+        if !self.writing_mode.is_vertical()
+            && let Some(lang) = self.hyphenation_lang
+        {
+            line_breaker = line_breaker.with_hyphenation(lang, HYPHENATION_MIN_WORD_LEN);
+        }
         let normalized_punctuation;
         let text = if self.writing_mode.is_vertical() {
             normalized_punctuation = normalize_vertical_emphasis_punctuation(text);
@@ -1222,6 +1222,28 @@ mod tests {
                     .iter()
                     .any(|glyph| glyph.cluster as usize == line.range.end)),
             "expected a synthetic hyphen glyph at a discretionary break"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn horizontal_layout_wraps_chinese_on_jieba_word_boundaries() -> anyhow::Result<()> {
+        let font = any_system_font();
+        let text = "\u{5357}\u{4eac}\u{5e02}\u{957f}\u{6c5f}\u{5927}\u{6865}";
+        let font_size = 24.0;
+        let unwrapped = TextLayout::new(&font, Some(font_size)).run(text)?;
+        let layout = TextLayout::new(&font, Some(font_size))
+            .with_max_width(unwrapped.lines[0].advance * 0.5)
+            .run(text)?;
+
+        assert!(
+            layout.lines.len() > 1,
+            "expected Chinese text to wrap, got {layout:?}"
+        );
+        assert_eq!(
+            &text[layout.lines[0].range.clone()],
+            "\u{5357}\u{4eac}\u{5e02}"
         );
 
         Ok(())

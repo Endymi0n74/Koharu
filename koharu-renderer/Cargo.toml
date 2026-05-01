@@ -21,6 +21,7 @@ harfrust = { workspace = true }
 hypher = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 icu_segmenter = { workspace = true, features = ["compiled_data"] }
+jieba-rs = { workspace = true }
 unicode-bidi = { workspace = true }
 fontdb = { workspace = true }
 fontdue = { workspace = true }
