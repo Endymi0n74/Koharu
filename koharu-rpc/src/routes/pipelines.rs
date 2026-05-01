@@ -13,8 +13,8 @@ use koharu_app::pipeline::{
     self, PipelineRunOptions, PipelineSpec, ProgressTick, Scope, WarningTick,
 };
 use koharu_core::{
-    AppEvent, JobFinishedEvent, JobStatus, JobSummary, JobWarningEvent, PageId, PipelineProgress,
-    PipelineStatus, Region,
+    AppEvent, JobFinishedEvent, JobStatus, JobSummary, JobWarningEvent, NodeId, PageId,
+    PipelineProgress, PipelineStatus, Region,
 };
 use serde::{Deserialize, Serialize};
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -39,6 +39,9 @@ pub struct StartPipelineRequest {
     /// Optional bounding-box hint for inpainter engines (repair-brush).
     #[serde(default)]
     pub region: Option<Region>,
+    /// Optional text-node ids for engines that can operate on individual blocks.
+    #[serde(default)]
+    pub text_node_ids: Option<Vec<NodeId>>,
     #[serde(default)]
     pub target_language: Option<String>,
     #[serde(default)]
@@ -80,6 +83,7 @@ async fn start_pipeline(
             target_language: req.target_language,
             system_prompt: req.system_prompt,
             default_font: req.default_font,
+            text_node_ids: req.text_node_ids,
             region: req.region,
         },
     };

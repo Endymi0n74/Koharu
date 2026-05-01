@@ -19,7 +19,7 @@ use koharu_app::{
     App,
     pipeline::{PipelineRunOptions, PipelineSpec, Scope},
 };
-use koharu_core::{Op, PageId};
+use koharu_core::{NodeId, Op, PageId};
 use rmcp::handler::server::wrapper::{Json as JsonOutput, Parameters};
 use rmcp::model::{ServerCapabilities, ServerInfo};
 use rmcp::transport::streamable_http_server::{
@@ -93,6 +93,7 @@ pub struct OpenProjectOutput {
 pub struct StartPipelineInput {
     pub steps: Vec<String>,
     pub pages: Option<Vec<PageId>>,
+    pub text_node_ids: Option<Vec<NodeId>>,
     pub target_language: Option<String>,
     pub system_prompt: Option<String>,
     pub default_font: Option<String>,
@@ -187,6 +188,7 @@ impl KoharuServer {
                 target_language: input.target_language,
                 system_prompt: input.system_prompt,
                 default_font: input.default_font,
+                text_node_ids: input.text_node_ids,
                 region: None,
             },
         };

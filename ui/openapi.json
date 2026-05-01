@@ -2894,6 +2894,13 @@
           },
           "targetLanguage": {
             "type": ["string", "null"]
+          },
+          "textNodeIds": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "#/components/schemas/NodeId"
+            },
+            "description": "Optional text-node ids for engines that can operate on individual blocks."
           }
         }
       },

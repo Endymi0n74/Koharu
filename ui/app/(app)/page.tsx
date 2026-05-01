@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Group, Panel, Separator, useDefaultLayout, type PanelImperativeHandle } from 'react-resizable-panels'
+import {
+  Group,
+  Panel,
+  Separator,
+  useDefaultLayout,
+  type PanelImperativeHandle,
+} from 'react-resizable-panels'
 
 import { ActivityBubble } from '@/components/ActivityBubble'
 import { AppErrorBoundary } from '@/components/AppErrorBoundary'

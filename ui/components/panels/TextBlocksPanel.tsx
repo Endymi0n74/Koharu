@@ -66,18 +66,18 @@ export function TextBlocksPanel() {
     queueAutoRender(page.id)
   }
 
-  const generate = async () => {
+  const generate = async (nodeId: string) => {
     if (!page) return
     const cfg = await getConfig()
-    const translator = cfg.pipeline?.translator || 'llm-translate'
+    const translator = cfg.pipeline?.translator || 'llm'
     const renderer = cfg.pipeline?.renderer || 'koharu-renderer'
     const editor = useEditorUiStore.getState()
     const prefs = usePreferencesStore.getState()
-    // Run translator then renderer for the whole page; the server emits ops
-    // for updated text nodes + rendered image.
+    // Keep rendering page-scoped, but constrain translation to the clicked block.
     await startPipeline({
       steps: [translator, renderer],
       pages: [page.id],
+      textNodeIds: [nodeId],
       targetLanguage: editor.selectedLanguage,
       systemPrompt: prefs.customSystemPrompt,
       defaultFont: prefs.defaultFont,
@@ -127,7 +127,7 @@ export function TextBlocksPanel() {
                   onToggleSelect={() => select(node.id, true)}
                   onPatch={(patch) => void patchText(node.id, patch)}
                   onDelete={() => void removeNode(node.id)}
-                  onGenerate={() => void generate()}
+                  onGenerate={() => void generate(node.id)}
                   processing={isProcessing}
                   llmReady={llmReady}
                 />
