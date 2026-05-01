@@ -169,4 +169,34 @@ describe('RenderControlsPanel Font Assignment', () => {
     await waitFor(() => expect(input.value).toBe(''))
     expect(input).toHaveAttribute('placeholder', 'auto')
   })
+
+  it('opening the font color picker commits effective black as an explicit color', async () => {
+    server.use(
+      http.get('/api/v1/scene.json', () =>
+        HttpResponse.json(
+          sceneWithTextNodes([
+            {
+              id: 't1',
+              kind: {
+                text: {
+                  fontPrediction: { fontSizePx: 66, strokeWidthPx: 0, textColor: [0, 0, 0] },
+                },
+              },
+            },
+          ]),
+        ),
+      ),
+    )
+
+    renderWithQuery(<RenderControlsPanel />)
+    useSelectionStore.getState().select('t1', false)
+
+    const trigger = await screen.findByTestId('render-color-trigger')
+    await userEvent.click(trigger)
+
+    await waitFor(() => expect(sceneActions.applyOp).toHaveBeenCalled())
+    const op = (sceneActions.applyOp as any).mock.calls[0][0]
+    expect(op.updateNode.id).toBe('t1')
+    expect(op.updateNode.patch.data.text.style.color).toEqual([0, 0, 0, 255])
+  })
 })

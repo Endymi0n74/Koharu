@@ -126,6 +126,8 @@ const predictionColor = (prediction?: FontPrediction | null): number[] | undefin
 const effectiveColorOf = (style?: TextStyle | null, prediction?: FontPrediction | null): number[] =>
   style?.color ?? predictionColor(prediction) ?? DEFAULT_COLOR
 
+const hasExplicitColor = (node: TextNodeEntry) => Array.isArray(node.data.style?.color)
+
 export function RenderControlsPanel() {
   const { t } = useTranslation()
   const page = useCurrentPage()
@@ -239,6 +241,12 @@ export function RenderControlsPanel() {
     applyStyleToNodes(textNodes, updates, 'Bulk style update')
   }
 
+  const commitCurrentFontColorIfImplicit = () => {
+    const targets = selectedNodes.length > 0 ? selectedNodes : textNodes
+    if (targets.every(hasExplicitColor)) return
+    applyStyleToNodes(targets, { color: currentColor }, 'Explicit font color update')
+  }
+
   const applyStrokeSetting = (nextStroke: TextStrokeStyle) => {
     if (applyStyleToSelected({ stroke: normalizeStroke(nextStroke) })) return
     setRenderStroke({
@@ -336,6 +344,9 @@ export function RenderControlsPanel() {
             swatchTestId='render-color-swatch'
             inputTestId='render-color-input'
             pickButtonTestId='render-color-pick'
+            onOpenChange={(open) => {
+              if (open) commitCurrentFontColorIfImplicit()
+            }}
             onChange={(hex) => {
               const nextColor = hexToColor(hex, currentColor[3] ?? 255)
               if (applyStyleToSelected({ color: nextColor })) return

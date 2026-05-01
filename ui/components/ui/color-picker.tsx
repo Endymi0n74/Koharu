@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 type ColorPickerProps = {
   value: string
   onChange: (color: string) => void
+  onOpenChange?: (open: boolean) => void
   disabled?: boolean
   className?: string
   triggerTestId?: string
@@ -35,6 +36,7 @@ const normalizeHex = (value: string) => {
 export function ColorPicker({
   value,
   onChange,
+  onOpenChange,
   disabled,
   className,
   triggerTestId,
@@ -81,7 +83,7 @@ export function ColorPicker({
   }
 
   return (
-    <Popover>
+    <Popover onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
           data-testid={triggerTestId}
