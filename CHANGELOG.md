@@ -1,3 +1,11 @@
+## [0.57.0](https://github.com/mayocream/koharu/compare/0.56.0..0.57.0) - 2026-05-01
+
+### ⛰️  Features
+
+- Chinese segmentation jieba - ([a23ebf1](https://github.com/mayocream/koharu/commit/a23ebf17515839bbedfdd8495eae9f65c78e114d))
+- Anime-text model - ([b1ed7e6](https://github.com/mayocream/koharu/commit/b1ed7e6113742f738d0f843c20f673fbd364cc9d))
+
+
 ## [0.56.0](https://github.com/mayocream/koharu/compare/0.55.0..0.56.0) - 2026-05-01
 
 ### ⛰️  Features
