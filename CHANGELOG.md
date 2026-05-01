@@ -1,3 +1,15 @@
+## [0.58.0](https://github.com/mayocream/koharu/compare/0.57.0..0.58.0) - 2026-05-01
+
+### 🐛 Bug Fixes
+
+- Per-block translate - ([0d4f899](https://github.com/mayocream/koharu/commit/0d4f899aed0f29df9a82043a08607997d4a99632))
+- PSD text placement & editable - ([854209e](https://github.com/mayocream/koharu/commit/854209e1ab010fe147e33041615f33b551d708a7))
+- Render on textless page - ([b3e9dea](https://github.com/mayocream/koharu/commit/b3e9dea3299915b21ba76003e194fb7bd92d8715))
+- Black color not apply - ([4ffaa1d](https://github.com/mayocream/koharu/commit/4ffaa1dfdc4240570530227f64a7ecfcaa134ed9))
+- Manual textbox modification should lock box - ([c43f3a2](https://github.com/mayocream/koharu/commit/c43f3a242a37d6c39be877e62e8e8df3d7a54df8))
+- I18n languages display names - ([56e0784](https://github.com/mayocream/koharu/commit/56e078405483192753a5f025406d4f7bf2120199))
+
+
 ## [0.57.0](https://github.com/mayocream/koharu/compare/0.56.0..0.57.0) - 2026-05-01
 
 ### ⛰️  Features
