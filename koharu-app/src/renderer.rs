@@ -1085,6 +1085,21 @@ mod tests {
     }
 
     #[test]
+    fn locked_block_keeps_manual_layout_box_inside_bubble() {
+        let mut mask = GrayImage::from_pixel(200, 200, Luma([0u8]));
+        paint_rect(&mut mask, 20, 20, 180, 180, 1);
+        let index = BubbleIndex::new(mask);
+        let mut locked = block(70.0, 70.0, 20.0, 30.0, "hello");
+        locked.lock_layout_box = true;
+        let blocks = vec![locked];
+
+        let layout_boxes = resolve_layout_boxes(&blocks, Some(&index));
+
+        assert_eq!(layout_boxes[0].layout_box, seed_layout_box(&blocks[0]));
+        assert_eq!(layout_boxes[0].bubble_id, None);
+    }
+
+    #[test]
     fn mask_collision_detects_alpha_outside_matched_bubble() {
         let mut mask = GrayImage::from_pixel(10, 10, Luma([0u8]));
         paint_rect(&mut mask, 2, 2, 8, 8, 1);

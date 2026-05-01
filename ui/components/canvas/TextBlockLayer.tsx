@@ -6,7 +6,7 @@ import { useHotkeys } from 'react-hotkeys-hook'
 
 import { useBlobImage } from '@/hooks/useBlobData'
 import { useCurrentPage, useTextNodes, type TextNodeEntry } from '@/hooks/useCurrentPage'
-import type { Transform } from '@/lib/api/schemas'
+import type { NodeDataPatch, Transform } from '@/lib/api/schemas'
 import { applyOp, queueAutoRender } from '@/lib/io/scene'
 import { ops } from '@/lib/ops'
 import { useEditorUiStore } from '@/lib/stores/editorUiStore'
@@ -57,7 +57,12 @@ export function TextBlockLayer({ showSprites, scale, style }: TextBlockLayerProp
 
   const updateTransform = async (id: string, t: Transform) => {
     if (!page) return
-    await applyOp(ops.updateNode(page.id, id, { transform: t }))
+    const data: NodeDataPatch = {
+      text: {
+        lockLayoutBox: true,
+      },
+    }
+    await applyOp(ops.updateNode(page.id, id, { transform: t, data }))
     queueAutoRender(page.id)
   }
 

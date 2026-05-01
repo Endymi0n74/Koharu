@@ -128,7 +128,7 @@ export function Workspace() {
         id: nodeId,
         transform,
         visible: true,
-        kind: { text: {} },
+        kind: { text: { lockLayoutBox: true } },
       }
       await applyOp(ops.addNode(page.id, at, node))
       useSelectionStore.getState().selectMany([nodeId])
