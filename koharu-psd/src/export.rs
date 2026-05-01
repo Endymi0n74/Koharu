@@ -38,7 +38,7 @@ impl Default for PsdExportOptions {
             include_inpainted: true,
             include_segment_mask: true,
             include_brush_layer: true,
-            text_layer_mode: TextLayerMode::Rasterized,
+            text_layer_mode: TextLayerMode::Editable,
         }
     }
 }
@@ -730,15 +730,20 @@ fn is_probably_latin(text: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use image::DynamicImage;
     use image::{Rgba, RgbaImage};
 
     use crate::writer::PsdWriter;
 
-    use crate::input::{PsdTextBlock, PsdTextDirection, PsdTextStyle};
+    use crate::input::{
+        PsdDocument, PsdTextBlock, PsdTextDirection, PsdTextStyle, ResolvedDocument,
+    };
 
     use super::{
-        TextOrientation, contains_cjk, infer_font_name, infer_orientation, is_probably_latin,
-        place_on_canvas, write_image_data,
+        PsdExportOptions, TextLayerMode, TextOrientation, contains_cjk, export_document,
+        infer_font_name, infer_orientation, is_probably_latin, place_on_canvas, write_image_data,
     };
 
     #[test]
@@ -814,5 +819,45 @@ mod tests {
         };
 
         assert_eq!(infer_font_name(&block), "ArialMT");
+    }
+
+    #[test]
+    fn default_export_writes_editable_text_layer_metadata() {
+        let source =
+            DynamicImage::ImageRgba8(RgbaImage::from_pixel(16, 16, Rgba([255, 255, 255, 255])));
+        let document = PsdDocument {
+            width: 16,
+            height: 16,
+            text_blocks: vec![PsdTextBlock {
+                x: 2.0,
+                y: 3.0,
+                width: 10.0,
+                height: 8.0,
+                translation: Some("Hello".to_string()),
+                ..Default::default()
+            }],
+        };
+        let block_images = HashMap::new();
+        let resolved = ResolvedDocument {
+            document: &document,
+            source: &source,
+            segment: None,
+            inpainted: None,
+            rendered: None,
+            brush_layer: None,
+            block_images: &block_images,
+        };
+
+        let options = PsdExportOptions {
+            include_original: false,
+            ..Default::default()
+        };
+        assert_eq!(options.text_layer_mode, TextLayerMode::Editable);
+
+        let bytes = export_document(&resolved, &options).expect("export PSD");
+        assert!(
+            bytes.windows(4).any(|window| window == b"TySh"),
+            "editable PSD export should include text layer metadata",
+        );
     }
 }

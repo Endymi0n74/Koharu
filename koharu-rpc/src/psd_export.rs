@@ -157,12 +157,17 @@ fn text_to_psd(
     transform: &koharu_core::Transform,
     text: &TextData,
 ) -> PsdTextBlock {
+    let layer_transform = match (&text.sprite, &text.sprite_transform) {
+        (Some(_), Some(sprite_transform)) => sprite_transform,
+        _ => transform,
+    };
+
     PsdTextBlock {
         id: node_id.to_string(),
-        x: transform.x,
-        y: transform.y,
-        width: transform.width,
-        height: transform.height,
+        x: layer_transform.x,
+        y: layer_transform.y,
+        width: layer_transform.width,
+        height: layer_transform.height,
         translation: text.translation.clone(),
         style: text.style.as_ref().map(convert_style),
         rendered: text.sprite.as_ref().map(blob_ref_to_psd),
@@ -219,4 +224,71 @@ fn convert_prediction(p: &FontPrediction) -> PsdFontPrediction {
 
 fn blob_ref_to_psd(r: &BlobRef) -> PsdBlobRef {
     PsdBlobRef::new(r.hash())
+}
+
+#[cfg(test)]
+mod tests {
+    use koharu_core::{BlobRef, NodeId, TextData, Transform};
+
+    use super::text_to_psd;
+
+    #[test]
+    fn text_to_psd_uses_sprite_transform_for_rendered_text_layer() {
+        let node_transform = Transform {
+            x: 10.0,
+            y: 20.0,
+            width: 30.0,
+            height: 40.0,
+            rotation_deg: 0.0,
+        };
+        let sprite_transform = Transform {
+            x: 100.0,
+            y: 200.0,
+            width: 300.0,
+            height: 400.0,
+            rotation_deg: 0.0,
+        };
+        let text = TextData {
+            translation: Some("Hello".to_string()),
+            sprite: Some(BlobRef::new("sprite")),
+            sprite_transform: Some(sprite_transform),
+            ..Default::default()
+        };
+
+        let block = text_to_psd(&NodeId::new(), &node_transform, &text);
+
+        assert_eq!(block.x, sprite_transform.x);
+        assert_eq!(block.y, sprite_transform.y);
+        assert_eq!(block.width, sprite_transform.width);
+        assert_eq!(block.height, sprite_transform.height);
+    }
+
+    #[test]
+    fn text_to_psd_ignores_stale_sprite_transform_without_sprite() {
+        let node_transform = Transform {
+            x: 10.0,
+            y: 20.0,
+            width: 30.0,
+            height: 40.0,
+            rotation_deg: 0.0,
+        };
+        let text = TextData {
+            translation: Some("Hello".to_string()),
+            sprite_transform: Some(Transform {
+                x: 100.0,
+                y: 200.0,
+                width: 300.0,
+                height: 400.0,
+                rotation_deg: 0.0,
+            }),
+            ..Default::default()
+        };
+
+        let block = text_to_psd(&NodeId::new(), &node_transform, &text);
+
+        assert_eq!(block.x, node_transform.x);
+        assert_eq!(block.y, node_transform.y);
+        assert_eq!(block.width, node_transform.width);
+        assert_eq!(block.height, node_transform.height);
+    }
 }
