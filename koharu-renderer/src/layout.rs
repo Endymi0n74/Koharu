@@ -19,6 +19,8 @@ pub use crate::segment::{LineBreakSuffix, hyphenation_lang_from_tag};
 pub use crate::shape::{PositionedGlyph, ShapedRun, ShapingOptions, TextShaper};
 
 const HYPHENATION_MIN_WORD_LEN: usize = 8;
+const LINE_BREAK_HYPHEN_PENALTY: f32 = 2_000.0;
+const LINE_BREAK_OVERFLOW_MULTIPLIER: f32 = 10_000.0;
 
 /// Writing mode for text layout.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -63,6 +65,34 @@ pub struct LayoutRun<'a> {
     pub height: f32,
     /// Font size used to generate this layout.
     pub font_size: f32,
+}
+
+#[derive(Clone)]
+struct LineRun<'a> {
+    shaped: ShapedRun<'a>,
+    level: unicode_bidi::Level,
+}
+
+#[derive(Clone)]
+struct ShapedBreakSuffix<'a> {
+    runs: Vec<LineRun<'a>>,
+    advance: f32,
+}
+
+#[derive(Clone)]
+struct ShapedSegment<'a> {
+    range: Range<usize>,
+    next_offset: usize,
+    is_mandatory: bool,
+    runs: Vec<LineRun<'a>>,
+    advance: f32,
+    break_suffix: Option<ShapedBreakSuffix<'a>>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct LineBreakMeasure {
+    advance: f32,
+    break_suffix_advance: f32,
 }
 
 #[derive(Clone)]
@@ -236,92 +266,9 @@ impl<'a> TextLayout<'a> {
         .unwrap_or(f32::INFINITY);
         let max_extent_finite = max_extent.is_finite() && max_extent > 0.0;
 
-        let segments = line_breaker.line_segments(text);
-
         let mut fonts: Vec<&Font> = Vec::with_capacity(1 + self.fallback_fonts.len());
         fonts.push(self.font);
         fonts.extend(self.fallback_fonts.iter());
-        let mut lines: Vec<LayoutLine<'a>> = Vec::new();
-
-        // Temporary storage for runs in the current line to be reordered
-        struct LineRun<'a> {
-            shaped: ShapedRun<'a>,
-            level: unicode_bidi::Level,
-        }
-        struct ShapedBreakSuffix<'a> {
-            runs: Vec<LineRun<'a>>,
-            advance: f32,
-        }
-        let mut current_line_runs: Vec<LineRun<'a>> = Vec::new();
-        let mut line_offset = 0usize;
-        let mut current_advance = 0.0f32;
-        let mut current_break_suffix: Option<ShapedBreakSuffix<'a>> = None;
-
-        let finalize_current_line = |runs: &mut Vec<LineRun<'a>>,
-                                     offset: &mut usize,
-                                     visible_end: usize,
-                                     next_offset: usize,
-                                     lines: &mut Vec<LayoutLine<'a>>,
-                                     break_suffix: Option<ShapedBreakSuffix<'a>>,
-                                     force_push: bool| {
-            if runs.is_empty() && !force_push {
-                *offset = next_offset;
-                return;
-            }
-
-            if let Some(mut suffix) = break_suffix {
-                runs.append(&mut suffix.runs);
-            }
-
-            let levels: Vec<unicode_bidi::Level> = runs.iter().map(|r| r.level).collect();
-            let visual_indices = reorder_visual(&levels);
-
-            let mut line = LayoutLine {
-                range: *offset..visible_end,
-                direction: if self.writing_mode.is_vertical() {
-                    harfrust::Direction::TopToBottom
-                } else {
-                    bidi_info
-                        .paragraphs
-                        .iter()
-                        .find(|p| *offset >= p.range.start && *offset <= p.range.end)
-                        .map(|p| {
-                            if p.level.is_rtl() {
-                                harfrust::Direction::RightToLeft
-                            } else {
-                                harfrust::Direction::LeftToRight
-                            }
-                        })
-                        .unwrap_or(harfrust::Direction::LeftToRight)
-                },
-                ..Default::default()
-            };
-
-            let mut pen_x = 0.0f32;
-            let mut pen_y = 0.0f32;
-
-            for idx in visual_indices {
-                let run = &mut runs[idx];
-                for glyph in std::mem::take(&mut run.shaped.glyphs) {
-                    line.glyphs.push(glyph);
-                }
-                if self.writing_mode.is_vertical() {
-                    pen_y -= run.shaped.y_advance;
-                } else {
-                    pen_x += run.shaped.x_advance;
-                }
-            }
-
-            line.advance = if self.writing_mode.is_vertical() {
-                pen_y.abs()
-            } else {
-                pen_x
-            };
-
-            lines.push(line);
-            runs.clear();
-            *offset = next_offset;
-        };
 
         let shape_break_suffix = |suffix: LineBreakSuffix,
                                   level: unicode_bidi::Level,
@@ -340,14 +287,15 @@ impl<'a> TextLayout<'a> {
                 for glyph in &mut shaped.glyphs {
                     glyph.cluster += cluster as u32;
                 }
-                advance += shaped.x_advance;
+                advance += shaped.x_advance.abs();
                 runs.push(LineRun { shaped, level });
             }
 
             Ok(ShapedBreakSuffix { runs, advance })
         };
 
-        for segment in segments {
+        let mut shaped_segments = Vec::new();
+        for segment in line_breaker.line_segments(text) {
             let segment_text = &text[segment.range.clone()];
 
             let mut segment_runs = Vec::new();
@@ -397,9 +345,9 @@ impl<'a> TextLayout<'a> {
                         }
 
                         segment_advance += if self.writing_mode.is_vertical() {
-                            shaped.y_advance
+                            shaped.y_advance.abs()
                         } else {
-                            shaped.x_advance
+                            shaped.x_advance.abs()
                         };
 
                         segment_runs.push(LineRun { shaped, level });
@@ -414,62 +362,45 @@ impl<'a> TextLayout<'a> {
                 None
             };
 
-            let would_overflow = if self.writing_mode.is_vertical() {
-                current_advance.abs() + segment_advance.abs() > max_extent
-            } else {
-                let break_suffix_advance = current_break_suffix
-                    .as_ref()
-                    .map_or(0.0, |suffix| suffix.advance);
-                current_advance + break_suffix_advance + segment_advance > max_extent
-            };
-
-            if would_overflow && !current_line_runs.is_empty() {
-                finalize_current_line(
-                    &mut current_line_runs,
-                    &mut line_offset,
-                    segment.range.start,
-                    segment.range.start,
-                    &mut lines,
-                    current_break_suffix.take(),
-                    false,
-                );
-                current_advance = 0.0;
-            }
-
-            current_line_runs.extend(segment_runs);
-            current_advance += segment_advance;
-            current_break_suffix = segment_break_suffix;
-
-            if segment.is_mandatory {
-                // Consecutive mandatory breaks (e.g. "A\n\nB") will drop the empty line:
-                // when segment.is_mandatory and current_line_runs is empty, finalize_current_line
-                // early-returns without pushing a LayoutLine. Consider special-casing mandatory
-                // breaks to push an empty LayoutLine (advance=0, glyphs empty, range=offset..visible_end)
-                // so blank lines are preserved.
-                finalize_current_line(
-                    &mut current_line_runs,
-                    &mut line_offset,
-                    segment.range.end,
-                    segment.next_offset,
-                    &mut lines,
-                    None,
-                    true,
-                );
-                current_advance = 0.0;
-                current_break_suffix = None;
-            }
+            shaped_segments.push(ShapedSegment {
+                range: segment.range,
+                next_offset: segment.next_offset,
+                is_mandatory: segment.is_mandatory,
+                runs: segment_runs,
+                advance: segment_advance,
+                break_suffix: segment_break_suffix,
+            });
         }
 
-        // Finalize last line
-        finalize_current_line(
-            &mut current_line_runs,
-            &mut line_offset,
-            text.len(),
-            text.len(),
-            &mut lines,
-            None,
-            false, // Don't force push a final empty line if the text didn't end with a break
-        );
+        let mut lines: Vec<LayoutLine<'a>> = Vec::new();
+        let mut line_offset = 0usize;
+        let mut paragraph_start = 0usize;
+        for (index, segment) in shaped_segments.iter().enumerate() {
+            if !segment.is_mandatory {
+                continue;
+            }
+            self.append_balanced_segment_lines(
+                &shaped_segments[paragraph_start..=index],
+                &mut line_offset,
+                segment.next_offset,
+                true,
+                max_extent,
+                &bidi_info,
+                &mut lines,
+            );
+            paragraph_start = index + 1;
+        }
+        if paragraph_start < shaped_segments.len() {
+            self.append_balanced_segment_lines(
+                &shaped_segments[paragraph_start..],
+                &mut line_offset,
+                text.len(),
+                false,
+                max_extent,
+                &bidi_info,
+                &mut lines,
+            );
+        }
 
         // Baselines depend only on line index and metrics. For vertical text we compute absolute X
         // positions within the layout bounds (0..width) so the renderer can draw from the left.
@@ -603,6 +534,153 @@ impl<'a> TextLayout<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn append_balanced_segment_lines(
+        &self,
+        segments: &[ShapedSegment<'a>],
+        line_offset: &mut usize,
+        final_next_offset: usize,
+        force_final_line: bool,
+        max_extent: f32,
+        bidi_info: &BidiInfo<'_>,
+        lines: &mut Vec<LayoutLine<'a>>,
+    ) {
+        if segments.is_empty() {
+            if force_final_line {
+                *line_offset = self.push_layout_line(
+                    Vec::new(),
+                    *line_offset,
+                    *line_offset,
+                    final_next_offset,
+                    None,
+                    true,
+                    bidi_info,
+                    lines,
+                );
+            }
+            return;
+        }
+
+        let break_indices = if max_extent.is_finite() && max_extent > 0.0 {
+            let measures = segments
+                .iter()
+                .map(|segment| LineBreakMeasure {
+                    advance: segment.advance,
+                    break_suffix_advance: segment
+                        .break_suffix
+                        .as_ref()
+                        .map_or(0.0, |suffix| suffix.advance),
+                })
+                .collect::<Vec<_>>();
+            optimal_line_breaks(&measures, max_extent)
+        } else {
+            vec![segments.len()]
+        };
+
+        let mut start = 0usize;
+        for end in break_indices {
+            if end <= start || end > segments.len() {
+                continue;
+            }
+            let final_line = end == segments.len();
+            let visible_end = segments[end - 1].range.end;
+            let next_offset = if final_line {
+                final_next_offset
+            } else {
+                segments[end].range.start
+            };
+            let break_suffix = if final_line {
+                None
+            } else {
+                segments[end - 1].break_suffix.clone()
+            };
+            let runs = segments[start..end]
+                .iter()
+                .flat_map(|segment| segment.runs.iter().cloned())
+                .collect::<Vec<_>>();
+            *line_offset = self.push_layout_line(
+                runs,
+                *line_offset,
+                visible_end,
+                next_offset,
+                break_suffix,
+                force_final_line && final_line,
+                bidi_info,
+                lines,
+            );
+            start = end;
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn push_layout_line(
+        &self,
+        mut runs: Vec<LineRun<'a>>,
+        offset: usize,
+        visible_end: usize,
+        next_offset: usize,
+        break_suffix: Option<ShapedBreakSuffix<'a>>,
+        force_push: bool,
+        bidi_info: &BidiInfo<'_>,
+        lines: &mut Vec<LayoutLine<'a>>,
+    ) -> usize {
+        if runs.is_empty() && !force_push {
+            return next_offset;
+        }
+
+        if let Some(mut suffix) = break_suffix {
+            runs.append(&mut suffix.runs);
+        }
+
+        let levels: Vec<unicode_bidi::Level> = runs.iter().map(|r| r.level).collect();
+        let visual_indices = reorder_visual(&levels);
+
+        let mut line = LayoutLine {
+            range: offset..visible_end,
+            direction: if self.writing_mode.is_vertical() {
+                harfrust::Direction::TopToBottom
+            } else {
+                bidi_info
+                    .paragraphs
+                    .iter()
+                    .find(|p| offset >= p.range.start && offset <= p.range.end)
+                    .map(|p| {
+                        if p.level.is_rtl() {
+                            harfrust::Direction::RightToLeft
+                        } else {
+                            harfrust::Direction::LeftToRight
+                        }
+                    })
+                    .unwrap_or(harfrust::Direction::LeftToRight)
+            },
+            ..Default::default()
+        };
+
+        let mut pen_x = 0.0f32;
+        let mut pen_y = 0.0f32;
+
+        for idx in visual_indices {
+            let run = &mut runs[idx];
+            for glyph in std::mem::take(&mut run.shaped.glyphs) {
+                line.glyphs.push(glyph);
+            }
+            if self.writing_mode.is_vertical() {
+                pen_y -= run.shaped.y_advance;
+            } else {
+                pen_x += run.shaped.x_advance;
+            }
+        }
+
+        line.advance = if self.writing_mode.is_vertical() {
+            pen_y.abs()
+        } else {
+            pen_x
+        };
+
+        lines.push(line);
+        next_offset
+    }
+
     fn ink_bounds(&self, font_size: f32, lines: &[LayoutLine<'a>]) -> Option<(f32, f32, f32, f32)> {
         let mut metrics_cache = HashMap::new();
 
@@ -696,6 +774,74 @@ impl<'a> TextLayout<'a> {
             };
             glyph.x_offset = centered_x_offset(bounds.x_min, bounds.x_max);
         }
+    }
+}
+
+fn optimal_line_breaks(segments: &[LineBreakMeasure], max_extent: f32) -> Vec<usize> {
+    let len = segments.len();
+    if len == 0 {
+        return Vec::new();
+    }
+    if !max_extent.is_finite() || max_extent <= 0.0 {
+        return vec![len];
+    }
+
+    let mut dp = vec![f32::INFINITY; len + 1];
+    let mut prev = vec![None; len + 1];
+    dp[0] = 0.0;
+
+    for start in 0..len {
+        if !dp[start].is_finite() {
+            continue;
+        }
+        let mut advance = 0.0f32;
+        for end in start + 1..=len {
+            advance += segments[end - 1].advance;
+            let suffix_advance = if end < len {
+                segments[end - 1].break_suffix_advance
+            } else {
+                0.0
+            };
+            let line_advance = advance + suffix_advance;
+            let is_single_segment = end == start + 1;
+            if line_advance > max_extent && !is_single_segment {
+                break;
+            }
+
+            let mut cost = dp[start] + line_break_badness(line_advance, max_extent);
+            if end < len && suffix_advance > 0.0 {
+                cost += LINE_BREAK_HYPHEN_PENALTY;
+            }
+
+            if cost < dp[end] {
+                dp[end] = cost;
+                prev[end] = Some(start);
+            }
+        }
+    }
+
+    if !dp[len].is_finite() {
+        return vec![len];
+    }
+
+    let mut breaks = Vec::new();
+    let mut index = len;
+    while index > 0 {
+        breaks.push(index);
+        let Some(previous) = prev[index] else {
+            return vec![len];
+        };
+        index = previous;
+    }
+    breaks.reverse();
+    breaks
+}
+
+fn line_break_badness(line_advance: f32, max_extent: f32) -> f32 {
+    if line_advance <= max_extent {
+        (max_extent - line_advance).powi(3)
+    } else {
+        (line_advance - max_extent).powi(3) * LINE_BREAK_OVERFLOW_MULTIPLIER
     }
 }
 
@@ -892,6 +1038,19 @@ mod tests {
             (actual - expected).abs() <= eps,
             "expected {expected}, got {actual}"
         );
+    }
+
+    #[test]
+    fn optimal_line_breaks_balance_ragged_lines() {
+        let segments = vec![
+            LineBreakMeasure {
+                advance: 30.0,
+                break_suffix_advance: 0.0,
+            };
+            7
+        ];
+
+        assert_eq!(optimal_line_breaks(&segments, 100.0), vec![2, 4, 7]);
     }
 
     #[test]

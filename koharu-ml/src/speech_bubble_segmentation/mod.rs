@@ -68,6 +68,31 @@ pub struct SpeechBubbleSegmentationResult {
     pub probability_map: ProbabilityMap,
 }
 
+#[derive(Debug, Clone)]
+pub struct SpeechBubbleRegionMask {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Vec<u8>,
+}
+
+impl SpeechBubbleRegionMask {
+    pub fn empty(x: u32, y: u32) -> Self {
+        Self {
+            x,
+            y,
+            width: 0,
+            height: 0,
+            pixels: Vec::new(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.width == 0 || self.height == 0 || self.pixels.is_empty()
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpeechBubbleRegion {
@@ -76,6 +101,8 @@ pub struct SpeechBubbleRegion {
     pub score: f32,
     pub bbox: [f32; 4],
     pub area: u32,
+    #[serde(skip_serializing)]
+    pub mask: SpeechBubbleRegionMask,
 }
 
 #[derive(Debug, Clone)]
@@ -332,18 +359,22 @@ fn postprocess(
 
     let mut regions = Vec::with_capacity(raw_regions.len());
     for (region, mask) in raw_regions.iter().zip(mask_probabilities.iter()) {
-        let area = merge_mask_into_probability_map(
+        let (area, region_mask) = extract_region_contour_mask(
             &mut probability_map,
             mask,
             region.bbox,
             config.mask_threshold,
-        );
+        )?;
+        if area == 0 {
+            continue;
+        }
         regions.push(SpeechBubbleRegion {
             label_id: region.label_id,
             label: region.label.clone(),
             score: region.score,
             bbox: region.bbox,
             area,
+            mask: region_mask,
         });
     }
 
@@ -519,16 +550,20 @@ fn mask_crop_window(
     (top, left, bottom, right)
 }
 
-fn merge_mask_into_probability_map(
+fn extract_region_contour_mask(
     probability_map: &mut ProbabilityMap,
     mask: &[f32],
     bbox: [f32; 4],
     threshold: f32,
-) -> u32 {
+) -> Result<(u32, SpeechBubbleRegionMask)> {
     let width = probability_map.width as usize;
     let height = probability_map.height as usize;
     if mask.len() != width * height {
-        return 0;
+        bail!(
+            "speech bubble mask length {} does not match image area {}",
+            mask.len(),
+            width * height
+        );
     }
 
     let x1 = bbox[0].floor().clamp(0.0, probability_map.width as f32) as usize;
@@ -536,29 +571,46 @@ fn merge_mask_into_probability_map(
     let x2 = bbox[2].ceil().clamp(0.0, probability_map.width as f32) as usize;
     let y2 = bbox[3].ceil().clamp(0.0, probability_map.height as f32) as usize;
     if x2 <= x1 || y2 <= y1 {
-        return 0;
+        return Ok((0, SpeechBubbleRegionMask::empty(x1 as u32, y1 as u32)));
     }
 
+    let mask_width = x2 - x1;
+    let mask_height = y2 - y1;
+    let mut pixels = vec![0u8; mask_width * mask_height];
     let mut area = 0u32;
     for y in y1..y2.min(height) {
         let row_offset = y * width;
+        let local_row_offset = (y - y1) * mask_width;
         for x in x1..x2.min(width) {
             let idx = row_offset + x;
             let value = mask[idx];
             if value >= threshold {
                 area += 1;
+                pixels[local_row_offset + (x - x1)] = u8::MAX;
             }
             if value > probability_map.values[idx] {
                 probability_map.values[idx] = value;
             }
         }
     }
-    area
+    Ok((
+        area,
+        SpeechBubbleRegionMask {
+            x: x1 as u32,
+            y: y1 as u32,
+            width: mask_width as u32,
+            height: mask_height as u32,
+            pixels,
+        },
+    ))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{PreparedInput, map_bbox_to_original, mask_crop_window};
+    use super::{
+        PreparedInput, extract_region_contour_mask, map_bbox_to_original, mask_crop_window,
+    };
+    use crate::probability_map::ProbabilityMap;
     use candle_core::{DType, Device, Tensor};
 
     #[test]
@@ -586,5 +638,28 @@ mod tests {
     fn mask_crop_window_matches_letterboxed_square_input() {
         let (top, left, bottom, right) = mask_crop_window(1000, 500, 160, 160);
         assert_eq!((top, left, bottom, right), (40, 0, 120, 160));
+    }
+
+    #[test]
+    fn extract_region_contour_mask_keeps_thresholded_shape() -> anyhow::Result<()> {
+        let mut probability_map = ProbabilityMap::zeros(6, 5);
+        let mut mask = vec![0.0f32; 6 * 5];
+        mask[1 + 1 * 6] = 0.9;
+        mask[2 + 1 * 6] = 0.8;
+        mask[2 + 2 * 6] = 0.7;
+        mask[4 + 3 * 6] = 0.4;
+
+        let (area, region_mask) =
+            extract_region_contour_mask(&mut probability_map, &mask, [1.0, 1.0, 5.0, 4.0], 0.5)?;
+
+        assert_eq!(area, 3);
+        assert_eq!((region_mask.x, region_mask.y), (1, 1));
+        assert_eq!((region_mask.width, region_mask.height), (4, 3));
+        assert_eq!(region_mask.pixels[0], u8::MAX);
+        assert_eq!(region_mask.pixels[1], u8::MAX);
+        assert_eq!(region_mask.pixels[5], u8::MAX);
+        assert_eq!(region_mask.pixels[11], 0);
+        assert_eq!(probability_map.values[4 + 3 * 6], 0.4);
+        Ok(())
     }
 }
