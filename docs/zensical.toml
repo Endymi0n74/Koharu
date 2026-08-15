@@ -127,6 +127,8 @@ nav = [
   ] },
   { "Fork" = [
     { "English" = ["fork.md"] },
+    { "日本語" = ["ja-JP/fork.md"] },
+    { "简体中文" = ["zh-CN/fork.md"] },
   ] },
 ]
 
