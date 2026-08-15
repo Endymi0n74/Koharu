@@ -31,9 +31,12 @@ libloading = { workspace = true }
 flate2 = { workspace = true }
 tar = { workspace = true }
 fast-glob = { workspace = true }
+hex = "0.4"
+sha2 = "0.10"
 tempfile = { workspace = true }
 tracing = { workspace = true }
 strum = { workspace = true }
 
 [dev-dependencies]
+serde_json = { workspace = true }
 toml = { workspace = true }

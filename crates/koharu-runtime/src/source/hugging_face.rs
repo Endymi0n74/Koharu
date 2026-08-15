@@ -8,10 +8,31 @@ use anyhow::{Context, ensure};
 use serde::Deserialize;
 use tokio::sync::{Mutex, OnceCell};
 
-use crate::{Store, downloads::Transfer};
+use crate::{Store, downloads::Transfer, store::FileExpectation};
 
 static REVISIONS: LazyLock<Mutex<HashMap<String, Arc<OnceCell<String>>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// A per-process, per-repository cache of one `/tree/{revision}` listing.
+type TreeCache = LazyLock<Mutex<HashMap<String, Arc<OnceCell<Arc<Vec<TreeEntry>>>>>>>;
+static FILE_TREES: TreeCache = LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// One entry of the Hugging Face `/tree/{revision}` listing for a repository.
+#[derive(Clone, Debug, Deserialize)]
+struct TreeEntry {
+    #[serde(rename = "type")]
+    kind: String,
+    #[serde(rename = "path")]
+    path: String,
+    size: Option<u64>,
+    lfs: Option<LfsEntry>,
+}
+
+/// LFS metadata for a file; `oid` is the SHA-256 of the artifact contents.
+#[derive(Clone, Debug, Deserialize)]
+struct LfsEntry {
+    oid: String,
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum Revision<'a> {
@@ -130,8 +151,9 @@ impl<'a> HuggingFaceFile<'a> {
             }
             Revision::Latest => latest_revision(self.kind, self.repository).await?,
         };
+        let expected = file_expectation(self.kind, self.repository, &revision, self.filename).await;
         let target = snapshot_path(self.kind, self.repository, &revision, self.filename);
-        Store::file(target, move |stage| async move {
+        Store::file(target, expected, move |stage| async move {
             let url = format!(
                 "https://huggingface.co/{}{}/resolve/{revision}/{}",
                 self.kind.resolve_prefix(),
@@ -186,6 +208,75 @@ async fn latest_revision(kind: RepositoryKind, repository: &str) -> anyhow::Resu
         .cloned()
 }
 
+/// Lists the files of `repository` at `revision`, cached once per process.
+async fn tree_entries(
+    kind: RepositoryKind,
+    repository: &str,
+    revision: &str,
+) -> anyhow::Result<Arc<Vec<TreeEntry>>> {
+    let key = format!("{}/{repository}/{revision}", kind.api_route());
+    let cell = {
+        let mut trees = FILE_TREES.lock().await;
+        trees
+            .entry(key)
+            .or_insert_with(|| Arc::new(OnceCell::new()))
+            .clone()
+    };
+
+    cell.get_or_try_init(|| async {
+        let url = format!(
+            "https://huggingface.co/api/{}/{repository}/tree/{revision}?recursive=true",
+            kind.api_route()
+        );
+        let response = Transfer::new()?
+            .get(&url)
+            .send()
+            .await
+            .with_context(|| format!("failed to resolve {repository} file metadata"))?
+            .error_for_status()
+            .with_context(|| format!("failed to resolve {repository} file metadata"))?
+            .json::<Vec<TreeEntry>>()
+            .await
+            .with_context(|| format!("invalid file metadata for {repository}"))?;
+        Ok::<_, anyhow::Error>(Arc::new(response))
+    })
+    .await
+    .cloned()
+}
+
+/// Derives the expected size and SHA-256 of `filename` from the repository
+/// listing, so downloads and cached copies can be validated against them.
+fn expected_for(entries: &[TreeEntry], filename: &str) -> FileExpectation {
+    entries
+        .iter()
+        .find(|entry| entry.kind == "file" && entry.path == filename)
+        .map(|entry| FileExpectation {
+            size: entry.size,
+            sha256: entry.lfs.as_ref().map(|lfs| lfs.oid.clone()),
+        })
+        .unwrap_or_default()
+}
+
+/// Fetches the expectation for `filename`, degrading to no verification when
+/// the repository metadata is unavailable.
+async fn file_expectation(
+    kind: RepositoryKind,
+    repository: &str,
+    revision: &str,
+    filename: &str,
+) -> FileExpectation {
+    match tree_entries(kind, repository, revision).await {
+        Ok(entries) => expected_for(&entries, filename),
+        Err(error) => {
+            tracing::warn!(
+                error = %error,
+                "failed to resolve file metadata for {repository}/{filename}; continuing without integrity verification"
+            );
+            FileExpectation::default()
+        }
+    }
+}
+
 fn snapshot_path(
     kind: RepositoryKind,
     repository: &str,
@@ -208,6 +299,93 @@ fn is_commit(revision: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn derives_expectations_from_tree_entries() {
+        let entries = vec![
+            TreeEntry {
+                kind: "directory".into(),
+                path: "subdir".into(),
+                size: Some(0),
+                lfs: None,
+            },
+            TreeEntry {
+                kind: "file".into(),
+                path: "model.gguf".into(),
+                size: Some(1234),
+                lfs: Some(LfsEntry {
+                    oid: "ab".repeat(32),
+                }),
+            },
+            TreeEntry {
+                kind: "file".into(),
+                path: "config.json".into(),
+                size: Some(10),
+                lfs: None,
+            },
+        ];
+
+        // LFS files expose both size and content hash
+        let model = expected_for(&entries, "model.gguf");
+        assert_eq!(model.size, Some(1234));
+        assert_eq!(model.sha256.as_deref(), Some("ab".repeat(32).as_str()));
+
+        // plain git blob files have a size but no content hash
+        let config = expected_for(&entries, "config.json");
+        assert_eq!(config.size, Some(10));
+        assert_eq!(config.sha256, None);
+
+        // unknown files and directories degrade to no verification
+        assert_eq!(
+            expected_for(&entries, "missing.gguf"),
+            FileExpectation::default()
+        );
+        assert_eq!(expected_for(&entries, "subdir"), FileExpectation::default());
+    }
+
+    #[test]
+    fn parses_realistic_tree_entries() {
+        let json = r#"[
+            {
+                "type": "directory",
+                "oid": "85afd906013645ffaf0242939d595de8bf36f69a",
+                "size": 0,
+                "path": "MTP"
+            },
+            {
+                "type": "file",
+                "oid": "809be4237a2026c3bb9e829ae862fbe9e66cd63",
+                "size": 2620370976,
+                "lfs": {
+                    "oid": "e531007218dfab990486a5de7676a6932d6ea8dea233d1f698d7c21cf8a16889",
+                    "size": 2620370976,
+                    "pointerSize": 135
+                },
+                "path": "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf"
+            },
+            {
+                "type": "file",
+                "oid": "70fa689f511b45526a5e954b79bc98453cbdf181",
+                "size": 985654080,
+                "lfs": {
+                    "oid": "13c8966d1635d02e",
+                    "size": 985654080,
+                    "pointerSize": 134
+                },
+                "path": "mmproj-F16.gguf"
+            }
+        ]"#;
+        let entries: Vec<TreeEntry> = serde_json::from_str(json).unwrap();
+        assert_eq!(entries.len(), 3);
+
+        let expectation = expected_for(&entries, "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf");
+        assert_eq!(expectation.size, Some(2_620_370_976));
+        assert_eq!(
+            expectation.sha256.as_deref(),
+            Some("e531007218dfab990486a5de7676a6932d6ea8dea233d1f698d7c21cf8a16889")
+        );
+        assert_eq!(expected_for(&entries, "MTP"), FileExpectation::default());
+    }
 
     #[test]
     fn validates_full_commit_hashes() {

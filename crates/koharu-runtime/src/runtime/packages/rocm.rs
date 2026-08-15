@@ -7,6 +7,7 @@ use crate::{
     downloads::Transfer,
     runtime::{Package, RuntimePackage, loader, sealed},
     source::extract,
+    store::FileExpectation,
 };
 
 pub(crate) const VERSION: &str = "7.14.0";
@@ -105,10 +106,14 @@ impl Package for Rocm {
             .join("rocm")
             .join(VERSION)
             .join(self.to_string());
+        if self.complete(&target) {
+            return Ok(target);
+        }
         Store::directory(
             target,
+            FileExpectation::default(),
             move |path| self.complete(path),
-            move |stage| async move {
+            move |stage, expected| async move {
                 let transfer = Transfer::new()?;
                 for (url, destination, pattern) in [
                     (
@@ -128,7 +133,9 @@ impl Package for Rocm {
                     ),
                 ] {
                     let archive = tempfile::Builder::new().suffix(".whl").tempfile()?;
-                    transfer.fetch(&url, archive.path()).await?;
+                    transfer
+                        .fetch_verified(&url, archive.path(), &expected)
+                        .await?;
                     let unpacked = tempfile::tempdir()?;
                     extract(archive.path(), unpacked.path(), &[pattern])?;
                     let source = if destination == "core" {

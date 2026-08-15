@@ -181,13 +181,19 @@ impl Package for Cuda {
     async fn install(self) -> Result<PathBuf> {
         let project = self.project()?;
         let target = Store::root().join("cuda").join(project.replace('/', "--"));
+        if self.library_paths(&target).is_ok() {
+            return Ok(target);
+        }
+        let resolved = wheel(project, Platform::host()?).await?;
         Store::directory(
             target,
+            resolved.expected,
             move |path| self.library_paths(path).is_ok(),
-            move |stage| async move {
-                let url = wheel(project, Platform::host()?).await?;
+            move |stage, expected| async move {
                 let archive = tempfile::Builder::new().suffix(".whl").tempfile()?;
-                Transfer::new()?.fetch(&url, archive.path()).await?;
+                Transfer::new()?
+                    .fetch_verified(&resolved.url, archive.path(), &expected)
+                    .await?;
                 extract(
                     archive.path(),
                     &stage,

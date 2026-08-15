@@ -13,7 +13,7 @@ use crate::{
         packages::{Cuda, Rocm},
         sealed,
     },
-    source::extract,
+    source::{extract, release_asset},
 };
 
 const RELEASE: &str = "llama.cpp-b9982";
@@ -86,16 +86,22 @@ impl Package for Llama {
             .join("llama")
             .join(RELEASE)
             .join(self.to_string());
+        if self.complete(&target) {
+            return Ok(target);
+        }
+        let asset = self.asset();
+        let url =
+            format!("https://github.com/mayocream/koharu/releases/download/{RELEASE}/{asset}");
+        let expected = release_asset("mayocream", "koharu", RELEASE, asset).await;
         Store::directory(
             target,
+            expected,
             move |path| self.complete(path),
-            move |stage| async move {
-                let asset = self.asset();
-                let url = format!(
-                    "https://github.com/mayocream/koharu/releases/download/{RELEASE}/{asset}"
-                );
+            move |stage, expected| async move {
                 let archive = tempfile::Builder::new().suffix(".tar.gz").tempfile()?;
-                Transfer::new()?.fetch(&url, archive.path()).await?;
+                Transfer::new()?
+                    .fetch_verified(&url, archive.path(), &expected)
+                    .await?;
                 extract(
                     archive.path(),
                     &stage,

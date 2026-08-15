@@ -13,7 +13,10 @@ use tokio::{
     task::JoinSet,
 };
 
-use crate::network::{DownloadClient, download_client};
+use crate::{
+    network::{DownloadClient, download_client},
+    store::{FileExpectation, verify_artifact},
+};
 
 const EVENT_CAPACITY: usize = 256;
 const MIN_PART_SIZE: u64 = 8 * 1024 * 1024;
@@ -63,6 +66,19 @@ impl Transfer {
 
     pub(crate) fn get(&self, url: &str) -> reqwest_middleware::RequestBuilder {
         self.client.get(url)
+    }
+
+    /// Downloads `url` to `destination`, then verifies the artifact against
+    /// `expected` (size and SHA-256 when known) before returning, rejecting
+    /// truncated or corrupt downloads.
+    pub(crate) async fn fetch_verified(
+        &self,
+        url: &str,
+        destination: &std::path::Path,
+        expected: &FileExpectation,
+    ) -> Result<()> {
+        self.fetch(url, destination).await?;
+        verify_artifact(destination, expected).await
     }
 
     pub(crate) async fn fetch(&self, url: &str, destination: &std::path::Path) -> Result<()> {

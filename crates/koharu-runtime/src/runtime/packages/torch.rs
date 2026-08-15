@@ -16,7 +16,8 @@ use crate::{
         packages::{Cuda, Rocm, rocm},
         sealed,
     },
-    source::extract,
+    source::{extract, index_sha256},
+    store::FileExpectation,
 };
 
 const VERSION: &str = "2.12.1";
@@ -189,15 +190,42 @@ impl Package for Torch {
             ]);
         }
 
+        if self.complete(&target, rocm) {
+            return Ok(target);
+        }
+        let mut per_url = Vec::with_capacity(urls.len());
+        for url in &urls {
+            if url.starts_with("https://download.pytorch.org/") {
+                let filename = url
+                    .rsplit('/')
+                    .next()
+                    .context("wheel URL has no file name")?;
+                let index = format!("{}/torch/", url.trim_end_matches(filename));
+                per_url.push(FileExpectation {
+                    size: None,
+                    sha256: index_sha256(&index, filename).await,
+                });
+            } else {
+                per_url.push(FileExpectation::default());
+            }
+        }
         Store::directory(
             target,
+            per_url.first().cloned().unwrap_or_default(),
             move |path| self.complete(path, rocm),
-            move |stage| async move {
+            move |stage, expected| async move {
                 let transfer = Transfer::new()?;
                 let patterns = patterns.iter().map(String::as_str).collect::<Vec<_>>();
-                for url in urls {
+                for (index, url) in urls.iter().enumerate() {
                     let archive = tempfile::Builder::new().suffix(".whl").tempfile()?;
-                    transfer.fetch(&url, archive.path()).await?;
+                    let artifact = if index == 0 {
+                        &expected
+                    } else {
+                        &per_url[index]
+                    };
+                    transfer
+                        .fetch_verified(url, archive.path(), artifact)
+                        .await?;
                     extract(archive.path(), &stage, &patterns)?;
                 }
                 std::fs::rename(stage.join("torch"), stage.join("libtorch"))?;
