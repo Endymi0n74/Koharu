@@ -133,7 +133,7 @@ impl State {
         ) {
             return;
         }
-        let line = text.trim_end_matches(|c| c == '\n' || c == '\r');
+        let line = text.trim_end_matches(['\n', '\r']);
         let line = line.chars().take(RECENT_LOG_LINE_LIMIT).collect::<String>();
         if line.is_empty() {
             return;
