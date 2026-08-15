@@ -533,6 +533,24 @@ extern "C" fn logs_to_trace(
     }
 }
 
+/// Returns the most recent WARN/ERROR lines logged by llama.cpp and ggml, joined
+/// with newlines, or an empty string when no notable log has been captured.
+///
+/// Native backends report the concrete reason for a failure (for example why a
+/// model file could not be loaded) through their log callback, which is captured
+/// here so callers can surface it alongside a generic FFI error.
+#[must_use]
+pub fn recent_logs() -> String {
+    let mut lines = Vec::new();
+    if let Some(state) = log::LLAMA_STATE.get() {
+        lines.extend(state.recent_logs());
+    }
+    if let Some(state) = log::GGML_STATE.get() {
+        lines.extend(state.recent_logs());
+    }
+    lines.join("\n")
+}
+
 /// Redirect llama.cpp logs into tracing.
 pub fn send_logs_to_tracing(options: LogOptions) {
     // TODO: Reinitialize the state to support calling send_logs_to_tracing multiple times.

@@ -1,8 +1,14 @@
 use super::LogOptions;
+use std::collections::VecDeque;
 use std::sync::OnceLock;
 use tracing_core::{Interest, Kind, Metadata, callsite, field, identify_callsite};
 
 static FIELD_NAMES: &[&str] = &["message", "module"];
+
+/// Maximum number of WARN/ERROR lines retained per log state.
+const RECENT_LOG_LIMIT: usize = 32;
+/// Maximum length of a single retained WARN/ERROR line.
+const RECENT_LOG_LINE_LIMIT: usize = 512;
 
 struct OverridableFields {
     message: tracing::field::Field,
@@ -103,6 +109,7 @@ pub(super) struct State {
     buffered: std::sync::Mutex<Option<(koharu_llama_sys::ggml_log_level, String)>>,
     previous_level: std::sync::atomic::AtomicI64,
     is_buffering: std::sync::atomic::AtomicBool,
+    recent: std::sync::Mutex<VecDeque<String>>,
 }
 
 impl State {
@@ -113,7 +120,36 @@ impl State {
             buffered: Default::default(),
             previous_level: Default::default(),
             is_buffering: Default::default(),
+            recent: Default::default(),
         }
+    }
+
+    /// Retains a bounded history of WARN and ERROR lines so a failed native call
+    /// (for example a model load that returned NULL) can be explained to the caller.
+    fn record_recent(&self, level: koharu_llama_sys::ggml_log_level, text: &str) {
+        if !matches!(
+            level,
+            koharu_llama_sys::GGML_LOG_LEVEL_WARN | koharu_llama_sys::GGML_LOG_LEVEL_ERROR
+        ) {
+            return;
+        }
+        let line = text.trim_end_matches(|c| c == '\n' || c == '\r');
+        let line = line.chars().take(RECENT_LOG_LINE_LIMIT).collect::<String>();
+        if line.is_empty() {
+            return;
+        }
+        let mut recent = self.recent.lock().unwrap();
+        if recent.back().map(String::as_str) != Some(line.as_str()) {
+            recent.push_back(line);
+            while recent.len() > RECENT_LOG_LIMIT {
+                recent.pop_front();
+            }
+        }
+    }
+
+    /// Returns a snapshot of the most recent WARN/ERROR lines logged by this state.
+    pub(super) fn recent_logs(&self) -> Vec<String> {
+        self.recent.lock().unwrap().iter().cloned().collect()
     }
 
     fn generate_log(target: Module, level: koharu_llama_sys::ggml_log_level, text: &str) {
@@ -164,6 +200,7 @@ impl State {
             if buffer.ends_with('\n') {
                 self.is_buffering
                     .store(false, std::sync::atomic::Ordering::Release);
+                self.record_recent(previous_log_level, buffer.as_str());
                 Self::generate_log(self.module, previous_log_level, buffer.as_str());
             } else {
                 *lock = Some((previous_log_level, buffer));
@@ -235,6 +272,7 @@ impl State {
 
         let (text, newline) = text.split_at(text.len() - 1);
         debug_assert_eq!(newline, "\n");
+        self.record_recent(level, text);
 
         match level {
             koharu_llama_sys::GGML_LOG_LEVEL_NONE => {

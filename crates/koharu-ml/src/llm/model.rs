@@ -130,8 +130,18 @@ impl Model {
         ensure_file(&model_path, "GGUF model")?;
         let backend = crate::llama_backend().context("llama.cpp backend is not initialized")?;
         let params = model_params(backend, device, &options)?;
-        let model = LlamaModel::load_from_file(backend, &model_path, &params)
-            .with_context(|| format!("failed to load GGUF model {}", model_path.display()))?;
+        let model = LlamaModel::load_from_file(backend, &model_path, &params).map_err(|error| {
+            // llama.cpp reports the concrete reason (unsupported architecture or
+            // quantization, corrupted file, GPU failure, ...) through its own log
+            // callback; include the captured lines so the error is actionable.
+            let mut context = format!("failed to load GGUF model {}", model_path.display());
+            let logs = koharu_llama::recent_logs();
+            if !logs.is_empty() {
+                context.push_str("\nllama.cpp logs:\n");
+                context.push_str(&logs);
+            }
+            anyhow::Error::new(error).context(context)
+        })?;
         ensure!(
             model.has_decoder(),
             "GGUF model does not advertise a decoder graph"
