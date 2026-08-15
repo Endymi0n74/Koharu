@@ -15,6 +15,8 @@
     "pageLabel": "{{number}}페이지: {{label}}",
     "processing": "처리 중",
     "processingFailed": "처리에 실패했습니다.",
+    "showLess": "간략히 보기",
+    "showMore": "더 보기",
     "stop": "중지",
     "title": "활동"
   },

@@ -15,6 +15,8 @@
     "pageLabel": "第 {{number}} 頁：{{label}}",
     "processing": "正在處理",
     "processingFailed": "處理失敗。",
+    "showLess": "收起",
+    "showMore": "展開",
     "stop": "停止",
     "title": "活動"
   },
