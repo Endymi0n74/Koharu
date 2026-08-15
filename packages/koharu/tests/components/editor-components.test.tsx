@@ -1029,4 +1029,51 @@ describe('greenfield editor', () => {
     expect(screen.queryByText('one.ttf')).not.toBeInTheDocument()
     expect(screen.queryByText('two.ttf')).not.toBeInTheDocument()
   })
+
+  it('truncates long failure messages and expands them on demand', async () => {
+    installProject()
+    const longError =
+      'pipeline translation failed: failed to load GGUF model ' +
+      '\\\\?\\D:\\koharu\\store\\hugging-face\\models\\mistralai--Ministral-3-8B-Instruct-2512-GGUF\\snapshots\\' +
+      '0102285ad796bd99af90f58de616092e5630e970\\Ministral-3-8B-Instruct-2512-Q4_K_M.gguf: null result from llama cpp' +
+      '\nllama.cpp logs:\nload_tensors: failed to allocate CUDA0 buffer\nCUDA error: out of memory'
+    useKoharuStore.setState({
+      jobs: {
+        job: {
+          state: 'failed',
+          id: 'job',
+          completed: 0,
+          total: 1,
+          page: 'page',
+          stage: 'translation',
+          model: 'ministral',
+          error: longError,
+        },
+      },
+    })
+    render(<ActivityCenter />)
+
+    // Preview keeps the head and tail of the first line but drops the middle
+    // of the long GGUF path and hides the llama.cpp log lines.
+    const preview = screen.getByText(/pipeline translation failed/)
+    expect(preview.textContent).toContain('…')
+    expect(preview.textContent).toContain('null result from llama cpp')
+    expect(preview.textContent).not.toContain('0102285ad796bd99af90f58de616092e5630e970')
+    expect(preview.textContent).not.toContain('llama.cpp logs:')
+    expect(screen.queryByRole('button', { name: 'Show less' })).not.toBeInTheDocument()
+
+    // The GGUF filename is kept whole by the ellipsis and highlighted, and its
+    // model prefix is emphasized.
+    const filename = screen.getByText('Ministral-3-8B-Instruct-2512-Q4_K_M.gguf')
+    expect(filename).toBeInTheDocument()
+    expect(filename).toHaveClass('font-semibold', 'text-foreground')
+    expect(filename.textContent).toContain('Ministral-3-8B-Instruct-2512')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+
+    // The expanded view shows the whole message, including the log lines.
+    expect(await screen.findByText(/CUDA error: out of memory/)).toBeInTheDocument()
+    expect(screen.getByText(/llama\.cpp logs:/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeInTheDocument()
+  })
 })

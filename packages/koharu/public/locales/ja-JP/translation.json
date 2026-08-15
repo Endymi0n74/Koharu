@@ -14,6 +14,8 @@
     "modelDownload": "モデルのダウンロード",
     "processing": "処理中",
     "processingFailed": "処理に失敗しました。",
+    "showLess": "折りたたむ",
+    "showMore": "もっと表示",
     "stop": "停止",
     "title": "アクティビティ"
   },

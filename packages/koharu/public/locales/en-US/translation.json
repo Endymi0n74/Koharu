@@ -14,6 +14,8 @@
     "modelDownload": "Model download",
     "processing": "Processing",
     "processingFailed": "Processing failed.",
+    "showLess": "Show less",
+    "showMore": "Show more",
     "stop": "Stop",
     "title": "Activity"
   },

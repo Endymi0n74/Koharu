@@ -14,6 +14,8 @@
     "modelDownload": "Скачивание модели",
     "processing": "Обработка",
     "processingFailed": "Ошибка обработки.",
+    "showLess": "Свернуть",
+    "showMore": "Показать ещё",
     "stop": "Остановить",
     "title": "Активность"
   },

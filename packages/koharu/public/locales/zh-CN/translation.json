@@ -14,6 +14,8 @@
     "modelDownload": "模型下载",
     "processing": "正在处理",
     "processingFailed": "处理失败。",
+    "showLess": "收起",
+    "showMore": "展开",
     "stop": "停止",
     "title": "活动"
   },

@@ -1,6 +1,7 @@
 'use client'
 
 import { CircleAlert, Download, Square, X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { call } from '@/lib/backend'
@@ -146,12 +147,121 @@ function DownloadItem({ download }: { download: DownloadState }) {
   )
 }
 
+const PREVIEW_LIMIT = 160
+const PREVIEW_HEAD = 96
+const PREVIEW_TAIL = 64
+
+/// Tokens marking the end of a model name in a GGUF filename: the
+/// quantization / format part (e.g. `Q4_K_M`, `UD`, `F16`).
+const QUANT_RE = /^(?:q|iq)\d|^(?:f(?:16|32|64|8)|bf16|ud)$/i
+
+interface ModelHighlight {
+  /// The model identifier, i.e. the leading tokens of the GGUF basename up to
+  /// the quantization suffix (e.g. `gemma-4-E2B-it-qat`).
+  prefix: string | null
+  /// The GGUF filename (e.g. `gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf`).
+  filename: string
+}
+
+/// Extracts the GGUF filename (and its model prefix) from a message line.
+function findModelHighlight(line: string): ModelHighlight | null {
+  const files = [...line.matchAll(/[^\\/\s]*\.gguf/gi)].map((match) => match[0])
+  if (files.length === 0) return null
+  const filename = files[files.length - 1]
+  const tokens = filename.replace(/\.gguf$/i, '').split('-')
+  const quantIndex = tokens.findIndex((token) => QUANT_RE.test(token))
+  const prefix = (quantIndex > 0 ? tokens.slice(0, quantIndex) : tokens).join('-')
+  return {
+    filename,
+    // Only highlight the prefix when it carries a model identifier; a bare
+    // stem like `model` would otherwise match prose in the message.
+    prefix: prefix && /\d/.test(prefix) ? prefix : null,
+  }
+}
+
+/// Builds a compact preview for a failure message: the first line only, with a
+/// middle ellipsis when the line is long (e.g. a full GGUF path). The GGUF
+/// filename is kept whole so the failing model stays identifiable. Following
+/// lines (e.g. llama.cpp's captured logs) are hidden behind the expand toggle.
+function truncateMessage(message: string): string {
+  const firstLine = message.split('\n')[0] ?? ''
+  if (firstLine.length <= PREVIEW_LIMIT) return firstLine
+  const head = firstLine.slice(0, PREVIEW_HEAD)
+  const tail = firstLine.slice(truncationTailStart(firstLine))
+  return `${head}…${tail}`
+}
+
+/// Start of the truncated tail: the last PREVIEW_TAIL characters, extended
+/// backwards to the GGUF filename so the ellipsis never cuts it.
+function truncationTailStart(line: string): number {
+  const defaultStart = line.length - PREVIEW_TAIL
+  const files = [...line.matchAll(/[^\\/\s]*\.gguf/gi)]
+  const file = files[files.length - 1]
+  if (!file) return defaultStart
+  const start = file.index ?? 0
+  const end = start + file[0].length
+  // The default tail already shows the whole filename, or the filename starts
+  // inside the head region: keep the default truncation.
+  if (end <= defaultStart || start <= PREVIEW_HEAD) return defaultStart
+  return start
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/// Renders text with the GGUF filename and model prefix highlighted.
+function highlightText(text: string, highlight: ModelHighlight): ReactNode {
+  const { filename, prefix } = highlight
+  const patterns = prefix ? [filename, prefix] : [filename]
+  const pattern = new RegExp(`(${patterns.map(escapeRegExp).join('|')})`, 'gi')
+  const parts: ReactNode[] = []
+  let last = 0
+  for (const match of text.matchAll(pattern)) {
+    const index = match.index ?? 0
+    if (index > last) parts.push(text.slice(last, index))
+    parts.push(
+      <span key={index} className='font-semibold text-foreground'>
+        {match[0]}
+      </span>,
+    )
+    last = index + match[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return <>{parts}</>
+}
+
 function Failure({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const hasMore = message.includes('\n') || message.length > PREVIEW_LIMIT
+  const firstLine = message.split('\n')[0] ?? ''
+  const highlight = findModelHighlight(firstLine)
+  const preview = truncateMessage(message)
   return (
     <div className='grid grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.5rem] items-start gap-x-2.5 border-b p-3 text-[11px] last:border-b-0'>
       <CircleAlert className='mt-0.5 size-3.5 justify-self-center text-destructive' />
-      <span className='col-start-2 col-end-4 min-w-0 text-destructive'>{message}</span>
+      <div className='col-start-2 col-end-4 min-w-0'>
+        {expanded ? (
+          <pre className='max-h-48 overflow-y-auto font-mono text-[10px] leading-4 break-words whitespace-pre-wrap text-destructive'>
+            {message}
+          </pre>
+        ) : (
+          <span className='block break-words text-destructive'>
+            {highlight ? highlightText(preview, highlight) : preview}
+          </span>
+        )}
+        {hasMore && (
+          <button
+            type='button'
+            aria-expanded={expanded}
+            className='mt-1 block font-medium text-destructive/80 hover:text-destructive'
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? t('activity.showLess') : t('activity.showMore')}
+          </button>
+        )}
+      </div>
       <Button
         size='icon-xs'
         variant='ghost'
