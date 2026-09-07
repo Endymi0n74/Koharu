@@ -1,6 +1,6 @@
-name: Feature proposal
+name: Feature request
 description: Suggest an improvement to Koharu
-labels: [feature request]
+labels: [enhancement]
 
 body:
   - type: markdown
