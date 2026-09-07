@@ -128,7 +128,6 @@ tauri = { git = "https://github.com/tauri-apps/tauri", rev = "536664d1b34e1989db
     "macos-private-api",
     "specta",
     "x11",
-    "devtools",
 ] }
 tauri-build = { git = "https://github.com/tauri-apps/tauri", rev = "536664d1b34e1989dbd22705e2fde8b57b36aa0c" }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "1423992771e0b57582ca3b06a6adc46ec26aa784" }
