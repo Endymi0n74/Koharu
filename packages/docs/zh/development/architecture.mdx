@@ -10,16 +10,15 @@ Koharu 是桌面应用。React 调用类型化 Tauri 命令，原生组件负责
 flowchart TB
   ui["packages/koharu: React + Next.js"] --> bridge["packages/bridge: 协议 + WASM"]
   entry["crates/koharu: 启动"] --> app["koharu-app"]
-  entry --> desktop["koharu-desktop"]
   bridge -->|"命令与通道"| app
   app --> scene["koharu-scene"] --> storage["koharu-storage"]
-  app --> pipeline["koharu-pipeline"] --> ml["koharu-ml"] --> runtime["原生运行时"]
+  app --> pipeline["koharu-pipeline"] --> ml["koharu-ml"] --> runtime["koharu-runtime"] --> native["原生运行时"]
   app --> translator["koharu-translator"]
   app --> agent["koharu-agent"]
-  app --> desktop --> renderer["koharu-renderer"] --> rasterizer["koharu-rasterizer"]
+  app --> desktop["koharu-desktop"] --> renderer["koharu-renderer"] --> rasterizer["koharu-rasterizer"]
   bridge --> canvas["koharu-canvas"] --> rasterizer
-  renderer --> psd["koharu-psd"]
-  rasterizer --> psd
+  app --> psd["koharu-psd"] --> renderer
+  psd --> rasterizer
 ```
 
 ## 界面与应用
@@ -32,7 +31,7 @@ flowchart TB
 | `crates/koharu`   | 启动、诊断、Tauri 配置和构建集成                                         |
 | `koharu-app`      | Tauri 状态、项目生命周期、命令串行化、任务、同步和 Agent 宿主            |
 
-独立类型化通道传递项目、画布、任务、下载、偏好与资源更新。前端不使用 HTTP 客户端或通用应用事件信封。
+独立类型化通道传递项目、画布、任务、下载与资源更新；Agent 登录和运行通过按调用创建的通道流式传输。偏好设置通过命令读取和保存。前端不使用 HTTP 客户端或通用应用事件信封。
 
 <Note>
   `packages/bridge/src/protocol.ts` 由 Rust 签名生成。修改 Rust
@@ -56,6 +55,8 @@ flowchart TB
 ## 原生运行时边界
 
 安全包装层 `koharu-torch`、`koharu-llama`、`koharu-diffusion` 与 unsafe `-sys` 动态加载 crate 分离。`koharu-runtime` 负责发现、下载、验证和加载软件包。
+
+有三个 crate 被图中各组件共用，因此未在图中标出：`koharu-config` 拥有 `config.toml` 的类型化配置节，`koharu-secrets` 封装操作系统凭据存储，`koharu-metrics` 收集遥测数据。
 
 <CardGroup cols={2}>
   <Card title="场景与存储" icon="database" href="/zh/development/scene">

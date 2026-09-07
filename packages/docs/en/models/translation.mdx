@@ -1,14 +1,16 @@
 ---
 title: 'Configure translation'
-description: 'Set language, project instructions, quantization, sampling, and image input.'
+description: 'Set language, instructions, quantization, sampling, and image input.'
 icon: 'language'
 ---
 
-Choose output settings in the processing selector or **Settings → Translation**. Koharu captures them when a run starts; edits affect later runs.
+Choose output settings in the processing selector or **Settings → Translation**. Koharu captures them when a run starts; edits affect later runs. Provider connections and credentials are read for each request.
 
 ## Language and instructions
 
-Set the target language and concise project-wide guidance for names, terminology, tone, pronouns, formatting, or text that should remain untranslated. Test the instructions on several pages and correct OCR first.
+Set the target language and concise instructions for names, terminology, tone, pronouns, formatting, or text that should remain untranslated. Instructions are saved with Koharu's settings and apply to every project; there is no per-project field. Test them on several pages and correct OCR first.
+
+LFM 2.5 and Ministral 3 support a limited set of target languages, and a run fails when their target is unsupported. Other local models accept every target language Koharu offers.
 
 ## Local quantization
 
@@ -21,18 +23,18 @@ GGUF models may offer multiple quantizations. Smaller files need less download s
 | Temperature, top P, top K, min P      | Sampling and randomness                                  |
 | Repeat, frequency, presence penalties | Repetition behavior                                      |
 | Maximum output tokens                 | Response length budget                                   |
-| Thinking mode                         | Additional reasoning for supported models                |
-| Vision input                          | Whether a supported model receives the source page image |
+| Reasoning                             | Additional reasoning for supported models                |
+| Vision                                | Whether a supported model receives the source page image |
 
 <Tip>
   Start with provider defaults and change one variable at a time. High randomness tends to make
   names and terminology less consistent.
 </Tip>
 
-Thinking can increase latency and token use. Unsupported options may be ignored or rejected by a provider or model.
+Reasoning can increase latency and token use. Reasoning and vision are dropped silently for a model that does not support them; other unsupported options may be ignored or rejected by a provider or model.
 
 ## Text and vision inputs
 
-Text-only requests send semantic source text. With **Vision input**, a capable model also receives the source page image. For a custom OpenAI-compatible server, enable this only after checking image-message support.
+Text-only requests send semantic source text. With **Vision**, a capable model also receives the source page image. A custom OpenAI-compatible server is assumed to accept images, so turn **Vision** off if it does not support image messages.
 
 Generated translations remain editable project data. [Review the wording and page layout](/en/guides/review) before export.

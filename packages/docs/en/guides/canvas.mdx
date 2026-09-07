@@ -10,7 +10,7 @@ The toolbar controls pointer behavior. The inspector changes the selected layer'
 
 Use **Pan** to move the view and the status bar to change zoom. **View → Fit Window**, or `0` by default, fits the active page. Switching pages returns to a fitted view.
 
-Use **Select** to pick editable layers and modifier keys for multiple selection. Supported layers can be moved, resized, and rotated. A drag previews the transform; finishing commits it, and canceling restores the previous presentation.
+Use **Select** to pick editable layers; hold `Shift`, `Ctrl`, or `Command` to add or remove layers. Text layers can be moved, resized, and rotated. Resize and rotate handles appear for a single selection; a multiple selection can only be moved. A drag previews the transform; finishing commits it, and canceling restores the previous presentation.
 
 ## Choose an editing tool
 
@@ -20,22 +20,27 @@ Use **Select** to pick editable layers and modifier keys for multiple selection.
     translation in the inspector and adjust [typography and fitting](/en/guides/typesetting).
   </Tab>
   <Tab title='Brush and Eraser'>
-    **Brush** paints an authored raster layer with the chosen color and diameter. **Eraser** removes
-    pixels from an authored raster target. These edits are separate from generated inpainting.
+    **Brush** paints on the selected raster layer with the chosen color and diameter, or creates a
+    new Paint layer when no raster layer is selected. **Eraser** needs a selected raster layer. Both
+    tools also accept the cleanup layer that inpainting produced; painting on it makes that layer
+    yours. Hold `Alt` and scroll to change the diameter.
   </Tab>
   <Tab title='Color picker'>
     Sample the composited canvas with **Color picker**. Apply the sampled color to brush strokes or
     text styling.
   </Tab>
   <Tab title='Remove'>
-    Paint a mask with **Remove**, then run inpainting. The mask identifies source marks to
-    reconstruct; it does not become a visible paint layer. See [cleanup](/en/guides/cleanup).
+    Paint over source marks with **Remove**. Releasing the stroke runs inpainting on that area
+    immediately and merges the result into the page's cleanup layer; the mask is not kept as a
+    layer. The stroke is rejected while another processing job is running. See
+    [cleanup](/en/guides/cleanup).
   </Tab>
 </Tabs>
 
 <Tip>
-  Hold `Space` and drag to pan temporarily. Release it to restore the previous tool. `Escape`
-  cancels the active gesture or clears selection.
+  Hold `Space` or the middle mouse button and drag to pan without changing tools. Scroll to pan,
+  hold `Shift` to pan horizontally, or hold `Ctrl` to zoom at the pointer. `Escape` cancels the
+  active gesture and clears the selection.
 </Tip>
 
 Single-key tool shortcuts are inactive while a text field is focused. See [keyboard shortcuts](/en/reference/shortcuts).

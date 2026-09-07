@@ -20,18 +20,20 @@ Each provider owns its endpoint defaults, request mapping, and model discovery. 
 <Steps>
   <Step title='Save the connection'>
     Open **Settings → Providers**, choose a provider, and fill in its fields. Hosted services
-    require credentials. A local compatible server needs its base URL; whether it needs a secret
-    depends on that server.
+    require credentials. A local compatible server needs its base URL; LM Studio defaults to
+    `http://localhost:1234` and OpenAI-compatible defaults to `http://localhost:11434/v1`. Whether a
+    local server needs a secret depends on that server.
   </Step>
   <Step title='Select a model'>
-    Open the processing selector or **Settings → Translation**. Opening the model picker refreshes
-    provider discovery. An unreachable provider may have no discovered models even while its saved
-    settings remain intact.
+    Open the processing selector or **Settings → Translation**. Opening the processing selector, or
+    the Settings page, refreshes provider discovery. An unreachable provider may have no discovered
+    models even while its saved settings remain intact.
   </Step>
   <Step title='Choose whether to include the page image'>
-    Enable **Vision input** only for a model that accepts images. Cataloged text-only models disable
-    the switch. OpenAI-compatible endpoints are user-declared, so verify the endpoint and model
-    support image messages.
+    **Vision** is on by default and the switch stays available for every model. If the selected
+    model does not accept images, Koharu drops the image from the request. OpenAI-compatible
+    endpoints are assumed to accept images, so turn the switch off when the server cannot handle
+    image messages.
   </Step>
   <Step title='Try one page'>
     Check the source OCR, run translation on the current page, and review the response before

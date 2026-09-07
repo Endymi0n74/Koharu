@@ -15,7 +15,7 @@ icon: 'database'
 
 ## Project data
 
-Projects live at `Documents/Koharu/<project-name>.khrproj/`. Each contains alternating durable state files and content-addressed blobs for source images, generated artwork, and authored raster edits.
+Projects live at `Documents/Koharu/<project-name>.khrproj/`. Each contains alternating durable state files, a lock file while the project is open, and content-addressed blobs for source images, generated artwork, and authored raster edits. Unreferenced blobs are not removed automatically, so a heavily edited project can grow over time.
 
 <Warning>
   Do not change internal project files while the project is open. Deletion from the project browser
@@ -24,13 +24,13 @@ Projects live at `Documents/Koharu/<project-name>.khrproj/`. Each contains alter
 
 ## Settings and credentials
 
-Non-secret typed settings live in `~/.koharu/config.toml`, with sections owned by pipeline, translation providers, typesetting, and Agent. Missing settings use defaults. Invalid manual edits can prevent initialization; use the Settings UI.
+Non-secret typed settings live in `~/.koharu/config.toml`, with sections for the pipeline (including translation), providers, typesetting, Agent, and HTTP timeouts. Missing settings use defaults. Invalid manual edits can prevent initialization; use the Settings UI.
 
 Provider credentials use the operating system's secure credential service. A project backup does not include provider keys or the Agent account session.
 
 ## Runtime and model cache
 
-Packages are stored at `<cache>/koharu/packages/` under the operating system cache directory. This data is replaceable: removing it while Koharu is closed causes the required packages to download again.
+On macOS and Linux, packages are stored at `<cache>/koharu/packages/` under the operating system cache directory. On Windows, they are stored in the `store` directory inside Koharu's installation directory. This data is replaceable: removing it while Koharu is closed causes the required packages to download again.
 
 Never remove a package while the desktop process may still have a native library loaded.
 

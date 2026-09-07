@@ -14,15 +14,15 @@ flowchart LR
   detection --> inpainting["Inpainting"]
 ```
 
-Pages enter in project order. Completed detection makes that page's dependent branches eligible immediately, without waiting for detection on the whole project.
+Pages enter in project order. Completed detection makes that page's dependent branches eligible immediately, without waiting for detection on the whole project. At most one job per stage runs at a time, and the number of pages in flight is bounded by the number of selected stages.
 
-Stages return semantic patches. The application commits each result, synchronizes the canvas, and groups an invocation's revisions into one undo step.
+Stages return semantic patches. The application commits each result, synchronizes the canvas, and records each commit as its own undo step.
 
 ## Manage residency and stopping
 
-Accelerator inference uses one admission lane: representative heterogeneous overlap reduced throughput through compute and memory-bandwidth contention. CPU-only work can keep independent per-model lanes.
+Accelerator inference uses one admission lane: representative heterogeneous overlap reduced throughput through compute and memory-bandwidth contention. The translation stage takes the lane for every provider, including remote APIs. CPU-only work can keep independent per-model lanes.
 
-Models load lazily and remain reusable. Residency management tracks resident and peak workspace memory, reserves a safety margin, evicts idle models in least-recently-used order, and retries one learned out-of-memory case after cleanup.
+Models load lazily and remain reusable. When a stage fails with an out-of-memory error, the runner releases the accelerator lane, unloads the other stages' models, waits briefly for a fresh resource sample, and retries once. Any other failure unloads the failing stage's model. A settings change rebuilds the stage runner, so models reload on the next run.
 
 Stopping is cooperative. New stages do not start after a stop request. Active native inference returns safely; an uncommitted result is discarded.
 

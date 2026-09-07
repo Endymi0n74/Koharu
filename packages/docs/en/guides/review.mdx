@@ -8,7 +8,7 @@ Select a text layer on the canvas or in the inspector. Source analysis, semantic
 
 ## Correct the text
 
-A text item can hold source text and its detected language, translation and target language, typography, writing mode, and either authored geometry or an automatic fit relationship.
+A text layer holds source text, a translation, typography, writing direction, and either its own frame or an automatic fit to a detected region. Source text and translation are edited in the expanded layer row of the inspector.
 
 Edit **source text** when OCR is wrong. Edit **translation** for meaning, tone, names, or line breaks.
 
@@ -19,7 +19,7 @@ Edit **source text** when OCR is wrong. Edit **translation** for meaning, tone, 
 
 ## Manage layers
 
-The layer view follows the page hierarchy: groups, text, raster layers, and image or artwork layers. You can select multiple editable layers, move them within the hierarchy, toggle visibility, change opacity, and delete a layer with its descendants.
+The layer view follows the page hierarchy: groups, text, raster layers, and image or artwork layers. The list selects one layer at a time; select several layers on the canvas with a modifier click or **Edit → Select All Layers**. Use the arrow buttons to reorder a layer among its siblings, toggle visibility, change opacity, and delete a layer with its descendants.
 
 Analysis regions describe model findings. They are not visible presentation layers and do not compete with artwork or text during selection.
 
@@ -44,4 +44,4 @@ Analysis regions describe model findings. They are not visible presentation laye
 
 Use **Edit → Undo** or **Redo**. The defaults are `Ctrl+Z` and `Ctrl+Shift+Z` on Windows/Linux, or `Command+Z` and `Command+Shift+Z` on macOS.
 
-One pipeline invocation forms one undo group even when page-stage results commit incrementally. Closing and reopening a project loads the saved state without restoring the previous undo stack.
+Each page-stage result that the pipeline commits is its own undo step, so undoing a project run takes one step per page and stage. Closing and reopening a project loads the saved state without restoring the previous undo stack.

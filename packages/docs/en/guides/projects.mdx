@@ -35,23 +35,24 @@ Create, open, or delete projects here. Names must not contain path separators or
     not follow symbolic links.
   </Step>
   <Step title='Organize the page rail'>
-    Select pages or a range, rename labels, drag pages into order, or delete pages after
-    confirmation. Page order determines processing order and export filename prefixes.
+    Select pages or a range, rename labels, drag pages into order, or delete pages. Deletion has no
+    confirmation dialog but can be undone. Page order determines processing order.
   </Step>
 </Steps>
 
-| Source                            | Imported result                                   |
-| --------------------------------- | ------------------------------------------------- |
-| PNG, JPEG (`.jpg`, `.jpeg`), WebP | One project page per image                        |
-| CBZ, ZIP, RAR                     | One page per supported image entry                |
-| PDF                               | One losslessly rasterized image per document page |
+| Source                            | Imported result                                                             |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| PNG, JPEG (`.jpg`, `.jpeg`), WebP | One project page per image                                                  |
+| CBZ, ZIP, RAR                     | One page per PNG, JPEG, or WebP entry; nested archives and PDFs are skipped |
+| PDF                               | One PNG rendered at 300 DPI per document page                               |
 
-Imported bytes are copied into content-addressed project storage. Moving or deleting an original source does not remove the imported page.
+Only the `.rar` extension is recognized for RAR archives; rename a `.cbr` file before importing it. Imported bytes are copied into content-addressed project storage. Moving or deleting an original source does not remove the imported page.
 
 ## Back up and restore
 
 Close the project, then copy the **entire** `.khrproj` directory. Both state files and blobs are required. To restore it, close Koharu and put the complete directory under `Documents/Koharu`.
 
 <Note>
-  Closing a project preserves its latest saved state but clears session undo and redo history.
+  Closing a project preserves its latest saved state but clears session undo and redo history. An
+  open project holds an exclusive lock, so the same project cannot be opened twice.
 </Note>

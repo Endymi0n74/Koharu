@@ -9,12 +9,14 @@ Koharu Agent is a Codex client inside the editor. It uses ChatGPT device-code si
 <Steps>
   <Step title='Open the Agent panel'>Open a project and select **Agent** on the right.</Step>
   <Step title='Authorize the device'>
-    Choose **Sign in with Codex**. In the browser authorization page, enter the displayed device
-    code and approve the sign-in for your account.
+    Choose **Sign in with Codex**. Koharu opens the authorization page in your browser; enter the
+    code shown in the panel and approve the sign-in for your account. The code expires after 15
+    minutes.
   </Step>
   <Step title='Choose a model'>
     Return to Koharu and wait for the account and model list. Select a Codex model and reasoning
-    level in the Agent properties. More reasoning can help with ambiguous edits but takes longer.
+    level at the top of the Agent panel; **Automatic** uses the first available model. More
+    reasoning can help with ambiguous edits but takes longer.
   </Step>
 </Steps>
 
@@ -31,7 +33,7 @@ The Agent starts with the open project's semantic state. It renders and attaches
 
 ## Sign out
 
-**Sign out** cancels active work, clears the current Agent session, and removes the Codex account authorization used by Koharu. Agent configuration is saved separately from translator settings.
+**Sign out** cancels active work, clears the current Agent session, and removes the Codex account authorization used by Koharu. Opening or closing a project also clears the conversation. Agent configuration is saved separately from translator settings.
 
 <Card title='Work with a project' icon='comment' href='/en/agent/projects'>
   Give the Agent a precise scope, review its edits, and use project history.

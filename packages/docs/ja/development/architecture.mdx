@@ -10,16 +10,15 @@ Koharu はデスクトップアプリです。React が型付き Tauri コマン
 flowchart TB
   ui["packages/koharu: React + Next.js"] --> bridge["packages/bridge: プロトコル + WASM"]
   entry["crates/koharu: 起動"] --> app["koharu-app"]
-  entry --> desktop["koharu-desktop"]
   bridge -->|"コマンドとチャンネル"| app
   app --> scene["koharu-scene"] --> storage["koharu-storage"]
-  app --> pipeline["koharu-pipeline"] --> ml["koharu-ml"] --> runtime["ネイティブランタイム"]
+  app --> pipeline["koharu-pipeline"] --> ml["koharu-ml"] --> runtime["koharu-runtime"] --> native["ネイティブランタイム"]
   app --> translator["koharu-translator"]
   app --> agent["koharu-agent"]
-  app --> desktop --> renderer["koharu-renderer"] --> rasterizer["koharu-rasterizer"]
+  app --> desktop["koharu-desktop"] --> renderer["koharu-renderer"] --> rasterizer["koharu-rasterizer"]
   bridge --> canvas["koharu-canvas"] --> rasterizer
-  renderer --> psd["koharu-psd"]
-  rasterizer --> psd
+  app --> psd["koharu-psd"] --> renderer
+  psd --> rasterizer
 ```
 
 ## UI とアプリケーション
@@ -32,7 +31,7 @@ flowchart TB
 | `crates/koharu`   | 起動、診断、Tauri 設定、ビルド統合                                                                          |
 | `koharu-app`      | Tauri 状態、プロジェクトのライフサイクル、コマンド直列化、ジョブ、同期、Agent ホスト                        |
 
-独立した型付きチャンネルがプロジェクト、キャンバス、ジョブ、ダウンロード、設定、リソースの更新を運びます。UI は HTTP クライアントや汎用アプリイベントの封筒を使いません。
+独立した型付きチャンネルがプロジェクト、キャンバス、ジョブ、ダウンロード、リソースの更新を運びます。Agent のサインインと実行は呼び出しごとのチャンネルでストリーミングします。設定はコマンドで取得・保存します。UI は HTTP クライアントや汎用アプリイベントの封筒を使いません。
 
 <Note>
   `packages/bridge/src/protocol.ts` は Rust 署名から生成します。Rust
@@ -56,6 +55,8 @@ flowchart TB
 ## ネイティブランタイム
 
 安全な `koharu-torch`、`koharu-llama`、`koharu-diffusion` は unsafe な `-sys` 動的ロード crate から分離します。`koharu-runtime` がパッケージの検出、取得、検証、ロードを担当します。
+
+図には載せていない共通の crate が 3 つあります。`koharu-config` は `config.toml` の型付きセクションを所有し、`koharu-secrets` は OS の資格情報ストアをラップし、`koharu-metrics` はテレメトリーを収集します。
 
 <CardGroup cols={2}>
   <Card title="シーンと保存" icon="database" href="/ja/development/scene">

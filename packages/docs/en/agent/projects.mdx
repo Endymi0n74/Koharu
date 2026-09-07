@@ -32,7 +32,7 @@ The Agent can inspect current semantic state, render a particular page, rename/r
 
 Agent changes use the same project operations as the desktop UI. Successful edits update the scene, renderer, revision, and undo history.
 
-Pipeline runs commit completed stages incrementally. Canceling the Agent request also asks an Agent-started pipeline to stop cooperatively. Only one Agent request runs at a time.
+Pipeline runs commit completed stages incrementally. An Agent-started run does not appear in the activity center, but it blocks other processing until it finishes. Canceling the Agent request also asks an Agent-started pipeline to stop cooperatively. Only one Agent request runs at a time.
 
 <Steps>
   <Step title='Inspect the changed pages'>Review source text, translations, and the canvas.</Step>

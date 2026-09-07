@@ -10,16 +10,15 @@ Koharu runs as a desktop application. React invokes typed Tauri commands; native
 flowchart TB
   ui["packages/koharu: React + Next.js"] --> bridge["packages/bridge: protocol + WASM"]
   entry["crates/koharu: startup"] --> app["koharu-app"]
-  entry --> desktop["koharu-desktop"]
   bridge -->|"commands and channels"| app
   app --> scene["koharu-scene"] --> storage["koharu-storage"]
-  app --> pipeline["koharu-pipeline"] --> ml["koharu-ml"] --> runtime["native runtimes"]
+  app --> pipeline["koharu-pipeline"] --> ml["koharu-ml"] --> runtime["koharu-runtime"] --> native["native runtimes"]
   app --> translator["koharu-translator"]
   app --> agent["koharu-agent"]
-  app --> desktop --> renderer["koharu-renderer"] --> rasterizer["koharu-rasterizer"]
+  app --> desktop["koharu-desktop"] --> renderer["koharu-renderer"] --> rasterizer["koharu-rasterizer"]
   bridge --> canvas["koharu-canvas"] --> rasterizer
-  renderer --> psd["koharu-psd"]
-  rasterizer --> psd
+  app --> psd["koharu-psd"] --> renderer
+  psd --> rasterizer
 ```
 
 ## Interface and application
@@ -32,7 +31,7 @@ flowchart TB
 | `crates/koharu`   | Startup, diagnostics, Tauri configuration, and build integration                                                   |
 | `koharu-app`      | Tauri state, project lifecycle, command serialization, jobs, synchronization, and Agent hosting                    |
 
-Independent typed channels carry project, canvas, job, download, preference, and resource updates. The frontend does not use an HTTP client or a generic application event envelope.
+Independent typed channels carry project, canvas, job, download, and resource updates; Agent sign-in and runs stream through per-call channels. Preferences are fetched and saved through commands. The frontend does not use an HTTP client or a generic application event envelope.
 
 <Note>
   Rust signatures generate `packages/bridge/src/protocol.ts`. Change the Rust source and [regenerate
@@ -56,6 +55,8 @@ Independent typed channels carry project, canvas, job, download, preference, and
 ## Native runtime boundary
 
 Safe wrappers `koharu-torch`, `koharu-llama`, and `koharu-diffusion` are separate from unsafe `-sys` dynamic-loading crates. `koharu-runtime` discovers, downloads, validates, and loads their packages.
+
+Three crates are shared across the diagram and omitted from it: `koharu-config` owns the typed sections of `config.toml`, `koharu-secrets` wraps the operating system credential store, and `koharu-metrics` collects telemetry.
 
 <CardGroup cols={2}>
   <Card title="Scene and storage" icon="database" href="/en/development/scene">

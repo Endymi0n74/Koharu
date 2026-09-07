@@ -23,13 +23,16 @@ Change tool characters in **Settings → Shortcuts**.
 
 ## Navigation
 
-| Action                            | Gesture               |
-| --------------------------------- | --------------------- |
-| Pan temporarily                   | Hold `Space` and drag |
-| Cancel gesture or clear selection | `Escape`              |
-| Fit the active page               | `0` by default        |
+| Action                             | Gesture                                      |
+| ---------------------------------- | -------------------------------------------- |
+| Pan temporarily                    | Hold `Space` or the middle button and drag   |
+| Pan                                | Scroll; `Shift` + scroll pans horizontally   |
+| Zoom at the pointer                | `Ctrl` + scroll                              |
+| Change brush diameter              | `Alt` + scroll with Brush, Eraser, or Remove |
+| Cancel gesture and clear selection | `Escape`                                     |
+| Fit the active page                | `0` by default                               |
 
-Releasing Space restores the previous tool. Switching away from Koharu cancels an unfinished canvas gesture.
+The active tool does not change while `Space` is held. Switching away from Koharu cancels an unfinished canvas gesture.
 
 ## Editing
 
@@ -41,8 +44,8 @@ Releasing Space restores the previous tool. Switching away from Koharu cancels a
 | Delete selected layers          | `Delete` or `Backspace` | `Delete` or `Backspace` |
 
 <Tip>
-  Use a unique character for each tool. If bindings conflict, the first matching tool in toolbar
-  order wins.
+  Use a unique character for each tool. If bindings conflict, the Fit Window key is checked first,
+  then the first matching tool in toolbar order wins. Custom bindings reset when Koharu restarts.
 </Tip>
 
 Shortcuts affect the desktop interface, not the exported page.

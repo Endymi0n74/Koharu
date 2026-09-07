@@ -27,7 +27,7 @@ Snapshots are immutable and cheap to clone. A patch binds to a project and base 
 
 <Note>
   A stale patch is not accepted silently. Derived work must explicitly rebase, and rebasing fails
-  when an observed input or overlapping write changed.
+  when anything the patch observed has changed since its base revision.
 </Note>
 
 ## Publish a state
@@ -50,7 +50,7 @@ Storage is domain-agnostic. It saves an opaque complete scene payload into alter
 
 Opening selects the newest valid state and can fall back to the other slot if the newer one is corrupt. Blob reads may use read-only memory mapping without exposing that detail to scene consumers.
 
-Explicit garbage collection preserves blobs referenced by both valid disk states and live scene scopes, including undo history.
+Storage and scene expose a garbage-collection routine that preserves blobs referenced by both valid disk states and live scene scopes, including undo history. The application does not call it yet, so unreferenced blobs remain on disk.
 
 ## Keep application ownership separate
 

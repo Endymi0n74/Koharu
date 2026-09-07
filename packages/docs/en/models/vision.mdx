@@ -10,7 +10,7 @@ Open **Settings → Pipeline** and choose a model for each stage. Models own the
 
 **Koharu Layout RF-DETR Seg 2XL** detects text, speech bubbles, and panels, and produces segmentation data for later stages.
 
-Text, bubble, and panel thresholds control how much evidence each class needs. Lower thresholds retain more uncertain regions and may increase false positives. Compare several representative pages before changing thresholds.
+Text, bubble, and panel thresholds control how much evidence each class needs. Lower thresholds retain more uncertain regions and may increase false positives. Compare several representative pages before changing thresholds. Detection skips a page that already has text regions, so delete them to detect the page again with new thresholds.
 
 ## OCR
 
@@ -44,4 +44,4 @@ Text, bubble, and panel thresholds control how much evidence each class needs. L
 
 Supported processors keep independent settings profiles. Returning to a generative model restores its prompt fields instead of inheriting another model's options.
 
-Models load on demand. A first run includes download and loading costs, so compare warmed models on identical pages before selecting a project default.
+Models load on demand and stay loaded until settings are saved or an out-of-memory retry unloads them. A first run includes download and loading costs, so compare warmed models on identical pages before selecting a project default.

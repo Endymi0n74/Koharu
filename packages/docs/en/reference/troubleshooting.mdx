@@ -26,24 +26,27 @@ Start with the complete error in the startup view, activity center, or dialog. I
 <Accordion title='Inference falls back to CPU'>
   A detected GPU still needs a compatible driver, backend, and runtime package. Check the resource
   monitor and startup logs for the device actually selected. CPU fallback is expected when no
-  complete accelerator path is usable. See [hardware](/en/hardware).
+  complete accelerator path is usable, and Torch-based models such as detection, most OCR models,
+  LaMa, and AOT always run on CPU when only Vulkan is available. See [hardware](/en/hardware).
 </Accordion>
 
 <Accordion title='Detection or OCR misses text'>
   Check that the page is upright and readable. Inspect detected regions before changing OCR models.
-  Adjust thresholds conservatively across several pages, try a manga-specific recognizer for
-  Japanese, and correct source text before translating again.
+  Detection does not run again on a page that already has text regions, so delete them before
+  rerunning it. Adjust thresholds conservatively across several pages, try a manga-specific
+  recognizer for Japanese, and correct source text before translating again.
 </Accordion>
 
 <Accordion title='Inpainting damages artwork'>
   Paint a smaller Remove mask and avoid bubble borders and line art. Try a direct inpainting model
-  before a heavier generative model. Keep manual touch-ups on a separate authored raster layer.
+  before a heavier generative model. Clear the layer selection before painting so touch-ups go to a
+  separate Paint layer instead of the cleanup layer.
 </Accordion>
 
 <Accordion title='A translation provider fails'>
   Verify credentials, base URL, and provider-specific fields in **Settings → Providers**, then
-  reopen the model picker. For a compatible server, check the chat endpoint and enable **Vision
-  input** only if the selected model accepts images.
+  reopen the processing selector. For a compatible server, check the chat endpoint and turn
+  **Vision** off if the selected model does not accept images.
 </Accordion>
 
 <Accordion title='Koharu Agent cannot sign in or run'>
