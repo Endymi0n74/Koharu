@@ -141,7 +141,7 @@ impl DiscoverablePackage for Diffusion {
             if hardware.supports_cuda() {
                 return Some(Self::LinuxCuda);
             }
-            if hardware.supports_rocm() {
+            if Rocm::discover(hardware).is_ok() {
                 return Some(Self::LinuxHip);
             }
             hardware.supports_vulkan().then_some(Self::LinuxVulkan)
