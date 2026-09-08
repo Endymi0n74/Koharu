@@ -1,3 +1,21 @@
+## [0.81.8](https://github.com/koharu-rs/koharu/compare/0.81.7..0.81.8) - 2026-09-08
+
+### 🐛 Bug Fixes
+
+- *(app)* Disable devtools to prevent F12 crash ([#1042](https://github.com/koharu-rs/koharu/issues/1042)) ([#1044](https://github.com/koharu-rs/koharu/issues/1044)) - ([fa9d907](https://github.com/koharu-rs/koharu/commit/fa9d90727c8187c965951e0c3762a548e5497250))
+- *(runtime)* Skip unsupported Linux ROCm targets - ([e460a9b](https://github.com/koharu-rs/koharu/commit/e460a9bfd3b02ea2bbdb6701f956bb0df3cbd0b8))
+
+### 📚 Documentation
+
+- Align documentation with implementation - ([4f8216a](https://github.com/koharu-rs/koharu/commit/4f8216aec1e948c53aef6e63b0dcb7ff83142c2e))
+- Migrate site to Mintlify ([#1049](https://github.com/koharu-rs/koharu/issues/1049)) - ([15ab5a6](https://github.com/koharu-rs/koharu/commit/15ab5a651916c9a0801ca612fda851cf74079866))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(editor)* Change default brush color to pure white ([#1053](https://github.com/koharu-rs/koharu/issues/1053)) - ([6bdac20](https://github.com/koharu-rs/koharu/commit/6bdac20428388918564294cf8e8b98dcecf74c6c))
+- Update feature request template name and label - ([fb1071a](https://github.com/koharu-rs/koharu/commit/fb1071a8e701128738de9b29b17d45034fd3dd54))
+
+
 ## [0.81.7](https://github.com/koharu-rs/koharu/compare/0.81.6..0.81.7) - 2026-09-05
 
 ### 🐛 Bug Fixes
