@@ -1,35 +1,27 @@
 name: Feature request
 description: Suggest an improvement to Koharu
-labels: [enhancement]
+type: Feature
 
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for suggesting an improvement. Please search existing issues before opening a new proposal.
+        Thanks for sharing your idea! Please take a quick look at existing issues before posting.
 
-        A feature proposal begins a discussion and does not promise acceptance. Please discuss the direction with maintainers before starting substantial implementation.
+        Thinking of working on a larger change? Let's discuss it here first.
 
-        If AI substantially assisted your proposal, disclose the extent and purpose of that assistance in the issue.
-
-  - type: textarea
-    id: problem
-    attributes:
-      label: What problem would this solve?
-      description: Describe the user need or limitation rather than only the requested implementation.
-    validations:
-      required: true
+        If AI helped substantially with this request, briefly mention how.
 
   - type: textarea
-    id: outcome
+    id: description
     attributes:
-      label: What outcome would you like?
-      description: Describe how you would expect Koharu to behave.
+      label: What would you like to see?
+      description: Tell us what would help and what problem it would solve. A few sentences are enough.
     validations:
       required: true
 
   - type: textarea
     id: context
     attributes:
-      label: Alternatives or additional context
-      description: Share current workarounds, alternatives you considered, examples, or screenshots.
+      label: Anything else? (optional)
+      description: Add examples, screenshots, or how you work around this today.

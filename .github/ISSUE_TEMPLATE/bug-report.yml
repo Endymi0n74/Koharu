@@ -1,28 +1,28 @@
 name: Bug report
 description: Report something that is not working as expected
-labels: [bug]
+type: Bug
 
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Koharu. Please search existing issues first and describe what you personally observed.
+        Thanks for helping improve Koharu! Please take a quick look at existing issues before posting.
 
-        If AI substantially assisted your investigation or report, disclose the extent and purpose of that assistance in the issue.
+        If AI helped substantially with this report, briefly mention how.
 
   - type: textarea
     id: description
     attributes:
-      label: Describe the bug
-      description: What happened, and what did you expect to happen instead?
+      label: What happened?
+      description: Tell us what went wrong and what you expected instead.
     validations:
       required: true
 
   - type: textarea
     id: reproduction
     attributes:
-      label: Reproduction
-      description: Provide the smallest set of steps or sample input that reproduces the problem.
+      label: How can we reproduce it?
+      description: Share the steps or a sample that shows the problem. If it only happens sometimes, tell us what you were doing.
       placeholder: |
         1. Open ...
         2. Select ...
@@ -33,8 +33,8 @@ body:
   - type: textarea
     id: environment
     attributes:
-      label: Environment
-      description: Include your Koharu version and OS. Add GPU, driver, and runtime information when relevant.
+      label: Koharu version and operating system
+      description: Include your Koharu version and OS. GPU or driver details are helpful for graphics or model issues, if you know them.
       placeholder: |
         Koharu:
         OS:
@@ -45,5 +45,5 @@ body:
   - type: textarea
     id: context
     attributes:
-      label: Additional context
-      description: Add relevant logs, screenshots, or the last known working version. Redact credentials, tokens, and private content.
+      label: Anything else? (optional)
+      description: Screenshots or logs can help. Please remove private information before sharing.
