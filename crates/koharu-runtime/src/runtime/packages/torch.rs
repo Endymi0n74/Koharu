@@ -6,10 +6,7 @@ use strum::EnumProperty;
 use crate::{
     Hardware, Store, download,
     runtime::{
-        DiscoverablePackage, Package, RuntimePackage,
-        graph::Component,
-        loader,
-        packages::{Cuda, Rocm},
+        DiscoverablePackage, Package, RuntimePackage, graph::Component, loader, packages::Cuda,
         sealed,
     },
     source::extract,
@@ -132,7 +129,7 @@ impl DiscoverablePackage for Torch {
         if hardware.supports_cuda() {
             return Some(Self::Cuda);
         }
-        if hardware.supports_rocm() && Rocm::discover(hardware).is_ok() {
+        if hardware.supports_rocm() {
             return Some(Self::Rocm);
         }
         tracing::warn!("no supported Torch accelerator was discovered; using CPU");
@@ -146,7 +143,7 @@ impl RuntimePackage for Torch {
     fn dependencies(self, hardware: &Hardware) -> Result<Vec<Component>> {
         match self {
             Self::Cpu => Ok(Vec::new()),
-            Self::Rocm => Ok(vec![Component::Rocm(Rocm::discover(hardware)?)]),
+            Self::Rocm => Ok(vec![Component::Rocm(hardware.rocm_target()?)]),
             Self::Cuda => {
                 let packages = [
                     Cuda::Runtime13,
