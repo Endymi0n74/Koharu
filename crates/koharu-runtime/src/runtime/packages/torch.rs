@@ -15,7 +15,7 @@ use crate::{
     source::extract,
 };
 
-const RELEASE: &str = "v2.13.0.5";
+const RELEASE: &str = "v2.13.0.6";
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, strum::Display, strum::EnumProperty)]
 pub enum Torch {
