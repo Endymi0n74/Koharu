@@ -6,20 +6,20 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping out! Please take a quick look at existing issues before posting.
+        Thank you for contributing. Please search existing issues before submitting a new task.
 
         If AI helped substantially with this task description, briefly mention how.
 
   - type: textarea
     id: description
     attributes:
-      label: What needs to be done?
-      description: Briefly describe the work and why it would help.
+      label: Description
+      description: Briefly describe the work and its purpose.
     validations:
       required: true
 
   - type: textarea
     id: context
     attributes:
-      label: Anything else? (optional)
-      description: Add related issues, useful links, or any details that might help.
+      label: Additional context
+      description: Add related issues, references, or other relevant details.

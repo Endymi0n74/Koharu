@@ -6,23 +6,23 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Koharu! Please take a quick look at existing issues before posting.
+        Thank you for reporting an issue. Please search existing issues before submitting a new report.
 
         If AI helped substantially with this report, briefly mention how.
 
   - type: textarea
     id: description
     attributes:
-      label: What happened?
-      description: Tell us what went wrong and what you expected instead.
+      label: Description
+      description: Describe the actual and expected behavior.
     validations:
       required: true
 
   - type: textarea
     id: reproduction
     attributes:
-      label: How can we reproduce it?
-      description: Share the steps or a sample that shows the problem. If it only happens sometimes, tell us what you were doing.
+      label: Steps to reproduce
+      description: Provide steps or a sample that demonstrates the issue. For intermittent issues, describe the circumstances.
       placeholder: |
         1. Open ...
         2. Select ...
@@ -33,8 +33,8 @@ body:
   - type: textarea
     id: environment
     attributes:
-      label: Koharu version and operating system
-      description: Include your Koharu version and OS. GPU or driver details are helpful for graphics or model issues, if you know them.
+      label: Your environment
+      description: Include your Koharu version and operating system. Add GPU and driver details if relevant and available.
       placeholder: |
         Koharu:
         OS:
@@ -45,5 +45,5 @@ body:
   - type: textarea
     id: context
     attributes:
-      label: Anything else? (optional)
-      description: Screenshots or logs can help. Please remove private information before sharing.
+      label: Additional context
+      description: Add relevant screenshots, logs, or other details. Remove private information before sharing.

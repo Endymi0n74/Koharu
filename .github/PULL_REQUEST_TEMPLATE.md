@@ -1,18 +1,17 @@
 <!--
-Thanks for contributing to Koharu! A short description is welcome.
-For larger changes, please discuss the idea in an issue first.
-Our contribution guide:
+Thank you for contributing to Koharu. Please discuss substantial changes in an
+issue before starting implementation. See the contribution guide:
 https://koharu.rs/development/contributing/
 
 If AI substantially helped design or implement this change, briefly mention how
-in your summary. Routine code completion, grammar fixes, and translation don't
-need disclosure.
+in your summary. Routine code completion, grammar fixes, and translation do not
+require disclosure.
 -->
 
 ## Summary
 
-<!-- What changed and why? Link a related issue if there is one (e.g. Fixes #123). -->
+<!-- Briefly describe the changes and their purpose. Link any related issue (e.g. Fixes #123). -->
 
-## Testing
+## Test plan
 
-<!-- How did you check this? A quick description, test result, or screenshot is enough. If you couldn't test it, let us know. -->
+<!-- Describe the checks performed and their results. Include screenshots where relevant and note anything not verified. -->
