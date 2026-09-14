@@ -1,3 +1,18 @@
+## [0.83.0](https://github.com/koharu-rs/koharu/compare/0.82.1..0.83.0) - 2026-09-14
+
+### ⛰️  Features
+
+- *(activity)* Name the page a pipeline run is working on ([#1041](https://github.com/koharu-rs/koharu/issues/1041)) - ([1a65f3e](https://github.com/koharu-rs/koharu/commit/1a65f3e7ab1263c795a342e5614014faafb6a4b3))
+- *(navigator)* Say how many pages a selection covers ([#1096](https://github.com/koharu-rs/koharu/issues/1096)) - ([5ab47ee](https://github.com/koharu-rs/koharu/commit/5ab47ee738c9faa1e03f764bf93e850dcaa1149e))
+- *(ui)* Show download state for local translation models ([#1039](https://github.com/koharu-rs/koharu/issues/1039)) - ([d8a68ba](https://github.com/koharu-rs/koharu/commit/d8a68ba2f380a18199a68bf40c6633f9db1ae7fb))
+- Export a project as a CBZ archive ([#1095](https://github.com/koharu-rs/koharu/issues/1095)) - ([69e67f9](https://github.com/koharu-rs/koharu/commit/69e67f96337151b03890a774f4983acc207ff145))
+
+### 🐛 Bug Fixes
+
+- *(app)* Support ctrl and shift multi-select in the layer panel ([#1089](https://github.com/koharu-rs/koharu/issues/1089)) - ([eaa42f2](https://github.com/koharu-rs/koharu/commit/eaa42f240824796e3a0422ddd9c880c2cd2f2bd2))
+- *(ui)* Long project names pushing the delete button off screen ([#1093](https://github.com/koharu-rs/koharu/issues/1093)) - ([0704f7f](https://github.com/koharu-rs/koharu/commit/0704f7f81ad7a992b62eab642a4b6706f782af77))
+
+
 ## [0.82.1](https://github.com/koharu-rs/koharu/compare/0.82.0..0.82.1) - 2026-09-11
 
 ### 🐛 Bug Fixes
