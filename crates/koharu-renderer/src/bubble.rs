@@ -629,7 +629,50 @@ pub(crate) fn geometry_bounds(geometry: &Geometry) -> Option<LayoutBox> {
     })
 }
 
-pub(crate) fn geometry_frame(geometry: &Geometry) -> Option<GeometryFrame> {
+pub(crate) fn geometry_frame(
+    geometry: &Geometry,
+    angle_degrees: Option<f32>,
+) -> Option<GeometryFrame> {
+    if let Some(angle_degrees) = angle_degrees {
+        if !angle_degrees.is_finite() || geometry.points.is_empty() {
+            return None;
+        }
+        // Measure the contour in the authored text axes. A polygon alone cannot
+        // recover those axes after a rotation, even when its bounds are square.
+        let (sin, cos) = f64::from(angle_degrees).to_radians().sin_cos();
+        let (mut min_x, mut min_y) = (f64::INFINITY, f64::INFINITY);
+        let (mut max_x, mut max_y) = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+        for point in &geometry.points {
+            if !point.x.is_finite() || !point.y.is_finite() {
+                return None;
+            }
+            let x = point.x * cos + point.y * sin;
+            let y = -point.x * sin + point.y * cos;
+            min_x = min_x.min(x);
+            min_y = min_y.min(y);
+            max_x = max_x.max(x);
+            max_y = max_y.max(y);
+        }
+        let width = max_x - min_x;
+        let height = max_y - min_y;
+        let center_x = (min_x + max_x) * 0.5;
+        let center_y = (min_y + max_y) * 0.5;
+        let bounds = LayoutBox {
+            x: (center_x * cos - center_y * sin - width * 0.5) as f32,
+            y: (center_x * sin + center_y * cos - height * 0.5) as f32,
+            width: width as f32,
+            height: height as f32,
+        };
+        return ([bounds.x, bounds.y, bounds.width, bounds.height]
+            .into_iter()
+            .all(f32::is_finite)
+            && bounds.width > 0.0
+            && bounds.height > 0.0)
+            .then_some(GeometryFrame {
+                bounds,
+                angle_degrees,
+            });
+    }
     let [top_left, top_right, bottom_right, bottom_left] = geometry.points.as_slice() else {
         return geometry_bounds(geometry).map(|bounds| GeometryFrame {
             bounds,
@@ -721,12 +764,22 @@ mod tests {
                 .into(),
         };
 
-        let frame = geometry_frame(&geometry).unwrap();
+        let frame = geometry_frame(&geometry, None).unwrap();
         assert!((frame.bounds.x - 60.0).abs() < 1e-4);
         assert!((frame.bounds.y - 65.0).abs() < 1e-4);
         assert!((frame.bounds.width - 80.0).abs() < 1e-4);
         assert!((frame.bounds.height - 30.0).abs() < 1e-4);
         assert!((frame.angle_degrees - 27.0).abs() < 1e-4);
+
+        let mut contour = geometry;
+        contour.points.insert(1, Point { x: 100.0, y: 80.0 });
+        assert_eq!(geometry_frame(&contour, None).unwrap().angle_degrees, 0.0);
+        let authored = geometry_frame(&contour, Some(27.0)).unwrap();
+        assert!((authored.bounds.x - frame.bounds.x).abs() < 1e-4);
+        assert!((authored.bounds.y - frame.bounds.y).abs() < 1e-4);
+        assert!((authored.bounds.width - frame.bounds.width).abs() < 1e-4);
+        assert!((authored.bounds.height - frame.bounds.height).abs() < 1e-4);
+        assert_eq!(authored.angle_degrees, 27.0);
     }
 
     #[test]
