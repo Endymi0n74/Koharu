@@ -1,3 +1,14 @@
+## [0.83.1](https://github.com/koharu-rs/koharu/compare/0.83.0..0.83.1) - 2026-09-15
+
+### 🐛 Bug Fixes
+
+- *(ci)* Install GTK 4 for Tauri v3 - ([7c34594](https://github.com/koharu-rs/koharu/commit/7c34594560f406098372f8a1867a700db6a2d938))
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove Atlas Cloud provider and sponsorship - ([9e8698b](https://github.com/koharu-rs/koharu/commit/9e8698be9c85a4446cc99a3c310a24ec0a720ea7))
+
+
 ## [0.83.0](https://github.com/koharu-rs/koharu/compare/0.82.1..0.83.0) - 2026-09-14
 
 ### ⛰️  Features
