@@ -78,7 +78,7 @@ pub(crate) fn flow_cells(
         .map(|(x, y)| (x.clamp(0.0, width), y.clamp(0.0, height)))
         .collect::<Vec<_>>();
     topological_flow_cells(contour, &anchors)
-        .unwrap_or_else(|| anchor_flow_cells(width, height, &anchors))
+        .unwrap_or_else(|| anchor_flow_cells(width, height, contour, &anchors))
 }
 
 fn topological_flow_cells(
@@ -370,7 +370,12 @@ fn split_polygon(polygon: &[(f32, f32)], first: usize, second: usize) -> (Polygo
     (first_part, second_part)
 }
 
-fn anchor_flow_cells(width: f32, height: f32, anchors: &[(f32, f32)]) -> Vec<Vec<(f32, f32)>> {
+fn anchor_flow_cells(
+    width: f32,
+    height: f32,
+    contour: &[(f32, f32)],
+    anchors: &[(f32, f32)],
+) -> Vec<Vec<(f32, f32)>> {
     let scale = width.min(height).max(1.0);
     let coincidence_distance_squared = (scale * 0.0025).powi(2);
     let mut clusters = Vec::<((f32, f32), Vec<usize>)>::new();
@@ -391,7 +396,13 @@ fn anchor_flow_cells(width: f32, height: f32, anchors: &[(f32, f32)]) -> Vec<Vec
 
     let mut cells = vec![Vec::new(); anchors.len()];
     for (cluster_index, &((x, y), ref indices)) in clusters.iter().enumerate() {
-        let mut cell = vec![(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)];
+        // The cell is the editable balloon shape, so fallback bisectors must
+        // clip the physical contour rather than just its bounding rectangle.
+        let mut cell = if contour.len() >= 3 {
+            contour.to_vec()
+        } else {
+            vec![(0.0, 0.0), (width, 0.0), (width, height), (0.0, height)]
+        };
         for (other_index, &((other_x, other_y), _)) in clusters.iter().enumerate() {
             if cluster_index == other_index {
                 continue;
@@ -806,6 +817,31 @@ mod tests {
             .fold(f32::INFINITY, f32::min);
         assert!((first_right - 50.0).abs() < 2.0);
         assert!((first_right - second_left).abs() < 1e-4);
+    }
+
+    #[test]
+    fn flow_cells_fallback_preserves_the_physical_contour() {
+        let frame = GeometryFrame {
+            bounds: LayoutBox {
+                x: 0.0,
+                y: 0.0,
+                width: 100.0,
+                height: 100.0,
+            },
+            angle_degrees: 0.0,
+        };
+        let contour = [(0.0, 0.0), (100.0, 0.0), (50.0, 100.0)];
+        let cells = flow_cells(frame, &contour, &[(25.0, 25.0), (75.0, 25.0)]);
+        assert_eq!(cells.len(), 2);
+        for cell in &cells {
+            assert!(
+                cell.iter()
+                    .all(|&point| point_in_polygon(&contour, point, 1e-4))
+            );
+            assert!((polygon_area(cell).abs() - 2_500.0).abs() < 1e-4);
+        }
+        assert!(cells[0].iter().all(|&(x, _)| x <= 50.0));
+        assert!(cells[1].iter().all(|&(x, _)| x >= 50.0));
     }
 
     #[test]
