@@ -1,3 +1,10 @@
+## [0.83.3](https://github.com/koharu-rs/koharu/compare/0.83.2..0.83.3) - 2026-09-16
+
+### 🐛 Bug Fixes
+
+- *(desktop)* Force X11 ozone platform for Linux CEF ([#1110](https://github.com/koharu-rs/koharu/issues/1110)) - ([c1e9d23](https://github.com/koharu-rs/koharu/commit/c1e9d23e25e6568f53b827a82a91994467adede9))
+
+
 ## [0.83.2](https://github.com/koharu-rs/koharu/compare/0.83.1..0.83.2) - 2026-09-15
 
 ### 🐛 Bug Fixes
