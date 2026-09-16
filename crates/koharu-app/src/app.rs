@@ -78,6 +78,7 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
         .command_line_args([
             ("--enable-unsafe-webgpu", None),
             ("use-angle", Some("vulkan")),
+            ("--ozone-platform", Some("x11")),
         ]);
     tauri::Builder::<CefRuntime>::new()
         .runtime(cef)
