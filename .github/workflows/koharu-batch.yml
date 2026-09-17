@@ -3,11 +3,8 @@ name: koharu-batch
 on:
   push:
     branches: ['main']
-    paths:
-      - 'crates/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - '.github/workflows/koharu-batch.yml'
+    tags:
+      - 'v*'
   pull_request:
     paths:
       - 'crates/**'
@@ -26,6 +23,8 @@ jobs:
   windows:
     name: Windows release
     runs-on: windows-2022
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
@@ -44,3 +43,11 @@ jobs:
           name: koharu-batch-windows-x64
           path: target/release/koharu-batch.exe
           retention-days: 14
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/release/koharu-batch.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
