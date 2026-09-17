@@ -108,6 +108,18 @@ quantization = "Q4_K_P"
 vision = true
 ```
 
+### Automatic calibration from real runs
+
+The table above is only the starting point. Every `koharu-batch` run that uses NVML
+telemetry records the VRAM peak it actually observed for the model configuration it ran
+into `~/.koharu/vram-calibration.toml`, keeping the highest observation per configuration.
+Later runs, `--llm auto`, and the budget guard then prefer that measurement over the
+reference table: a model that measured over the budget on *your* machine is refused (or
+stepped down by `auto`) even when the static estimate says it fits — and vice versa.
+
+`koharu-batch --list-models` shows both columns (estimate and what was measured locally).
+Deleting the calibration file restores the built-in reference estimates.
+
 ## Batch mode (`koharu-batch`)
 
 `koharu-batch` is a CLI binary that translates an entire chapter — a folder of images or a
@@ -177,9 +189,11 @@ and the total duration — useful to compare chapter runs or spot a regression i
 When the GPU exposes NVML telemetry (NVIDIA on Windows/Linux), the report also shows the
 **real VRAM usage** next to the estimate: the run's own peak footprint above the GPU usage
 observed at startup (desktop and other processes excluded), the whole-GPU peak for
-context, and a per-page peak column. On the reference 8 GB RTX 3070 the E4B Q4_K_P run
-peaks around 6.4 GiB above the desktop baseline — about 0.8 GiB more than the static
-estimate — so real measurements are worth checking before tightening a budget.
+context, and a per-page peak column. That measurement is also persisted to
+`~/.koharu/vram-calibration.toml` and feeds back into `--llm auto` and the budget guard
+(see *Automatic calibration from real runs*). On the reference 8 GB RTX 3070 the E4B
+Q4_K_P run peaks around 6.0–6.4 GiB above the desktop baseline — slightly more than the
+static estimate — so real measurements are worth checking before tightening a budget.
 
 Use `--report <BASE>` to choose a different base path (two files `<BASE>.md` and
 `<BASE>.html` are written), or `--report none` to skip the report entirely.

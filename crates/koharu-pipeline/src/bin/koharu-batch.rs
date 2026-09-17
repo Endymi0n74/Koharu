@@ -14,6 +14,7 @@ use base64::Engine as _;
 use clap::{Parser, ValueEnum};
 use koharu_config::Config;
 use koharu_ml::Device;
+use koharu_pipeline::batch::calibration;
 use koharu_pipeline::batch::report::{PageOutcome, PageReport, RunReport, Thumbnails};
 use koharu_pipeline::batch::{bootstrap, cbz, pages, report};
 use koharu_pipeline::{
@@ -23,9 +24,10 @@ use koharu_pipeline::{
 };
 use koharu_renderer::{RasterOptions, Renderer};
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft, Session};
-use koharu_translator::preset;
+use koharu_translator::preset::{MeasuredPeak, MeasuredPeaks};
 use koharu_translator::{
     GenerationConfig, Language, ModelSelection, Provider, ProvidersConfig, TypographyProfile,
+    preset,
 };
 
 struct SessionCommitter<'a>(&'a mut Session);
@@ -203,13 +205,18 @@ fn detect_budget(arguments: &Arguments, device: &Device) -> Option<u64> {
 }
 
 /// Resolves the local LLM: `auto` scans the preference list, an explicit id is
-/// checked against the VRAM budget unless `--force` was passed.
-fn resolve_model(arguments: &Arguments, budget: Option<u64>) -> Result<Resolved> {
+/// checked against the VRAM budget unless `--force` was passed. Both use the
+/// real measurements recorded by previous runs when available.
+fn resolve_model(
+    arguments: &Arguments,
+    budget: Option<u64>,
+    measurements: &MeasuredPeaks,
+) -> Result<Resolved> {
     if arguments.llm == "auto" {
         let Some(budget) = budget else {
             bail!("--llm auto requires a queryable GPU (or --vram-budget <MiB> / --cpu with an explicit --llm)");
         };
-        let Some(choice) = preset::resolve_auto(budget, true) else {
+        let Some(choice) = preset::resolve_auto_with(budget, true, measurements) else {
             bail!(
                 "no local translation model fits the VRAM budget {}",
                 gib(budget)
@@ -240,8 +247,13 @@ fn resolve_model(arguments: &Arguments, budget: Option<u64>) -> Result<Resolved>
         );
     }
     let estimate = match budget {
-        Some(budget) => match preset::check_budget(budget, &arguments.llm, Some(&quantization), vision)
-        {
+        Some(budget) => match preset::check_budget_with(
+            budget,
+            &arguments.llm,
+            Some(&quantization),
+            vision,
+            measurements,
+        ) {
             Ok(estimate) => estimate,
             Err(preset::BudgetCheck::UnknownModel) => {
                 bail!("unknown local model '{}'", arguments.llm)
@@ -252,7 +264,7 @@ fn resolve_model(arguments: &Arguments, budget: Option<u64>) -> Result<Resolved>
             }
             Err(preset::BudgetCheck::Exceeded(exceeded)) => bail!("{exceeded}"),
         },
-        None => preset::estimate_vram(descriptor, Some(&quantization), vision),
+        None => preset::estimate_vram_with(descriptor, Some(&quantization), vision, measurements),
     };
     Ok(Resolved {
         model: arguments.llm.clone(),
@@ -430,19 +442,24 @@ fn write_run_report(
     Ok(())
 }
 
-fn list_models() {
+fn list_models(measurements: &MeasuredPeaks) {
     println!(
-        "{:<26} {:<7} {:<14} estimated VRAM",
-        "model", "vision", "quantization"
+        "{:<26} {:<7} {:<14} {:<22} measured here",
+        "model", "vision", "quantization", "estimate"
     );
-    for model in preset::vram_catalog(true) {
+    for model in preset::vram_catalog_with(true, measurements) {
         for quantization in &model.quantizations {
+            let measured = measurements
+                .peak_bytes(&model.id, &quantization.id, model.vision)
+                .map(gib)
+                .unwrap_or_else(|| "—".to_owned());
             println!(
-                "{:<26} {:<7} {:<14} {}",
+                "{:<26} {:<7} {:<14} {:<22} {}",
                 model.id,
                 if model.vision { "yes" } else { "no" },
                 quantization.id,
-                quantization.estimate.display()
+                quantization.estimate.display(),
+                measured
             );
         }
     }
@@ -462,8 +479,13 @@ fn encode_image(image: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, format: Fo
 #[tokio::main]
 async fn main() -> Result<()> {
     let arguments = Arguments::parse();
+    let calibration_path = calibration::default_path();
+    let measurements = calibration_path
+        .as_deref()
+        .map(calibration::load)
+        .unwrap_or_default();
     if arguments.list_models {
-        list_models();
+        list_models(&measurements);
         return Ok(());
     }
     let run_started_at = report::timestamp_now();
@@ -525,7 +547,15 @@ async fn main() -> Result<()> {
     let device_description = device.description.clone();
     let vram_sampler = VramSampler::start_default(&device);
     let budget = detect_budget(&arguments, &device);
-    let resolved = resolve_model(&arguments, budget)?;
+    let resolved = resolve_model(&arguments, budget, &measurements)?;
+    if measurements.is_empty() {
+        eprintln!("(no calibration file yet; estimates come from the reference table)");
+    } else {
+        eprintln!(
+            "(calibrated on {} configuration(s) from previous runs)",
+            measurements.len()
+        );
+    }
     eprintln!(
         "translation model: {} {} ({}{})",
         resolved.model,
@@ -750,6 +780,23 @@ async fn main() -> Result<()> {
 
     if let Some(sampler) = &vram_sampler {
         sampler.stop();
+    }
+
+    // Persist the measured footprint of this run so future runs and budget
+    // checks stay calibrated on this machine.
+    if let (Some(path), Some(sampler)) = (&calibration_path, &vram_sampler)
+        && let Some(bytes) = sampler.peak_bytes()
+    {
+        let peak = MeasuredPeak {
+            model: resolved.model.clone(),
+            quantization: resolved.quantization.clone(),
+            vision: true,
+            bytes,
+        };
+        match calibration::record(path, peak) {
+            Ok(_) => eprintln!("calibration updated: {}", path.display()),
+            Err(error) => eprintln!("warning: calibration not saved: {error:#}"),
+        }
     }
 
     if let Some(archive) = archive_output {

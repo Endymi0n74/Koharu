@@ -93,6 +93,97 @@ fn measured_peak(descriptor: &LocalModelDescriptor, quantization: &str) -> Optio
         .map(|&(_, _, mebibytes)| mebibytes * 1024 * 1024)
 }
 
+/// Peak VRAM a run actually used, reported back by the CLI and persisted
+/// across runs so estimates stay calibrated on the machine that runs them.
+///
+/// One sample is the peak bytes in use above the GPU baseline while a full
+/// pipeline ran a model/quantization (with or without the vision projector).
+/// It therefore covers the whole chapter pipeline (detection, OCR, inpainting,
+/// and the LLM), which is the footprint a budget must actually hold.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct MeasuredPeak {
+    pub model: String,
+    pub quantization: String,
+    pub vision: bool,
+    /// Peak bytes above the GPU baseline (desktop usage excluded).
+    pub bytes: u64,
+}
+
+impl MeasuredPeak {
+    /// Key of a calibration entry.
+    fn key(&self) -> (&str, &str, bool) {
+        (&self.model, &self.quantization, self.vision)
+    }
+}
+
+/// Real measurements collected from previous `koharu-batch` runs, keyed by
+/// `(model, quantization, vision)`; a real sample always wins over the
+/// built-in reference table and the formula estimate.
+#[derive(Clone, Debug, Default)]
+pub struct MeasuredPeaks {
+    entries: Vec<MeasuredPeak>,
+}
+
+impl MeasuredPeaks {
+    /// An empty table (only built-in and formula estimates apply).
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Records (or raises) the peak observed for one configuration.
+    pub fn record(&mut self, peak: MeasuredPeak) {
+        match self
+            .entries
+            .iter_mut()
+            .find(|entry| entry.key() == peak.key())
+        {
+            Some(entry) => entry.bytes = entry.bytes.max(peak.bytes),
+            None => self.entries.push(peak),
+        }
+    }
+
+    /// Merges another table, keeping the highest observation per key.
+    pub fn merge(&mut self, other: &MeasuredPeaks) {
+        for peak in &other.entries {
+            self.record(peak.clone());
+        }
+    }
+
+    /// Whether any real measurement was loaded.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// Number of recorded configurations.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Peak bytes observed for a configuration, if any.
+    #[must_use]
+    pub fn peak_bytes(
+        &self,
+        model: &str,
+        quantization: &str,
+        vision: bool,
+    ) -> Option<u64> {
+        self.entries
+            .iter()
+            .find(|entry| {
+                entry.model == model && entry.quantization == quantization && entry.vision == vision
+            })
+            .map(|entry| entry.bytes)
+    }
+
+    /// Iterates over every recorded configuration.
+    pub fn iter(&self) -> impl Iterator<Item = &MeasuredPeak> {
+        self.entries.iter()
+    }
+}
+
 /// Estimates the VRAM peak of `descriptor` at `quantization`, including the
 /// vision projector when `vision` is requested and the model supports it.
 #[must_use]
@@ -101,12 +192,32 @@ pub fn estimate_vram(
     quantization: Option<&str>,
     vision: bool,
 ) -> VramEstimate {
+    estimate_vram_with(descriptor, quantization, vision, &MeasuredPeaks::new())
+}
+
+/// [`estimate_vram`] against a table of real measurements: a recorded peak
+/// for the exact configuration wins over the built-in reference table.
+#[must_use]
+pub fn estimate_vram_with(
+    descriptor: &LocalModelDescriptor,
+    quantization: Option<&str>,
+    vision: bool,
+    measurements: &MeasuredPeaks,
+) -> VramEstimate {
     let quantization = quantization.or_else(|| {
         descriptor
             .quantizations
             .first()
             .map(|definition| definition.id)
     });
+    if let Some(quantization) = quantization
+        && let Some(bytes) = measurements.peak_bytes(descriptor.id, quantization, vision)
+    {
+        return VramEstimate {
+            bytes,
+            measured: true,
+        };
+    }
     let base = quantization.and_then(|quantization| measured_peak(descriptor, quantization));
     if let Some(base) = base {
         return VramEstimate {
@@ -147,6 +258,18 @@ const AUTO_PRIORITY: &[(&str, &str)] = &[
 /// `vision` skips models without a projector. Returns `None` when nothing fits.
 #[must_use]
 pub fn resolve_auto(budget: u64, vision: bool) -> Option<AutoChoice> {
+    resolve_auto_with(budget, vision, &MeasuredPeaks::new())
+}
+
+/// [`resolve_auto`] against a table of real measurements, so a model that
+/// measured over the budget on this machine is skipped in favor of the next
+/// candidate that did fit.
+#[must_use]
+pub fn resolve_auto_with(
+    budget: u64,
+    vision: bool,
+    measurements: &MeasuredPeaks,
+) -> Option<AutoChoice> {
     AUTO_PRIORITY
         .iter()
         .filter_map(|&(model, quantization)| {
@@ -161,7 +284,7 @@ pub fn resolve_auto(budget: u64, vision: bool) -> Option<AutoChoice> {
             {
                 return None;
             }
-            let estimate = estimate_vram(descriptor, Some(quantization), vision);
+            let estimate = estimate_vram_with(descriptor, Some(quantization), vision, measurements);
             Some(AutoChoice {
                 model,
                 quantization,
@@ -251,10 +374,23 @@ pub fn check_budget(
     quantization: Option<&str>,
     vision: bool,
 ) -> Result<VramEstimate, BudgetCheck> {
+    check_budget_with(budget, model, quantization, vision, &MeasuredPeaks::new())
+}
+
+/// [`check_budget`] against a table of real measurements: the model is
+/// refused when its *measured* footprint exceeds the budget, and the listed
+/// alternatives are the ones that actually fit on this machine.
+pub fn check_budget_with(
+    budget: u64,
+    model: &str,
+    quantization: Option<&str>,
+    vision: bool,
+    measurements: &MeasuredPeaks,
+) -> Result<VramEstimate, BudgetCheck> {
     let Some(descriptor) = MODELS.iter().find(|descriptor| descriptor.id == model) else {
         return Err(BudgetCheck::UnknownModel);
     };
-    let estimate = estimate_vram(descriptor, quantization, vision);
+    let estimate = estimate_vram_with(descriptor, quantization, vision, measurements);
     if estimate.bytes <= budget {
         return Ok(estimate);
     }
@@ -268,12 +404,14 @@ pub fn check_budget(
                 .quantizations
                 .iter()
                 .filter(|definition| {
-                    estimate_vram(candidate, Some(definition.id), vision).bytes <= budget
+                    estimate_vram_with(candidate, Some(definition.id), vision, measurements).bytes
+                        <= budget
                 })
                 .max_by_key(|definition| {
-                    estimate_vram(candidate, Some(definition.id), vision).bytes
+                    estimate_vram_with(candidate, Some(definition.id), vision, measurements).bytes
                 })?;
-            let estimate = estimate_vram(candidate, Some(definition.id), vision);
+            let estimate =
+                estimate_vram_with(candidate, Some(definition.id), vision, measurements);
             Some(format!(
                 "{} {} ({})",
                 candidate.id,
@@ -307,6 +445,12 @@ pub struct QuantizationVram {
 /// VRAM estimates for every local model in the catalog.
 #[must_use]
 pub fn vram_catalog(vision: bool) -> Vec<ModelVram> {
+    vram_catalog_with(vision, &MeasuredPeaks::new())
+}
+
+/// [`vram_catalog`] against a table of real measurements.
+#[must_use]
+pub fn vram_catalog_with(vision: bool, measurements: &MeasuredPeaks) -> Vec<ModelVram> {
     MODELS
         .iter()
         .map(|descriptor| ModelVram {
@@ -318,7 +462,7 @@ pub fn vram_catalog(vision: bool) -> Vec<ModelVram> {
                 .iter()
                 .map(|QuantizationDefinition { id, .. }| QuantizationVram {
                     id: (*id).to_owned(),
-                    estimate: estimate_vram(descriptor, Some(id), vision),
+                    estimate: estimate_vram_with(descriptor, Some(id), vision, measurements),
                 })
                 .collect(),
         })
@@ -442,5 +586,116 @@ mod tests {
             .expect("cataloged");
         assert!(e4b.vision);
         assert!(e4b.quantizations.iter().any(|quantization| quantization.id == "Q4_K_P"));
+    }
+
+    fn sample_peak(model: &str, vision: bool, bytes: u64) -> MeasuredPeak {
+        MeasuredPeak {
+            model: model.to_owned(),
+            quantization: "Q4_K_P".to_owned(),
+            vision,
+            bytes,
+        }
+    }
+
+    #[test]
+    fn real_measurements_override_builtin_estimates() {
+        let mut measurements = MeasuredPeaks::new();
+        measurements.record(sample_peak(
+            "gemma4-e4b-uncensored",
+            true,
+            (6.4f64 * GIB as f64) as u64,
+        ));
+        let estimate = estimate_vram_with(
+            descriptor("gemma4-e4b-uncensored"),
+            Some("Q4_K_P"),
+            true,
+            &measurements,
+        );
+        assert!(estimate.measured);
+        assert_eq!(estimate.bytes, (6.4f64 * GIB as f64) as u64);
+    }
+
+    #[test]
+    fn measurements_distinguish_vision_from_text_only() {
+        let mut measurements = MeasuredPeaks::new();
+        measurements.record(sample_peak("gemma4-e4b-uncensored", true, 6 * GIB));
+        assert_eq!(
+            measurements.peak_bytes("gemma4-e4b-uncensored", "Q4_K_P", true),
+            Some(6 * GIB)
+        );
+        assert_eq!(
+            measurements.peak_bytes("gemma4-e4b-uncensored", "Q4_K_P", false),
+            None,
+            "a vision sample must not apply to a text-only run"
+        );
+    }
+
+    #[test]
+    fn recording_keeps_the_highest_observation_and_merges_tables() {
+        let mut measurements = MeasuredPeaks::new();
+        measurements.record(sample_peak("gemma4-e4b-uncensored", true, 6 * GIB));
+        measurements.record(sample_peak("gemma4-e4b-uncensored", true, 5 * GIB));
+        assert_eq!(
+            measurements.peak_bytes("gemma4-e4b-uncensored", "Q4_K_P", true),
+            Some(6 * GIB)
+        );
+        let mut merged = MeasuredPeaks::new();
+        merged.record(sample_peak("gemma4-e4b-uncensored", true, 7 * GIB));
+        measurements.merge(&merged);
+        assert_eq!(
+            measurements.peak_bytes("gemma4-e4b-uncensored", "Q4_K_P", true),
+            Some(7 * GIB)
+        );
+    }
+
+    #[test]
+    fn auto_steps_down_when_the_measured_peak_exceeds_the_budget() {
+        let mut measurements = MeasuredPeaks::new();
+        // The preferred model measured over this machine's usable budget.
+        measurements.record(sample_peak(
+            "gemma4-e4b-uncensored",
+            true,
+            (7.4f64 * GIB as f64) as u64,
+        ));
+        let budget = budget_from_total(8 * GIB);
+        let choice = resolve_auto_with(budget, true, &measurements)
+            .expect("the fallback still fits");
+        assert_ne!(
+            choice.model, "gemma4-e4b-uncensored",
+            "auto must skip a model that measured over budget"
+        );
+    }
+
+    #[test]
+    fn budget_check_refuses_a_model_that_measured_over_budget() {
+        let mut measurements = MeasuredPeaks::new();
+        measurements.record(sample_peak(
+            "gemma4-e4b-uncensored",
+            true,
+            (7.4f64 * GIB as f64) as u64,
+        ));
+        let budget = budget_from_total(8 * GIB);
+        let error = check_budget_with(
+            budget,
+            "gemma4-e4b-uncensored",
+            Some("Q4_K_P"),
+            true,
+            &measurements,
+        )
+        .expect_err("the measured footprint exceeds the budget");
+        let BudgetCheck::Exceeded(error) = error else {
+            panic!("expected a budget exceedance")
+        };
+        assert!(error.estimate.measured);
+        assert_eq!(error.estimate.bytes, (7.4f64 * GIB as f64) as u64);
+    }
+
+    #[test]
+    fn measured_peaks_counts_configurations() {
+        let mut measurements = MeasuredPeaks::new();
+        assert!(measurements.is_empty());
+        measurements.record(sample_peak("gemma4-e4b-uncensored", true, 6 * GIB));
+        measurements.record(sample_peak("gemma4-e4b-uncensored", false, 5 * GIB));
+        assert_eq!(measurements.len(), 2);
     }
 }
