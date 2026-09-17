@@ -2,6 +2,9 @@
 //!
 //! The report is written as Markdown and as a self-contained HTML file so a
 //! chapter can be reviewed (timings, model, failures) without re-running it.
+//! The HTML embeds a small script adding keyboard navigation: arrows move
+//! between pages, `+`/`-` adjust the thumbnail scale and `Enter` opens the
+//! selected page full screen.
 
 use std::time::Duration;
 
@@ -216,10 +219,129 @@ table.pages{border-collapse:collapse;width:100%;margin-top:1rem}\
 table.pages th,table.pages td{border:1px solid #d0d0d0;padding:.35rem .6rem;text-align:left}\
 table.pages tr.failed{background:#fde8e8}\
 table.pages tr.skipped{background:#f4f4f4;color:#666}\
+table.pages tr.selected{outline:2px solid #1a73e8;outline-offset:-2px}\
 .status-ok{color:#137333;font-weight:600}.status-fail{color:#c5221f;font-weight:600}\
-td.thumbs img{height:72px;border:1px solid #bbb;display:block;margin:2px 0}\
+td.thumbs img{border:1px solid #bbb;display:block;margin:2px 0;height:var(--thumb-h);width:auto;max-width:100%}\
 td.thumbs a{display:inline-block;margin-right:4px}\
-footer{margin-top:1.5rem;color:#777;font-size:.85rem}";
+kbd{border:1px solid #bbb;border-radius:3px;padding:0 .3em;font-size:.8em;background:#fff}\
+.kbd-hint{color:#666;font-size:.85rem;margin-top:.75rem}\
+footer{margin-top:1.5rem;color:#777;font-size:.85rem}\
+#page-viewer{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:10;\
+cursor:zoom-in;text-align:center}\
+#page-viewer.open{display:flex;flex-direction:column;align-items:center;justify-content:center}\
+#page-viewer img{height:auto;width:auto;max-width:calc(100vw - 6rem);max-height:calc(100vh - 6rem);\
+transform-origin:center center}\
+#page-viewer .viewer-label{color:#eee;font:.85rem 'Segoe UI',system-ui,sans-serif;margin-top:.75rem}";
+
+/// Default thumbnail height in pixels, adjustable with `+`/`-` in the report.
+const DEFAULT_THUMB_HEIGHT: f64 = 72.0;
+
+/// Keyboard help shown under the pages table.
+const KEYBOARD_HINT: &str = "Navigation : <kbd>←</kbd>/<kbd>→</kbd> page précédente/suivante · \
+<kbd>Entrée</kbd> plein écran · <kbd>Échap</kbd> fermer · \
+<kbd>+</kbd>/<kbd>−</kbd> taille des aperçus · <kbd>0</kbd> taille par défaut";
+
+/// Viewer markup and the inline script wiring the keyboard navigation. Single
+/// quotes and `{}` are avoided so the snippet stays format!-safe.
+const VIEWER_MARKUP: &str = "\
+<div id=\"page-viewer\" title=\"Cliquez pour fermer\"><img alt=\"\">\
+<div class=\"viewer-label\"></div></div>\n\
+<p class=\"kbd-hint\">…HINT…</p>\n\
+<script>…SCRIPT…</script>\n";
+
+/// Inline script powering the keyboard navigation. Kept dependency-free and
+/// embedded verbatim into the self-contained report.
+const VIEWER_SCRIPT: &str = "\
+var ROWS = document.querySelectorAll('table.pages tbody tr');\
+var IDX = 0;\
+var SCALE = 1;\
+var STEP = 1.25;\
+var MAX = 4;\
+var MIN = 0.45;\
+var viewer = document.getElementById('page-viewer');\
+var viewerImage = viewer.querySelector('img');\
+var viewerLabel = viewer.querySelector('.viewer-label');\
+function applyScale(){\
+  document.documentElement.style.setProperty('--thumb-h',(72*SCALE)+'px');\
+}\
+function show(row,scroll){\
+  if(!row)return;\
+  var previous=document.querySelector('table.pages tr.selected');\
+  if(previous)previous.classList.remove('selected');\
+  row.classList.add('selected');\
+  IDX=Array.prototype.indexOf.call(ROWS,row);\
+  if(scroll&&row.scrollIntoView)row.scrollIntoView({block:'nearest'});\
+}\
+function applyViewerZoom(){\
+  var base=parseFloat(viewerImage.getAttribute('data-base-scale')||'1');\
+  viewerImage.style.transform='scale('+(base*SCALE)+')';\
+}\
+function openViewer(){\
+  var row=ROWS[IDX];\
+  if(!row)return;\
+  var before=row.querySelector('td.thumbs a img');\
+  if(!before)return;\
+  viewerImage.setAttribute('src',before.getAttribute('src'));\
+  viewerImage.setAttribute('data-base-scale',1);\
+  viewerImage.style.transform='';\
+  viewerLabel.textContent='Page '+(IDX+1)+' — '+(row.querySelector('td:nth-child(2)').textContent)+' (avant traduction)';\
+  viewer.classList.add('open');\
+}\
+function closeViewer(){viewer.classList.remove('open');}\
+function toggleViewerImage(){\
+  var row=ROWS[IDX];\
+  if(!row)return;\
+  var links=row.querySelectorAll('td.thumbs a');\
+  if(!links.length)return;\
+  var first=links[0].querySelector('img');\
+  var index=(first&&first.getAttribute('src')===viewerImage.getAttribute('src'))?1:0;\
+  var next=links[index];\
+  if(next&&next.querySelector('img')){\
+    viewerImage.setAttribute('src',next.querySelector('img').getAttribute('src'));\
+  }\
+}\
+document.addEventListener('keydown',function(event){\
+  if(!ROWS.length)return;\
+  var isOpen=viewer.classList.contains('open');\
+  switch(event.key){\
+    case 'ArrowDown':\
+      if(isOpen){return;}\
+      show(ROWS[Math.min(IDX+1,ROWS.length-1)],true);event.preventDefault();break;\
+    case 'ArrowUp':\
+      if(isOpen){return;}\
+      show(ROWS[Math.max(IDX-1,0)],true);event.preventDefault();break;\
+    case 'ArrowRight':\
+      if(isOpen){toggleViewerImage();}\
+      else{show(ROWS[Math.min(IDX+1,ROWS.length-1)],true);}\
+      event.preventDefault();break;\
+    case 'ArrowLeft':\
+      if(isOpen){toggleViewerImage();}\
+      else{show(ROWS[Math.max(IDX-1,0)],true);}\
+      event.preventDefault();break;\
+    case 'Enter':\
+      if(isOpen){closeViewer();}\
+      else{openViewer();}\
+      event.preventDefault();break;\
+    case 'Escape':\
+      if(isOpen){closeViewer();event.preventDefault();}break;\
+    case '+':\
+    case '=':\
+      if(SCALE*STEP<=MAX)SCALE*=STEP;applyScale();applyViewerZoom();event.preventDefault();break;\
+    case '-':\
+      if(SCALE/STEP>=MIN)SCALE/=STEP;applyScale();applyViewerZoom();event.preventDefault();break;\
+    case '0':\
+      SCALE=1;applyScale();applyViewerZoom();event.preventDefault();break;\
+  }\
+});\
+viewer.addEventListener('click',closeViewer);\
+show(ROWS[0],false);";
+
+/// Final viewer snippet: keyboard hint plus script, ready for the template.
+fn viewer_snippet() -> String {
+    VIEWER_MARKUP
+        .replace("…HINT…", KEYBOARD_HINT)
+        .replace("…SCRIPT…", VIEWER_SCRIPT)
+}
 
 /// One `<img>` cell with a click-to-zoom link, or a dash when absent.
 fn thumbnail_cell(label: &str, data_uri: &str) -> String {
@@ -275,7 +397,7 @@ pub fn to_html(report: &RunReport) -> String {
             ),
         };
         rows.push_str(&format!(
-            "<tr class=\"{status_class}\"><td>{}</td><td><code>{}</code></td>\
+            "<tr class=\"{status_class}\" style=\"height:{DEFAULT_THUMB_HEIGHT}px\"><td>{}</td><td><code>{}</code></td>\
 <td class=\"status-{status_class}\">{}</td><td>{elapsed}</td><td>{vram_peak}</td>\
 <td>{stages_detail}</td><td class=\"thumbs\">{thumbs}</td></tr>",
             page.index + 1,
@@ -291,7 +413,9 @@ pub fn to_html(report: &RunReport) -> String {
     };
     format!(
         "<!doctype html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"utf-8\">\n\
-<title>Koharu batch — {input}</title>\n<style>{REPORT_STYLES}</style>\n</head>\n<body>\n\
+<title>Koharu batch — {input}</title>\n\
+<meta name=\"description\" content=\"Rapport de traduction Koharu — navigation clavier : flèches, Entrée, +/−, 0\">\n\
+<style>{REPORT_STYLES}</style>\n</head>\n<body>\n\
 <h1>Rapport de traduction — Koharu batch</h1>\n\
 <table class=\"summary\">\n\
 <tr><td>Entrée</td><td><code>{input}</code></td></tr>\n\
@@ -305,8 +429,10 @@ pub fn to_html(report: &RunReport) -> String {
 <tr><td>Pages</td><td>{pages_line}</td></tr>\n\
 </table>\n\
 <table class=\"pages\">\n\
-<tr><th>#</th><th>Page</th><th>Statut</th><th>Durée</th><th>Pic VRAM</th><th>Détail</th><th>Aperçu</th></tr>\n{rows}\
-</table>\n\
+<thead><tr><th>#</th><th>Page</th><th>Statut</th><th>Durée</th><th>Pic VRAM</th><th>Détail</th><th>Aperçu</th></tr></thead>\n\
+<tbody>\n{rows}\
+</tbody>\n\
+</table>\n\n{snippet}\n\
 <footer>Généré par koharu-batch</footer>\n</body>\n</html>\n",
         input = html_escape(&report.input),
         output = html_escape(&report.output),
@@ -318,6 +444,7 @@ pub fn to_html(report: &RunReport) -> String {
         started = html_escape(&report.started_at),
         total = report.total_seconds(),
         pages_line = page_counts_line(translated, skipped, failed),
+        snippet = viewer_snippet(),
     )
 }
 
@@ -445,10 +572,31 @@ mod tests {
         let html = to_html(&sample());
         assert!(html.starts_with("<!doctype html>"));
         assert!(html.contains("<style>"));
-        assert!(!html.contains("<script"));
+        // Exactly one inline script: the keyboard-navigation viewer.
+        assert_eq!(html.matches("<script>").count(), 1);
+        assert!(!html.contains("<script src="));
         assert!(html.contains("gemma4-e4b-uncensored"));
         assert!(html.contains("tr class=\"failed\""));
         assert!(html.contains("tr class=\"skipped\""));
+    }
+
+    #[test]
+    fn html_embeds_keyboard_navigation_and_scale() {
+        let html = to_html(&sample());
+        // Viewer overlay, keyboard hint, and the script wiring.
+        assert!(html.contains("id=\"page-viewer\""));
+        assert!(html.contains("kbd-hint"));
+        assert!(html.contains("ArrowRight"));
+        assert!(html.contains("ArrowLeft"));
+        assert!(html.contains("--thumb-h"));
+        assert!(html.contains("scrollIntoView"));
+        // Rows and header live in explicit thead/tbody so the script can
+        // target page rows only.
+        assert!(html.contains("<thead><tr><th>#</th>"));
+        assert!(html.contains("<tbody>"));
+        // Scale bounds are materialized in the script.
+        assert!(html.contains("var MAX = 4"));
+        assert!(html.contains("var MIN = 0.45"));
     }
 
     #[test]

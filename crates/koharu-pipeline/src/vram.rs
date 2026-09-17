@@ -240,7 +240,7 @@ mod tests {
         if device.backend == Backend::Cpu {
             return;
         }
-        let Some(sampler) = VramSampler::start(&device, std::time::Duration::from_millis(50))
+        let Some(sampler) = VramSampler::start(device, std::time::Duration::from_millis(50))
         else {
             return;
         };
