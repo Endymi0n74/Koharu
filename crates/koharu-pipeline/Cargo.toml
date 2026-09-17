@@ -34,6 +34,7 @@ strum = { workspace = true }
 sysinfo = { workspace = true }
 tokio = { workspace = true }
 tokio-rayon = { workspace = true }
+toml = { workspace = true }
 tracing = { workspace = true }
 zip = { workspace = true }
 tempfile = { workspace = true }
