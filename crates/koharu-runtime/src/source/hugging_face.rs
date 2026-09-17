@@ -65,7 +65,6 @@ impl<'a> HuggingFaceFile<'a> {
             let client = client()?;
             let (owner, name) = split_id(self.repository);
             download::receive(self.filename, &stage, async {
-                // hf-hub 1.0 builds metadata URLs with T::default(), so use typed repositories.
                 match self.kind {
                     RepositoryKind::Model => self.download(client.model(owner, name)).await,
                     RepositoryKind::Dataset => self.download(client.dataset(owner, name)).await,

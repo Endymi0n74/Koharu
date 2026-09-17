@@ -3314,7 +3314,7 @@ dependencies = [
  "log",
  "presser",
  "thiserror 2.0.20",
- "windows 0.62.2",
+ "windows 0.61.3",
 ]
 
 [[package]]
@@ -3679,9 +3679,8 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "hf-hub"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7ccb6bcc85dec15413ef5949879f9a5497ca4568ed702547eb83fac23376e5c"
+version = "1.1.0"
+source = "git+https://github.com/huggingface/hf-hub?branch=main#e88c9efe6d38bb370008ba0f5281249210c52176"
 dependencies = [
  "base64 0.22.1",
  "bon",
@@ -3701,6 +3700,7 @@ dependencies = [
  "tokio",
  "tokio-retry",
  "tokio-util",
+ "tower-http",
  "tracing",
  "url",
  "wasm-bindgen-futures",
