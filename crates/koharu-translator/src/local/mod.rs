@@ -6,9 +6,10 @@ use koharu_ml::llm::{
 };
 
 mod catalog;
+pub mod preset;
 
 pub use catalog::LocalConfig;
-use catalog::LocalModelDescriptor;
+pub use catalog::LocalModelDescriptor;
 pub(crate) use catalog::{DEFAULT_MODEL, DEFAULT_QUANTIZATION};
 
 use crate::{

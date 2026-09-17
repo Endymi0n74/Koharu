@@ -1,6 +1,7 @@
 //! In-process, scene-native model orchestration for Koharu.
 
 mod accelerator;
+pub mod batch;
 mod config;
 mod error;
 mod execution;
@@ -32,6 +33,8 @@ pub use stages::{Flux2KleinConfig, KoharuLayoutRFDetrSeg2XLConfig, RoremMixedCon
 
 use images::ImageCache;
 use model_cell::ModelCell;
+
+pub mod vram;
 
 #[cfg(test)]
 mod tests;

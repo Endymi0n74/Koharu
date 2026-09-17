@@ -33,6 +33,8 @@ sysinfo = { workspace = true }
 tokio = { workspace = true }
 tokio-rayon = { workspace = true }
 tracing = { workspace = true }
+zip = { workspace = true }
+tempfile = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 nvml-wrapper = { workspace = true }
