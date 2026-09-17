@@ -5,6 +5,15 @@
 
 use std::time::Duration;
 
+/// Before/after thumbnails of a translated page, as data URIs.
+#[derive(Clone, Debug)]
+pub struct Thumbnails {
+    /// Original page thumbnail (`data:image/jpeg;base64,…`).
+    pub before: String,
+    /// Translated page thumbnail (`data:image/jpeg;base64,…`).
+    pub after: String,
+}
+
 /// Outcome of one page within the batch run.
 #[derive(Clone, Debug)]
 pub enum PageOutcome {
@@ -14,6 +23,10 @@ pub enum PageOutcome {
         elapsed: Duration,
         /// Per-stage durations in execution order.
         stages: Vec<(String, Duration)>,
+        /// Before/after thumbnails, when the report writer captured them.
+        thumbnails: Option<Thumbnails>,
+        /// Peak GPU memory in use while this page ran (formatted).
+        vram_peak: Option<String>,
     },
     /// The page already had an output and was skipped (resume mode).
     Skipped,
@@ -56,6 +69,8 @@ pub struct RunReport {
     pub quantization: String,
     /// VRAM estimate for the model/quantization pair.
     pub vram_estimate: Option<String>,
+    /// Peak GPU memory actually in use during the run (formatted).
+    pub vram_peak: Option<String>,
     /// Target language tag (for example `fr-FR`).
     pub language: String,
     /// Input source description (path or archive).
@@ -136,12 +151,17 @@ pub fn to_markdown(report: &RunReport) -> String {
         "| Entrée | `{}` |\n| Sortie | `{}` |\n| Langue cible | {} |\n",
         report.input, report.output, report.language
     ));
+    let vram_row = match (&report.vram_estimate, &report.vram_peak) {
+        (Some(estimate), Some(peak)) => {
+            format!("| VRAM (estimée / pic réel) | {} / {} |\n", estimate, peak)
+        }
+        (Some(estimate), None) => format!("| VRAM estimée | {} |\n", estimate),
+        (None, Some(peak)) => format!("| VRAM (pic réel) | {} |\n", peak),
+        (None, None) => String::new(),
+    };
     document.push_str(&format!(
-        "| Modèle | `{}` (`{}`) |\n| VRAM estimée | {} |\n| Périphérique | {} |\n",
-        report.model,
-        report.quantization,
-        report.vram_estimate.as_deref().unwrap_or("inconnue"),
-        report.device
+        "| Modèle | `{}` (`{}`) |\n{}| Périphérique | {} |\n",
+        report.model, report.quantization, vram_row, report.device
     ));
     document.push_str(&format!(
         "| Démarré | {} |\n| Durée totale | {:.1}s |\n| Pages | {} |\n\n",
@@ -150,28 +170,33 @@ pub fn to_markdown(report: &RunReport) -> String {
         page_counts_line(translated, skipped, failed)
     ));
 
-    document.push_str("| # | Page | Statut | Durée | Détail |\n|---:|---|---|---:|---|\n");
+    document.push_str(
+        "| # | Page | Statut | Durée | Pic VRAM | Détail |\n|---:|---|---|---:|---|---|\n",
+    );
     for page in &report.pages {
         let detail = match &page.outcome {
             PageOutcome::Translated { stages, .. } => stage_seconds(stages),
             PageOutcome::Skipped => "sortie déjà présente".to_owned(),
             PageOutcome::Failed(error) => escape_markdown_cell(error),
         };
-        let status = match &page.outcome {
-            PageOutcome::Translated { .. } => "✅ traduite",
-            PageOutcome::Skipped => "⏭️ ignorée",
-            PageOutcome::Failed(_) => "❌ échec",
-        };
-        let elapsed = match &page.outcome {
-            PageOutcome::Translated { elapsed, .. } => seconds(*elapsed),
-            _ => "—".to_owned(),
+        let (status, elapsed, vram_peak) = match &page.outcome {
+            PageOutcome::Translated {
+                elapsed, vram_peak, ..
+            } => (
+                "✅ traduite",
+                seconds(*elapsed),
+                vram_peak.clone().unwrap_or_else(|| "—".to_owned()),
+            ),
+            PageOutcome::Skipped => ("⏭️ ignorée", "—".to_owned(), "—".to_owned()),
+            PageOutcome::Failed(_) => ("❌ échec", "—".to_owned(), "—".to_owned()),
         };
         document.push_str(&format!(
-            "| {} | `{}` | {} | {} | {} |\n",
+            "| {} | `{}` | {} | {} | {} | {} |\n",
             page.index + 1,
             page.name,
             status,
             elapsed,
+            vram_peak,
             detail
         ));
     }
@@ -192,7 +217,17 @@ table.pages th,table.pages td{border:1px solid #d0d0d0;padding:.35rem .6rem;text
 table.pages tr.failed{background:#fde8e8}\
 table.pages tr.skipped{background:#f4f4f4;color:#666}\
 .status-ok{color:#137333;font-weight:600}.status-fail{color:#c5221f;font-weight:600}\
+td.thumbs img{height:72px;border:1px solid #bbb;display:block;margin:2px 0}\
+td.thumbs a{display:inline-block;margin-right:4px}\
 footer{margin-top:1.5rem;color:#777;font-size:.85rem}";
+
+/// One `<img>` cell with a click-to-zoom link, or a dash when absent.
+fn thumbnail_cell(label: &str, data_uri: &str) -> String {
+    format!(
+        "<a href=\"{data_uri}\" target=\"_blank\">\
+<img src=\"{data_uri}\" alt=\"{label}\" title=\"{label}\" loading=\"lazy\"></a>"
+    )
+}
 
 /// Renders the run report as a self-contained HTML document.
 #[must_use]
@@ -200,39 +235,60 @@ pub fn to_html(report: &RunReport) -> String {
     let (translated, skipped, failed) = report.counts();
     let mut rows = String::new();
     for page in &report.pages {
-        let (status_class, status, elapsed, detail) = match &page.outcome {
-            PageOutcome::Translated { elapsed, stages } => (
+        let (status_class, status, elapsed, vram_peak, stages_detail, thumbs) =
+            match &page.outcome {
+            PageOutcome::Translated {
+                elapsed,
+                stages,
+                thumbnails,
+                vram_peak,
+            } => (
                 "ok",
                 "traduite",
                 seconds(*elapsed),
+                vram_peak.clone().unwrap_or_else(|| "—".to_owned()),
                 html_escape(&stage_seconds(stages)),
+                match thumbnails {
+                    Some(thumbnails) => format!(
+                        "{} {}",
+                        thumbnail_cell("Avant", &thumbnails.before),
+                        thumbnail_cell("Après", &thumbnails.after)
+                    ),
+                    None => "—".to_owned(),
+                },
             ),
             PageOutcome::Skipped => (
                 "skipped",
                 "ignorée",
                 "—".to_owned(),
+                "—".to_owned(),
                 "sortie déjà présente".to_owned(),
+                "—".to_owned(),
             ),
             PageOutcome::Failed(error) => (
                 "failed",
                 "échec",
                 "—".to_owned(),
+                "—".to_owned(),
                 html_escape(&error.replace('\n', " ")),
+                "—".to_owned(),
             ),
         };
         rows.push_str(&format!(
             "<tr class=\"{status_class}\"><td>{}</td><td><code>{}</code></td>\
-<td class=\"status-{status_class}\">{}</td><td>{elapsed}</td><td>{detail}</td></tr>",
+<td class=\"status-{status_class}\">{}</td><td>{elapsed}</td><td>{vram_peak}</td>\
+<td>{stages_detail}</td><td class=\"thumbs\">{thumbs}</td></tr>",
             page.index + 1,
             html_escape(&page.name),
             status,
         ));
     }
-    let vram = report
-        .vram_estimate
-        .as_deref()
-        .unwrap_or("inconnue")
-        .to_owned();
+    let vram = match (&report.vram_estimate, &report.vram_peak) {
+        (Some(estimate), Some(peak)) => format!("{estimate} / pic réel {peak}"),
+        (Some(estimate), None) => estimate.clone(),
+        (None, Some(peak)) => format!("pic réel {peak}"),
+        (None, None) => "inconnue".to_owned(),
+    };
     format!(
         "<!doctype html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"utf-8\">\n\
 <title>Koharu batch — {input}</title>\n<style>{REPORT_STYLES}</style>\n</head>\n<body>\n\
@@ -242,14 +298,14 @@ pub fn to_html(report: &RunReport) -> String {
 <tr><td>Sortie</td><td><code>{output}</code></td></tr>\n\
 <tr><td>Langue cible</td><td>{language}</td></tr>\n\
 <tr><td>Modèle</td><td><code>{model}</code> (<code>{quantization}</code>)</td></tr>\n\
-<tr><td>VRAM estimée</td><td>{vram}</td></tr>\n\
+<tr><td>VRAM</td><td>{vram}</td></tr>\n\
 <tr><td>Périphérique</td><td>{device}</td></tr>\n\
 <tr><td>Démarré</td><td>{started}</td></tr>\n\
 <tr><td>Durée totale</td><td>{total:.1}s</td></tr>\n\
 <tr><td>Pages</td><td>{pages_line}</td></tr>\n\
 </table>\n\
 <table class=\"pages\">\n\
-<tr><th>#</th><th>Page</th><th>Statut</th><th>Durée</th><th>Détail</th></tr>\n{rows}\
+<tr><th>#</th><th>Page</th><th>Statut</th><th>Durée</th><th>Pic VRAM</th><th>Détail</th><th>Aperçu</th></tr>\n{rows}\
 </table>\n\
 <footer>Généré par koharu-batch</footer>\n</body>\n</html>\n",
         input = html_escape(&report.input),
@@ -332,6 +388,11 @@ mod tests {
                             ("inpainting".to_owned(), Duration::from_millis(600)),
                             ("translation".to_owned(), Duration::from_millis(1800)),
                         ],
+                        thumbnails: Some(Thumbnails {
+                            before: "data:image/jpeg;base64,QkVGT1JF".to_owned(),
+                            after: "data:image/jpeg;base64,QUBFSF0".to_owned(),
+                        }),
+                        vram_peak: Some("5.9 GiB".to_owned()),
                     },
                 },
                 PageReport {
@@ -345,6 +406,7 @@ mod tests {
             model: "gemma4-e4b-uncensored".to_owned(),
             quantization: "Q4_K_P".to_owned(),
             vram_estimate: Some("5.6 GiB (measured)".to_owned()),
+            vram_peak: Some("6.2 GiB".to_owned()),
             language: "fr-FR".to_owned(),
             input: "chapter-test.cbz".to_owned(),
             output: "chapter-test-fr.cbz".to_owned(),
@@ -367,6 +429,18 @@ mod tests {
     }
 
     #[test]
+    fn vram_peak_shows_beside_the_estimate() {
+        let markdown = to_markdown(&sample());
+        assert!(markdown.contains("| VRAM (estimée / pic réel) | 5.6 GiB (measured) / 6.2 GiB |"));
+        // Translated rows carry their own peak; failed/skipped rows show a dash.
+        assert!(markdown.contains("| ✅ traduite | 4.2s | 5.9 GiB |"));
+        assert_eq!(markdown.matches("| ⏭️ ignorée | — | — |").count(), 1);
+        let html = to_html(&sample());
+        assert!(html.contains("5.6 GiB (measured) / pic réel 6.2 GiB"));
+        assert!(html.contains("Pic VRAM"));
+    }
+
+    #[test]
     fn html_is_self_contained_and_escapes() {
         let html = to_html(&sample());
         assert!(html.starts_with("<!doctype html>"));
@@ -375,6 +449,16 @@ mod tests {
         assert!(html.contains("gemma4-e4b-uncensored"));
         assert!(html.contains("tr class=\"failed\""));
         assert!(html.contains("tr class=\"skipped\""));
+    }
+
+    #[test]
+    fn html_embeds_thumbnails_as_data_uris() {
+        let html = to_html(&sample());
+        assert!(html.contains("src=\"data:image/jpeg;base64,QkVGT1JF\""));
+        assert!(html.contains("src=\"data:image/jpeg;base64,QUBFSF0\""));
+        assert!(html.contains("Aperçu"));
+        // Failed and skipped rows carry no thumbnails.
+        assert_eq!(html.matches("<td class=\"thumbs\">—</td>").count(), 2);
     }
 
     #[test]

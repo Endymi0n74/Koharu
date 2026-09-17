@@ -168,9 +168,18 @@ After every run (success, resume, or partial failure), `koharu-batch` writes a M
 an HTML report next to the output: `<OUTPUT-STEM>.md` and `<OUTPUT-STEM>.html`. The report
 lists every page in reading order with its status (translated / skipped / failed), total
 page duration, per-stage durations (detection, OCR, inpainting, translation), and the full
-error message for failed pages. A header block records the input/output paths, target
+error message for failed pages. The HTML report also embeds before/after thumbnails for
+each translated page (small base64 JPEGs, click to zoom), so the chapter can be reviewed
+without opening the output. A header block records the input/output paths, target
 language, model and quantization with their VRAM estimate, the GPU used, the start time,
 and the total duration — useful to compare chapter runs or spot a regression in timings.
+
+When the GPU exposes NVML telemetry (NVIDIA on Windows/Linux), the report also shows the
+**real VRAM usage** next to the estimate: the run's own peak footprint above the GPU usage
+observed at startup (desktop and other processes excluded), the whole-GPU peak for
+context, and a per-page peak column. On the reference 8 GB RTX 3070 the E4B Q4_K_P run
+peaks around 6.4 GiB above the desktop baseline — about 0.8 GiB more than the static
+estimate — so real measurements are worth checking before tightening a budget.
 
 Use `--report <BASE>` to choose a different base path (two files `<BASE>.md` and
 `<BASE>.html` are written), or `--report none` to skip the report entirely.
