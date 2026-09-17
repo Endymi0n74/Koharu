@@ -1,0 +1,46 @@
+name: koharu-batch
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/koharu-batch.yml'
+  pull_request:
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/koharu-batch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    name: Windows release
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: koharu-batch
+          cache-workspace-crates: true
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build koharu-batch (release)
+        run: cargo build --release --locked -p koharu-pipeline --bin koharu-batch
+      - name: Smoke test
+        run: ./target/release/koharu-batch.exe --list-models
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: koharu-batch-windows-x64
+          path: target/release/koharu-batch.exe
+          retention-days: 14
