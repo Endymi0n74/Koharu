@@ -10,15 +10,16 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
+use base64::Engine as _;
 use clap::{Parser, ValueEnum};
 use koharu_config::Config;
 use koharu_ml::Device;
-use koharu_pipeline::batch::report::{PageOutcome, PageReport, RunReport};
+use koharu_pipeline::batch::report::{PageOutcome, PageReport, RunReport, Thumbnails};
 use koharu_pipeline::batch::{bootstrap, cbz, pages, report};
 use koharu_pipeline::{
     Committer, DetectionModel, Flux2KleinConfig, InpaintingModel, KoharuLayoutRFDetrSeg2XLConfig,
     OcrModel, Operation, Pipeline, PipelineConfig, Progress, Request, RoremMixedConfig, Scope,
-    StageOutput, TranslationConfig,
+    StageOutput, TranslationConfig, vram::VramSampler,
 };
 use koharu_renderer::{RasterOptions, Renderer};
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft, Session};
@@ -351,6 +352,20 @@ fn output_page_path(output: &Path, index: usize, format: &str) -> PathBuf {
     output.join(format!("page-{index:04}.{format}"))
 }
 
+/// Maximum width or height of a report thumbnail.
+const THUMBNAIL_EDGE: u32 = 220;
+
+/// Encodes one downscaled JPEG image as a `data:` URI for the HTML report.
+fn thumbnail_data_uri(image: &image::DynamicImage) -> Result<String> {
+    let thumbnail = image.thumbnail(THUMBNAIL_EDGE, THUMBNAIL_EDGE).to_rgb8();
+    let mut jpeg = Vec::new();
+    thumbnail.write_to(&mut std::io::Cursor::new(&mut jpeg), image::ImageFormat::Jpeg)?;
+    Ok(format!(
+        "data:image/jpeg;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(jpeg)
+    ))
+}
+
 /// Run-level facts shared by every page row of the report.
 struct RunMetadata {
     model: String,
@@ -363,12 +378,30 @@ struct RunMetadata {
     started_at: String,
 }
 
+/// Run VRAM peak as a report line, measured at report-writing time: the run's
+/// own footprint above the GPU baseline, plus the whole-GPU peak. When the run
+/// added nothing (resume with no page to translate), only the whole-GPU peak
+/// is shown.
+fn vram_peak_line(sampler: Option<&VramSampler>) -> Option<String> {
+    let sampler = sampler?;
+    let whole_gpu = sampler.whole_gpu_peak_bytes()?;
+    let whole_gib = whole_gpu as f64 / (1024.0 * 1024.0 * 1024.0);
+    match sampler.peak_bytes() {
+        Some(0) | None => Some(format!("pic GPU entier {whole_gib:.1} GiB")),
+        Some(run_peak) => {
+            let run_gib = run_peak as f64 / (1024.0 * 1024.0 * 1024.0);
+            Some(format!("{run_gib:.1} GiB (pic GPU entier {whole_gib:.1} GiB)"))
+        }
+    }
+}
+
 /// Writes the Markdown and HTML reports for the run.
 fn write_run_report(
     base: &Path,
     pages: Vec<PageReport>,
     total_elapsed: Duration,
     metadata: &RunMetadata,
+    vram_sampler: Option<&VramSampler>,
 ) -> Result<()> {
     let run_report = RunReport {
         pages,
@@ -376,6 +409,7 @@ fn write_run_report(
         model: metadata.model.clone(),
         quantization: metadata.quantization.clone(),
         vram_estimate: Some(metadata.vram_estimate.clone()),
+        vram_peak: vram_peak_line(vram_sampler),
         language: metadata.language.clone(),
         input: metadata.input.clone(),
         output: metadata.output.clone(),
@@ -489,6 +523,7 @@ async fn main() -> Result<()> {
 
     let device = koharu_ml::device(arguments.cpu);
     let device_description = device.description.clone();
+    let vram_sampler = VramSampler::start_default(&device);
     let budget = detect_budget(&arguments, &device);
     let resolved = resolve_model(&arguments, budget)?;
     eprintln!(
@@ -534,6 +569,7 @@ async fn main() -> Result<()> {
                 pages_report.into_iter().flatten().collect(),
                 started.elapsed(),
                 &metadata,
+                vram_sampler.as_ref(),
             )?;
         }
         return Ok(());
@@ -556,6 +592,9 @@ async fn main() -> Result<()> {
     for page in &pending {
         let page_name = page.name.clone();
         let page_started = Instant::now();
+        if let Some(sampler) = &vram_sampler {
+            sampler.reset_window();
+        }
         let stage_timings = Arc::new(Mutex::new(Vec::<(String, Duration)>::new()));
         let closure_timings = Arc::clone(&stage_timings);
         let bytes = match read_page_bytes(&input, page) {
@@ -571,8 +610,13 @@ async fn main() -> Result<()> {
                 continue;
             }
         };
-        let decoded = match image::load_from_memory(&bytes) {
-            Ok(decoded) => decoded,
+        let (decoded, before_uri) = match image::load_from_memory(&bytes) {
+            Ok(decoded) => {
+                let uri = thumbnail_data_uri(&decoded)
+                    .map_err(|error| eprintln!("[{page_name}] thumbnail skipped: {error}"))
+                    .ok();
+                (decoded, uri)
+            }
             Err(error) => {
                 eprintln!("[{page_name}] failed to decode: {error}");
                 pages_report[page.index] = Some(PageReport::failed(
@@ -677,7 +721,18 @@ async fn main() -> Result<()> {
                     .with_context(|| format!("failed to write {}", target.display()))?;
             }
         }
+        let after_uri = thumbnail_data_uri(&image::DynamicImage::ImageRgba8(raster.image.clone()))
+            .map_err(|error| eprintln!("[{page_name}] thumbnail (after) skipped: {error}"))
+            .ok();
+        let page_vram_peak = vram_sampler
+            .as_ref()
+            .and_then(|sampler| sampler.window_delta_bytes())
+            .map(gib);
         eprintln!("[{page_name}] done in {:.2}s", report.elapsed.as_secs_f64());
+        let thumbnails = match (before_uri, after_uri) {
+            (Some(before), Some(after)) => Some(Thumbnails { before, after }),
+            _ => None,
+        };
         pages_report[page.index] = Some(PageReport {
             index: page.index,
             name: page_name,
@@ -687,8 +742,14 @@ async fn main() -> Result<()> {
                     .lock()
                     .expect("stage timings mutex")
                     .clone(),
+                thumbnails,
+                vram_peak: page_vram_peak,
             },
         });
+    }
+
+    if let Some(sampler) = &vram_sampler {
+        sampler.stop();
     }
 
     if let Some(archive) = archive_output {
@@ -701,6 +762,7 @@ async fn main() -> Result<()> {
             pages_report.into_iter().flatten().collect(),
             started.elapsed(),
             &metadata,
+            vram_sampler.as_ref(),
         )?;
     }
 
