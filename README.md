@@ -3,19 +3,23 @@
 <p align="center">ML-powered manga translator, written in <b>Rust</b>.</p>
 
 <p align="center">
-<a href="https://github.com/koharu-rs/koharu/releases/latest" target="_blank"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/koharu-rs/koharu/total?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fkoharu-rs%2Fkoharu%2Freleases%2Flatest"></a>
+<a href="https://github.com/mayocream/koharu/releases/latest" target="_blank"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/mayocream/koharu/total?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fmayocream%2Fkoharu%2Freleases%2Flatest"></a>
 </p>
 
 <p align="center">
-<a href="https://trendshift.io/repositories/20649" target="_blank"><img src="https://trendshift.io/api/badge/repositories/20649" alt="koharu-rs%2Fkoharu | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+<a href="https://github.com/Endymi0n74/Koharu/actions/workflows/koharu-batch.yml" target="_blank"><img alt="koharu-batch CI" src="https://github.com/Endymi0n74/Koharu/actions/workflows/koharu-batch.yml/badge.svg"></a>
 </p>
 
 <p align="center">
-<a href="https://koharu.rs/installation" target="_blank">Getting Started</a> · <a href="https://koharu.rs/" target="_blank">Docs</a> · <a href="https://github.com/koharu-rs/koharu/issues" target="_blank">Bug reports</a> · <a href="https://discord.gg/mHvHkxGnUY" target="_blank">Discord</a>
+<a href="https://trendshift.io/repositories/20649" target="_blank"><img src="https://trendshift.io/api/badge/repositories/20649" alt="mayocream%2Fkoharu | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </p>
 
 <p align="center">
-<a href="https://koharu.rs/ja" target="_blank">日本語</a> | <a href="https://koharu.rs/zh" target="_blank">简体中文</a>
+<a href="https://koharu.rs/getting-started/install/" target="_blank">Getting Started</a> · <a href="https://koharu.rs/" target="_blank">Docs</a> · <a href="https://github.com/mayocream/koharu/issues" target="_blank">Bug reports</a> · <a href="https://discord.gg/mHvHkxGnUY" target="_blank">Discord</a>
+</p>
+
+<p align="center">
+<a href="https://koharu.rs/ja-JP/" target="_blank">日本語</a> | <a href="https://koharu.rs/zh-CN/" target="_blank">简体中文</a>
 </p>
 
 Koharu introduces a local-first workflow for manga translation, utilizing the power of ML to automate the process. It combines the capabilities of object detection, OCR, inpainting, and LLMs to create a seamless translation experience.
@@ -25,24 +29,19 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 
 ---
 
-![screenshot](packages/docs/screenshot.png)
+![screenshot](docs/screenshot.png)
 
 > [!NOTE]
-> Join our [Discord server](https://discord.gg/mHvHkxGnUY) for support and discussion.
+> Support and discussion are available on the [Discord server](https://discord.gg/mHvHkxGnUY).
 
 ## Features
 
-- [Multi-format project management](https://koharu.rs/guides/projects) for raster images, archives, and PDFs with page sequencing
-- [Selective pipeline](https://koharu.rs/guides/processing) for detection, OCR, translation, and inpainting at page or project scope
-- [Detection and segmentation](https://koharu.rs/guides/processing) for text regions, speech bubbles, and cleanup regions
-- [Multimodal OCR](https://koharu.rs/models/vision) for dialogue, captions, and general page text
-- [Local GGUF inference and hosted providers](https://koharu.rs/models/providers) for LLM and machine-translation workflows
-- [Generative inpainting](https://koharu.rs/guides/cleanup) for source-text removal and artwork reconstruction
-- [Proofreading](https://koharu.rs/guides/review) for correcting OCR and translation output
-- [WebGPU-based canvas](https://koharu.rs/guides/canvas) for manual cleanup, text placement, and page composition
-- [Multilingual text shaping and layout](https://koharu.rs/guides/typesetting) with automatic fitting, font fallback, vertical CJK, and right-to-left text
-- [Layered PSD export](https://koharu.rs/guides/export) for flattened delivery and layered editing
-- [Agent-based workflow](https://koharu.rs/agent/projects) for project inspection, editing, and pipeline control
+- Automatic detection of text regions, speech bubbles, and cleanup masks
+- OCR for manga dialogue, captions, and other page text
+- Inpainting to remove source lettering from the page
+- Translation with local or remote LLM backends
+- Advanced text rendering with vertical CJK and RTL support
+- Layered PSD export with editable text
 
 > [!TIP]
 > **Batch CLI — `koharu-batch`.** This fork adds a headless CLI that translates whole chapters
@@ -67,77 +66,49 @@ koharu-batch --list-models
 
 ## GPU Acceleration
 
-> [!TIP]
-> **Batch CLI — `koharu-batch`.** This fork adds a headless CLI that translates whole chapters
-> from the terminal with the same local pipeline: a folder of scans or a CBZ archive in, French
-> pages out (`--lang` to change the target). It picks the model that fits your GPU budget,
-> supports page-by-page resume, and writes an end-of-run HTML/Markdown report with before/after
-> page previews. See [docs/fork.md](docs/fork.md) for the full documentation.
+Koharu supports CUDA, ROCm / HIP, Metal, and Vulkan. CPU fallback is always available when the accelerated path is unavailable or not worth the setup cost on your system.
 
-```bash
-# Preview what would run (pages, model, VRAM) without executing anything
-koharu-batch --input ./chapter-12 --output ./chapter-12-fr --dry-run
+### CUDA
 
-# A folder of scans → a folder of translated pages
-koharu-batch --input ./chapter-12 --output ./chapter-12-fr
+Koharu supports NVIDIA GPUs on Windows and Linux through CUDA. Ensure you have the latest NVIDIA driver installed.
 
-# A CBZ archive → a CBZ archive, letting the tool pick the model for your GPU
-koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
+### HIP / ROCm
 
-# List local models with their VRAM estimates (measured peaks included)
-koharu-batch --list-models
-```
-
-Koharu supports CUDA and ROCm / HIP on Windows and Linux, Metal on Apple silicon, and Vulkan on Windows and Linux. Keep your graphics driver current; a full CUDA or ROCm SDK installation is not required. See [Runtime and hardware requirements](https://koharu.rs/hardware) for model-specific guidance.
-
-CUDA 13.3 requires an NVIDIA Turing-class or newer GPU and an R610 or newer driver. Check NVIDIA's official [CUDA toolkit, driver, and architecture matrix](https://docs.nvidia.com/datacenter/tesla/drivers/cuda-toolkit-driver-and-architecture-matrix.html) and install the [latest NVIDIA driver](https://www.nvidia.com/en-us/drivers/).
-
-### ROCm / HIP
-
-ROCm 10.0 support depends on the exact AMD GPU, operating system, and driver combination. Check AMD's official [ROCm 10.0.0 compatibility matrix](https://rocm.docs.amd.com/en/docs-10.0.0/compatibility/compatibility-matrix.html) and install a compatible [AMD driver](https://www.amd.com/en/support).
+Koharu supports AMD GPUs on Windows through ROCm and HIP. Ensure you have the latest AMD driver installed.
 
 ### Metal
 
-Metal is available on Apple silicon Macs.
+Koharu supports Metal on Apple Silicon Macs.
 
 ### Vulkan
 
-Vulkan is available on Windows and Linux as an alternative to CUDA and ROCm / HIP.
-
-### WebGPU
-
-The editor canvas uses WebGPU and requires a current graphics driver even when inference runs on the CPU.
-
-### CPU
-
-CPU inference is available for supported workloads but is substantially slower.
+Koharu also supports Vulkan on Windows and Linux as an alternative to CUDA and HIP.
 
 ## Machine Learning Models
 
-Koharu uses separate models for detection, OCR, inpainting, and translation. [Vision and inpainting](https://koharu.rs/models/vision) and [translation and generation](https://koharu.rs/models/translation) have separate model settings.
+Koharu uses a staged stack of vision and language models instead of trying to solve the entire page with a single network.
 
 ### Computer Vision Models
 
-Detection, OCR, and inpainting models are selected separately.
+Koharu uses multiple pretrained models, each tuned for a specific part of the page pipeline.
 
 #### Detection and Layout
 
-The detection model finds text regions, speech bubbles, and segmentation masks.
+Koharu uses object detection to find text regions, speech bubbles, and segmentation masks.
 
 - [Koharu Layout RF-DETR Seg 2XL](https://huggingface.co/mayocream/koharu-layout-rfdetr-seg-2xl-1152)
 
 #### OCR
 
-OCR reads source text from detected regions.
+These models recognize source text after detection.
 
 - [PaddleOCR VL 1.6](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6)
 - [Manga OCR](https://huggingface.co/mayocream/manga-ocr)
 - [Baberu OCR](https://huggingface.co/genshiai-daichi/baberu-ocr)
-- [Hayai OCR](https://huggingface.co/JustANormalTinkerer/hayai-ocr-v2)
 
 #### Inpainting
 
-Inpainting reconstructs the image behind source text before the translation is rendered.
+These models remove source lettering before translated text is rendered back onto the page.
 
 - [FLUX.2 Klein](https://huggingface.co/unsloth/FLUX.2-klein-4B-GGUF)
 - [RORem mixed](https://huggingface.co/mayocream/RORem-mixed-GGUF)
@@ -146,45 +117,43 @@ Inpainting reconstructs the image behind source text before the translation is r
 
 ### Large Language Models
 
-Translation can use a local language model or a remote API.
+Koharu has a flexible LLM backend that can run locally or connect to a remote API.
 
 #### General-Purpose Local Models
 
 - LFM 2.5: [lfm2.5-1.2b-instruct](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF)
 - Ministral 3: [ministral-3-8b-instruct](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-GGUF)
-- Gemma 4: [gemma4-e2b-it](https://huggingface.co/unsloth/gemma-4-E2B-it-qat-GGUF), [gemma4-e4b-it](https://huggingface.co/unsloth/gemma-4-E4B-it-qat-GGUF), [gemma4-12b-it](https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF), [gemma4-26b-a4b-it](https://huggingface.co/unsloth/gemma-4-26B-A4B-it-qat-GGUF), [gemma4-31b-it](https://huggingface.co/unsloth/gemma-4-31B-it-qat-GGUF)
+- Gemma 4 instruct (QAT): [gemma4-e2b-it](https://huggingface.co/unsloth/gemma-4-E2B-it-qat-GGUF), [gemma4-e4b-it](https://huggingface.co/unsloth/gemma-4-E4B-it-qat-GGUF), [gemma4-12b-it](https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF), [gemma4-26b-a4b-it](https://huggingface.co/unsloth/gemma-4-26B-A4B-it-qat-GGUF), [gemma4-31b-it](https://huggingface.co/unsloth/gemma-4-31B-it-qat-GGUF)
 - Qwen 3.5: [qwen3.5-0.8b](https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF), [qwen3.5-2b](https://huggingface.co/unsloth/Qwen3.5-2B-GGUF), [qwen3.5-4b](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF), [qwen3.5-9b](https://huggingface.co/unsloth/Qwen3.5-9B-GGUF), [qwen3.5-27b](https://huggingface.co/unsloth/Qwen3.5-27B-GGUF), [qwen3.5-35b-a3b](https://huggingface.co/unsloth/Qwen3.5-35B-A3B-GGUF)
 - Qwen 3.6: [qwen3.6-27b](https://huggingface.co/unsloth/Qwen3.6-27B-GGUF), [qwen3.6-35b-a3b](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF)
-- Qwen 3.8: [qwen3.8-27b](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF)
 
 #### Uncensored Local Models
 
 - Gemma 4 uncensored: [gemma4-e2b-uncensored](https://huggingface.co/HauhauCS/Gemma-4-E2B-Uncensored-HauhauCS-Aggressive), [gemma4-e4b-uncensored](https://huggingface.co/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive), [gemma4-12b-uncensored](https://huggingface.co/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced), [gemma4-26b-a4b-uncensored](https://huggingface.co/HauhauCS/Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced-MTP), [gemma4-31b-uncensored](https://huggingface.co/HauhauCS/Gemma4-31B-QAT-Uncensored-HauhauCS-Balanced-MTP)
 - Qwen 3.5 uncensored: [qwen3.5-2b-uncensored](https://huggingface.co/HauhauCS/Qwen3.5-2B-Uncensored-HauhauCS-Aggressive), [qwen3.5-4b-uncensored](https://huggingface.co/HauhauCS/Qwen3.5-4B-Uncensored-HauhauCS-Aggressive), [qwen3.5-9b-uncensored](https://huggingface.co/HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive)
 - Qwen 3.6 uncensored: [qwen3.6-27b-uncensored](https://huggingface.co/HauhauCS/Qwen3.6-27B-Uncensored-HauhauCS-Balanced), [qwen3.6-35b-a3b-uncensored](https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive)
-- Qwen 3.8 uncensored: [qwen3.8-27b-uncensored](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF)
 
 #### Cloud Providers
 
-Hosted LLM providers: [OpenAI](https://platform.openai.com/), [Gemini](https://ai.google.dev/), [Claude](https://www.anthropic.com/api), [Grok](https://docs.x.ai/developers), [MiniMax](https://platform.minimax.io/), [DeepSeek](https://platform.deepseek.com/), and [OpenRouter](https://openrouter.ai/).
+Koharu supports hosted APIs from [Atlas Cloud](https://www.atlascloud.ai/), [OpenAI](https://platform.openai.com/), [Gemini](https://ai.google.dev/), [Claude](https://www.anthropic.com/api), [DeepSeek](https://platform.deepseek.com/), and [OpenRouter](https://openrouter.ai/).
 
 #### Machine Translation Providers
 
-Machine-translation providers: [DeepL](https://www.deepl.com/), [Google Cloud Translation](https://cloud.google.com/translate), and [Caiyun](https://fanyi.caiyunapp.com/).
+For pure machine-translation use cases, Koharu also supports [DeepL](https://www.deepl.com/), [Google Cloud Translation](https://cloud.google.com/translate), and [Caiyun](https://fanyi.caiyunapp.com/).
 
 #### OpenAI-Compatible Providers
 
-OpenAI-compatible endpoints are also supported.
+Koharu supports any provider that implements the OpenAI-compatible API.
 
 ## Installation
 
-Download release builds from the [releases page](https://github.com/koharu-rs/koharu/releases/latest). [Installation requirements and first launch](https://koharu.rs/installation) vary by operating system.
+You can download the latest release of Koharu from the [releases page](https://github.com/mayocream/koharu/releases/latest).
 
-Builds are available for Windows, macOS, and Linux.
+We provide prebuilt binaries for Windows, macOS, and Linux.
 
 ### WinGet
 
-Install on Windows with [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):
+On Windows, you can install Koharu with [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):
 
 ```bash
 winget install koharu
@@ -192,7 +161,7 @@ winget install koharu
 
 ### Homebrew
 
-Install on macOS with [Homebrew](https://brew.sh/):
+On macOS, you can install Koharu with [Homebrew](https://brew.sh/):
 
 ```bash
 brew install --cask koharu
@@ -200,7 +169,7 @@ brew install --cask koharu
 
 ## Troubleshooting
 
-Startup, runtime, model, and provider errors are covered in [Troubleshooting](https://koharu.rs/reference/troubleshooting). Set `RUST_LOG` to `debug` or `trace` for verbose logs:
+You can also set the `RUST_LOG` environment variable to `debug` or `trace` to see more verbose logs:
 
 ```bash
 # macOS / Linux
@@ -211,13 +180,14 @@ $env:RUST_LOG="debug"; koharu.exe
 
 ## Development
 
-Platform dependencies and validation commands for local builds are listed in [Development Setup](https://koharu.rs/development/setup).
+To build Koharu from source, follow the steps below.
 
 ### Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) 1.97.1 or later (Rust 2024 edition)
-- [Bun](https://bun.sh/) 1.3.14 or later
-- [LLVM](https://llvm.org/) 22.1.8 or later
+- [Rust](https://www.rust-lang.org/tools/install) 1.95 or later (Rust 2024 edition)
+- [Bun](https://bun.sh/) 1.0 or later
+- [LLVM](https://llvm.org/) 15 or later
+- [ninja](https://ninja-build.org/) 1.11 or later
 
 ### Install dependencies
 
@@ -237,7 +207,7 @@ bun dev
 bun run build
 ```
 
-The executable is written to `target/release`.
+The built binaries are written to `target/release`.
 
 ## Sponsorship
 
@@ -252,8 +222,8 @@ If Koharu is useful in your workflow, consider sponsoring the project.
 
 Thanks to all the contributors who have helped make Koharu better!
 
-<a href="https://github.com/koharu-rs/koharu/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=koharu-rs/koharu" />
+<a href="https://github.com/mayocream/koharu/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=mayocream/koharu" />
 </a>
 
 ## License
