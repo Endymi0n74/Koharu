@@ -149,10 +149,31 @@ koharu-batch --list-models
 Full options (from `koharu-batch --help`): `--input`, `--output`, `--lang` (default
 `fr-FR`), `--llm` (model id or `auto`), `--quantization`, `--force`, `--vram-budget-mib`,
 `--detection`, `--ocr`, `--inpainting`, `--translation-instructions`, `--format`
-(png/jpg/webp for folder outputs), `--list-models`, `--overwrite`, `--dry-run`, `--cpu`.
+(png/jpg/webp for folder outputs), `--store`, `--report <BASE|none>`, `--list-models`,
+`--overwrite`, `--dry-run`, `--cpu`.
+
+The runtime store resolves like the desktop app: when the binary sits next to a Koharu
+installation (a `store` directory alongside the executable), that store is used and every
+model already downloaded by the app is reused. Otherwise it falls back to the
+operating-system cache (`%LOCALAPPDATA%\koharu\packages` on Windows); `--store <dir>`
+points at any other store explicitly. `--dry-run` plans the run (pages, model, VRAM) without
+downloading runtimes or processing pages.
 
 Exit codes: `0` when every page succeeds, non-zero when the
 run cannot start (no pages found, VRAM guard tripped) or when at least one page failed.
+
+### End-of-run report
+
+After every run (success, resume, or partial failure), `koharu-batch` writes a Markdown and
+an HTML report next to the output: `<OUTPUT-STEM>.md` and `<OUTPUT-STEM>.html`. The report
+lists every page in reading order with its status (translated / skipped / failed), total
+page duration, per-stage durations (detection, OCR, inpainting, translation), and the full
+error message for failed pages. A header block records the input/output paths, target
+language, model and quantization with their VRAM estimate, the GPU used, the start time,
+and the total duration — useful to compare chapter runs or spot a regression in timings.
+
+Use `--report <BASE>` to choose a different base path (two files `<BASE>.md` and
+`<BASE>.html` are written), or `--report none` to skip the report entirely.
 
 ## French typography profile
 

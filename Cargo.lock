@@ -4864,6 +4864,7 @@ dependencies = [
  "arc-swap",
  "async-trait",
  "clap",
+ "dirs",
  "futures",
  "image",
  "imageproc",

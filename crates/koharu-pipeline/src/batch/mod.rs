@@ -3,3 +3,4 @@
 pub mod bootstrap;
 pub mod cbz;
 pub mod pages;
+pub mod report;

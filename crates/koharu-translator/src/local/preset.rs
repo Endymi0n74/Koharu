@@ -110,7 +110,7 @@ pub fn estimate_vram(
     let base = quantization.and_then(|quantization| measured_peak(descriptor, quantization));
     if let Some(base) = base {
         return VramEstimate {
-            bytes: base + vision.then_some(VISION_PROJECTOR_BYTES).unwrap_or(0),
+            bytes: base + if vision { VISION_PROJECTOR_BYTES } else { 0 },
             measured: true,
         };
     }
