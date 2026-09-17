@@ -9,6 +9,7 @@ mod model;
 mod prompt;
 mod provider;
 mod remote;
+mod typography;
 
 use std::sync::Arc;
 
@@ -22,6 +23,8 @@ pub use language::Language;
 pub use model::{GenerationConfig, Model, ModelSelection, Quantization};
 pub(crate) use model::{ModelGeneration, QuantizationDefinition, display_name};
 pub use provider::{Provider, ProviderConfig, ProvidersConfig};
+pub use typography::{TypographyProfile, normalize_segment};
+pub use local::preset;
 
 #[derive(Clone)]
 pub struct Translator {

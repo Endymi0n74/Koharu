@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use koharu_scene::{Authored, LanguageTag, Origin, SourceText, Translation};
-use koharu_translator::{TranslationRequest, Translator};
+use koharu_translator::{TranslationRequest, Translator, normalize_segment};
 
 use crate::TranslationConfig;
 
@@ -84,7 +84,11 @@ impl StageProcessor for Processor {
             let text = if source.trim() == "\u{2026}" {
                 "\u{2026}".to_owned()
             } else {
-                text
+                normalize_segment(
+                    self.config.typography,
+                    self.config.target_language,
+                    &text,
+                )
             };
             edit.set(
                 entity,

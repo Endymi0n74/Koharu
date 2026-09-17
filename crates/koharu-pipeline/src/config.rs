@@ -1,5 +1,5 @@
 use anyhow::{Result, bail};
-use koharu_translator::{GenerationConfig, Language};
+use koharu_translator::{GenerationConfig, Language, TypographyProfile};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use specta::Type;
 
@@ -176,6 +176,8 @@ pub struct TranslationConfig {
     #[specta(type = String)]
     pub target_language: Language,
     pub instructions: Option<String>,
+    /// Typographic conventions applied to translated text before rendering.
+    pub typography: TypographyProfile,
 }
 
 impl Default for TranslationConfig {
@@ -185,6 +187,7 @@ impl Default for TranslationConfig {
             generation: GenerationConfig::default(),
             target_language: Language::English,
             instructions: None,
+            typography: TypographyProfile::default(),
         }
     }
 }

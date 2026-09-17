@@ -6,7 +6,7 @@ pub(crate) const DEFAULT_MODEL: &str = "gemma4-12b-it";
 pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_XL";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SupportedLanguages {
+pub enum SupportedLanguages {
     All,
     Limited(&'static [crate::Language]),
 }
@@ -22,14 +22,14 @@ impl SupportedLanguages {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct LocalModelDescriptor {
-    pub(crate) id: &'static str,
-    pub(crate) name: &'static str,
-    pub(crate) quantizations: &'static [QuantizationDefinition],
-    pub(crate) generation: ModelGeneration,
-    pub(crate) repository: &'static str,
-    pub(crate) projector: Option<&'static str>,
-    pub(crate) target_languages: SupportedLanguages,
+pub struct LocalModelDescriptor {
+    pub id: &'static str,
+    pub name: &'static str,
+    pub quantizations: &'static [QuantizationDefinition],
+    pub generation: ModelGeneration,
+    pub repository: &'static str,
+    pub projector: Option<&'static str>,
+    pub target_languages: SupportedLanguages,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, specta::Type)]

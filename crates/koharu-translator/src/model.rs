@@ -80,7 +80,7 @@ impl Model {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct QuantizationDefinition {
+pub struct QuantizationDefinition {
     pub id: &'static str,
     pub name: &'static str,
     pub filename: &'static str,
@@ -93,7 +93,7 @@ impl QuantizationDefinition {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub(crate) struct ModelGeneration {
+pub struct ModelGeneration {
     pub temperature: Option<f32>,
     pub top_k: Option<u32>,
     pub top_p: Option<f32>,

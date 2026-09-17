@@ -3,12 +3,13 @@ use std::{
     fs,
     path::PathBuf,
     sync::Arc,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use anyhow::{Context as _, Result};
 use clap::{Parser, ValueEnum};
 use koharu_config::Config;
+use koharu_pipeline::batch::bootstrap::{image_media_type, initialize_with_retry};
 use koharu_pipeline::{
     Committer, DetectionModel, Flux2KleinConfig, InpaintingModel, KoharuLayoutRFDetrSeg2XLConfig,
     OcrModel, Operation, Pipeline, PipelineConfig, Progress, Request, RoremMixedConfig, Scope,
@@ -16,7 +17,9 @@ use koharu_pipeline::{
 };
 use koharu_renderer::{RasterOptions, Renderer};
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft, Session};
-use koharu_translator::{GenerationConfig, Language, ModelSelection, Provider, ProvidersConfig};
+use koharu_translator::{
+    GenerationConfig, Language, ModelSelection, Provider, ProvidersConfig, TypographyProfile,
+};
 
 #[derive(Debug, Parser)]
 #[command(version, about = "Run Koharu's complete in-process pipeline")]
@@ -111,6 +114,7 @@ impl Arguments {
                 generation: GenerationConfig::default(),
                 target_language: self.target_language,
                 instructions: self.translation_instructions.clone(),
+                typography: TypographyProfile::default(),
             },
             inpainting: match self.inpainting {
                 InpaintingChoice::LaMa => InpaintingModel::LaMa {},
@@ -212,40 +216,6 @@ async fn main() -> Result<()> {
         render_elapsed.as_secs_f64()
     );
     Ok(())
-}
-
-async fn initialize_with_retry() {
-    let mut delay = Duration::from_secs(1);
-    let mut attempt = 0_u64;
-    loop {
-        attempt += 1;
-        match koharu_ml::init().await {
-            Ok(()) => return,
-            Err(error) => {
-                let jitter = Duration::from_millis((attempt.wrapping_mul(137)) % 251);
-                let wait = delay + jitter;
-                eprintln!(
-                    "runtime initialization attempt {attempt} failed: {error}; retrying in {:.1}s",
-                    wait.as_secs_f64()
-                );
-                tokio::time::sleep(wait).await;
-                delay = delay.saturating_mul(2).min(Duration::from_secs(30));
-            }
-        }
-    }
-}
-
-fn image_media_type(path: &std::path::Path) -> &'static str {
-    match path
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .map(str::to_ascii_lowercase)
-        .as_deref()
-    {
-        Some("jpg" | "jpeg") => "image/jpeg",
-        Some("webp") => "image/webp",
-        _ => "image/png",
-    }
 }
 
 #[cfg(test)]

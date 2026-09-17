@@ -13,6 +13,12 @@ consumer GPU with 8 GB of VRAM (for example an RTX 3070).
 
 On top of upstream Koharu, this fork currently adds:
 
+- **Batch CLI (`koharu-batch`)** — translate a whole chapter (folder of images or CBZ) in one
+  unattended command, with natural page ordering, resume support, per-page fault isolation,
+  a VRAM budget guard, and a `--llm auto` model picker (see *Batch mode* below).
+- **French typography profile** — `fr-FR` output normalization (guillemets, curly apostrophes,
+  narrow no-break spaces) applied before rendering, with stylized lettering preserved
+  (see *French typography profile* below).
 - **Download integrity validation** — model and runtime-package downloads are verified
   against expected size and SHA-256 before they are published to the store.
 - **llama.cpp log surfacing** — when a GGUF model fails to load, the concrete llama.cpp/ggml
@@ -101,3 +107,63 @@ provider = "local"
 quantization = "Q4_K_P"
 vision = true
 ```
+
+## Batch mode (`koharu-batch`)
+
+`koharu-batch` is a CLI binary that translates an entire chapter — a folder of images or a
+`.cbz` archive — in one command. It reuses the same local pipeline (detection, OCR,
+inpainting, translation, rendering) as the desktop app, but runs unattended so it can be
+scripted or launched for a long reading session.
+
+Key behaviors:
+
+- **Natural page ordering** — `page2.png` sorts before `page10.png`, padding is ignored
+  (`p01_10.jpg` compares like `p1_10.jpg`), and only images (png/jpg/webp) count as pages.
+- **Resume support** — pages whose output already exists are skipped, so an interrupted run
+  restarts where it stopped; pass `--overwrite` to redo them.
+- **Per-page fault isolation** — a page that fails (bad OCR, corrupted image) is reported and
+  skipped; it does not abort the chapter.
+- **VRAM budget guard** — the binary queries the GPU (NVML on Windows) and refuses to start
+  if the selected model/quantization cannot fit; `--llm auto` picks the best-fitting model,
+  and `--force` overrides the check.
+- **French typography by default** — output text goes through the `fr-FR` profile:
+  guillemets « », curly apostrophes ’, and narrow no-break spaces before `; : ! ?` and inside
+  guillemets (see the typography notes below).
+
+Typical usage:
+
+```bash
+# Translate a folder of scans to French, pages written as PNG next to it
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr
+
+# Same, packaged as a CBZ, letting the tool pick the model for the GPU
+koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
+
+# Inspect what would run (pages, chosen model, VRAM estimate) without executing
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --dry-run
+
+# List local models with their VRAM estimates and exit
+koharu-batch --list-models
+```
+
+Full options (from `koharu-batch --help`): `--input`, `--output`, `--lang` (default
+`fr-FR`), `--llm` (model id or `auto`), `--quantization`, `--force`, `--vram-budget-mib`,
+`--detection`, `--ocr`, `--inpainting`, `--translation-instructions`, `--format`
+(png/jpg/webp for folder outputs), `--list-models`, `--overwrite`, `--dry-run`, `--cpu`.
+
+Exit codes: `0` when every page succeeds, non-zero when the
+run cannot start (no pages found, VRAM guard tripped) or when at least one page failed.
+
+## French typography profile
+
+The `fr-FR` typography profile normalizes translator output before rendering (both in the
+desktop app and in `koharu-batch`):
+
+- Straight quotes `'` and `"` become curly `’` / `« »` where appropriate.
+- Space before `;`, `:`, `!`, `?` becomes a narrow no-break space (U+202F); a plain space
+  *inside* guillemets becomes a narrow no-break space too.
+- Lettering that is stylized on purpose (all-caps words with digits or punctuation like
+  `DOOM!!`, `?!`) is left untouched, so sound effects and impact text keep their look.
+
+The profile lives in `koharu-translator/src/typography.rs` and is applied in the translation
+stage before the renderer sees the text.
