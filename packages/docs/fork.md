@@ -204,7 +204,15 @@ lists every page in reading order with its status (translated / skipped / failed
 page duration, per-stage durations (detection, OCR, inpainting, translation), and the full
 error message for failed pages. The HTML report also embeds before/after thumbnails for
 each translated page (small base64 JPEGs, click to zoom), so the chapter can be reviewed
-without opening the output. A header block records the input/output paths, target
+without opening the output.
+
+The HTML report is keyboard-navigable: `←`/`→` (or `↑`/`↓`) move the selected page
+(highlighted row), `Enter` opens the selected page full screen (press `←`/`→` again to
+swap between the original and the translated image, `Escape` or a click closes), and
+`+`/`−` resize the thumbnails (`0` restores the default size). The page itself is
+self-contained: the only script is this small inline viewer, no external resource.
+
+A header block records the input/output paths, target
 language, model and quantization with their VRAM estimate, the GPU used, the start time,
 and the total duration — useful to compare chapter runs or spot a regression in timings.
 
