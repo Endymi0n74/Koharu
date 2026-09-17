@@ -39,6 +39,27 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 - Advanced text rendering with vertical CJK and RTL support
 - Layered PSD export with editable text
 
+> [!TIP]
+> **Batch CLI — `koharu-batch`.** This fork adds a headless CLI that translates whole chapters
+> from the terminal with the same local pipeline: a folder of scans or a CBZ archive in, French
+> pages out (`--lang` to change the target). It picks the model that fits your GPU budget,
+> supports page-by-page resume, and writes an end-of-run HTML/Markdown report with before/after
+> page previews. See [docs/fork.md](docs/fork.md) for the full documentation.
+
+```bash
+# Preview what would run (pages, model, VRAM) without executing anything
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --dry-run
+
+# A folder of scans → a folder of translated pages
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr
+
+# A CBZ archive → a CBZ archive, letting the tool pick the model for your GPU
+koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
+
+# List local models with their VRAM estimates (measured peaks included)
+koharu-batch --list-models
+```
+
 ## GPU Acceleration
 
 Koharu supports CUDA, ROCm / HIP, Metal, and Vulkan. CPU fallback is always available when the accelerated path is unavailable or not worth the setup cost on your system.
