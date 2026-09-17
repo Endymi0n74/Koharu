@@ -160,6 +160,26 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr --dry-run
 koharu-batch --list-models
 ```
 
+### Installing the binary outside the repository
+
+Build it once from the repository (LLVM and CMake must be on the PATH, see
+`docs/development/setup.md`):
+
+```bash
+cargo build --release -p koharu-pipeline --bin koharu-batch
+```
+
+Then copy the single self-contained executable (48 MB on Windows, no extra DLLs) next to
+a Koharu app installation — or anywhere else:
+
+```bash
+copy target\release\koharu-batch.exe D:\koharu\koharu-batch.exe
+```
+
+When the binary sits next to a Koharu installation it finds the app's `store` directory
+automatically (all the models the app downloaded are reused); anywhere else, pass
+`--store D:\koharu\store` once or let it fall back to `%LOCALAPPDATA%\koharu\packages`.
+
 Full options (from `koharu-batch --help`): `--input`, `--output`, `--lang` (default
 `fr-FR`), `--llm` (model id or `auto`), `--quantization`, `--force`, `--vram-budget-mib`,
 `--detection`, `--ocr`, `--inpainting`, `--translation-instructions`, `--format`
