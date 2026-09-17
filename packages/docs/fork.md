@@ -118,7 +118,9 @@ reference table: a model that measured over the budget on *your* machine is refu
 stepped down by `auto`) even when the static estimate says it fits — and vice versa.
 
 `koharu-batch --list-models` shows both columns (estimate and what was measured locally).
-Deleting the calibration file restores the built-in reference estimates.
+`koharu-batch --reset-calibration` deletes the calibration file so later runs fall back
+to the built-in reference estimates, and `--no-calibration` runs a translation without
+reading or writing it (reference estimates, nothing recorded).
 
 ## Batch mode (`koharu-batch`)
 

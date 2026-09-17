@@ -83,6 +83,16 @@ struct Arguments {
     #[arg(long, value_name = "BASE|none")]
     report: Option<String>,
 
+    /// Delete the VRAM calibration file and exit; later runs fall back to the
+    /// built-in reference estimates until new measurements are recorded.
+    #[arg(long)]
+    reset_calibration: bool,
+
+    /// Run without reading or writing the calibration file: built-in
+    /// estimates only, nothing persisted.
+    #[arg(long)]
+    no_calibration: bool,
+
     #[arg(long, value_enum, default_value = "koharu-layout-rfdetr-seg-2xl")]
     detection: DetectionChoice,
 
@@ -364,6 +374,24 @@ fn output_page_path(output: &Path, index: usize, format: &str) -> PathBuf {
     output.join(format!("page-{index:04}.{format}"))
 }
 
+/// Handles `--reset-calibration`: deletes the calibration file so later runs
+/// fall back to the built-in reference estimates.
+fn reset_calibration(path: Option<&Path>) -> Result<()> {
+    let Some(path) = path else {
+        bail!("no calibration path could be resolved (no home directory?)");
+    };
+    match fs::remove_file(path) {
+        Ok(()) => eprintln!("calibration file removed: {}", path.display()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            eprintln!("no calibration file at {}", path.display());
+        }
+        Err(error) => {
+            return Err(error).with_context(|| format!("failed to remove {}", path.display()));
+        }
+    }
+    Ok(())
+}
+
 /// Maximum width or height of a report thumbnail.
 const THUMBNAIL_EDGE: u32 = 220;
 
@@ -480,10 +508,18 @@ fn encode_image(image: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, format: Fo
 async fn main() -> Result<()> {
     let arguments = Arguments::parse();
     let calibration_path = calibration::default_path();
-    let measurements = calibration_path
-        .as_deref()
-        .map(calibration::load)
-        .unwrap_or_default();
+    if arguments.reset_calibration {
+        reset_calibration(calibration_path.as_deref())?;
+        return Ok(());
+    }
+    let measurements = if arguments.no_calibration {
+        MeasuredPeaks::new()
+    } else {
+        calibration_path
+            .as_deref()
+            .map(calibration::load)
+            .unwrap_or_default()
+    };
     if arguments.list_models {
         list_models(&measurements);
         return Ok(());
@@ -548,7 +584,9 @@ async fn main() -> Result<()> {
     let vram_sampler = VramSampler::start_default(&device);
     let budget = detect_budget(&arguments, &device);
     let resolved = resolve_model(&arguments, budget, &measurements)?;
-    if measurements.is_empty() {
+    if arguments.no_calibration {
+        eprintln!("(--no-calibration: reference estimates, nothing recorded)");
+    } else if measurements.is_empty() {
         eprintln!("(no calibration file yet; estimates come from the reference table)");
     } else {
         eprintln!(
@@ -784,7 +822,8 @@ async fn main() -> Result<()> {
 
     // Persist the measured footprint of this run so future runs and budget
     // checks stay calibrated on this machine.
-    if let (Some(path), Some(sampler)) = (&calibration_path, &vram_sampler)
+    if !arguments.no_calibration
+        && let (Some(path), Some(sampler)) = (&calibration_path, &vram_sampler)
         && let Some(bytes) = sampler.peak_bytes()
     {
         let peak = MeasuredPeak {
