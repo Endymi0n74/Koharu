@@ -5,15 +5,16 @@ use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
-    sync::Arc,
-    time::Instant,
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, ValueEnum};
 use koharu_config::Config;
 use koharu_ml::Device;
-use koharu_pipeline::batch::{bootstrap, cbz, pages};
+use koharu_pipeline::batch::report::{PageOutcome, PageReport, RunReport};
+use koharu_pipeline::batch::{bootstrap, cbz, pages, report};
 use koharu_pipeline::{
     Committer, DetectionModel, Flux2KleinConfig, InpaintingModel, KoharuLayoutRFDetrSeg2XLConfig,
     OcrModel, Operation, Pipeline, PipelineConfig, Progress, Request, RoremMixedConfig, Scope,
@@ -43,11 +44,11 @@ impl Committer for SessionCommitter<'_> {
 struct Arguments {
     /// Folder of images or a .cbz file to translate.
     #[arg(short, long, value_name = "INPUT")]
-    input: PathBuf,
+    input: Option<PathBuf>,
 
     /// Output folder (pages as images) or .cbz path (packaged chapter).
     #[arg(short, long, value_name = "OUTPUT")]
-    output: PathBuf,
+    output: Option<PathBuf>,
 
     /// Target language tag (fr-FR, en-US, …).
     #[arg(long, default_value = "fr-FR")]
@@ -68,6 +69,16 @@ struct Arguments {
     /// Assume this much VRAM in MiB instead of querying the GPU.
     #[arg(long, value_name = "MIB")]
     vram_budget_mib: Option<u64>,
+
+    /// Runtime store holding models and runtimes (defaults to the app
+    /// install's `store` directory when the binary lives next to it).
+    #[arg(long, value_name = "DIR")]
+    store: Option<PathBuf>,
+
+    /// End-of-run report: writes `<BASE>.md` and `<BASE>.html`; pass `none`
+    /// to disable. Defaults to `<OUTPUT-STEM>-report` next to the output.
+    #[arg(long, value_name = "BASE|none")]
+    report: Option<String>,
 
     #[arg(long, value_enum, default_value = "koharu-layout-rfdetr-seg-2xl")]
     detection: DetectionChoice,
@@ -156,6 +167,22 @@ struct Resolved {
     model: String,
     quantization: String,
     estimate: preset::VramEstimate,
+}
+
+/// Store root used when `--store` is not given: the `store` directory next to
+/// this executable when it exists (a Koharu app installation), otherwise the
+/// operating-system cache default.
+fn default_store_root() -> PathBuf {
+    if let Some(directory) = dirs::executable_dir() {
+        let candidate = directory.join("store");
+        if candidate.is_dir() {
+            return candidate;
+        }
+    }
+    dirs::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("koharu")
+        .join("packages")
 }
 
 fn gib(bytes: u64) -> String {
@@ -274,24 +301,21 @@ fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineConfig
 }
 
 enum InputPages {
-    Directory(PathBuf, Vec<pages::PageSource>),
+    Directory(Vec<pages::PageSource>),
     Archive(PathBuf, Vec<pages::PageSource>),
 }
 
 impl InputPages {
     fn list(&self) -> &[pages::PageSource] {
         match self {
-            Self::Directory(_, entries) | Self::Archive(_, entries) => entries,
+            Self::Directory(entries) | Self::Archive(_, entries) => entries,
         }
     }
 }
 
 fn list_input_pages(input: &Path) -> Result<InputPages> {
     if input.is_dir() {
-        return Ok(InputPages::Directory(
-            input.to_owned(),
-            pages::list_directory_pages(input)?,
-        ));
+        return Ok(InputPages::Directory(pages::list_directory_pages(input)?));
     }
     if input.is_file() {
         let extension = input
@@ -311,8 +335,8 @@ fn list_input_pages(input: &Path) -> Result<InputPages> {
 
 fn read_page_bytes(input: &InputPages, source: &pages::PageSource) -> Result<Vec<u8>> {
     match input {
-        InputPages::Directory(directory, _) => match &source.location {
-            pages::Location::File(path) => fs::read(directory.join(path))
+        InputPages::Directory(_) => match &source.location {
+            pages::Location::File(path) => fs::read(path)
                 .with_context(|| format!("failed to read {}", path.display())),
             pages::Location::Entry(_) => bail!("page {} has an inconsistent source", source.name),
         },
@@ -327,10 +351,55 @@ fn output_page_path(output: &Path, index: usize, format: &str) -> PathBuf {
     output.join(format!("page-{index:04}.{format}"))
 }
 
+/// Run-level facts shared by every page row of the report.
+struct RunMetadata {
+    model: String,
+    quantization: String,
+    vram_estimate: String,
+    language: String,
+    input: String,
+    output: String,
+    device: String,
+    started_at: String,
+}
+
+/// Writes the Markdown and HTML reports for the run.
+fn write_run_report(
+    base: &Path,
+    pages: Vec<PageReport>,
+    total_elapsed: Duration,
+    metadata: &RunMetadata,
+) -> Result<()> {
+    let run_report = RunReport {
+        pages,
+        total_elapsed,
+        model: metadata.model.clone(),
+        quantization: metadata.quantization.clone(),
+        vram_estimate: Some(metadata.vram_estimate.clone()),
+        language: metadata.language.clone(),
+        input: metadata.input.clone(),
+        output: metadata.output.clone(),
+        device: metadata.device.clone(),
+        started_at: metadata.started_at.clone(),
+    };
+    let markdown_path = base.with_extension("md");
+    let html_path = base.with_extension("html");
+    fs::write(&markdown_path, report::to_markdown(&run_report))
+        .with_context(|| format!("failed to write {}", markdown_path.display()))?;
+    fs::write(&html_path, report::to_html(&run_report))
+        .with_context(|| format!("failed to write {}", html_path.display()))?;
+    eprintln!(
+        "report written: {} and {}",
+        markdown_path.display(),
+        html_path.display()
+    );
+    Ok(())
+}
+
 fn list_models() {
     println!(
-        "{:<26} {:<7} {:<14} {}",
-        "model", "vision", "quantization", "estimated VRAM"
+        "{:<26} {:<7} {:<14} estimated VRAM",
+        "model", "vision", "quantization"
     );
     for model in preset::vram_catalog(true) {
         for quantization in &model.quantizations {
@@ -363,9 +432,63 @@ async fn main() -> Result<()> {
         list_models();
         return Ok(());
     }
-    bootstrap::initialize_with_retry().await;
+    let run_started_at = report::timestamp_now();
+    let Some(input_path) = arguments.input.as_deref() else {
+        bail!("--input is required (folder of images or a .cbz archive)");
+    };
+    let Some(output) = arguments.output.clone() else {
+        bail!("--output is required (folder for page images, or a .cbz path)");
+    };
+    let store = arguments.store.clone().unwrap_or_else(default_store_root);
+    koharu_runtime::Store::configure(&store)
+        .with_context(|| format!("failed to configure the runtime store at {}", store.display()))?;
+
+    let input = list_input_pages(input_path)?;
+    let all_pages = input.list();
+    let output_is_archive = output
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("cbz") || extension.eq_ignore_ascii_case("zip")
+        });
+    if output_is_archive {
+        if let Some(parent) = output.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+    } else {
+        fs::create_dir_all(&output)
+            .with_context(|| format!("failed to create {}", output.display()))?;
+    }
+
+    let resume_skip = |page: &pages::PageSource| {
+        !arguments.overwrite
+            && !output_is_archive
+            && output_page_path(&output, page.index, arguments.format.extension()).exists()
+    };
+    let mut pages_report: Vec<Option<PageReport>> = all_pages
+        .iter()
+        .map(|page| {
+            resume_skip(page).then(|| PageReport {
+                index: page.index,
+                name: page.name.clone(),
+                outcome: PageOutcome::Skipped,
+            })
+        })
+        .collect();
+    let pending: Vec<&pages::PageSource> = all_pages
+        .iter()
+        .filter(|page| !resume_skip(page))
+        .collect();
+    eprintln!(
+        "{} pages ({} to translate) -> {}",
+        all_pages.len(),
+        pending.len(),
+        output.display()
+    );
 
     let device = koharu_ml::device(arguments.cpu);
+    let device_description = device.description.clone();
     let budget = detect_budget(&arguments, &device);
     let resolved = resolve_model(&arguments, budget)?;
     eprintln!(
@@ -379,38 +502,25 @@ async fn main() -> Result<()> {
         )
     );
 
-    let input = list_input_pages(&arguments.input)?;
-    let all_pages = input.list();
-    let output_is_archive = arguments
-        .output
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("cbz") || extension.eq_ignore_ascii_case("zip")
-        });
-    if output_is_archive && input.list().iter().any(|page| matches!(page.location, pages::Location::File(_))) && false {
-        unreachable!("folder inputs cannot be rejected here");
-    }
-
-    let pending: Vec<&pages::PageSource> = all_pages
-        .iter()
-        .filter(|page| {
-            if arguments.overwrite || output_is_archive {
-                return true;
-            }
-            !output_page_path(&arguments.output, page.index, arguments.format.extension()).exists()
-        })
-        .collect();
-    eprintln!(
-        "{} pages ({} to translate) -> {}",
-        all_pages.len(),
-        pending.len(),
-        arguments.output.display()
-    );
-
     let config = pipeline_config(&arguments, &resolved);
+    let metadata = RunMetadata {
+        model: resolved.model.clone(),
+        quantization: resolved.quantization.clone(),
+        vram_estimate: resolved.estimate.display(),
+        language: arguments.lang.tag().to_owned(),
+        input: input_path.display().to_string(),
+        output: output.display().to_string(),
+        device: device_description,
+        started_at: run_started_at,
+    };
+    let report_base = match arguments.report.as_deref() {
+        Some("none") => None,
+        Some(base) => Some(PathBuf::from(base)),
+        None => Some(output.with_extension("report")),
+    };
+    let started = Instant::now();
     if arguments.dry_run {
-        eprintln!("dry run: no model download, no page processed");
+        eprintln!("dry run: no runtime download, no page processed");
         for page in &pending {
             eprintln!("  would translate: {}", page.name);
         }
@@ -418,9 +528,18 @@ async fn main() -> Result<()> {
     }
     if pending.is_empty() {
         eprintln!("nothing to do; use --overwrite to re-translate existing pages");
+        if let Some(base) = &report_base {
+            write_run_report(
+                base,
+                pages_report.into_iter().flatten().collect(),
+                started.elapsed(),
+                &metadata,
+            )?;
+        }
         return Ok(());
     }
 
+    bootstrap::initialize_with_retry().await;
     let pipeline = Pipeline::from_config(
         Config::memory(config),
         Config::memory(ProvidersConfig::default()),
@@ -429,18 +548,25 @@ async fn main() -> Result<()> {
     let mut session = Session::memory().await?;
     let renderer = Renderer::new()?;
     let mut archive_output = output_is_archive
-        .then(|| cbz::ArchiveOutput::create(&arguments.output))
+        .then(|| cbz::ArchiveOutput::create(&output))
         .transpose()?;
     let mut failures = Vec::new();
     let total_pages = pending.len();
-    let started = Instant::now();
 
     for page in &pending {
         let page_name = page.name.clone();
+        let page_started = Instant::now();
+        let stage_timings = Arc::new(Mutex::new(Vec::<(String, Duration)>::new()));
+        let closure_timings = Arc::clone(&stage_timings);
         let bytes = match read_page_bytes(&input, page) {
             Ok(bytes) => bytes,
             Err(error) => {
                 eprintln!("[{page_name}] failed to read: {error:#}");
+                pages_report[page.index] = Some(PageReport::failed(
+                    page.index,
+                    page_name.clone(),
+                    format!("read failed: {error:#}"),
+                ));
                 failures.push((page_name, error.to_string()));
                 continue;
             }
@@ -449,6 +575,11 @@ async fn main() -> Result<()> {
             Ok(decoded) => decoded,
             Err(error) => {
                 eprintln!("[{page_name}] failed to decode: {error}");
+                pages_report[page.index] = Some(PageReport::failed(
+                    page.index,
+                    page_name.clone(),
+                    format!("decode failed: {error}"),
+                ));
                 failures.push((page_name, "decode failed".to_owned()));
                 continue;
             }
@@ -491,9 +622,13 @@ async fn main() -> Result<()> {
                 Request {
                     operation: Operation::Full,
                     scope: Scope::Pages(vec![page_id]),
-                    progress: Some(Arc::new(|event| {
+                    progress: Some(Arc::new(move |event| {
                         if let Progress::Finished { stage, elapsed, .. } = event {
                             eprintln!("  {stage} finished in {:.2}s", elapsed.as_secs_f64());
+                            closure_timings
+                                .lock()
+                                .expect("stage timings mutex")
+                                .push((stage.to_string(), elapsed));
                         }
                     })),
                     ..Request::default()
@@ -505,6 +640,11 @@ async fn main() -> Result<()> {
             Ok(report) => report,
             Err(error) => {
                 eprintln!("[{page_name}] translation failed: {error:#}");
+                pages_report[page.index] = Some(PageReport::failed(
+                    page.index,
+                    page_name.clone(),
+                    format!("pipeline failed: {error:#}"),
+                ));
                 failures.push((page_name, error.to_string()));
                 continue;
             }
@@ -516,6 +656,11 @@ async fn main() -> Result<()> {
             Ok(encoded) => encoded,
             Err(error) => {
                 eprintln!("[{page_name}] failed to encode: {error}");
+                pages_report[page.index] = Some(PageReport::failed(
+                    page.index,
+                    page_name.clone(),
+                    format!("encode failed: {error}"),
+                ));
                 failures.push((page_name, error.to_string()));
                 continue;
             }
@@ -524,7 +669,7 @@ async fn main() -> Result<()> {
             Some(archive) => archive.add_page(&page_name, page.media_type, &encoded)?,
             None => {
                 let target = output_page_path(
-                    &arguments.output,
+                    &output,
                     page.index,
                     arguments.format.extension(),
                 );
@@ -533,10 +678,30 @@ async fn main() -> Result<()> {
             }
         }
         eprintln!("[{page_name}] done in {:.2}s", report.elapsed.as_secs_f64());
+        pages_report[page.index] = Some(PageReport {
+            index: page.index,
+            name: page_name,
+            outcome: PageOutcome::Translated {
+                elapsed: page_started.elapsed(),
+                stages: stage_timings
+                    .lock()
+                    .expect("stage timings mutex")
+                    .clone(),
+            },
+        });
     }
 
     if let Some(archive) = archive_output {
         archive.finish()?;
+    }
+
+    if let Some(base) = &report_base {
+        write_run_report(
+            base,
+            pages_report.into_iter().flatten().collect(),
+            started.elapsed(),
+            &metadata,
+        )?;
     }
 
     if failures.is_empty() {
