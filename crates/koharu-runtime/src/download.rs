@@ -20,7 +20,10 @@ use tokio::{
     sync::broadcast,
 };
 
-use crate::network;
+use crate::{
+    network,
+    store::{FileExpectation, verify_artifact},
+};
 
 const EVENT_CAPACITY: usize = 256;
 const CHUNK_SIZE: u64 = 64 * 1024 * 1024;
@@ -133,7 +136,24 @@ fn client(http: reqwest::Client, max_retries: usize) -> DownloadClient {
         .clone()
 }
 
+/// Downloads `url` into `destination`.
 pub(crate) async fn fetch(url: &str, destination: &Path) -> Result<()> {
+    fetch_with(url, destination, &FileExpectation::default()).await
+}
+
+/// Downloads `url` into `destination` and verifies the artifact against
+/// `expected` before publishing it, so a truncated or corrupt transfer never
+/// reaches the store. An empty expectation degrades to transport-level
+/// completeness checks (byte counts and range validation).
+pub(crate) async fn fetch_verified(
+    url: &str,
+    destination: &Path,
+    expected: &FileExpectation,
+) -> Result<()> {
+    fetch_with(url, destination, expected).await
+}
+
+async fn fetch_with(url: &str, destination: &Path, expected: &FileExpectation) -> Result<()> {
     let name = reqwest::Url::parse(url)
         .ok()
         .and_then(|url| {
@@ -149,14 +169,18 @@ pub(crate) async fn fetch(url: &str, destination: &Path) -> Result<()> {
     let max_retries = config.max_retries as usize;
     let client = client(http, max_retries);
     let activity = Activity::start(name);
-    let result = fetch_http(
-        &activity,
-        &client,
-        url,
-        destination,
-        read_timeout,
-        max_retries,
-    )
+    let result = async {
+        fetch_http(
+            &activity,
+            &client,
+            url,
+            destination,
+            read_timeout,
+            max_retries,
+        )
+        .await?;
+        verify_artifact(destination, expected).await
+    }
     .await;
     activity.finish(destination, result).await
 }

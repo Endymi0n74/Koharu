@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
-use crate::{downloads::Transfer, store::FileExpectation};
+use crate::{network, store::FileExpectation};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Platform {
@@ -53,7 +53,7 @@ pub(crate) struct Wheel {
 
 pub(crate) async fn wheel(project: &str, platform: Platform) -> Result<Wheel> {
     let url = format!("https://pypi.org/pypi/{project}/json");
-    let metadata: Metadata = Transfer::new()?
+    let metadata: Metadata = network::http()?
         .get(&url)
         .send()
         .await

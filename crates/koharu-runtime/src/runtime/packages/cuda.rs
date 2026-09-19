@@ -139,13 +139,14 @@ impl Package for Cuda {
     async fn install(self) -> Result<PathBuf> {
         let project = self.get_str("project").expect("CUDA package has a project");
         let target = Store::root().join("cuda").join(project.replace('/', "--"));
+        let resolved = wheel(project, Platform::host()?).await?;
         Store::directory(
             target,
+            resolved.expected.clone(),
             move |path| self.library_paths(path).is_ok(),
-            move |stage| async move {
-                let url = wheel(project, Platform::host()?).await?;
+            move |stage, expected| async move {
                 let archive = tempfile::Builder::new().suffix(".whl").tempfile()?;
-                download::fetch(&url, archive.path()).await?;
+                download::fetch_verified(&resolved.url, archive.path(), &expected).await?;
                 extract(
                     archive.path(),
                     &stage,

@@ -7,8 +7,12 @@ use crate::{ModelGeneration, ModelSelection, QuantizationDefinition};
 pub(crate) const DEFAULT_MODEL: &str = "gemma4-12b-it";
 pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_XL";
 
+/// Languages a catalog entry can translate into.
+///
+/// Public because [`super::preset`] exposes descriptors (and therefore this
+/// field's type) to the batch CLI's model picker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum SupportedLanguages {
+pub enum SupportedLanguages {
     All,
     Limited(&'static [crate::Language]),
 }
@@ -23,8 +27,12 @@ impl SupportedLanguages {
     }
 }
 
+/// One downloadable local translation model.
+///
+/// Public because [`super::preset`] owns VRAM budgeting over these entries and
+/// returns them to the batch CLI; the fields stay crate-private.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct LocalModelDescriptor {
+pub struct LocalModelDescriptor {
     pub(crate) id: &'static str,
     pub(crate) reasoning: bool,
     pub(crate) name: &'static str,

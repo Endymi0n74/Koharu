@@ -9,7 +9,7 @@ use crate::{
         DiscoverablePackage, Package, RuntimePackage, graph::Component, loader, packages::Cuda,
         sealed,
     },
-    source::extract,
+    source::{extract, release_asset},
 };
 
 const RELEASE: &str = "master-853-b68d586";
@@ -100,16 +100,18 @@ impl Package for Diffusion {
             .join("diffusion")
             .join(RELEASE)
             .join(self.to_string());
+        let asset = self.asset();
+        let url = format!(
+            "https://github.com/koharu-rs/diffusion/releases/download/{RELEASE}/{asset}"
+        );
+        let expected = release_asset("koharu-rs", "diffusion", RELEASE, asset).await;
         Store::directory(
             target,
+            expected,
             move |path| self.complete(path),
-            move |stage| async move {
-                let asset = self.asset();
-                let url = format!(
-                    "https://github.com/koharu-rs/diffusion/releases/download/{RELEASE}/{asset}"
-                );
+            move |stage, expected| async move {
                 let archive = tempfile::Builder::new().suffix(".tar.gz").tempfile()?;
-                download::fetch(&url, archive.path()).await?;
+                download::fetch_verified(&url, archive.path(), &expected).await?;
                 extract(
                     archive.path(),
                     &stage,

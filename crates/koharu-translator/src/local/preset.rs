@@ -352,6 +352,13 @@ pub fn supports_vision(descriptor: &LocalModelDescriptor) -> bool {
     descriptor.projector.is_some()
 }
 
+/// Whether the model emits reasoning traces that have to be stripped before
+/// its translations are parsed.
+#[must_use]
+pub fn is_reasoning(descriptor: &LocalModelDescriptor) -> bool {
+    descriptor.reasoning
+}
+
 /// Default quantization id of a model (first catalog entry).
 #[must_use]
 pub fn default_quantization(descriptor: &LocalModelDescriptor) -> &'static str {
