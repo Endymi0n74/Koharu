@@ -20,11 +20,11 @@ use local::LocalTranslator;
 
 pub use backend::{TranslationContext, TranslationRequest};
 pub use language::Language;
+pub use local::preset;
 pub use model::{GenerationConfig, Model, ModelSelection, Quantization};
 pub(crate) use model::{ModelGeneration, QuantizationDefinition, display_name};
 pub use provider::{Provider, ProviderConfig, ProvidersConfig};
 pub use typography::{TypographyProfile, normalize_segment};
-pub use local::preset;
 
 #[derive(Clone)]
 pub struct Translator {
@@ -32,6 +32,25 @@ pub struct Translator {
     local: Arc<tokio::sync::Mutex<Option<LoadedLocal>>>,
     client: reqwest::Client,
     device: Device,
+}
+
+/// Folds a retry response into the first one, mapping the retry's own indices
+/// back through the indices it was asked for.
+fn merge_retry(
+    translated: &mut prompt::Translations,
+    missing: &[usize],
+    retried: prompt::Translations,
+) {
+    for (offset, text) in retried.texts.into_iter().enumerate() {
+        if let Some(index) = missing.get(offset) {
+            translated.texts[*index] = text;
+        }
+    }
+    translated.untranslated = retried
+        .untranslated
+        .into_iter()
+        .filter_map(|offset| missing.get(offset).copied())
+        .collect();
 }
 
 struct LoadedLocal {
@@ -120,24 +139,53 @@ impl Translator {
         }
 
         let expected = request.segments.len();
-        let translated = if provider == Provider::Local {
-            self.local(selection)
-                .await?
-                .translate(request, generation)
-                .await?
-        } else {
-            let providers = self.providers.read()?.clone();
-            remote::translate(&self.client, &providers, selection, &generation, &request).await?
-        };
-        if translated.len() != expected {
+        let mut translated = self.attempt(selection, &generation, &request).await?;
+        if !translated.untranslated.is_empty() {
+            // A page must not come back half in the source language, so the
+            // segments a first response left untranslated get one focused
+            // follow-up before the caller sees the result.
+            let missing = std::mem::take(&mut translated.untranslated);
+            let retry = prompt::retry_request(&request, &missing);
+            match self.attempt(selection, &generation, &retry).await {
+                Ok(retried) => merge_retry(&mut translated, &missing, retried),
+                Err(error) => {
+                    tracing::warn!(%error, provider = provider_id, "translation retry failed");
+                    translated.untranslated = missing;
+                }
+            }
+        }
+        if !translated.untranslated.is_empty() {
+            tracing::warn!(
+                provider = provider_id,
+                segments = ?translated.untranslated,
+                "translation left segments in the source language"
+            );
+        }
+        if translated.texts.len() != expected {
             return Err(Error::SegmentCount {
                 provider: provider_id,
                 expected,
-                actual: translated.len(),
+                actual: translated.texts.len(),
             }
             .into());
         }
-        Ok((provider_id, translated))
+        Ok((provider_id, translated.texts))
+    }
+
+    /// One round trip to the selected provider.
+    async fn attempt(
+        &self,
+        selection: &ModelSelection,
+        generation: &GenerationConfig,
+        request: &TranslationRequest,
+    ) -> Result<prompt::Translations> {
+        if selection.provider == Provider::Local {
+            let local = self.local(selection).await?;
+            local.translate(request, *generation).await
+        } else {
+            let providers = self.providers.read()?.clone();
+            remote::translate(&self.client, &providers, selection, generation, request).await
+        }
     }
 
     #[tracing::instrument(skip_all)]

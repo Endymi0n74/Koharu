@@ -10,7 +10,7 @@ use url::Url;
 use super::send_json;
 use crate::{
     GenerationConfig as TranslationGeneration, Model, Provider, Result, TranslationRequest,
-    backend::encode_image, prompt,
+    backend::encode_image, prompt, prompt::Translations,
 };
 
 const ROOT: &str = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -50,7 +50,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &TranslationGeneration,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key = koharu_secrets::get("gemini")?.context("gemini API key is not configured")?;
     let (system, user) = prompt::prompts(request)?;
     let schema = prompt::output_schema(request.segments.len());
@@ -81,7 +81,7 @@ pub(super) async fn translate(
         .and_then(|candidate| candidate.content.parts.into_iter().next())
         .context("Gemini returned no candidate content")?
         .text;
-    Ok(prompt::translations("gemini", &text, &request.segments)?)
+    Ok(prompt::translations("gemini", &text, request)?)
 }
 
 #[derive(Serialize)]

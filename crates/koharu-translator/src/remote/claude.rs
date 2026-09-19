@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::send_json;
 use crate::{
     GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image, prompt,
+    prompt::Translations,
 };
 
 const URL: &str = "https://api.anthropic.com/v1/messages";
@@ -43,7 +44,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key = koharu_secrets::get("claude")?.context("claude API key is not configured")?;
     let (system, user) = prompt::prompts(request)?;
     let body = Request {
@@ -76,7 +77,7 @@ pub(super) async fn translate(
         .into_iter()
         .find_map(|block| (block.kind == "text").then_some(block.text).flatten())
         .context("Claude returned no text content")?;
-    Ok(prompt::translations("claude", &text, &request.segments)?)
+    Ok(prompt::translations("claude", &text, request)?)
 }
 
 #[derive(Serialize)]

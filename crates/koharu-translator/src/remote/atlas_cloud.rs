@@ -6,7 +6,7 @@ use koharu_secrets::ExposeSecret;
 use reqwest::Client;
 
 use super::openai_compatible::{ChatBackend, ResponseMode};
-use crate::{GenerationConfig, Model, Provider, Result, TranslationRequest};
+use crate::{GenerationConfig, Model, Provider, Result, TranslationRequest, prompt::Translations};
 
 const CHAT_URL: &str = "https://api.atlascloud.ai/v1/chat/completions";
 const MODELS_URL: &str = "https://api.atlascloud.ai/v1/models";
@@ -23,7 +23,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key =
         koharu_secrets::get("atlas-cloud")?.context("atlas-cloud API key is not configured")?;
     super::openai_compatible::translate(

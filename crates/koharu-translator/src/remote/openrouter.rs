@@ -7,7 +7,7 @@ use reqwest::Client;
 use serde::Deserialize;
 
 use super::openai_compatible::{ChatBackend, ResponseMode};
-use crate::{GenerationConfig, Model, Provider, Result, TranslationRequest};
+use crate::{GenerationConfig, Model, Provider, Result, TranslationRequest, prompt::Translations};
 
 const CHAT_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 const MODELS_URL: &str = "https://openrouter.ai/api/v1/models";
@@ -24,7 +24,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key =
         koharu_secrets::get("openrouter")?.context("openrouter API key is not configured")?;
     let mut backend = ChatBackend::new(

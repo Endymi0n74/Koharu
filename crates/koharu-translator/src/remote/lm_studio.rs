@@ -10,7 +10,7 @@ use url::Url;
 use super::send_json;
 use crate::{
     GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image,
-    display_name, prompt,
+    display_name, prompt, prompt::Translations,
 };
 
 const DEFAULT_BASE_URL: &str = "http://localhost:1234";
@@ -35,7 +35,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key = koharu_secrets::get("lm-studio")?;
     let (system, input) = prompt::prompts(request)?;
     let body = ChatRequest {
@@ -62,7 +62,7 @@ pub(super) async fn translate(
                 .flatten()
         })
         .context("LM Studio returned no message output")?;
-    Ok(prompt::translations("lm-studio", &text, &request.segments)?)
+    Ok(prompt::translations("lm-studio", &text, request)?)
 }
 
 pub(super) async fn models(client: &Client, config: &LmStudioConfig) -> Result<Vec<Model>> {

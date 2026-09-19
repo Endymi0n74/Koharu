@@ -14,7 +14,7 @@ pub(crate) use catalog::{DEFAULT_MODEL, DEFAULT_QUANTIZATION};
 
 use crate::{
     Device, Error, GenerationConfig, Model, ModelSelection, Provider, Quantization, Result,
-    TranslationRequest, prompt,
+    TranslationRequest, prompt, prompt::Translations,
 };
 
 #[derive(Debug)]
@@ -56,12 +56,12 @@ impl LocalTranslator {
 
     pub(crate) async fn translate(
         &self,
-        request: TranslationRequest,
+        request: &TranslationRequest,
         generation: GenerationConfig,
-    ) -> Result<Vec<String>> {
+    ) -> Result<Translations> {
         let expected = request.segments.len();
         if expected == 0 {
-            return Ok(Vec::new());
+            return Ok(Translations::complete(Vec::new()));
         }
         if !self
             .descriptor
@@ -75,10 +75,16 @@ impl LocalTranslator {
         }
 
         let image = request.image.clone();
-        let prompt = self.render_prompt(&request)?;
+        let prompt = self.render_prompt(request)?;
         let schema = prompt::output_schema(expected);
         let llm = Arc::clone(&self.llm);
-        let generation = self.descriptor.generation.options(generation);
+        let mut generation = self.descriptor.generation.options(generation);
+        // The schema makes the model emit one entry per segment, so a catalog
+        // default sized for a short prompt leaves the tail of a dense page
+        // untranslated.
+        generation.max_tokens = generation
+            .max_tokens
+            .max(prompt::output_budget(&request.segments));
         let output = tokio::task::spawn_blocking(move || {
             let input = image.as_deref().map_or_else(
                 || Input::new(&prompt),
@@ -88,8 +94,7 @@ impl LocalTranslator {
         })
         .await
         .context("local translation task panicked")??;
-        let segments = prompt::translations("local", &output.text, &request.segments)?;
-        Ok(segments)
+        Ok(prompt::translations("local", &output.text, request)?)
     }
 
     fn render_prompt(&self, request: &TranslationRequest) -> Result<String> {

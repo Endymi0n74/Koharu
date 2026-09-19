@@ -8,7 +8,7 @@ use serde::Deserialize;
 use url::Url;
 
 use super::send_json;
-use crate::{Error, Language, Model, Provider, Result, TranslationRequest};
+use crate::{Error, Language, Model, Provider, Result, TranslationRequest, prompt::Translations};
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, specta::Type)]
 #[serde(default)]
@@ -28,21 +28,15 @@ pub(super) async fn translate(
     client: &Client,
     config: &DeepLConfig,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key = koharu_secrets::get("deepl")?.context("deepl API key is not configured")?;
     let target = target(request.target_language).ok_or(Error::UnsupportedLanguage {
         provider: "deepl",
         language: request.target_language,
     })?;
-    let source = request
-        .source_language
-        .map(|language| {
-            source(language).ok_or(Error::UnsupportedSourceLanguage {
-                provider: "deepl",
-                language,
-            })
-        })
-        .transpose()?;
+    // The recognized source language is a hint: DeepL auto-detects, so a
+    // language it does not name must not fail the page.
+    let source = request.source_language.and_then(source);
     let root = config.base_url.as_ref().map_or_else(
         || {
             if api_key.expose_secret().trim_end().ends_with(":fx") {
@@ -83,11 +77,15 @@ pub(super) async fn translate(
             .form(&form),
     )
     .await?;
-    Ok(response
-        .translations
-        .into_iter()
-        .map(|translation| translation.text)
-        .collect())
+    // DeepL translates every submitted segment, so nothing can come back
+    // untranslated.
+    Ok(Translations::complete(
+        response
+            .translations
+            .into_iter()
+            .map(|translation| translation.text)
+            .collect(),
+    ))
 }
 
 #[derive(Deserialize)]

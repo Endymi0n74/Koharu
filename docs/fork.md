@@ -15,10 +15,15 @@ On top of upstream Koharu, this fork currently adds:
 
 - **Batch CLI (`koharu-batch`)** — translate a whole chapter (folder of images or CBZ) in one
   unattended command, with natural page ordering, resume support, per-page fault isolation,
-  a VRAM budget guard, and a `--llm auto` model picker (see *Batch mode* below).
+  a VRAM budget guard, and a `--llm auto` model picker that scales up with the GPU (see
+  *Batch mode* below).
 - **French typography profile** — `fr-FR` output normalization (guillemets, curly apostrophes,
   narrow no-break spaces) applied before rendering, with stylized lettering preserved
   (see *French typography profile* below).
+- **Chapter-level translation quality** — the translator receives the source language OCR
+  recognized, the already translated lines of the earlier pages, and one focused follow-up
+  for any segment a response left untranslated, so a chapter does not come out half in
+  Japanese (see *Translation quality and chapter continuity* below).
 - **Download integrity validation** — model and runtime-package downloads are verified
   against expected size and SHA-256 before they are published to the store.
 - **llama.cpp log surfacing** — when a GGUF model fails to load, the concrete llama.cpp/ggml
@@ -85,18 +90,46 @@ Measurements on a Ryzen 7600 / 32 GB RAM / RTX 3070 (8 GB, CUDA, BF16), with a r
 | Model | Quantization | Size | Generation | VRAM (peak, no vision) |
 |---|---|---|---|---|
 | gemma-4-E2B-it | Q4_K_XL | 2.4 GB | ~139 tok/s | ~3.1 GB |
-| **gemma-4-E4B-uncensored** | **Q4_K_P** | **5.0 GB** | **~80 tok/s** | **~4.8 GB** |
+| **gemma-4-E4B-uncensored** | **Q4_K_P** | **5.0 GB** | **~80 tok/s** | **~5.4 GB** (6.3 GB with vision) |
 | Ministral-3-8B | Q4_K_M | 4.8 GB | ~66 tok/s | ~6.6 GB |
 | gemma-4-12B-it | Q4_K_XL | 6.3 GB | ~20 tok/s | ~7.7 GB |
 
 Recommendation for an 8 GB card:
 
-- **Default: `gemma4-e4b-uncensored` (Q4_K_P)** — uncensored, vision-capable (adds ~0.9 GB
-  for the projector), comfortably inside 8 GB, and roughly 4× faster than the 12B model.
+- **Default: `gemma4-e4b-uncensored` (Q4_K_P)** — uncensored, vision-capable (the projector
+  adds ~0.9 GiB, for a 6.3 GiB peak against the ~7.2 GiB an 8 GB card can spare), and roughly
+  4× faster than the 12B model.
 - **Fast text-only:** `ministral-3-8b-instruct` — fastest dense option, but no vision.
 - **Very fast with vision:** `gemma4-e2b-it` — low VRAM, lower translation quality.
 - **Avoid `gemma4-12b-it` on 8 GB** — it peaks at ~7.7 GB *without* the vision projector and
   becomes the slowest option.
+
+### Larger GPUs: what `--llm auto` picks
+
+`auto` walks the preference list from the largest model down and takes the first one that fits,
+so a card with more VRAM gets a stronger translation model instead of the 8 GB recommendation.
+The *download* column is what the configuration needs in the store (weights plus vision
+projector); the *VRAM* column is the peak it has to fit. Both are reported in GiB, as in the
+CLI output. Only the 8 GiB row is a measured peak — the larger ones come from the
+parameter/quantization formula until a real run calibrates them, so treat them as planning
+figures and let `--dry-run` confirm the plan.
+
+| Card | Model | Quantization | Download | VRAM peak |
+|---|---|---|---|---|
+| 8 GiB | gemma4-e4b-uncensored | Q4_K_P | ≈5.3 GiB | 6.3 GiB (measured) |
+| 12 GiB | gemma4-12b-uncensored | Q4_K_M | ≈7.3 GiB | 8.3 GiB (estimated) |
+| 20 GiB | gemma4-26b-a4b-uncensored | Q4_K_M | ≈14.7 GiB | 15.7 GiB (estimated) |
+| 24 GiB and up | gemma4-31b-uncensored | Q4_K_M | ≈17.4 GiB | 18.4 GiB (estimated) |
+
+Below 8 GiB the list steps down to the instruct 4B, the dense 8B, and the small 2B, and a card
+too small for any vision model makes `auto` refuse instead of guessing (pass `--llm` explicitly
+with `--force`, or `--cpu`).
+
+Because `auto` can now select a model that is not in the store yet, the run prints what it
+picked together with the download it implies, and warns explicitly when the choice needs more
+than 8 GiB — the first page then waits for that one-time download. `--list-models` shows the
+same figure for every model and quantization, and `--llm <id> --quantization <id>` always
+overrides the automatic pick.
 
 The selected model and quantization live in `~/.koharu/config.toml`:
 
@@ -117,7 +150,8 @@ Later runs, `--llm auto`, and the budget guard then prefer that measurement over
 reference table: a model that measured over the budget on *your* machine is refused (or
 stepped down by `auto`) even when the static estimate says it fits — and vice versa.
 
-`koharu-batch --list-models` shows both columns (estimate and what was measured locally).
+`koharu-batch --list-models` shows the VRAM estimate, the download size, and what was measured
+locally.
 `koharu-batch --reset-calibration` deletes the calibration file so later runs fall back
 to the built-in reference estimates, and `--no-calibration` runs a translation without
 reading or writing it (reference estimates, nothing recorded).
@@ -138,8 +172,8 @@ Key behaviors:
 - **Per-page fault isolation** — a page that fails (bad OCR, corrupted image) is reported and
   skipped; it does not abort the chapter.
 - **VRAM budget guard** — the binary queries the GPU (NVML on Windows) and refuses to start
-  if the selected model/quantization cannot fit; `--llm auto` picks the best-fitting model,
-  and `--force` overrides the check.
+  if the selected model/quantization cannot fit; `--llm auto` picks the strongest model that
+  fits (and warns before a large first download), and `--force` overrides the check.
 - **French typography by default** — output text goes through the `fr-FR` profile:
   guillemets « », curly apostrophes ’, and narrow no-break spaces before `; : ! ?` and inside
   guillemets (see the typography notes below).
@@ -241,3 +275,26 @@ desktop app and in `koharu-batch`):
 
 The profile lives in `koharu-translator/src/typography.rs` and is applied in the translation
 stage before the renderer sees the text.
+
+## Translation quality and chapter continuity
+
+The translation stage translates a page as part of its chapter, not as an isolated sheet:
+
+- **Source language** — OCR records the language it recognized (`ja-JP` for manga); the
+  translator is told the source language instead of guessing it from the segments.
+- **Chapter context** — the last 12 translated lines of the *earlier* pages are passed as
+  `context`, so names, places, tone, and recurring phrases stay consistent across page
+  boundaries. Untranslated lines and lines longer than 160 characters are left out, and the
+  entries themselves are never translated back.
+- **No half-translated pages** — a response that omits a segment, returns it empty, or echoes
+  it back in the source script is detected, and those segments get one focused follow-up
+  request (the rest of the page is never regenerated). The output budget of the constrained
+  JSON also scales with the number of segments, so a dense page is no longer truncated
+  mid-JSON. Only if the follow-up fails too does a segment keep its source text, and the run
+  logs which ones did.
+
+Quality also depends on the model. The 8 GB default (`gemma4-e4b-uncensored`) is chosen for
+speed and footprint, not for French prose; on a card with more VRAM, select a larger model
+explicitly — `--llm gemma4-12b-it --quantization Q4_K_XL`, or one of the 26B/31B entries in
+`--list-models` — and pass `--translation-instructions` with any style or terminology rule the
+chapter needs.
