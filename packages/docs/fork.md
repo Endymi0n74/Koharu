@@ -72,12 +72,16 @@ store\
 └── diffusion\     # stable-diffusion.cpp runtime
 ```
 
-Hugging Face files resolve by exact repository, revision, and filename. Downloads are staged,
+Hugging Face files resolve by exact repository, revision, and filename. Downloads are streamed,
 then verified against the repository metadata (size + SHA-256 for LFS files) before being
 published. A truncated or corrupt file is rejected instead of deployed, and a file with the
-wrong size is re-downloaded on the next launch. Runtime packages (llama.cpp, CUDA wheels,
-torch) are validated the same way, with a graceful fallback to size-only verification when a
-metadata API is unreachable.
+wrong size is re-downloaded on the next launch.
+
+Runtime packages are checked against the digest their source publishes: the GitHub release
+assets (llama.cpp, diffusion.cpp, libtorch) carry a SHA-256 digest, and CUDA wheels are checked
+against the PyPI metadata. Verification degrades to the byte-count checks of the transfer
+itself — instead of failing the install — when a metadata API is unreachable, and for the ROCm
+wheels whose index publishes no digest.
 
 The store can grow to tens of gigabytes. Deleting it forces every model and runtime to be
 re-downloaded (several hours on a typical connection), so keep it intact when reinstalling.

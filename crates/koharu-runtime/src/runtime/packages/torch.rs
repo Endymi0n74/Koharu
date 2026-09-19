@@ -9,7 +9,7 @@ use crate::{
         DiscoverablePackage, Package, RuntimePackage, graph::Component, loader, packages::Cuda,
         sealed,
     },
-    source::extract,
+    source::{extract, release_asset},
 };
 
 const RELEASE: &str = "v2.13.0.7";
@@ -91,16 +91,17 @@ impl Package for Torch {
             .join(RELEASE)
             .join(self.to_string());
         let asset = self.asset()?;
+        let url =
+            format!("https://github.com/koharu-rs/torch/releases/download/{RELEASE}/{asset}");
+        let expected = release_asset("koharu-rs", "torch", RELEASE, &asset).await;
 
         Store::directory(
             path,
+            expected,
             move |path| self.complete(path),
-            move |stage| async move {
-                let url = format!(
-                    "https://github.com/koharu-rs/torch/releases/download/{RELEASE}/{asset}"
-                );
+            move |stage, expected| async move {
                 let archive = tempfile::Builder::new().suffix(".tar.gz").tempfile()?;
-                download::fetch(&url, archive.path()).await?;
+                download::fetch_verified(&url, archive.path(), &expected).await?;
                 extract(
                     archive.path(),
                     &stage,

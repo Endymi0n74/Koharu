@@ -22,7 +22,8 @@ use koharu_pipeline::{
     OcrModel, Operation, Pipeline, PipelineConfig, Progress, Request, RoremMixedConfig, Scope,
     StageOutput, TranslationConfig, vram::VramSampler,
 };
-use koharu_renderer::{RasterOptions, Renderer};
+use koharu_rasterizer::{RasterOptions, Rasterizer};
+use koharu_renderer::Renderer;
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft, Session};
 use koharu_translator::preset::{MeasuredPeak, MeasuredPeaks};
 use koharu_translator::{
@@ -183,6 +184,8 @@ struct Resolved {
     estimate: preset::VramEstimate,
     /// Bytes the configuration needs in the store (weights and projector).
     download: u64,
+    /// Whether the model emits reasoning traces the backend must strip.
+    reasoning: bool,
 }
 
 /// Download size above which an automatic pick warns instead of starting a
@@ -253,6 +256,8 @@ fn resolve_model(
             quantization: choice.quantization.to_owned(),
             estimate: choice.estimate,
             download: download_bytes(choice.model, choice.quantization, true)?,
+            reasoning: preset::descriptor_for(choice.model)
+                .is_some_and(preset::is_reasoning),
         });
     }
 
@@ -299,6 +304,7 @@ fn resolve_model(
         quantization,
         estimate,
         download,
+        reasoning: preset::is_reasoning(descriptor),
     })
 }
 
@@ -322,6 +328,7 @@ fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineConfig
                 model: Some(resolved.model.clone()),
                 quantization: Some(resolved.quantization.clone()),
                 vision: true,
+                reasoning: resolved.reasoning,
             },
             generation: GenerationConfig::default(),
             target_language: arguments.lang,
@@ -692,6 +699,7 @@ async fn main() -> Result<()> {
     )?;
     let mut session = Session::memory().await?;
     let renderer = Renderer::new()?;
+    let rasterizer = Rasterizer::new()?;
     let mut archive_output = output_is_archive
         .then(|| cbz::ArchiveOutput::create(&output))
         .transpose()?;
@@ -804,7 +812,7 @@ async fn main() -> Result<()> {
         };
 
         let frame = renderer.render(&session.snapshot(), page_id).await?;
-        let raster = renderer.rasterize(&frame, RasterOptions::default()).await?;
+        let raster = rasterizer.rasterize(&frame.raster_frame()?, RasterOptions::default())?;
         let encoded = match encode_image(&raster.image, arguments.format) {
             Ok(encoded) => encoded,
             Err(error) => {

@@ -11,6 +11,7 @@ use crate::{
     hardware::Target,
     runtime::{Package, RuntimePackage, loader, sealed},
     source::extract,
+    store::FileExpectation,
 };
 
 pub(crate) const VERSION: &str = "10.0.0";
@@ -229,8 +230,12 @@ impl Package for Rocm {
             .join(self.to_string());
         Store::directory(
             path,
+            FileExpectation::default(),
             move |path| self.complete(path),
-            move |stage| async move {
+            move |stage, _| async move {
+                // AMD's ROCm index publishes no content digests for these
+                // wheels, so they are checked for completeness by the transport
+                // instead of against an expected hash.
                 for (url, pattern) in [
                     (
                         format!(

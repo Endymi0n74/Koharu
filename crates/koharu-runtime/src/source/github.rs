@@ -6,7 +6,7 @@ use std::{
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
-use crate::{downloads::Transfer, store::FileExpectation};
+use crate::{network, store::FileExpectation};
 
 #[derive(Deserialize)]
 struct Release {
@@ -61,7 +61,7 @@ pub(crate) async fn release_asset(
 
 async fn fetch(owner: &str, repo: &str, tag: &str, asset: &str) -> Result<FileExpectation> {
     let url = format!("https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}");
-    let release: Release = Transfer::new()?
+    let release: Release = network::http()?
         .get(&url)
         .send()
         .await
