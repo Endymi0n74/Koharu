@@ -11,11 +11,6 @@ pub enum Error {
         provider: &'static str,
         language: Language,
     },
-    #[error("{provider} does not support source language {language}")]
-    UnsupportedSourceLanguage {
-        provider: &'static str,
-        language: Language,
-    },
     #[error("{provider} returned {actual} segments; expected {expected}")]
     SegmentCount {
         provider: &'static str,

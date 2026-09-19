@@ -36,7 +36,6 @@ impl TranslationRequest {
         }
     }
 
-    #[cfg(test)]
     #[must_use]
     pub fn with_source_language(mut self, language: Language) -> Self {
         self.source_language = Some(language);
@@ -55,7 +54,6 @@ impl TranslationRequest {
         self
     }
 
-    #[cfg(test)]
     #[must_use]
     pub fn with_context(mut self, context: impl IntoIterator<Item = TranslationContext>) -> Self {
         self.context = context.into_iter().collect();
@@ -128,7 +126,6 @@ pub struct TranslationContext {
 }
 
 impl TranslationContext {
-    #[cfg(test)]
     #[must_use]
     pub fn new(source: impl Into<String>, translation: impl Into<String>) -> Self {
         Self {

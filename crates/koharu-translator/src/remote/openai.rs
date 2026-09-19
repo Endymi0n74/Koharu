@@ -6,11 +6,8 @@ use koharu_secrets::ExposeSecret;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use super::send_json;
-use crate::{
-    GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image,
-    display_name, prompt,
-};
+use super::openai_compatible::{ChatBackend, ResponseMode};
+use crate::{GenerationConfig, Model, Provider, Result, TranslationRequest, prompt::Translations};
 
 const URL: &str = "https://api.openai.com/v1/chat/completions";
 const MODELS_URL: &str = "https://api.openai.com/v1/models";
@@ -76,7 +73,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key = koharu_secrets::get("openai")?.context("openai API key is not configured")?;
     let (system, user) = prompt::prompts(request)?;
     let user_content = match request.image.as_deref() {

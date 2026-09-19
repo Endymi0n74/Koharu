@@ -57,7 +57,8 @@ struct Arguments {
     #[arg(long, default_value = "fr-FR")]
     lang: Language,
 
-    /// Local LLM id, or `auto` to pick the best one for the available VRAM.
+    /// Local LLM id, or `auto` to pick the strongest model that fits the
+    /// available VRAM (a big pick is downloaded on the first run).
     #[arg(long, default_value = "auto")]
     llm: String,
 
@@ -180,6 +181,21 @@ struct Resolved {
     model: String,
     quantization: String,
     estimate: preset::VramEstimate,
+    /// Bytes the configuration needs in the store (weights and projector).
+    download: u64,
+}
+
+/// Download size above which an automatic pick warns instead of starting a
+/// multi-gigabyte download silently: `auto` now scales up with the GPU, so a
+/// large card can select a model the user never asked for.
+const LARGE_DOWNLOAD_BYTES: u64 = 8 * 1024 * 1024 * 1024;
+
+/// Bytes `model`/`quantization` needs in the store before the first page can be
+/// translated.
+fn download_bytes(model: &str, quantization: &str, vision: bool) -> Result<u64> {
+    let descriptor = preset::descriptor_for(model)
+        .ok_or_else(|| anyhow::anyhow!("unknown local model '{model}'"))?;
+    Ok(preset::download_bytes(descriptor, Some(quantization), vision))
 }
 
 /// Store root used when `--store` is not given: the `store` directory next to
@@ -236,6 +252,7 @@ fn resolve_model(
             model: choice.model.to_owned(),
             quantization: choice.quantization.to_owned(),
             estimate: choice.estimate,
+            download: download_bytes(choice.model, choice.quantization, true)?,
         });
     }
 
@@ -276,10 +293,12 @@ fn resolve_model(
         },
         None => preset::estimate_vram_with(descriptor, Some(&quantization), vision, measurements),
     };
+    let download = download_bytes(&arguments.llm, &quantization, vision)?;
     Ok(Resolved {
         model: arguments.llm.clone(),
         quantization,
         estimate,
+        download,
     })
 }
 
@@ -472,21 +491,33 @@ fn write_run_report(
 
 fn list_models(measurements: &MeasuredPeaks) {
     println!(
-        "{:<26} {:<7} {:<14} {:<22} measured here",
-        "model", "vision", "quantization", "estimate"
+        "{:<26} {:<7} {:<14} {:<22} {:<14} measured here",
+        "model", "vision", "quantization", "estimate", "download"
     );
     for model in preset::vram_catalog_with(true, measurements) {
+        let descriptor = preset::descriptor_for(&model.id);
         for quantization in &model.quantizations {
             let measured = measurements
                 .peak_bytes(&model.id, &quantization.id, model.vision)
                 .map(gib)
                 .unwrap_or_else(|| "—".to_owned());
+            let download = descriptor.map_or_else(
+                || "—".to_owned(),
+                |descriptor| {
+                    gib(preset::download_bytes(
+                        descriptor,
+                        Some(&quantization.id),
+                        model.vision,
+                    ))
+                },
+            );
             println!(
-                "{:<26} {:<7} {:<14} {:<22} {}",
+                "{:<26} {:<7} {:<14} {:<22} {:<14} {}",
                 model.id,
                 if model.vision { "yes" } else { "no" },
                 quantization.id,
                 quantization.estimate.display(),
+                download,
                 measured
             );
         }
@@ -595,15 +626,25 @@ async fn main() -> Result<()> {
         );
     }
     eprintln!(
-        "translation model: {} {} ({}{})",
+        "translation model: {} {} ({}{}, {} if not already stored)",
         resolved.model,
         resolved.quantization,
         resolved.estimate.display(),
         budget.map_or_else(
             || ", budget unknown".to_owned(),
             |budget| format!(" within {}", gib(budget))
-        )
+        ),
+        gib(resolved.download)
     );
+    if arguments.llm == "auto" && resolved.download >= LARGE_DOWNLOAD_BYTES {
+        eprintln!(
+            "warning: --llm auto picked {} {} because this GPU fits it; the first real run downloads about {} into {} (one time). Pass --llm <id> to translate with a smaller model, or --list-models to compare sizes.",
+            resolved.model,
+            resolved.quantization,
+            gib(resolved.download),
+            store.display()
+        );
+    }
 
     let config = pipeline_config(&arguments, &resolved);
     let metadata = RunMetadata {

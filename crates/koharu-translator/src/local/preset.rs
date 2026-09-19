@@ -6,8 +6,8 @@
 //! parameter count and quantization. Estimates trade precision for coverage:
 //! the goal is refusing models that cannot fit, not predicting exact peaks.
 
-use super::catalog::MODELS;
 use super::catalog::LocalModelDescriptor;
+use super::catalog::MODELS;
 use crate::QuantizationDefinition;
 
 const GIB: u64 = 1024 * 1024 * 1024;
@@ -20,11 +20,18 @@ const VISION_PROJECTOR_BYTES: u64 = (0.9 * GIB as f64) as u64;
 /// makes llama.cpp thrash.
 const BUDGET_MARGIN: f64 = 0.9;
 
-/// Measured no-vision peaks, from `docs/fork.md` ("Choosing a translation
-/// model for 8 GB of VRAM"). Keys are (model id, quantization id).
+/// No-vision peaks of the fork's reference machine, in mebibytes, keyed by
+/// (model id, quantization id).
+///
+/// The underlying runs were made *with* the vision projector and are recorded
+/// in `~/.koharu/vram-calibration.toml`; each entry here is that measurement
+/// minus [`VISION_PROJECTOR_BYTES`], so the estimator reproduces the raw
+/// measurement once it adds the projector back for a vision configuration.
+/// See `docs/fork.md` ("Choosing a translation model for 8 GB of VRAM").
 const MEASURED_PEAKS: &[(&str, &str, u64)] = &[
     ("gemma4-e2b-it", "Q4_K_XL", 3100),
-    ("gemma4-e4b-uncensored", "Q4_K_P", 4800),
+    ("gemma4-e4b-uncensored", "Q4_K_P", 5528),
+    ("gemma4-e4b-it", "Q4_K_XL", 3446),
     ("ministral-3-8b-instruct", "Q4_K_M", 6600),
     ("gemma4-12b-it", "Q4_K_XL", 7700),
 ];
@@ -164,12 +171,7 @@ impl MeasuredPeaks {
 
     /// Peak bytes observed for a configuration, if any.
     #[must_use]
-    pub fn peak_bytes(
-        &self,
-        model: &str,
-        quantization: &str,
-        vision: bool,
-    ) -> Option<u64> {
+    pub fn peak_bytes(&self, model: &str, quantization: &str, vision: bool) -> Option<u64> {
         self.entries
             .iter()
             .find(|entry| {
@@ -226,14 +228,45 @@ pub fn estimate_vram_with(
         };
     }
 
-    let parameters = parameters_billion(descriptor.id).unwrap_or(8.0);
-    let bytes_per_parameter = quantization.map_or(0.57, bytes_per_parameter);
-    let weights = (parameters * 1_000_000_000.0 * bytes_per_parameter) as u64;
-    let projector = u64::from(vision && descriptor.projector.is_some()) * VISION_PROJECTOR_BYTES;
     VramEstimate {
-        bytes: weights + CONTEXT_OVERHEAD_BYTES + projector,
+        bytes: weights_bytes(descriptor, quantization)
+            + CONTEXT_OVERHEAD_BYTES
+            + projector_bytes(descriptor, vision),
         measured: false,
     }
+}
+
+/// Approximate bytes of the model files a configuration has to download: the
+/// GGUF weights plus the vision projector when one is needed.
+///
+/// A configuration that was measured on this machine derives its weight size
+/// from that peak, which tracks the real repository better than the parameter
+/// formula does; everything else falls back to the parameter count. The result
+/// is a planning figure, not the exact size reported by the repository.
+#[must_use]
+pub fn download_bytes(
+    descriptor: &LocalModelDescriptor,
+    quantization: Option<&str>,
+    vision: bool,
+) -> u64 {
+    weights_bytes(descriptor, quantization) + projector_bytes(descriptor, vision)
+}
+
+/// Model weights in bytes: a measured peak minus the runtime overhead, or the
+/// parameter count times the quantization's bytes per parameter.
+fn weights_bytes(descriptor: &LocalModelDescriptor, quantization: Option<&str>) -> u64 {
+    if let Some(measured) =
+        quantization.and_then(|quantization| measured_peak(descriptor, quantization))
+    {
+        return measured.saturating_sub(CONTEXT_OVERHEAD_BYTES);
+    }
+    let parameters = parameters_billion(descriptor.id).unwrap_or(8.0);
+    let bytes_per_parameter = quantization.map_or(0.57, bytes_per_parameter);
+    (parameters * 1_000_000_000.0 * bytes_per_parameter) as u64
+}
+
+fn projector_bytes(descriptor: &LocalModelDescriptor, vision: bool) -> u64 {
+    u64::from(vision && descriptor.projector.is_some()) * VISION_PROJECTOR_BYTES
 }
 
 /// A local model configuration that fits a VRAM budget.
@@ -244,9 +277,16 @@ pub struct AutoChoice {
     pub estimate: VramEstimate,
 }
 
-/// Preference order for `--llm auto`, from `docs/fork.md`: uncensored E4B
-/// first, then the instruct E4B, the fastest dense 8B, and the small E2B.
+/// Preference order for `--llm auto`: the strongest model that fits the budget
+/// wins, so a large card is not held back by the 8 GB recommendation. Within
+/// one size the uncensored variant comes first (manga dialogue is the target
+/// workload), then the instruct 4B, the fastest dense 8B, and the small E2B as
+/// the fallbacks for an 8 GB card and below. Models not listed here stay
+/// reachable through an explicit `--llm <id> --quantization <id>`.
 const AUTO_PRIORITY: &[(&str, &str)] = &[
+    ("gemma4-31b-uncensored", "Q4_K_M"),
+    ("gemma4-26b-a4b-uncensored", "Q4_K_M"),
+    ("gemma4-12b-uncensored", "Q4_K_M"),
     ("gemma4-e4b-uncensored", "Q4_K_P"),
     ("gemma4-e4b-it", "Q4_K_XL"),
     ("ministral-3-8b-instruct", "Q4_K_M"),
@@ -345,9 +385,16 @@ impl std::fmt::Display for BudgetExceeded {
             bytes_as_gib(self.budget),
         )?;
         if self.alternatives.is_empty() {
-            write!(formatter, "; no local model fits (lower the quantization or use --force)")
+            write!(
+                formatter,
+                "; no local model fits (lower the quantization or use --force)"
+            )
         } else {
-            write!(formatter, "; models that fit: {}", self.alternatives.join(", "))
+            write!(
+                formatter,
+                "; models that fit: {}",
+                self.alternatives.join(", ")
+            )
         }
     }
 }
@@ -410,8 +457,7 @@ pub fn check_budget_with(
                 .max_by_key(|definition| {
                     estimate_vram_with(candidate, Some(definition.id), vision, measurements).bytes
                 })?;
-            let estimate =
-                estimate_vram_with(candidate, Some(definition.id), vision, measurements);
+            let estimate = estimate_vram_with(candidate, Some(definition.id), vision, measurements);
             Some(format!(
                 "{} {} ({})",
                 candidate.id,
@@ -496,9 +542,19 @@ mod tests {
         assert_eq!(e2b.bytes, 3100 * 1024 * 1024);
         assert!(e2b.measured);
 
-        let e4b_vision =
-            estimate_vram(descriptor("gemma4-e4b-uncensored"), Some("Q4_K_P"), true);
-        assert_eq!(e4b_vision.bytes, 4800 * 1024 * 1024 + VISION_PROJECTOR_BYTES);
+        let e4b_vision = estimate_vram(descriptor("gemma4-e4b-uncensored"), Some("Q4_K_P"), true);
+        assert_eq!(
+            e4b_vision.bytes,
+            5528 * 1024 * 1024 + VISION_PROJECTOR_BYTES
+        );
+
+        // The instruct E4B peak was measured the same way, on the same card.
+        let e4b_it = estimate_vram(descriptor("gemma4-e4b-it"), Some("Q4_K_XL"), true);
+        assert_eq!(e4b_it.bytes, 3446 * 1024 * 1024 + VISION_PROJECTOR_BYTES);
+        assert!(
+            e4b_it.bytes < budget_from_total(5 * GIB),
+            "the instruct 4B must stay usable on a 5 GiB budget"
+        );
 
         let twelve = estimate_vram(descriptor("gemma4-12b-it"), Some("Q4_K_XL"), true);
         assert_eq!(
@@ -514,6 +570,54 @@ mod tests {
         assert!(!estimate.measured);
         let expected = (4.0 * 1_000_000_000.0 * 0.57) as u64 + CONTEXT_OVERHEAD_BYTES;
         assert_eq!(estimate.bytes, expected);
+    }
+
+    #[test]
+    fn auto_grows_with_the_card_up_to_the_largest_model_that_fits() {
+        let expected = [
+            (8, "gemma4-e4b-uncensored"),
+            (12, "gemma4-12b-uncensored"),
+            (20, "gemma4-26b-a4b-uncensored"),
+            (24, "gemma4-31b-uncensored"),
+            (48, "gemma4-31b-uncensored"),
+        ];
+        for (gib, model) in expected {
+            let budget = budget_from_total(gib * GIB);
+            let choice = resolve_auto(budget, true)
+                .unwrap_or_else(|| panic!("{gib} GiB fits a vision model"));
+            assert_eq!(choice.model, model, "a {gib} GiB card must not step down");
+            assert!(
+                choice.estimate.bytes <= budget,
+                "the auto pick must respect the budget"
+            );
+        }
+    }
+
+    #[test]
+    fn download_sizes_cover_the_weights_and_the_projector() {
+        // A measured configuration derives its weight size from the measured
+        // peak minus the runtime overhead the estimate adds on top.
+        let e4b = descriptor("gemma4-e4b-uncensored");
+        assert_eq!(
+            download_bytes(e4b, Some("Q4_K_P"), true),
+            (5528 - 1024) * 1024 * 1024 + VISION_PROJECTOR_BYTES
+        );
+        assert_eq!(
+            download_bytes(e4b, Some("Q4_K_P"), false),
+            (5528 - 1024) * 1024 * 1024,
+            "a text-only run does not download the projector"
+        );
+
+        // An unmeasured configuration falls back to the parameter formula, so a
+        // larger model always reports a larger download.
+        let twelve = download_bytes(descriptor("gemma4-12b-it"), Some("Q4_K_XL"), true);
+        let twenty_six = download_bytes(descriptor("gemma4-26b-a4b-it"), Some("Q4_K_XL"), true);
+        let thirty_one = download_bytes(descriptor("gemma4-31b-it"), Some("Q4_K_XL"), true);
+        assert!(twelve < twenty_six && twenty_six < thirty_one);
+        assert!(
+            twelve >= 5 * GIB,
+            "the 12B model is a multi-gigabyte download"
+        );
     }
 
     #[test]
@@ -533,8 +637,7 @@ mod tests {
         // The projector (+0.9 GiB) can push every vision model off a small
         // card even though a text-only model would still fit.
         assert!(resolve_auto(budget_from_total(4 * GIB), true).is_none());
-        let choice =
-            resolve_auto(budget_from_total(4 * GIB), false).expect("text-only fits 4 GiB");
+        let choice = resolve_auto(budget_from_total(4 * GIB), false).expect("text-only fits 4 GiB");
         assert_eq!(choice.model, "gemma4-e4b-it");
 
         // Below the smallest footprint nothing fits at all.
@@ -585,7 +688,11 @@ mod tests {
             .find(|model| model.id == "gemma4-e4b-uncensored")
             .expect("cataloged");
         assert!(e4b.vision);
-        assert!(e4b.quantizations.iter().any(|quantization| quantization.id == "Q4_K_P"));
+        assert!(
+            e4b.quantizations
+                .iter()
+                .any(|quantization| quantization.id == "Q4_K_P")
+        );
     }
 
     fn sample_peak(model: &str, vision: bool, bytes: u64) -> MeasuredPeak {
@@ -658,8 +765,8 @@ mod tests {
             (7.4f64 * GIB as f64) as u64,
         ));
         let budget = budget_from_total(8 * GIB);
-        let choice = resolve_auto_with(budget, true, &measurements)
-            .expect("the fallback still fits");
+        let choice =
+            resolve_auto_with(budget, true, &measurements).expect("the fallback still fits");
         assert_ne!(
             choice.model, "gemma4-e4b-uncensored",
             "auto must skip a model that measured over budget"

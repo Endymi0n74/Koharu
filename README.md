@@ -46,9 +46,12 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 > [!TIP]
 > **Batch CLI — `koharu-batch`.** This fork adds a headless CLI that translates whole chapters
 > from the terminal with the same local pipeline: a folder of scans or a CBZ archive in, French
-> pages out (`--lang` to change the target). It picks the model that fits your GPU budget,
-> supports page-by-page resume, and writes an end-of-run HTML/Markdown report with before/after
-> page previews. See [docs/fork.md](docs/fork.md) for the full documentation.
+> pages out (`--lang` to change the target). It picks the strongest model that fits your GPU
+> budget (warning before a large first download),
+> translates each page with the context of the pages before it, retries segments a response
+> left untranslated, supports page-by-page resume, and writes an end-of-run HTML/Markdown
+> report with before/after page previews. See [docs/fork.md](docs/fork.md) for the full
+> documentation.
 
 ```bash
 # Preview what would run (pages, model, VRAM) without executing anything

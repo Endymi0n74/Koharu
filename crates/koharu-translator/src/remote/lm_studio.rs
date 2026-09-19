@@ -11,7 +11,7 @@ use url::Url;
 use super::send_json;
 use crate::{
     GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image,
-    display_name, prompt,
+    display_name, prompt, prompt::Translations,
 };
 
 const DEFAULT_BASE_URL: &str = "http://localhost:1234";
@@ -36,7 +36,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Vec<String>> {
+) -> Result<Translations> {
     let api_key = koharu_secrets::get("lm-studio")?;
     let (system, user) = prompt::prompts(request)?;
     let user_content = match request.image.as_deref() {
@@ -90,12 +90,14 @@ pub(super) async fn translate(
     let text = response
         .choices
         .into_iter()
-        .next()
-        .context("LM Studio returned no choices")?
-        .message
-        .content
-        .context("LM Studio returned no message content")?;
-    Ok(prompt::translations("lm-studio", &text, &request.segments)?)
+        .rev()
+        .find_map(|output| {
+            (output.kind == "message")
+                .then_some(output.content)
+                .flatten()
+        })
+        .context("LM Studio returned no message output")?;
+    Ok(prompt::translations("lm-studio", &text, request)?)
 }
 
 pub(super) async fn models(client: &Client, config: &LmStudioConfig) -> Result<Vec<Model>> {
