@@ -2,9 +2,10 @@
 # https://git-cliff.org/docs/configuration
 
 [remote.github]
-# Canonical repository owner used for generated changelog links.
-owner = "koharu-rs"
-repo = "koharu"
+# The fork's own repository: changelog links and contributor metadata resolve
+# against the repo that actually contains the fork's commits.
+owner = "Endymi0n74"
+repo = "Koharu"
 
 [changelog]
 # A Tera template to be rendered for each release in the changelog.
@@ -114,7 +115,9 @@ protect_breaking_commits = false
 # Exclude commits that are not matched by any commit parser.
 filter_commits = false
 # Regex to select git tags that represent releases.
-tag_pattern = '^[0-9]+\.[0-9]+\.[0-9]+$'
+# The fork tags releases with a leading `v` (v0.83.4), unlike upstream's bare
+# `0.83.4`; both forms are accepted so `git-cliff --current` resolves either.
+tag_pattern = '^v?[0-9]+\.[0-9]+\.[0-9]+$'
 # Regex to select git tags that do not represent proper releases.
 # Takes precedence over `tag_pattern`.
 # Changes belonging to these releases will be included in the next release.
