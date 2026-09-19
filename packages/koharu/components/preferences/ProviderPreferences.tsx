@@ -1,7 +1,7 @@
 'use client'
 
-import { Eye, EyeOff, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { Eraser } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -15,7 +15,7 @@ import type {
   ProviderConfig,
   ProviderPreference,
   ProviderPreferences as ProviderSettings,
-} from '@/lib/protocol'
+} from '@koharu/bridge/protocol'
 import { Button } from '@koharu/ui/components/button'
 import { Input } from '@koharu/ui/components/input'
 
@@ -94,48 +94,52 @@ function CredentialField({
   onChange: (value: CredentialInput) => void
 }) {
   const { t } = useTranslation()
-  const [revealed, setRevealed] = useState(false)
-  const configured = !value.clear && (value.configured || Boolean(value.value))
+  const inputId = useId()
+  const [draftValue, setDraftValue] = useState(value.value ?? '')
+  useEffect(() => {
+    if (value.value !== null) setDraftValue(value.value)
+    else if (!value.configured || value.clear) setDraftValue('')
+  }, [value.clear, value.configured, value.value])
+  const configured = !value.clear && (value.configured || Boolean(draftValue))
   return (
-    <div className='flex gap-2'>
-      <Input
-        aria-label={t('settings.providers.credentialLabel', { provider: label })}
-        type={revealed ? 'text' : 'password'}
-        autoComplete='new-password'
-        value={value.value ?? ''}
-        placeholder={
-          configured ? t('settings.providers.configured') : t('settings.providers.notConfigured')
-        }
-        className='h-8 min-w-0 flex-1 text-[12px] [&::-ms-reveal]:hidden'
-        onChange={(event) =>
-          onChange({ ...value, value: event.currentTarget.value || null, clear: false })
-        }
-      />
-      <Button
-        type='button'
-        variant='outline'
-        size='icon'
-        disabled={!value.value}
-        aria-label={
-          revealed
-            ? t('settings.providers.hideCredential', { provider: label })
-            : t('settings.providers.revealCredential', { provider: label })
-        }
-        onClick={() => setRevealed((shown) => !shown)}
-      >
-        {revealed ? <EyeOff /> : <Eye />}
-      </Button>
-      {configured && (
-        <Button
-          type='button'
-          variant='destructive'
-          size='icon'
-          aria-label={t('settings.providers.clearCredential', { provider: label })}
-          onClick={() => onChange({ configured: false, value: null, clear: true })}
-        >
-          <Trash2 />
-        </Button>
-      )}
+    <div className='grid gap-1'>
+      <label htmlFor={inputId} className='text-[10px] text-muted-foreground'>
+        {t('settings.providers.credential')}
+      </label>
+      <div className='flex gap-2'>
+        <Input
+          id={inputId}
+          aria-label={t('settings.providers.credentialLabel', { provider: label })}
+          type='text'
+          autoComplete='off'
+          autoCapitalize='none'
+          spellCheck={false}
+          value={draftValue}
+          placeholder={
+            configured ? t('settings.providers.configured') : t('settings.providers.notConfigured')
+          }
+          className='h-8 min-w-0 flex-1 text-[12px] [-webkit-text-security:disc] [&::placeholder]:[-webkit-text-security:none]'
+          onChange={(event) => {
+            const draft = event.currentTarget.value
+            setDraftValue(draft)
+            onChange({ ...value, value: draft || null, clear: false })
+          }}
+        />
+        {configured && (
+          <Button
+            type='button'
+            variant='outline'
+            size='icon'
+            aria-label={t('settings.providers.clearCredential', { provider: label })}
+            onClick={() => {
+              setDraftValue('')
+              onChange({ configured: false, value: null, clear: true })
+            }}
+          >
+            <Eraser />
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

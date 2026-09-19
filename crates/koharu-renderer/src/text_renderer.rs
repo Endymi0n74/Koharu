@@ -1,20 +1,19 @@
-//! Text layout and Vello glyph recording.
+//! Text layout and portable glyph recording.
 
 use std::sync::Arc;
 
 use anyhow::Result;
-use vello::{
-    FontEmbolden, Glyph, Scene,
-    kurbo::{Affine, Diagonal2, Join, Stroke},
-    peniko::Fill,
+use koharu_rasterizer::{
+    PreparedGlyph, PreparedGlyphRun, PreparedResource, PreparedScene, PreparedSceneCommand,
+    ResourceId,
 };
+use vello::kurbo::Affine;
 
 use crate::{
     Error, FontStyle, HyphenationPolicy, LayoutRun, RenderBounds, RenderDiagnostic,
     Result as RenderResult, TextAlign, TextLayout, WritingMode,
     bubble::LayoutBox,
     fonts::{Fonts, font_key},
-    raster::rgba,
     script::is_chinese_or_japanese_text,
 };
 
@@ -26,7 +25,6 @@ pub(crate) struct TextNodeDescriptor {
     pub(crate) width: f32,
     pub(crate) height: f32,
     pub(crate) balloon_contour: Option<Vec<(f32, f32)>>,
-    pub(crate) flow_contour: Option<Vec<(f32, f32)>>,
     pub(crate) preferred_font: Option<String>,
     pub(crate) font_families: Vec<String>,
     pub(crate) font_weight: Option<u16>,
@@ -46,7 +44,8 @@ pub(crate) struct TextNodeDescriptor {
 }
 
 pub(crate) struct RenderedTextNode {
-    pub(crate) scene: Arc<Scene>,
+    pub(crate) scene: Arc<PreparedScene>,
+    pub(crate) resources: Arc<[PreparedResource]>,
     pub(crate) local_bounds: RenderBounds,
     pub(crate) metadata: RenderedTextMetadata,
     pub(crate) diagnostics: Vec<RenderDiagnostic>,
@@ -104,32 +103,45 @@ impl TextRenderer {
 
     pub(crate) fn render(
         &self,
-        scene: &mut Scene,
+        scene: &mut PreparedScene,
+        resources: &mut Vec<PreparedResource>,
         layout: &LayoutRun<'_>,
         writing_mode: WritingMode,
         options: &TextRenderOptions,
         transform: Affine,
     ) {
+        // The border is drawn first as an outward-only dilation of the glyph outline (see
+        // `draw_layout`), then the ordinary fill is drawn on top in the foreground color. Unlike a
+        // centered stroke, a dilation never grows inward, so it can't punch a hole through small
+        // features (e.g. dots) once the border width exceeds their radius.
         if let Some(stroke) = options
             .stroke
             .filter(|stroke| stroke.width_px > 0.0 && stroke.color[3] > 0)
         {
             draw_layout(
                 scene,
+                resources,
                 layout,
                 writing_mode,
                 options,
                 transform,
-                DrawStyle::Stroke(stroke),
+                GlyphPaint {
+                    color: stroke.color,
+                    dilation_px: stroke.width_px,
+                },
             );
         }
         draw_layout(
             scene,
+            resources,
             layout,
             writing_mode,
             options,
             transform,
-            DrawStyle::Fill,
+            GlyphPaint {
+                color: options.color,
+                dilation_px: 0.0,
+            },
         );
     }
 
@@ -200,27 +212,12 @@ impl TextRenderer {
         if let Some(contour) = &descriptor.balloon_contour {
             let [top, _, _, left] = descriptor.text_inset;
             let contour = contour.iter().map(|&(x, y)| (x - left, y - top)).collect();
-            if let Some(flow_contour) = &descriptor.flow_contour {
-                layout = layout.with_comic_balloon_constraints(
-                    bounds.width,
-                    bounds.height,
-                    vec![
-                        contour,
-                        flow_contour
-                            .iter()
-                            .map(|&(x, y)| (x - left, y - top))
-                            .collect(),
-                    ],
-                    descriptor.text_inset.into_iter().fold(0.0, f32::max),
-                );
-            } else {
-                layout = layout.with_comic_balloon(
-                    bounds.width,
-                    bounds.height,
-                    contour,
-                    descriptor.text_inset.into_iter().fold(0.0, f32::max),
-                );
-            }
+            layout = layout.with_comic_balloon(
+                bounds.width,
+                bounds.height,
+                contour,
+                descriptor.text_inset.into_iter().fold(0.0, f32::max),
+            );
         }
         if let Some(language) = &descriptor.language {
             layout = layout.with_hyphenation_language_tag(language.as_str());
@@ -255,12 +252,14 @@ impl TextRenderer {
             stroke: None,
             ..TextRenderOptions::default()
         };
-        let mut scene = Scene::new();
+        let mut scene = PreparedScene::default();
+        let mut resources = Vec::new();
         if let Some(stroke) = descriptor.stroke {
             options.stroke = Some(stroke);
         }
         self.render(
             &mut scene,
+            &mut resources,
             &layout,
             descriptor.writing_mode,
             &options,
@@ -294,6 +293,7 @@ impl TextRenderer {
             .map_or(0.0, |stroke| stroke.width_px.max(0.0));
         Ok(RenderedTextNode {
             scene: Arc::new(scene),
+            resources: resources.into(),
             local_bounds: RenderBounds {
                 x: rendered_bounds.x - stroke_padding,
                 y: rendered_bounds.y - stroke_padding,
@@ -358,19 +358,20 @@ fn placement(rect: LayoutBox, width: f32, height: f32) -> (f32, f32) {
     (x, y)
 }
 
-#[derive(Clone, Copy)]
-enum DrawStyle {
-    Stroke(StrokeOptions),
-    Fill,
+/// Color and outward dilation for one glyph draw pass (border or ordinary fill).
+struct GlyphPaint {
+    color: [u8; 4],
+    dilation_px: f32,
 }
 
 fn draw_layout(
-    scene: &mut Scene,
+    scene: &mut PreparedScene,
+    resources: &mut Vec<PreparedResource>,
     layout: &LayoutRun<'_>,
     writing_mode: WritingMode,
     options: &TextRenderOptions,
     transform: Affine,
-    style: DrawStyle,
+    paint: GlyphPaint,
 ) {
     for line in &layout.lines {
         let (baseline_x, baseline_y) = match writing_mode {
@@ -390,7 +391,7 @@ fn draw_layout(
 
             let mut glyphs = Vec::with_capacity(end - start);
             for glyph in &line.glyphs[start..end] {
-                glyphs.push(Glyph {
+                glyphs.push(PreparedGlyph {
                     id: glyph.glyph_id,
                     x: options.padding + baseline_x + pen_x + glyph.x_offset,
                     y: options.padding + baseline_y + pen_y
@@ -401,35 +402,31 @@ fn draw_layout(
                 pen_y -= glyph.y_advance;
             }
 
-            let font_data = font.vello_data();
-            let normalized_coords = font.normalized_coords();
-            let mut run = scene
-                .draw_glyphs(&font_data)
-                .font_size(layout.font_size)
-                .transform(transform)
-                .hint(options.hint_glyphs);
-            if !normalized_coords.is_empty() {
-                run = run.normalized_coords(normalized_coords);
+            let font_id = ResourceId::for_font(font.bytes());
+            if !resources.iter().any(|candidate| candidate.id() == font_id) {
+                resources.push(PreparedResource::font_shared(font.shared_bytes()));
             }
-            if let Some(angle) = font.synthetic_skew() {
-                run = run
-                    .glyph_transform(Some(Affine::skew(-(angle.to_radians().tan() as f64), 0.0)));
-            }
-            if font.synthetic_bold() {
-                run = run.font_embolden(FontEmbolden::new(Diagonal2::new(1.0, 1.0)));
-            }
-
-            match style {
-                DrawStyle::Fill => run
-                    .brush(rgba(options.color))
-                    .draw(Fill::NonZero, glyphs.into_iter()),
-                DrawStyle::Stroke(stroke) => {
-                    let outline =
-                        Stroke::new((stroke.width_px * 2.0) as f64).with_join(Join::Round);
-                    run.brush(rgba(stroke.color))
-                        .draw(&outline, glyphs.into_iter());
-                }
-            }
+            let glyph_transform = font
+                .synthetic_skew()
+                .map(|angle| Affine::skew(-(angle.to_radians().tan() as f64), 0.0).as_coeffs());
+            let synthetic_bold = if font.synthetic_bold() { 1.0 } else { 0.0 };
+            scene
+                .commands
+                .push(PreparedSceneCommand::GlyphRun(PreparedGlyphRun {
+                    font: font_id,
+                    font_index: font.index(),
+                    font_size: layout.font_size,
+                    normalized_coords: font.normalized_coords().to_vec(),
+                    transform: transform.as_coeffs(),
+                    glyph_transform,
+                    // Hinting folds a uniform zoom into `font_size` for crisp fill text, but a
+                    // border needs the real transform so its dilation amount stays proportional
+                    // to that same zoom instead of being rendered at a fixed pixel size.
+                    hint: options.hint_glyphs && paint.dilation_px == 0.0,
+                    embolden: [synthetic_bold + paint.dilation_px; 2],
+                    color: paint.color,
+                    glyphs,
+                }));
             start = end;
         }
     }
@@ -437,9 +434,15 @@ fn draw_layout(
 
 #[cfg(test)]
 mod tests {
+    use koharu_rasterizer::{
+        Bounds, CompositionCommand, LayerId, LayerKind as PreparedLayerKind, Point,
+        PreparedContent, PreparedFrame, PreparedFrameBundle, PreparedFrameManifest, PreparedLayer,
+        PreparedResourcePacket, PreparedResourceStore, Presentation, Revision,
+    };
     use koharu_scene::EntityId;
 
     use super::*;
+    use crate::fonts::FontSystem;
 
     #[test]
     fn automatic_size_preserves_free_text_default_and_balloon_extent() {
@@ -450,7 +453,6 @@ mod tests {
             width: 240.0,
             height: 120.0,
             balloon_contour: None,
-            flow_contour: None,
             preferred_font: Some("Arial".to_owned()),
             font_families: vec!["Arial".to_owned()],
             font_weight: None,
@@ -477,5 +479,90 @@ mod tests {
 
         assert_eq!(automatic_maximum(&descriptor, bounds, false), 24.0);
         assert_eq!(automatic_maximum(&descriptor, bounds, true), 240.0);
+    }
+
+    #[test]
+    fn rendered_text_survives_prepared_packet_round_trip() {
+        let font = FontSystem::new().first_font().unwrap();
+        let layout = TextLayout::new(&font)
+            .with_font_size(24.0)
+            .run("Koharu")
+            .unwrap();
+        let mut scene = PreparedScene::default();
+        let mut resources = Vec::new();
+        TextRenderer::new().render(
+            &mut scene,
+            &mut resources,
+            &layout,
+            WritingMode::Horizontal,
+            &TextRenderOptions::default(),
+            Affine::IDENTITY,
+        );
+        assert_eq!(resources.len(), 1);
+        assert!(matches!(
+            &resources[0],
+            PreparedResource::Font { bytes, .. } if !bytes.is_empty()
+        ));
+
+        let layer = LayerId::from_bytes([2; 16]);
+        let bundle = PreparedFrameBundle {
+            frame: PreparedFrame {
+                revision: Revision::new(7),
+                page: LayerId::from_bytes([1; 16]),
+                width: 160,
+                height: 48,
+                origin: (0, 0),
+                normalization: Affine::IDENTITY.as_coeffs(),
+                layers: vec![PreparedLayer {
+                    id: layer,
+                    geometry: vec![
+                        Point { x: 0.0, y: 0.0 },
+                        Point { x: 160.0, y: 0.0 },
+                        Point { x: 160.0, y: 48.0 },
+                        Point { x: 0.0, y: 48.0 },
+                    ],
+                    bounds: Bounds {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 160.0,
+                        height: 48.0,
+                    },
+                    local_bounds: Bounds {
+                        x: 0.0,
+                        y: 0.0,
+                        width: 160.0,
+                        height: 48.0,
+                    },
+                    presentation: Presentation {
+                        visible: true,
+                        opacity: 1.0,
+                    },
+                    kind: PreparedLayerKind::Text,
+                    placement: Affine::IDENTITY.as_coeffs(),
+                    content: PreparedContent::Vector(scene),
+                    element_frame: None,
+                }],
+            },
+            resources,
+        };
+
+        let encoded = bundle.manifest().unwrap().encode().unwrap();
+        let manifest = PreparedFrameManifest::decode(&encoded).unwrap();
+        let mut resources = PreparedResourceStore::default();
+        for reference in manifest.required_resources() {
+            let encoded = bundle
+                .resource_packet(reference.id)
+                .unwrap()
+                .encode()
+                .unwrap();
+            resources.insert(PreparedResourcePacket::decode(&encoded).unwrap());
+        }
+        let compiled = manifest.compile(&resources).unwrap();
+        assert_eq!(compiled.revision(), Revision::new(7));
+        assert_eq!(compiled.layers()[0].id(), layer);
+        assert!(matches!(
+            compiled.composition_commands(1).as_slice(),
+            [CompositionCommand::Vector(_)]
+        ));
     }
 }

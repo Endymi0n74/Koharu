@@ -55,6 +55,19 @@ impl StageRunner {
         if job.stop.stopped() {
             return Ok(StageOutcome::Stopped);
         }
+        let skip = self.stages.skip(job.stage, &job.input).map_err(|error| {
+            self.stage_error(
+                job.stage,
+                model,
+                AttemptFailure {
+                    kind: ErrorKind::Processing,
+                    error,
+                },
+            )
+        })?;
+        if skip {
+            return Ok(StageOutcome::Skipped);
+        }
         let permit = self.accelerator.acquire().await;
         if job.stop.stopped() {
             return Ok(StageOutcome::Stopped);
@@ -68,6 +81,8 @@ impl StageRunner {
 
         drop(permit);
         tracing::warn!(stage = %job.stage, page = %job.input.page(), error = %failure.error, "retrying stage after memory pressure");
+        let _metric =
+            tracing::info_span!(target: "koharu_metrics", "stage_retry", stage = %job.stage, model);
         let _permit = self.accelerator.recover(job.stage, &self.stages).await;
         if job.stop.stopped() {
             return Ok(StageOutcome::Stopped);

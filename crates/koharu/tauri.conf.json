@@ -1,11 +1,11 @@
 {
-  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/4af26a3f7f8b692d62cca549bbacd93f5ce90b41/crates/tauri-schema-generator/schemas/config.schema.json",
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/tauri-v3.0.0-alpha.1/crates/tauri-schema-generator/schemas/config.schema.json",
   "identifier": "Koharu",
   "build": {
     "devUrl": "http://localhost:3000",
     "frontendDist": "../../packages/koharu/out",
-    "beforeDevCommand": "bun run --filter @koharu/app dev",
-    "beforeBuildCommand": "bun run --filter @koharu/app build"
+    "beforeDevCommand": "bun run --filter @koharu/bridge build && bun run --parallel --filter @koharu/bridge --filter @koharu/app dev",
+    "beforeBuildCommand": "bun run --filter @koharu/bridge build && bun run --filter @koharu/app build"
   },
   "app": {
     "macOSPrivateApi": true,
@@ -45,7 +45,10 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERDMUIwNTYwMDNFMTExRjAKUldUd0VlRURZQVViM0k3aTRHR1ZZUXNvYTJMQ00wSkZHWHZwZ2RRaENQaDdBaDBOMkJPTGpTYTcK",
-      "endpoints": ["https://github.com/Endymi0n74/Koharu/releases/latest/download/latest.json"]
+      "endpoints": ["https://github.com/Endymi0n74/Koharu/releases/latest/download/latest.json"],
+      "windows": {
+        "installMode": "quiet"
+      }
     }
   }
 }

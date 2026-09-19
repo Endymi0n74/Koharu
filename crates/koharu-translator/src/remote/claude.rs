@@ -1,5 +1,7 @@
 // Ported from:
-// https://github.com/mayocream/koharu/blob/f4ce03999ed1ae2faaec938dd52c2f41a87d03d9/crates/koharu-llm/src/providers/claude.rs
+// https://github.com/koharu-rs/koharu/blob/f4ce03999ed1ae2faaec938dd52c2f41a87d03d9/crates/koharu-llm/src/providers/claude.rs
+// Model discovery:
+// https://platform.claude.com/docs/en/api/models/list
 
 use anyhow::Context;
 use koharu_secrets::ExposeSecret;
@@ -13,29 +15,39 @@ use crate::{
 };
 
 const URL: &str = "https://api.anthropic.com/v1/messages";
+const MODELS_URL: &str = "https://api.anthropic.com/v1/models?limit=1000";
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, specta::Type)]
 #[serde(default)]
 pub struct ClaudeConfig {}
 
-pub(super) static MODELS: &[(&str, &str)] = &[
-    ("claude-fable-5", "Claude Fable 5"),
-    ("claude-opus-4-8", "Claude Opus 4.8"),
-    ("claude-sonnet-5", "Claude Sonnet 5"),
-    ("claude-haiku-4-5", "Claude Haiku 4.5"),
-    ("claude-opus-4-7", "Claude Opus 4.7"),
-    ("claude-sonnet-4-6", "Claude Sonnet 4.6"),
-    ("claude-opus-4-6", "Claude Opus 4.6"),
-    ("claude-opus-4-5-20251101", "Claude Opus 4.5"),
-    ("claude-haiku-4-5-20251001", "Claude Haiku 4.5 Snapshot"),
-];
-
-pub(super) async fn models() -> Result<Vec<Model>> {
-    Ok(if koharu_secrets::get("claude")?.is_some() {
-        Model::catalog(Provider::Claude, MODELS, true)
-    } else {
-        Vec::new()
-    })
+pub(super) async fn models(client: &Client) -> Result<Vec<Model>> {
+    let Some(api_key) = koharu_secrets::get("claude")? else {
+        return Ok(Vec::new());
+    };
+    let response: ModelsResponse = send_json(
+        "claude",
+        client
+            .get(MODELS_URL)
+            .header("x-api-key", api_key.expose_secret())
+            .header("anthropic-version", "2023-06-01"),
+    )
+    .await?;
+    Ok(response
+        .data
+        .into_iter()
+        .map(|model| {
+            let reasoning = model.capabilities.thinking.types.adaptive.supported;
+            Model {
+                provider: Provider::Claude,
+                model: Some(model.id),
+                name: model.display_name,
+                quantizations: Vec::new(),
+                vision: model.capabilities.image_input.supported,
+                reasoning,
+            }
+        })
+        .collect())
 }
 
 pub(super) async fn translate(
@@ -53,15 +65,15 @@ pub(super) async fn translate(
         system: &system,
         messages: [Message::user(&user, request.image.as_deref())?],
         temperature: generation.temperature,
-        thinking: model
-            .starts_with("claude-sonnet-5")
-            .then_some(ThinkingConfig {
-                kind: if generation.thinking {
-                    "adaptive"
-                } else {
-                    "disabled"
-                },
-            }),
+        thinking: generation.reasoning.map(|enabled| ThinkingConfig {
+            kind: if enabled { "adaptive" } else { "disabled" },
+        }),
+        output_config: OutputConfig {
+            format: JsonOutputFormat {
+                kind: "json_schema",
+                schema: prompt::output_schema(request.segments.len()),
+            },
+        },
     };
     let response: Response = send_json(
         "claude",
@@ -90,12 +102,25 @@ struct Request<'a> {
     temperature: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     thinking: Option<ThinkingConfig>,
+    output_config: OutputConfig,
 }
 
 #[derive(Serialize)]
 struct ThinkingConfig {
     #[serde(rename = "type")]
     kind: &'static str,
+}
+
+#[derive(Serialize)]
+struct OutputConfig {
+    format: JsonOutputFormat,
+}
+
+#[derive(Serialize)]
+struct JsonOutputFormat {
+    #[serde(rename = "type")]
+    kind: &'static str,
+    schema: serde_json::Value,
 }
 
 #[derive(Serialize)]
@@ -150,6 +175,39 @@ struct Content {
     text: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct ModelsResponse {
+    data: Vec<ListedModel>,
+}
+
+#[derive(Deserialize)]
+struct ListedModel {
+    id: String,
+    display_name: String,
+    capabilities: ModelCapabilities,
+}
+
+#[derive(Deserialize)]
+struct ModelCapabilities {
+    image_input: CapabilitySupport,
+    thinking: ThinkingCapability,
+}
+
+#[derive(Deserialize)]
+struct ThinkingCapability {
+    types: ThinkingTypes,
+}
+
+#[derive(Deserialize)]
+struct ThinkingTypes {
+    adaptive: CapabilitySupport,
+}
+
+#[derive(Deserialize)]
+struct CapabilitySupport {
+    supported: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -163,5 +221,58 @@ mod tests {
         assert_eq!(value["content"][1]["type"], "image");
         assert_eq!(value["content"][1]["source"]["type"], "base64");
         assert_eq!(value["content"][1]["source"]["media_type"], "image/jpeg");
+    }
+
+    #[test]
+    fn serializes_structured_output_with_thinking() {
+        let body = Request {
+            model: "claude-opus-4-8",
+            max_tokens: 1024,
+            system: "system",
+            messages: [Message::user("translate", None).unwrap()],
+            temperature: None,
+            thinking: Some(ThinkingConfig { kind: "adaptive" }),
+            output_config: OutputConfig {
+                format: JsonOutputFormat {
+                    kind: "json_schema",
+                    schema: prompt::output_schema(2),
+                },
+            },
+        };
+        let value = serde_json::to_value(body).unwrap();
+
+        assert_eq!(value["thinking"]["type"], "adaptive");
+        assert_eq!(value["output_config"]["format"]["type"], "json_schema");
+        assert_eq!(
+            value["output_config"]["format"]["schema"]["properties"]["translations"]["maxItems"],
+            2
+        );
+    }
+
+    #[test]
+    fn reads_adaptive_thinking_capability_from_model_list() {
+        let response: ModelsResponse = serde_json::from_value(serde_json::json!({
+            "data": [{
+                "id": "claude-opus-4-8",
+                "display_name": "Claude Opus 4.8",
+                "capabilities": {
+                    "image_input": { "supported": true },
+                    "thinking": {
+                        "types": {
+                            "adaptive": { "supported": true }
+                        }
+                    }
+                }
+            }]
+        }))
+        .unwrap();
+        assert!(
+            response.data[0]
+                .capabilities
+                .thinking
+                .types
+                .adaptive
+                .supported
+        );
     }
 }

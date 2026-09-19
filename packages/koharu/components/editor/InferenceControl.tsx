@@ -16,22 +16,19 @@ import { useTranslation } from 'react-i18next'
 
 import { ModelPicker } from '@/components/controls/ModelPicker'
 import { OutputPicker, type OutputDraft } from '@/components/controls/OutputPicker'
-import { call, refreshTranslationModels } from '@/lib/backend'
+import { call, refreshTranslationModels, savePreferences } from '@/lib/backend'
+import { pipelineStages, receivePreferences, useKoharuStore, type PipelineScope } from '@/lib/store'
+import { modelKey, providerName } from '@/lib/translation'
 import {
   commands,
   type Model,
   type ModelSelection,
   type ProviderPreference,
   type Stage,
-} from '@/lib/protocol'
-import { receivePreferences, useKoharuStore } from '@/lib/store'
-import { modelKey, providerName } from '@/lib/translation'
+} from '@koharu/bridge/protocol'
 import { Button } from '@koharu/ui/components/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@koharu/ui/components/popover'
 import { cn } from '@koharu/ui/lib/utils'
-
-export type PipelineScope = 'page' | 'selected-pages' | 'project'
-export const pipelineStages: readonly Stage[] = ['detection', 'ocr', 'translation', 'inpainting']
 
 type SelectorView = 'root' | 'model' | 'scope' | 'stages' | 'output'
 
@@ -43,8 +40,10 @@ export function InferenceControl({
   disabled: boolean
 }) {
   const { t } = useTranslation()
-  const [scope, setScope] = useState<PipelineScope>('page')
-  const [stages, setStages] = useState<Stage[]>(() => [...pipelineStages])
+  const scope = useKoharuStore((state) => state.processingScope)
+  const stages = useKoharuStore((state) => state.processingStages)
+  const setScope = useKoharuStore((state) => state.setProcessingScope)
+  const setStages = useKoharuStore((state) => state.setProcessingStages)
   const jobs = useKoharuStore((state) => state.jobs)
   const selectedPages = useKoharuStore((state) => state.selectedPages)
   const running = Object.values(jobs).find((job) => job.state === 'running') ?? null
@@ -131,9 +130,9 @@ function RuntimeSelector({
       .finally(() => setLoadingModels(false))
   }
 
-  const chooseModel = (next: Model) => {
+  const chooseModel = (next: ModelSelection) => {
     if (!preferences || savingModel) return
-    if (model && modelKey(model) === modelKey(next)) {
+    if (model && modelKey(model) === modelKey(next) && model.quantization === next.quantization) {
       setView('root')
       return
     }
@@ -144,15 +143,10 @@ function RuntimeSelector({
       ...preferences.pipeline,
       translation: {
         ...preferences.pipeline.translation,
-        model: {
-          provider: next.provider,
-          model: next.model,
-          quantization: next.quantizations[0]?.id ?? null,
-          vision: next.vision,
-        },
+        model: next,
       },
     }
-    void call(commands.savePreferences, pipeline, preferences.providers, preferences.typesetting)
+    void savePreferences(pipeline, preferences.providers, preferences.typesetting)
       .then((saved) => {
         receivePreferences(saved)
       })
@@ -176,10 +170,9 @@ function RuntimeSelector({
         instructions: draft.instructions || null,
       },
     }
-    void call(commands.savePreferences, pipeline, preferences.providers, preferences.typesetting)
+    void savePreferences(pipeline, preferences.providers, preferences.typesetting)
       .then((saved) => {
         receivePreferences(saved)
-        setView('root')
       })
       .catch(() => undefined)
       .finally(() => setSavingOutput(false))
@@ -456,7 +449,8 @@ function availableModels(
       model: selected.model ?? null,
       name: selected.model ?? providerName(providers, selected.provider),
       quantizations: [],
-      vision: selected.vision,
+      vision: selected.vision ?? false,
+      reasoning: selected.reasoning ?? false,
     },
     ...models,
   ]

@@ -1,27 +1,28 @@
 'use client'
 
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { FolderOpen, ImagePlus, LoaderCircle, Settings } from 'lucide-react'
+import { FilePlus2, FolderOpen, LoaderCircle, Settings } from 'lucide-react'
 import Image from 'next/image'
 import { useState, type ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { AboutDialog } from '@/components/app/AboutDialog'
-import { WindowControls } from '@/components/app/WindowChrome'
-import { call, dispatch } from '@/lib/backend'
+import { useMacOS, WindowControls } from '@/components/app/WindowChrome'
+import { call } from '@/lib/backend'
 import { selectableLayer } from '@/lib/geometry'
-import { commands, type Operation, type Scope, type Stage } from '@/lib/protocol'
 import {
   pageKey,
   pagesKey,
   projectKey,
   refresh,
+  useCommand,
   useImportPages,
   usePage,
   usePages,
   useProject,
 } from '@/lib/queries'
 import { useKoharuStore } from '@/lib/store'
+import { commands, type Operation, type Scope, type Stage } from '@koharu/bridge/protocol'
 import {
   Menubar,
   MenubarContent as UiMenubarContent,
@@ -39,6 +40,7 @@ import { cn } from '@koharu/ui/lib/utils'
 export function TitleBar() {
   const { t } = useTranslation()
   const [aboutOpen, setAboutOpen] = useState(false)
+  const macOS = useMacOS()
   const project = useProject().data
   const pagesQuery = usePages(Boolean(project))
   const pageQuery = usePage(Boolean(project))
@@ -48,7 +50,13 @@ export function TitleBar() {
   const selectedLayers = useKoharuStore((state) => state.selectedLayers)
   const selectLayers = useKoharuStore((state) => state.selectLayers)
   const setSettingsOpen = useKoharuStore((state) => state.setSettingsOpen)
+  const requestCanvasFit = useKoharuStore((state) => state.requestCanvasFit)
   const { importPages, importing } = useImportPages()
+  const { run: exportProject, busy: exporting } = useCommand(
+    ['export-project'],
+    commands.export,
+    'menu.export',
+  )
 
   const run = (scope: Scope, operation: Operation = { operation: 'full' }) =>
     void call(commands.process, scope, operation).catch(() => undefined)
@@ -59,20 +67,24 @@ export function TitleBar() {
     <>
       <header
         data-tauri-drag-region='deep'
-        className='flex h-10 shrink-0 items-center bg-[var(--surface-titlebar)] text-[12px]'
+        className='relative flex h-10 shrink-0 items-center bg-[var(--surface-titlebar)] text-[12px]'
       >
-        <div className='flex h-full w-10 shrink-0 items-center justify-center rounded-br-lg'>
-          <Image
-            className='pointer-events-none'
-            src='/icon.png'
-            alt='Koharu'
-            width={17}
-            height={17}
-            draggable={false}
-            priority
-          />
-        </div>
-        <Menubar className='h-full shrink-0 gap-0 border-0 bg-transparent p-0 shadow-none'>
+        {macOS ? (
+          <div className='w-[84px] shrink-0' />
+        ) : (
+          <div className='relative z-10 flex h-full w-10 shrink-0 items-center justify-center rounded-br-lg'>
+            <Image
+              className='pointer-events-none'
+              src='/icon.png'
+              alt='Koharu'
+              width={17}
+              height={17}
+              draggable={false}
+              priority
+            />
+          </div>
+        )}
+        <Menubar className='relative z-10 h-full shrink-0 gap-0 border-0 bg-transparent p-0 shadow-none'>
           <MenubarMenu>
             <MenubarTrigger>{t('menu.file')}</MenubarTrigger>
             <MenubarContent>
@@ -83,11 +95,11 @@ export function TitleBar() {
                   className='min-h-8 gap-1.5 px-2 py-1 text-xs'
                 >
                   {importing && <LoaderCircle className='animate-spin' aria-hidden='true' />}
-                  {importing ? t('navigator.importing') : t('menu.importPages')}
+                  {importing ? t('navigator.importing') : t('menu.import')}
                 </MenubarSubTrigger>
                 <MenubarSubContent className='min-w-40 p-1'>
                   <MenubarItem disabled={importing} onClick={() => importPages('files')}>
-                    <ImagePlus />
+                    <FilePlus2 />
                     {t('navigator.importFiles')}
                   </MenubarItem>
                   <MenubarItem disabled={importing} onClick={() => importPages('folder')}>
@@ -96,22 +108,27 @@ export function TitleBar() {
                   </MenubarItem>
                 </MenubarSubContent>
               </MenubarSub>
-              <MenubarItem
-                disabled={!project || pages.length === 0}
-                onClick={() =>
-                  void call(commands.exportPages, exportSelection(selectedPages, page?.id), 'png')
-                }
-              >
-                {t('menu.exportPng')}
-              </MenubarItem>
-              <MenubarItem
-                disabled={!project || pages.length === 0}
-                onClick={() =>
-                  void call(commands.exportPages, exportSelection(selectedPages, page?.id), 'psd')
-                }
-              >
-                {t('menu.exportPsd')}
-              </MenubarItem>
+              <MenubarSub>
+                <MenubarSubTrigger
+                  disabled={!project || pages.length === 0 || exporting}
+                  aria-busy={exporting}
+                  className='min-h-8 gap-1.5 px-2 py-1 text-xs'
+                >
+                  {exporting && <LoaderCircle className='animate-spin' aria-hidden='true' />}
+                  {t('menu.export')}
+                </MenubarSubTrigger>
+                <MenubarSubContent className='min-w-40 p-1'>
+                  {(['png', 'psd', 'cbz'] as const).map((format) => (
+                    <MenubarItem
+                      key={format}
+                      disabled={exporting}
+                      onClick={() => exportProject(format)}
+                    >
+                      {format.toUpperCase()}…
+                    </MenubarItem>
+                  ))}
+                </MenubarSubContent>
+              </MenubarSub>
               <MenubarSeparator />
               <MenubarItem disabled={!project} onClick={closeProject}>
                 {t('menu.closeProject')}
@@ -218,7 +235,7 @@ export function TitleBar() {
           <MenubarMenu>
             <MenubarTrigger>{t('menu.view')}</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem disabled={!page} onClick={() => dispatch(commands.fitCanvas)}>
+              <MenubarItem disabled={!page} onClick={requestCanvasFit}>
                 {t('menu.fit')}
               </MenubarItem>
             </MenubarContent>
@@ -234,7 +251,7 @@ export function TitleBar() {
               </MenubarItem>
               <MenubarItem
                 onClick={() =>
-                  void openUrl('https://github.com/mayocream/koharu').catch(() => undefined)
+                  void openUrl('https://github.com/koharu-rs/koharu').catch(() => undefined)
                 }
               >
                 {t('menu.github')}
@@ -245,9 +262,10 @@ export function TitleBar() {
           </MenubarMenu>
         </Menubar>
 
-        <div className='flex h-full min-w-16 flex-1 items-center justify-center px-3 text-[11px] text-muted-foreground select-none'>
+        <div className='min-w-0 flex-1' />
+        <div className='pointer-events-none absolute inset-y-0 left-1/2 flex max-w-[40vw] min-w-16 -translate-x-1/2 items-center justify-center px-3 text-[11px] text-muted-foreground select-none'>
           {project ? (
-            <span className='pointer-events-none max-w-[40vw] truncate'>
+            <span className='truncate'>
               <span className='font-medium text-foreground'>{project.name}</span>
               {page && (
                 <>
@@ -257,20 +275,15 @@ export function TitleBar() {
               )}
             </span>
           ) : (
-            <span className='pointer-events-none'>Koharu</span>
+            <span>Koharu</span>
           )}
         </div>
 
-        <WindowControls />
+        {!macOS && <WindowControls />}
       </header>
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </>
   )
-}
-
-function exportSelection(selected: string[], active?: string): string[] {
-  if (selected.length) return selected
-  return active ? [active] : []
 }
 
 function MenubarTrigger({ className, ...props }: ComponentProps<typeof UiMenubarTrigger>) {

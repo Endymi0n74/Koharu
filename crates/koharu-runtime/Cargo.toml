@@ -14,10 +14,12 @@ publish = true
 
 [dependencies]
 anyhow = { workspace = true }
+backon = { workspace = true }
 dirs = { workspace = true }
 dunce = { workspace = true }
 futures = { workspace = true }
 fs4 = { workspace = true }
+hf-hub = { workspace = true }
 koharu-config = { workspace = true }
 petgraph = { workspace = true }
 reqwest = { workspace = true }
@@ -28,6 +30,7 @@ zip = { workspace = true }
 tokio = { workspace = true }
 walkdir = { workspace = true }
 libloading = { workspace = true }
+libc = { workspace = true }
 flate2 = { workspace = true }
 tar = { workspace = true }
 fast-glob = { workspace = true }

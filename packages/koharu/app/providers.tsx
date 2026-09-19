@@ -10,14 +10,6 @@ import { Updater } from '@/components/app/Updater'
 import ClientOnly from '@/components/ClientOnly'
 import { refreshTranslationModels } from '@/lib/backend'
 import i18n from '@/lib/i18n'
-import {
-  commands,
-  type CanvasState,
-  type Download,
-  type Job,
-  type ModelResources,
-  type ProjectInfo,
-} from '@/lib/protocol'
 import { pageKey, pagesKey, projectKey, queryClient, refresh } from '@/lib/queries'
 import {
   receiveCanvas,
@@ -27,6 +19,14 @@ import {
   receiveResources,
   useKoharuStore,
 } from '@/lib/store'
+import {
+  commands,
+  type CanvasState,
+  type Download,
+  type Job,
+  type ModelResources,
+  type ProjectInfo,
+} from '@koharu/bridge/protocol'
 import { Toaster } from '@koharu/ui/components/toast'
 import { TooltipProvider } from '@koharu/ui/components/tooltip'
 
@@ -92,15 +92,24 @@ export function Providers({ children }: { children: ReactNode }) {
     }
     setLanguage(i18n.language)
     i18n.on('languageChanged', setLanguage)
-    void i18n.changeLanguage()
     return () => i18n.off('languageChanged', setLanguage)
+  }, [])
+
+  useEffect(() => {
+    // Prevent the host webview from applying browser zoom; keep Ctrl+wheel for app handlers.
+    const preventViewportScaling = (event: WheelEvent) => {
+      if (event.ctrlKey) event.preventDefault()
+    }
+
+    window.addEventListener('wheel', preventViewportScaling, { capture: true, passive: false })
+    return () => window.removeEventListener('wheel', preventViewportScaling, { capture: true })
   }, [])
 
   return (
     <QueryClientProvider client={queryClient}>
       <I18nextProvider i18n={i18n}>
         <TooltipProvider delay={0}>
-          <ClientOnly fallback={<StartupView />}>
+          <ClientOnly>
             <StartupBoundary>{children}</StartupBoundary>
             <Toaster />
           </ClientOnly>

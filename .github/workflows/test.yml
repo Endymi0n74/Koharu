@@ -16,11 +16,10 @@ jobs:
     name: Rust
     runs-on: ubuntu-latest
     steps:
-      # refer: https://v2.tauri.app/start/prerequisites/#linux
       - run: |
           sudo apt update
           sudo apt install --no-install-recommends \
-            libwebkit2gtk-4.1-dev \
+            libgtk-4-dev \
             build-essential \
             curl \
             wget \
@@ -48,6 +47,6 @@ jobs:
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-      - run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile --ignore-scripts
       - name: Run headless Vitest suite
         run: bun run --filter @koharu/app test

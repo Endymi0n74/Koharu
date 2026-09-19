@@ -21,13 +21,13 @@ import {
   Trash2,
   Type,
 } from 'lucide-react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { type MouseEvent, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ColorWell } from '@/components/controls/ColorWell'
 import { CommitTextarea } from '@/components/controls/CommitTextarea'
 import { FontPicker } from '@/components/controls/FontPicker'
-import { call, dispatch } from '@/lib/backend'
+import { call } from '@/lib/backend'
 import {
   expandLayerSelection,
   isGroupLayer,
@@ -35,6 +35,9 @@ import {
   isTextLayer,
   layerChildren,
 } from '@/lib/document'
+import { pageKey, projectKey, queryClient, refresh, useFonts, usePage } from '@/lib/queries'
+import { useKoharuStore } from '@/lib/store'
+import { previewCanvasOpacity } from '@koharu/bridge/canvas'
 import {
   commands,
   type EntityId,
@@ -44,9 +47,7 @@ import {
   type TextAlignment,
   type Typography,
   type WritingMode,
-} from '@/lib/protocol'
-import { pageKey, projectKey, queryClient, refresh, useFonts, usePage } from '@/lib/queries'
-import { useKoharuStore } from '@/lib/store'
+} from '@koharu/bridge/protocol'
 import { Button } from '@koharu/ui/components/button'
 import {
   DropdownMenu,
@@ -188,6 +189,7 @@ function TypeInspector() {
   const strokeEnabled = strokeWidth > 0 && strokeColor[3] > 0
   const displayedStrokeWidth = strokeWidth > 0 ? strokeWidth : 1.5
   const writingMode = typography.writing_mode ?? 'Horizontal'
+  const writingModeChoice = typography.writing_mode ?? 'Auto'
   const effectiveAlignment =
     typography.alignment ?? (writingMode === 'Vertical' ? 'Start' : 'Center')
 
@@ -351,11 +353,11 @@ function TypeInspector() {
           <InspectorField label={t('inspector.direction')}>
             <Select
               disabled={disabled}
-              value={writingMode}
+              value={writingModeChoice}
               onValueChange={(writing_mode) =>
                 apply((value) => ({
                   ...value,
-                  writing_mode: writing_mode as WritingMode,
+                  writing_mode: writing_mode === 'Auto' ? null : (writing_mode as WritingMode),
                 }))
               }
             >
@@ -363,6 +365,7 @@ function TypeInspector() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value='Auto'>{t('inspector.auto')}</SelectItem>
                 <SelectItem value='Horizontal'>{t('inspector.horizontal')}</SelectItem>
                 <SelectItem value='Vertical'>{t('inspector.vertical')}</SelectItem>
               </SelectContent>
@@ -496,6 +499,7 @@ function LayersInspector() {
     selected.length === 1 ? (selected[0] ?? null) : null,
   )
   const [movingLayer, setMovingLayer] = useState<EntityId | null>(null)
+  const anchor = useRef<EntityId | null>(null)
 
   useEffect(() => {
     setExpandedLayer(selected.length === 1 ? (selected[0] ?? null) : null)
@@ -544,13 +548,39 @@ function LayersInspector() {
       })
       .catch(() => undefined)
 
-  const selectLayer = (layer: EntityId) => {
-    if (selected.length === 1 && selected[0] === layer) {
-      setExpandedLayer((current) => (current === layer ? null : layer))
+  // Modifier semantics mirror the page rail: ctrl/meta toggles, shift selects a display range.
+  const selectLayer = (layer: EntityId, additive: boolean, range: boolean) => {
+    if (!additive && !range) {
+      anchor.current = layer
+      if (selected.length === 1 && selected[0] === layer) {
+        setExpandedLayer((current) => (current === layer ? null : layer))
+        return
+      }
+      selectLayers([layer])
+      setExpandedLayer(layer)
       return
     }
-    selectLayers([layer])
-    setExpandedLayer(layer)
+    const order = layers.map((row) => row.layer.id)
+    const anchorIndex = anchor.current ? order.indexOf(anchor.current) : -1
+    if (range && anchorIndex >= 0) {
+      const targetIndex = order.indexOf(layer)
+      const span = layers
+        .slice(Math.min(anchorIndex, targetIndex), Math.max(anchorIndex, targetIndex) + 1)
+        .filter((row) => !isLockedLayer(row.layer))
+        .map((row) => row.layer.id)
+      selectLayers(additive ? [...selected, ...span] : span)
+      return
+    }
+    anchor.current = layer
+    if (!additive) {
+      selectLayers([layer])
+      return
+    }
+    selectLayers(
+      selected.includes(layer)
+        ? selected.filter((selectedLayer) => selectedLayer !== layer)
+        : [...selected, layer],
+    )
   }
 
   return (
@@ -587,7 +617,9 @@ function LayersInspector() {
                 selected={selected.includes(layer.id)}
                 expanded={!locked && expandedLayer === layer.id}
                 locked={locked}
-                onSelect={() => selectLayer(layer.id)}
+                onSelect={(event) =>
+                  selectLayer(layer.id, event.ctrlKey || event.metaKey, event.shiftKey)
+                }
                 onToggle={() =>
                   void call(commands.setVisibility, [layer.id], !layer.visibility.visible, null)
                     .then(() => refresh(projectKey, pageKey))
@@ -629,7 +661,7 @@ function LayerRow({
   selected: boolean
   expanded: boolean
   locked: boolean
-  onSelect: () => void
+  onSelect: (event: MouseEvent<HTMLButtonElement>) => void
   onToggle: () => void
   onMove: (delta: number) => void
   canMoveUp: boolean
@@ -750,13 +782,13 @@ function LayerEditor({ layer, onDelete }: { layer: Layer; onDelete?: () => void 
       .then(() => refresh(projectKey, pageKey))
       .catch(() => {
         setOpacity(layer.visibility.opacity * 100)
-        dispatch(commands.previewOpacity, layer.id, null)
+        previewCanvasOpacity(layer.id, null)
       })
   }
 
   const previewOpacity = (next: number) => {
     setOpacity(next)
-    dispatch(commands.previewOpacity, layer.id, next / 100)
+    previewCanvasOpacity(layer.id, next / 100)
   }
 
   const resetTextFrame = () => {

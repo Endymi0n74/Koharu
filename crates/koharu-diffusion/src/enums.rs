@@ -203,6 +203,9 @@ named_ffi_enum! {
         Mxfp4 = sys::SD_TYPE_MXFP4 => "mxfp4",
         Nvfp4 = sys::SD_TYPE_NVFP4 => "nvfp4",
         Q1_0 = sys::SD_TYPE_Q1_0 => "q1_0",
+        Q2_0 = sys::SD_TYPE_Q2_0 => "q2_0",
+        F8E4m3 = sys::SD_TYPE_F8_E4M3 => "f8_e4m3",
+        F8E5m2 = sys::SD_TYPE_F8_E5M2 => "f8_e5m2",
         Auto = sys::SD_TYPE_COUNT => "auto"
     }
 }
@@ -248,6 +251,7 @@ named_ffi_enum! {
         EulerGe = sys::EULER_GE_SAMPLE_METHOD => "euler_ge",
         DpmPlusPlus2mSde = sys::DPMPP2M_SDE_SAMPLE_METHOD => "dpm++2m_sde",
         DpmPlusPlus2mSdeBt = sys::DPMPP2M_SDE_BT_SAMPLE_METHOD => "dpm++2m_sde_bt",
+        Lms = sys::LMS_SAMPLE_METHOD => "lms",
         Auto = sys::SAMPLE_METHOD_COUNT => "auto"
     }
 }
@@ -365,7 +369,8 @@ ffi_enum! {
         Auto = sys::SD_VAE_FORMAT_AUTO => "auto",
         Flux = sys::SD_VAE_FORMAT_FLUX => "flux",
         Sd3 = sys::SD_VAE_FORMAT_SD3 => "sd3",
-        Flux2 = sys::SD_VAE_FORMAT_FLUX2 => "flux2"
+        Flux2 = sys::SD_VAE_FORMAT_FLUX2 => "flux2",
+        Wan = sys::SD_VAE_FORMAT_WAN => "wan"
     }
 }
 
@@ -398,6 +403,7 @@ ffi_enum! {
     /// Severity attached to a native log message.
     pub enum LogLevel: sys::sd_log_level_t, "log level" {
         Debug = sys::SD_LOG_DEBUG => "debug",
+        Verbose = sys::SD_LOG_VERBOSE => "verbose",
         Info = sys::SD_LOG_INFO => "info",
         Warn = sys::SD_LOG_WARN => "warn",
         Error = sys::SD_LOG_ERROR => "error"

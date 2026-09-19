@@ -2,6 +2,7 @@ pub(crate) mod agent;
 pub(crate) mod canvas;
 pub(crate) mod editing;
 pub(crate) mod fonts;
+pub(crate) mod import;
 pub(crate) mod lifecycle;
 pub(crate) mod output;
 pub(crate) mod preferences;
@@ -51,7 +52,7 @@ impl<T: IpcResponse> ChannelExt<T> for Mutex<Option<Channel<T>>> {
     }
 }
 
-pub fn bindings() -> tauri_specta::Builder<tauri::Cef> {
+pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
     use tauri_specta::{Builder, ErrorHandlingMode, collect_commands};
 
     Builder::new()
@@ -71,7 +72,7 @@ pub fn bindings() -> tauri_specta::Builder<tauri::Cef> {
             lifecycle::open_project,
             lifecycle::delete_project,
             lifecycle::close_project,
-            lifecycle::import_pages,
+            lifecycle::import,
             lifecycle::select_page,
             editing::rename_page,
             editing::delete_pages,
@@ -87,37 +88,24 @@ pub fn bindings() -> tauri_specta::Builder<tauri::Cef> {
             editing::redo,
             processing::process,
             processing::stop_job,
-            output::export_pages,
+            output::export,
             output::get_thumbnail,
             fonts::get_fonts,
             fonts::get_font_preview,
             preferences::save_preferences,
             preferences::get_preferences,
             preferences::get_translation_models,
-            canvas::set_zoom,
-            canvas::set_canvas_view,
-            canvas::fit_canvas,
+            canvas::get_canvas_manifest,
+            canvas::get_canvas_resource,
+            canvas::prepare_canvas_page,
+            canvas::get_canvas_page_manifest,
+            canvas::get_canvas_page_resource,
             canvas::add_point_text,
             canvas::add_text_box,
-            canvas::begin_paint,
-            canvas::extend_paint,
-            canvas::finish_paint,
-            canvas::cancel_paint,
-            canvas::begin_erase,
-            canvas::extend_erase,
-            canvas::finish_erase,
-            canvas::cancel_erase,
-            canvas::begin_transform,
-            canvas::update_transform,
-            canvas::preview_opacity,
-            canvas::finish_transform,
-            canvas::cancel_transform,
-            canvas::begin_inpaint,
-            canvas::extend_inpaint,
-            canvas::finish_inpaint,
-            canvas::cancel_inpaint,
-            canvas::sample_color,
-            canvas::set_viewport,
+            canvas::commit_paint,
+            canvas::commit_erase,
+            canvas::commit_transform,
+            canvas::commit_inpaint,
         ])
         .disable_serde_phases()
         .error_handling(ErrorHandlingMode::Throw)

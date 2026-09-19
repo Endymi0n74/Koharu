@@ -7,21 +7,15 @@ import {
   PreferenceRow,
   PreferenceSection,
 } from '@/components/preferences/PreferenceFields'
-import type { GenerationConfig } from '@/lib/protocol'
+import type { GenerationConfig } from '@koharu/bridge/protocol'
 import { Switch } from '@koharu/ui/components/switch'
 
 export function GenerationPreferences({
   value,
-  vision,
-  visionAvailable,
   onChange,
-  onVisionChange,
 }: {
   value: GenerationConfig
-  vision: boolean
-  visionAvailable: boolean
   onChange: (value: GenerationConfig) => void
-  onVisionChange: (value: boolean) => void
 }) {
   const { t } = useTranslation()
   const update = (changes: Partial<GenerationConfig>) => onChange({ ...value, ...changes })
@@ -30,7 +24,11 @@ export function GenerationPreferences({
       title={t('settings.generation.title')}
       description={t('settings.generation.description')}
     >
-      <PreferenceRow title={t('settings.generation.sampling')} align='start'>
+      <PreferenceRow
+        title={t('settings.generation.sampling')}
+        description={t('settings.generation.samplingDescription')}
+        align='start'
+      >
         <div className='grid grid-cols-2 gap-2'>
           <NumberField
             label={t('settings.generation.temperature')}
@@ -92,24 +90,26 @@ export function GenerationPreferences({
         </div>
       </PreferenceRow>
       <PreferenceRow
-        title={t('settings.generation.thinking')}
-        description={t('settings.generation.thinkingDescription')}
+        title={t('settings.generation.reasoning')}
+        description={t('settings.generation.reasoningDescription')}
       >
         <div className='flex h-8 items-center justify-end'>
           <Switch
-            aria-label={t('settings.generation.enableThinking')}
-            checked={value.thinking ?? false}
-            onCheckedChange={(thinking) => update({ thinking })}
+            aria-label={t('settings.generation.enableReasoning')}
+            checked={value.reasoning ?? false}
+            onCheckedChange={(reasoning) => update({ reasoning })}
           />
         </div>
       </PreferenceRow>
-      <PreferenceRow title={t('settings.generation.vision')}>
+      <PreferenceRow
+        title={t('settings.generation.vision')}
+        description={t('settings.generation.visionDescription')}
+      >
         <div className='flex h-8 items-center justify-end'>
           <Switch
             aria-label={t('settings.generation.vision')}
-            checked={visionAvailable && vision}
-            disabled={!visionAvailable}
-            onCheckedChange={onVisionChange}
+            checked={value.vision ?? false}
+            onCheckedChange={(vision) => update({ vision })}
           />
         </div>
       </PreferenceRow>

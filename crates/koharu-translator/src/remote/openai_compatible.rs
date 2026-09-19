@@ -1,5 +1,4 @@
-// Request shape aligned with:
-// https://github.com/mayocream/koharu/blob/f4ce03999ed1ae2faaec938dd52c2f41a87d03d9/crates/koharu-llm/src/providers/chat_completions.rs
+// https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create
 
 use anyhow::Context;
 use koharu_secrets::ExposeSecret;
@@ -10,7 +9,7 @@ use url::Url;
 use super::send_json;
 use crate::{
     GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image,
-    display_name, prompt, prompt::Translations,
+    display_name, prompt,
 };
 
 const DEFAULT_BASE_URL: &str = "http://localhost:11434/v1";
@@ -19,7 +18,6 @@ const DEFAULT_BASE_URL: &str = "http://localhost:11434/v1";
 #[serde(default)]
 pub struct OpenAiCompatibleConfig {
     pub base_url: Option<Url>,
-    pub vision: bool,
 }
 
 impl Default for OpenAiCompatibleConfig {
@@ -28,40 +26,18 @@ impl Default for OpenAiCompatibleConfig {
             base_url: Some(
                 Url::parse(DEFAULT_BASE_URL).expect("default OpenAI-compatible URL is valid"),
             ),
-            vision: false,
         }
     }
 }
 
-pub(super) async fn compatible(
+pub(super) async fn translate(
     client: &Client,
     config: &OpenAiCompatibleConfig,
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Translations> {
+) -> Result<Vec<String>> {
     let api_key = koharu_secrets::get("openai-compatible")?;
-    let endpoint = endpoint(config.base_url.as_ref(), "chat/completions");
-    translate(
-        client,
-        ChatBackend::new(
-            "openai-compatible",
-            &endpoint,
-            api_key.as_ref().map(ExposeSecret::expose_secret),
-            model,
-            generation,
-            ResponseMode::PromptOnly,
-        ),
-        request,
-    )
-    .await
-}
-
-pub(super) async fn translate(
-    client: &Client,
-    backend: ChatBackend<'_>,
-    request: &TranslationRequest,
-) -> Result<Translations> {
     let (system, user) = prompt::prompts(request)?;
     let user_content = match request.image.as_deref() {
         Some(image) => MessageContent::Parts(vec![
@@ -75,7 +51,7 @@ pub(super) async fn translate(
         None => MessageContent::Text(user),
     };
     let body = ChatRequest {
-        model: backend.model,
+        model,
         messages: [
             Message {
                 role: "system",
@@ -86,104 +62,66 @@ pub(super) async fn translate(
                 content: user_content,
             },
         ],
-        temperature: backend.temperature,
-        top_p: backend.top_p,
-        max_tokens: backend.max_tokens,
-        max_completion_tokens: backend.max_completion_tokens,
-        frequency_penalty: backend.frequency_penalty,
-        presence_penalty: backend.presence_penalty,
-        reasoning_effort: backend.reasoning_effort,
-        reasoning: backend.reasoning.map(|enabled| ReasoningConfig { enabled }),
-        thinking: backend.thinking.map(|kind| ThinkingConfig { kind }),
-        response_format: backend
-            .response_mode
-            .response_format(request.segments.len()),
+        temperature: generation.temperature,
+        top_p: generation.top_p,
+        max_tokens: generation.max_tokens,
+        frequency_penalty: generation.frequency_penalty,
+        presence_penalty: generation.presence_penalty,
+        reasoning_effort: generation
+            .reasoning
+            .map(|enabled| if enabled { "medium" } else { "none" }),
+        response_format: ResponseFormat {
+            kind: "json_schema",
+            json_schema: JsonSchema {
+                name: "manga_translation",
+                strict: true,
+                schema: prompt::output_schema(request.segments.len()),
+            },
+        },
     };
-    let mut http = client.post(backend.endpoint).json(&body);
-    if let Some(api_key) = backend.api_key {
-        http = http.bearer_auth(api_key);
-    }
-    let response: ChatResponse = send_json(backend.provider, http).await?;
+    let http = client
+        .post(endpoint(config.base_url.as_ref(), "chat/completions"))
+        .json(&body);
+    let http = match api_key {
+        Some(api_key) => http.bearer_auth(api_key.expose_secret()),
+        None => http,
+    };
+    let response: ChatResponse = send_json("openai-compatible", http).await?;
     let text = response
         .choices
         .into_iter()
         .next()
-        .context("chat completion returned no choices")?
+        .context("OpenAI-compatible backend returned no choices")?
         .message
-        .content;
-    Ok(prompt::translations(backend.provider, &text, request)?)
-}
-
-pub(super) struct ChatBackend<'a> {
-    pub(super) provider: &'static str,
-    pub(super) endpoint: &'a str,
-    pub(super) api_key: Option<&'a str>,
-    pub(super) model: &'a str,
-    pub(super) temperature: Option<f32>,
-    pub(super) top_p: Option<f32>,
-    pub(super) max_tokens: Option<u32>,
-    pub(super) max_completion_tokens: Option<u32>,
-    pub(super) frequency_penalty: Option<f32>,
-    pub(super) presence_penalty: Option<f32>,
-    pub(super) reasoning_effort: Option<&'static str>,
-    pub(super) reasoning: Option<bool>,
-    pub(super) thinking: Option<&'static str>,
-    pub(super) response_mode: ResponseMode,
-}
-
-impl<'a> ChatBackend<'a> {
-    pub(super) fn new(
-        provider: &'static str,
-        endpoint: &'a str,
-        api_key: Option<&'a str>,
-        model: &'a str,
-        generation: &GenerationConfig,
-        response_mode: ResponseMode,
-    ) -> Self {
-        Self {
-            provider,
-            endpoint,
-            api_key,
-            model,
-            temperature: generation.temperature,
-            top_p: generation.top_p,
-            max_tokens: generation.max_tokens,
-            max_completion_tokens: None,
-            frequency_penalty: generation.frequency_penalty,
-            presence_penalty: generation.presence_penalty,
-            reasoning_effort: None,
-            reasoning: None,
-            thinking: None,
-            response_mode,
-        }
-    }
+        .content
+        .context("OpenAI-compatible backend returned no message content")?;
+    Ok(prompt::translations(
+        "openai-compatible",
+        &text,
+        &request.segments,
+    )?)
 }
 
 pub(super) async fn models(client: &Client, config: &OpenAiCompatibleConfig) -> Result<Vec<Model>> {
     let api_key = koharu_secrets::get("openai-compatible")?;
-    let mut request = client.get(endpoint(config.base_url.as_ref(), "models"));
-    if let Some(api_key) = api_key {
-        request = request.bearer_auth(api_key.expose_secret());
-    }
-    Ok(discover_models("openai-compatible", request)
-        .await?
+    let request = client.get(endpoint(config.base_url.as_ref(), "models"));
+    let request = match api_key {
+        Some(api_key) => request.bearer_auth(api_key.expose_secret()),
+        None => request,
+    };
+    let response: ModelsResponse = send_json("openai-compatible", request).await?;
+    Ok(response
+        .data
         .into_iter()
         .map(|model| Model {
             provider: Provider::OpenAiCompatible,
-            name: display_name(&model),
-            model: Some(model),
+            name: display_name(&model.id),
+            model: Some(model.id),
             quantizations: Vec::new(),
-            vision: config.vision,
+            vision: true,
+            reasoning: true,
         })
         .collect())
-}
-
-pub(super) async fn discover_models(
-    provider: &'static str,
-    request: reqwest::RequestBuilder,
-) -> Result<Vec<String>> {
-    let response: ModelsResponse = send_json(provider, request).await?;
-    Ok(response.data.into_iter().map(|model| model.id).collect())
 }
 
 fn endpoint(base_url: Option<&Url>, suffix: &str) -> String {
@@ -206,65 +144,19 @@ struct ChatRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    max_completion_tokens: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     presence_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     reasoning_effort: Option<&'static str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reasoning: Option<ReasoningConfig>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    thinking: Option<ThinkingConfig>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    response_format: Option<ResponseFormat>,
-}
-
-#[derive(Clone, Copy, Serialize)]
-struct ThinkingConfig {
-    #[serde(rename = "type")]
-    kind: &'static str,
-}
-
-#[derive(Clone, Copy, Serialize)]
-struct ReasoningConfig {
-    enabled: bool,
-}
-
-#[derive(Clone, Copy)]
-pub(super) enum ResponseMode {
-    PromptOnly,
-    JsonObject,
-    JsonSchema,
-}
-
-impl ResponseMode {
-    fn response_format(self, expected: usize) -> Option<ResponseFormat> {
-        match self {
-            Self::PromptOnly => None,
-            Self::JsonObject => Some(ResponseFormat {
-                kind: "json_object",
-                json_schema: None,
-            }),
-            Self::JsonSchema => Some(ResponseFormat {
-                kind: "json_schema",
-                json_schema: Some(JsonSchema {
-                    name: "manga_translation",
-                    strict: true,
-                    schema: prompt::output_schema(expected),
-                }),
-            }),
-        }
-    }
+    response_format: ResponseFormat,
 }
 
 #[derive(Serialize)]
 struct ResponseFormat {
     #[serde(rename = "type")]
     kind: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    json_schema: Option<JsonSchema>,
+    json_schema: JsonSchema,
 }
 
 #[derive(Serialize)]
@@ -311,7 +203,7 @@ struct Choice {
 
 #[derive(Deserialize)]
 struct ResponseMessage {
-    content: String,
+    content: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -338,29 +230,9 @@ mod tests {
     }
 
     #[test]
-    fn serializes_provider_specific_response_formats() {
-        assert_eq!(
-            serde_json::to_value(ResponseMode::JsonObject.response_format(2).unwrap()).unwrap(),
-            serde_json::json!({ "type": "json_object" })
-        );
-
-        let strict =
-            serde_json::to_value(ResponseMode::JsonSchema.response_format(2).unwrap()).unwrap();
-        assert_eq!(strict["type"], "json_schema");
-        assert_eq!(strict["json_schema"]["name"], "manga_translation");
-        assert_eq!(strict["json_schema"]["strict"], true);
-        assert_eq!(
-            strict["json_schema"]["schema"]["properties"]["translations"]["items"]["properties"]["id"]
-                ["maximum"],
-            1
-        );
-        assert!(ResponseMode::PromptOnly.response_format(2).is_none());
-    }
-
-    #[test]
-    fn serializes_current_completion_fields() {
-        let request = ChatRequest {
-            model: "gpt-5.6-luna",
+    fn serializes_compatible_request_contract() {
+        let body = ChatRequest {
+            model: "model",
             messages: [
                 Message {
                     role: "system",
@@ -373,27 +245,28 @@ mod tests {
             ],
             temperature: None,
             top_p: None,
-            max_tokens: None,
-            max_completion_tokens: Some(1024),
+            max_tokens: Some(1024),
             frequency_penalty: None,
             presence_penalty: None,
             reasoning_effort: Some("none"),
-            reasoning: None,
-            thinking: None,
-            response_format: None,
+            response_format: ResponseFormat {
+                kind: "json_schema",
+                json_schema: JsonSchema {
+                    name: "manga_translation",
+                    strict: true,
+                    schema: prompt::output_schema(2),
+                },
+            },
         };
-        let value = serde_json::to_value(request).unwrap();
-        assert_eq!(value["max_completion_tokens"], 1024);
-        assert_eq!(value["reasoning_effort"], "none");
-        assert!(value.get("max_tokens").is_none());
-        assert!(value.get("thinking").is_none());
-    }
+        let value = serde_json::to_value(body).unwrap();
 
-    #[test]
-    fn serializes_openrouter_reasoning_control() {
+        assert_eq!(value["max_tokens"], 1024);
+        assert_eq!(value["reasoning_effort"], "none");
+        assert_eq!(value["response_format"]["type"], "json_schema");
+        assert_eq!(value["response_format"]["json_schema"]["strict"], true);
         assert_eq!(
-            serde_json::to_value(ReasoningConfig { enabled: false }).unwrap(),
-            serde_json::json!({ "enabled": false })
+            value["response_format"]["json_schema"]["schema"]["properties"]["translations"]["maxItems"],
+            2
         );
     }
 
@@ -410,6 +283,7 @@ mod tests {
             },
         ]);
         let value = serde_json::to_value(content).unwrap();
+
         assert_eq!(
             value[0],
             serde_json::json!({ "type": "text", "text": "translate" })

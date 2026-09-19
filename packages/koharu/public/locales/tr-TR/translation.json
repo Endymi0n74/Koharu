@@ -12,6 +12,7 @@
     "downloadingFiles_one": "{{count}} dosya indiriliyor",
     "downloadingFiles_other": "{{count}} dosya indiriliyor",
     "modelDownload": "Model indirme",
+    "pageLabel": "Sayfa {{number}}: {{label}}",
     "processing": "İşleniyor",
     "processingFailed": "İşleme başarısız oldu.",
     "showLess": "Daha az göster",
@@ -57,7 +58,8 @@
   "canvas": {
     "empty": "Başlamak için bir sayfa seçin.",
     "fit": "Pencereye Sığdır",
-    "surface": "Koharu tuvali"
+    "surface": "Koharu tuvali",
+    "unavailable": "WebGPU tuvali kullanılamıyor"
   },
   "colorPicker": {
     "brushColor": "Fırça rengi",
@@ -246,13 +248,12 @@
     "delete": "Seçilenleri Sil",
     "discord": "Discord",
     "edit": "Düzenle",
-    "exportPng": "PNG Dışa Aktar…",
-    "exportPsd": "PSD Dışa Aktar…",
+    "export": "Projeyi Dışa Aktar",
     "file": "Dosya",
     "fit": "Pencereye Sığdır",
     "github": "GitHub",
     "help": "Yardım",
-    "importPages": "Sayfaları İçe Aktar…",
+    "import": "Sayfaları İçe Aktar",
     "process": "İşle",
     "processLayers": "Seçili Katmanları İşle",
     "processPages": "Seçili Sayfaları İşle",
@@ -298,12 +299,12 @@
     "pages": "Sayfalar",
     "rename": "Yeniden adlandır",
     "renameDescription": "Bu sayfa için yeni bir ad seçin.",
-    "renameTitle": "Sayfayı yeniden adlandır"
+    "renameTitle": "Sayfayı yeniden adlandır",
+    "selected": "{{count}} seçili"
   },
   "outputPicker": {
     "instructions": "Çeviri talimatları",
     "instructionsPlaceholder": "Üslup, adlar ve biçimlendirme için isteğe bağlı yönlendirme.",
-    "saving": "Çıktı ayarları kaydediliyor",
     "targetLanguage": "Hedef dil",
     "title": "Çeviri çıktısı"
   },
@@ -320,15 +321,16 @@
     "translation": "Kaynak metni hedef dile çevirir."
   },
   "providerDescriptions": {
-    "atlas-cloud": "Atlas üzerinde barındırılan dil modelleri.",
     "caiyun": "Caiyun çeviri API'si.",
     "claude": "Anthropic Claude modelleri.",
     "deepl": "DeepL çeviri API'si.",
     "deepseek": "DeepSeek dil modelleri.",
     "gemini": "Google Gemini modelleri.",
     "google-cloud-translation": "Google Cloud Translation API'si.",
+    "grok": "xAI Grok dil modelleri.",
     "lm-studio": "LM Studio tarafından sunulan modeller.",
     "local": "Bu cihazda çalışan modeller.",
+    "minimax": "MiniMax dil modelleri.",
     "openai": "OpenAI dil modelleri.",
     "openai-compatible": "OpenAI uyumlu API sunan herhangi bir sunucu.",
     "openrouter": "OpenRouter üzerinden yönlendirilen modeller."
@@ -361,20 +363,22 @@
     "backToEditor": "Düzenleyiciye dön",
     "generation": {
       "description": "Dil modellerinin çevrilmiş metni nasıl ürettiğini ayarlayın.",
-      "enableThinking": "Düşünmeyi etkinleştir",
+      "enableReasoning": "Akıl yürütmeyi etkinleştir",
       "frequencyPenalty": "Sıklık cezası",
       "maxTokens": "En fazla belirteç",
       "minP": "Minimum P",
       "presencePenalty": "Varlık cezası",
       "repeatPenalty": "Tekrar cezası",
       "sampling": "Örnekleme",
+      "samplingDescription": "Modelin oluşturulan metni nasıl seçip çeşitlendireceğini kontrol eder.",
       "temperature": "Sıcaklık",
-      "thinking": "Düşünme",
-      "thinkingDescription": "Akıl yürütme destekli modellerden düşünme modunu kullanmalarını ister.",
+      "reasoning": "Akıl yürütme",
+      "reasoningDescription": "Çeviri sırasında model akıl yürütmesini kullanır.",
       "title": "Üretim",
       "topK": "İlk K",
       "topP": "Top P",
-      "vision": "Görsel girişi"
+      "vision": "Görsel",
+      "visionDescription": "Çeviri sırasında sayfa görsellerini LLM'ye iletir."
     },
     "loading": "Tercihler yükleniyor…",
     "pipeline": {
@@ -409,11 +413,10 @@
       "configured": "Yapılandırıldı",
       "connections": "Bağlantılar",
       "connectionsDescription": "Kimlik bilgileri bu cihazda güvenli bir şekilde saklanır.",
+      "credential": "Kimlik bilgisi",
       "credentialLabel": "{{provider}} kimlik bilgisi",
       "description": "Çeviri ve dil modeli sağlayıcılarını bağlayın.",
-      "hideCredential": "{{provider}} kimlik bilgisini gizle",
       "notConfigured": "Yapılandırılmadı",
-      "revealCredential": "{{provider}} kimlik bilgisini göster",
       "title": "Sağlayıcılar"
     },
     "shortcuts": {
@@ -443,8 +446,10 @@
       "quantization": "Niceleme",
       "quantizationDescription": "Daha küçük biçimler daha az bellek kullanır, ancak genellikle kalite düşer.",
       "selectQuantization": "Niceleme seç",
+      "targetLanguageDescription": "Metnin çevrileceği dili seçin.",
       "title": "Çeviri",
-      "translationModel": "Çeviri modeli"
+      "translationModel": "Çeviri modeli",
+      "translationModelDescription": "Metni çevirmek için kullanılacak modeli seçin."
     },
     "typesetting": {
       "addFamily": "Yazı tipi ailesi ekle",
@@ -507,6 +512,7 @@
   },
   "updater": {
     "available": {
+      "description": "Koharu <strong>{{version}}</strong> yüklenmeye hazır",
       "title": "Güncelleme mevcut"
     },
     "close": "Kapat",

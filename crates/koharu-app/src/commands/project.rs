@@ -20,6 +20,12 @@ use super::{
     editing::{GeometryUpdate, TypographyUpdate},
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RasterStrokeMode {
+    Paint,
+    Erase,
+}
+
 #[derive(Clone, Debug, Serialize, Type)]
 pub struct ProjectInfo {
     pub name: String,
@@ -73,6 +79,7 @@ pub enum Layer {
         id: EntityId,
         parent: Option<EntityId>,
         geometry: Option<Geometry>,
+        angle_degrees: Option<f32>,
         visibility: LayerVisibility,
         content: Box<TextContent>,
         typography: Option<Typography>,
@@ -198,13 +205,25 @@ impl ProjectLibrary {
                 if !is_project_directory {
                     return None;
                 }
-                Some(ProjectSummary {
-                    name: path.file_stem()?.to_str()?.to_owned(),
-                })
+                let last_used = ["state-a.khr", "state-b.khr"]
+                    .into_iter()
+                    .filter_map(|file| std::fs::metadata(path.join(file)).ok()?.modified().ok())
+                    .max()
+                    .unwrap_or(std::time::UNIX_EPOCH);
+                Some((
+                    last_used,
+                    ProjectSummary {
+                        name: path.file_stem()?.to_str()?.to_owned(),
+                    },
+                ))
             })
             .collect::<Vec<_>>();
-        projects.sort_unstable_by_key(|project| project.name.to_lowercase());
-        Ok(projects)
+        projects.sort_unstable_by(|(left_used, left), (right_used, right)| {
+            right_used
+                .cmp(left_used)
+                .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
+        });
+        Ok(projects.into_iter().map(|(_, project)| project).collect())
     }
 
     pub(crate) async fn create(&self, name: &str) -> Result<Project> {
@@ -420,6 +439,7 @@ impl Project {
                 &SceneTextLayout {
                     origin: Origin::User,
                     kind,
+                    angle_degrees: Some(frame.angle_degrees),
                 },
             )?;
             layer = Some(added_layer);
@@ -547,12 +567,9 @@ impl Project {
         let updates = updates
             .into_iter()
             .map(|update| {
-                if snapshot
+                let layout = snapshot
                     .component::<SceneTextLayout>(update.layer)?
-                    .is_none()
-                {
-                    bail!("only text layers can change geometry");
-                }
+                    .context("only text layers can change geometry")?;
                 let content = Self::text_content(&snapshot, update.layer)?;
                 if update.points.is_none()
                     && snapshot
@@ -562,13 +579,16 @@ impl Project {
                 {
                     bail!("only automatically placed text can reset its geometry");
                 }
-                Ok((update, content))
+                Ok((update, content, layout))
             })
             .collect::<Result<Vec<_>>>()?;
         let patch = snapshot.patch(|edit| {
-            for (update, content) in updates {
+            for (update, content, mut layout) in updates {
                 edit.promote_entity_to_user(update.layer)?;
                 edit.promote_entity_to_user(content)?;
+                layout.origin = Origin::User;
+                layout.angle_degrees = None;
+                edit.set(update.layer, &layout)?;
                 match update.points {
                     Some(points) => edit.set(
                         update.layer,
@@ -690,25 +710,28 @@ impl Project {
 
     pub(crate) async fn set_geometries(
         &mut self,
-        geometries: impl IntoIterator<Item = (EntityId, SceneGeometry)>,
+        geometries: impl IntoIterator<Item = (EntityId, SceneGeometry, f32)>,
     ) -> Result<Commit> {
         let snapshot = self.snapshot();
         let geometries = geometries
             .into_iter()
-            .map(|(element, geometry)| {
-                if snapshot.component::<SceneTextLayout>(element)?.is_none() {
-                    bail!("only text layers can change geometry");
-                }
+            .map(|(element, geometry, angle_degrees)| {
+                let mut layout = snapshot
+                    .component::<SceneTextLayout>(element)?
+                    .context("only text layers can change geometry")?;
+                layout.origin = Origin::User;
+                layout.angle_degrees = Some(angle_degrees);
                 let content = Self::text_content(&snapshot, element)?;
-                Ok((element, geometry, content))
+                Ok((element, geometry, content, layout))
             })
             .collect::<Result<Vec<_>>>()?;
         let patch = snapshot.patch(|edit| {
-            for (element, mut geometry, content) in geometries {
+            for (element, mut geometry, content, layout) in geometries {
                 edit.promote_entity_to_user(element)?;
                 edit.promote_entity_to_user(content)?;
                 geometry.origin = Origin::User;
                 edit.set(element, &geometry)?;
+                edit.set(element, &layout)?;
             }
             Ok(())
         })?;
@@ -719,7 +742,7 @@ impl Project {
         &mut self,
         page: EntityId,
         layer: Option<EntityId>,
-        mode: koharu_canvas::StrokeMode,
+        mode: RasterStrokeMode,
         color: [u8; 4],
         diameter: f32,
         points: Vec<ScenePoint>,
@@ -762,7 +785,7 @@ impl Project {
                 None => RgbaImage::new(width, height),
             }
         } else {
-            if mode == koharu_canvas::StrokeMode::Erase {
+            if mode == RasterStrokeMode::Erase {
                 bail!("eraser requires a raster layer target");
             }
             RgbaImage::new(width, height)
@@ -999,6 +1022,7 @@ impl Project {
                 geometry: snapshot
                     .component::<SceneGeometry>(layer)?
                     .map(Self::geometry_view),
+                angle_degrees: layout.angle_degrees,
                 visibility,
                 content: Box::new(TextContent {
                     id: content.id(),
@@ -1069,6 +1093,11 @@ impl Project {
     }
 
     fn typography_view(typography: SceneTypography) -> Typography {
+        let writing_mode = if matches!(&typography.origin, Origin::User) {
+            typography.writing_mode
+        } else {
+            None
+        };
         Typography {
             preferred_font: typography.preferred_font,
             font_weight: typography.font_weight,
@@ -1079,7 +1108,7 @@ impl Project {
             stroke_color: typography.stroke_color,
             stroke_width: typography.stroke_width,
             alignment: typography.alignment,
-            writing_mode: typography.writing_mode,
+            writing_mode,
         }
     }
 
@@ -1236,7 +1265,7 @@ fn validate_project_name(name: &str) -> Result<String> {
 
 fn rasterize_stroke(
     image: &mut RgbaImage,
-    mode: koharu_canvas::StrokeMode,
+    mode: RasterStrokeMode,
     color: [u8; 4],
     diameter: f32,
     points: &[ScenePoint],
@@ -1275,7 +1304,7 @@ fn rasterize_stroke(
                 }
                 let pixel = image.get_pixel_mut(x, y);
                 match mode {
-                    koharu_canvas::StrokeMode::Paint => {
+                    RasterStrokeMode::Paint => {
                         let source_alpha = f32::from(color[3]) / 255.0 * coverage;
                         let destination_alpha = f32::from(pixel[3]) / 255.0;
                         let output_alpha = source_alpha + destination_alpha * (1.0 - source_alpha);
@@ -1292,7 +1321,7 @@ fn rasterize_stroke(
                         }
                         pixel[3] = (output_alpha * 255.0).round() as u8;
                     }
-                    koharu_canvas::StrokeMode::Erase => {
+                    RasterStrokeMode::Erase => {
                         pixel[3] = (f32::from(pixel[3]) * (1.0 - coverage)).round() as u8;
                     }
                 }
@@ -1303,7 +1332,39 @@ fn rasterize_stroke(
 
 #[cfg(test)]
 mod tests {
+    use koharu_scene::{Generation, ProducerId, WritingMode};
+
     use super::*;
+
+    #[test]
+    fn only_user_authored_direction_is_projected_as_an_override() {
+        let mut typography = SceneTypography {
+            origin: Origin::Generated(Generation::new(
+                ProducerId::new("dev.koharu.pipeline.detection").expect("valid producer"),
+            )),
+            preferred_font: None,
+            font_weight: None,
+            font_style: None,
+            size: None,
+            auto_fit: true,
+            color: None,
+            stroke_color: None,
+            stroke_width: None,
+            alignment: None,
+            writing_mode: Some(WritingMode::Vertical),
+            extensions: Default::default(),
+        };
+
+        assert_eq!(
+            Project::typography_view(typography.clone()).writing_mode,
+            None
+        );
+        typography.origin = Origin::User;
+        assert_eq!(
+            Project::typography_view(typography).writing_mode,
+            Some(WritingMode::Vertical)
+        );
+    }
 
     #[tokio::test]
     async fn pipeline_commit_rebases_or_yields_to_the_manual_edit() {
@@ -1392,7 +1453,7 @@ mod tests {
         ];
         rasterize_stroke(
             &mut image,
-            koharu_canvas::StrokeMode::Paint,
+            RasterStrokeMode::Paint,
             [210, 40, 20, 255],
             5.0,
             &points,
@@ -1403,7 +1464,7 @@ mod tests {
 
         rasterize_stroke(
             &mut image,
-            koharu_canvas::StrokeMode::Erase,
+            RasterStrokeMode::Erase,
             [0, 0, 0, 0],
             5.0,
             &[ScenePoint { x: 16.0, y: 8.0 }],
@@ -1414,7 +1475,7 @@ mod tests {
         let mut white = RgbaImage::new(4, 4);
         rasterize_stroke(
             &mut white,
-            koharu_canvas::StrokeMode::Paint,
+            RasterStrokeMode::Paint,
             [255, 255, 255, 255],
             3.0,
             &[ScenePoint { x: 2.0, y: 2.0 }],

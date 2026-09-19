@@ -372,21 +372,14 @@ impl LlamaSampler {
         }
     }
 
-    /// `LLGuidance` sampler for constrained decoding.
+    /// Build and return the reusable llguidance tokenizer environment for `model`.
     ///
-    /// Uses the `llguidance` and `toktrie` Rust crates to enforce grammar constraints
-    /// during token sampling. Supports JSON schema, regex, Lark, and other grammar types.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`GrammarError`] if the grammar is invalid or the sampler cannot be initialized.
+    /// Use it to construct an `llguidance::ParserFactory`, create a matcher for each
+    /// generation, and convert that matcher into a sampler with `LlamaSampler::from`.
     #[cfg(feature = "llguidance")]
-    pub fn llguidance(
-        model: &LlamaModel,
-        grammar_kind: &str,
-        grammar_data: &str,
-    ) -> Result<Self, GrammarError> {
-        crate::llguidance_sampler::create_llg_sampler(model, grammar_kind, grammar_data)
+    #[must_use]
+    pub fn llguidance_tok_env(model: &LlamaModel) -> toktrie::TokEnv {
+        crate::llguidance_sampler::llguidance_build_tok_env(model)
     }
 
     fn sanitize_grammar_strings(
@@ -462,10 +455,6 @@ impl LlamaSampler {
         let sampler = unsafe {
             koharu_llama_sys::llama_sampler_init_dry(
                 model.vocab_ptr(),
-                model
-                    .n_ctx_train()
-                    .try_into()
-                    .expect("n_ctx_train exceeds i32::MAX"),
                 multiplier,
                 base,
                 allowed_length,
@@ -480,13 +469,14 @@ impl LlamaSampler {
     /// Penalizes tokens for being present in the context.
     ///
     /// Parameters:
-    /// - ``penalty_last_n``: last n tokens to penalize (0 = disable penalty, -1 = context size)
-    /// - ``penalty_repeat``: 1.0 = disabled
-    /// - ``penalty_freq``: 0.0 = disabled
-    /// - ``penalty_present``: 0.0 = disabled
+    /// - ``penalty_last_n``: last n tokens to penalize (0 = disable penalty)
+    /// - ``penalty_repeat``: must be positive; 1.0 disables repeat penalties
+    /// - ``penalty_freq``: must be finite; 0.0 disables frequency penalties
+    /// - ``penalty_present``: must be finite; 0.0 disables presence penalties
     #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn penalties(
+        model: &LlamaModel,
         penalty_last_n: i32,
         penalty_repeat: f32,
         penalty_freq: f32,
@@ -494,6 +484,7 @@ impl LlamaSampler {
     ) -> Self {
         let sampler = unsafe {
             koharu_llama_sys::llama_sampler_init_penalties(
+                model.n_vocab(),
                 penalty_last_n,
                 penalty_repeat,
                 penalty_freq,

@@ -11,14 +11,13 @@ import {
   PreferenceRow,
   PreferenceSection,
 } from '@/components/preferences/PreferenceFields'
+import { modelKey, orderedLanguageChoices, providerName } from '@/lib/translation'
 import type {
   LanguageChoice,
   Model,
-  ProviderConfig,
   ProviderPreference,
   TranslationConfig as TranslationSettings,
-} from '@/lib/protocol'
-import { modelKey, orderedLanguageChoices, providerName } from '@/lib/translation'
+} from '@koharu/bridge/protocol'
 import { Badge } from '@koharu/ui/components/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@koharu/ui/components/popover'
 import {
@@ -30,30 +29,18 @@ import {
 } from '@koharu/ui/components/select'
 import { Textarea } from '@koharu/ui/components/textarea'
 
-type ConfigWithSetting<T, Key extends PropertyKey> = T extends { settings: infer Settings }
-  ? Key extends keyof Settings
-    ? [Settings[Key]] extends [never]
-      ? never
-      : T
-    : never
-  : never
-
-type VisionConfig = ConfigWithSetting<ProviderConfig, 'vision'>
-
 export function TranslationPreferences({
   value,
   modelChoices,
   providers,
   languages,
   onChange,
-  onProviderChange,
 }: {
   value: TranslationSettings
   modelChoices: Model[]
   providers: ProviderPreference[]
   languages: LanguageChoice[]
   onChange: (value: TranslationSettings) => void
-  onProviderChange: (value: ProviderPreference) => void
 }) {
   const { t } = useTranslation()
   const [modelOpen, setModelOpen] = useState(false)
@@ -64,13 +51,13 @@ export function TranslationPreferences({
     model: value.model.model ?? null,
     name: value.model.model ?? providerName(providers, value.model.provider),
     quantizations: [],
+    vision: value.model.vision ?? false,
+    reasoning: value.model.reasoning ?? false,
   }
   const choices = selected ? modelChoices : [current, ...modelChoices]
-  const quantizations = current.quantizations
-  const provider = providers.find((entry) => entry.config.provider === value.model.provider)
-  const configurableVision =
-    provider && hasVision(provider.config) ? { ...provider, config: provider.config } : null
-  const visionAvailable = current.vision || configurableVision !== null
+  const quantization =
+    current.quantizations.find((quantization) => quantization.id === value.model.quantization) ??
+    current.quantizations[0]
   const languageChoices = useMemo(() => orderedLanguageChoices(languages), [languages])
   return (
     <PreferencePage
@@ -81,7 +68,10 @@ export function TranslationPreferences({
         title={t('settings.translation.model')}
         description={t('settings.translation.modelDescription')}
       >
-        <PreferenceRow title={t('settings.translation.translationModel')}>
+        <PreferenceRow
+          title={t('settings.translation.translationModel')}
+          description={t('settings.translation.translationModelDescription')}
+        >
           <Popover open={modelOpen} onOpenChange={setModelOpen}>
             <PopoverTrigger
               type='button'
@@ -89,7 +79,11 @@ export function TranslationPreferences({
               className='flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-2.5 text-[11px] transition-colors outline-none hover:bg-foreground/[0.03] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
             >
               <span className='min-w-0 flex-1 text-left'>
-                <ModelLabel model={current} providers={providers} />
+                <ModelLabel
+                  model={current}
+                  providers={providers}
+                  quantization={quantization?.name ?? value.model.quantization}
+                />
               </span>
               <ChevronDown className='size-3.5 shrink-0 text-muted-foreground' />
             </PopoverTrigger>
@@ -106,12 +100,7 @@ export function TranslationPreferences({
                 onSelect={(model) => {
                   onChange({
                     ...value,
-                    model: {
-                      provider: model.provider,
-                      model: model.model,
-                      quantization: model.quantizations[0]?.id ?? null,
-                      vision: model.vision,
-                    },
+                    model,
                   })
                   setModelOpen(false)
                 }}
@@ -119,53 +108,18 @@ export function TranslationPreferences({
             </PopoverContent>
           </Popover>
         </PreferenceRow>
-        {quantizations.length > 0 && (
-          <PreferenceRow
-            title={t('settings.translation.quantization')}
-            description={t('settings.translation.quantizationDescription')}
-          >
-            <Select
-              value={value.model.quantization ?? ''}
-              onValueChange={(quantization) =>
-                onChange({ ...value, model: { ...value.model, quantization } })
-              }
-            >
-              <SelectTrigger
-                aria-label={t('settings.translation.modelQuantization')}
-                className='h-8 w-full text-[11px]'
-              >
-                <SelectValue placeholder={t('settings.translation.selectQuantization')} />
-              </SelectTrigger>
-              <SelectContent>
-                {quantizations.map((quantization) => (
-                  <SelectItem key={quantization.id} value={quantization.id}>
-                    {quantization.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </PreferenceRow>
-        )}
       </PreferenceSection>
 
       <GenerationPreferences
         value={value.generation}
-        vision={value.model.vision}
-        visionAvailable={visionAvailable}
         onChange={(generation) => onChange({ ...value, generation })}
-        onVisionChange={(vision) => {
-          onChange({ ...value, model: { ...value.model, vision } })
-          if (configurableVision) {
-            onProviderChange({
-              ...configurableVision,
-              config: withVision(configurableVision.config, vision),
-            })
-          }
-        }}
       />
 
       <PreferenceSection title={t('settings.translation.output')}>
-        <PreferenceRow title={t('model.targetLanguage')}>
+        <PreferenceRow
+          title={t('model.targetLanguage')}
+          description={t('settings.translation.targetLanguageDescription')}
+        >
           <Select
             value={value.target_language}
             items={Object.fromEntries(
@@ -198,7 +152,7 @@ export function TranslationPreferences({
           <Textarea
             aria-label={t('settings.translation.instructionsLabel')}
             value={value.instructions ?? ''}
-            className='min-h-24 resize-y text-[12px] leading-5'
+            className='field-sizing-fixed min-h-24 resize-y overflow-y-auto text-[12px] leading-5'
             placeholder={t('settings.translation.instructionsPlaceholder')}
             onChange={(event) =>
               onChange({ ...value, instructions: event.currentTarget.value || null })
@@ -210,24 +164,24 @@ export function TranslationPreferences({
   )
 }
 
-function hasVision(config: ProviderConfig): config is VisionConfig {
-  return 'vision' in config.settings
-}
-
-function withVision(config: VisionConfig, vision: boolean): ProviderConfig {
-  return {
-    ...config,
-    settings: { ...config.settings, vision },
-  } as ProviderConfig
-}
-
-function ModelLabel({ model, providers }: { model: Model; providers: ProviderPreference[] }) {
+function ModelLabel({
+  model,
+  providers,
+  quantization,
+}: {
+  model: Model
+  providers: ProviderPreference[]
+  quantization: string | null | undefined
+}) {
   return (
     <span className='flex min-w-0 items-center gap-2'>
       <Badge variant='outline' className='shrink-0 px-1.5 py-0 text-[9px] font-medium'>
         {providerName(providers, model.provider)}
       </Badge>
-      <span className='truncate'>{model.name}</span>
+      <span className='truncate'>
+        {model.name}
+        {quantization && <span className='text-muted-foreground'> · {quantization}</span>}
+      </span>
     </span>
   )
 }

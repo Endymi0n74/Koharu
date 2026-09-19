@@ -2,16 +2,14 @@
 
 mod backend;
 mod error;
-mod json;
 mod language;
 mod local;
 mod model;
 mod prompt;
 mod provider;
 mod remote;
-mod typography;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use koharu_ml::Device;
 
@@ -20,11 +18,9 @@ use local::LocalTranslator;
 
 pub use backend::{TranslationContext, TranslationRequest};
 pub use language::Language;
-pub use local::preset;
 pub use model::{GenerationConfig, Model, ModelSelection, Quantization};
 pub(crate) use model::{ModelGeneration, QuantizationDefinition, display_name};
 pub use provider::{Provider, ProviderConfig, ProvidersConfig};
-pub use typography::{TypographyProfile, normalize_segment};
 
 #[derive(Clone)]
 pub struct Translator {
@@ -32,25 +28,6 @@ pub struct Translator {
     local: Arc<tokio::sync::Mutex<Option<LoadedLocal>>>,
     client: reqwest::Client,
     device: Device,
-}
-
-/// Folds a retry response into the first one, mapping the retry's own indices
-/// back through the indices it was asked for.
-fn merge_retry(
-    translated: &mut prompt::Translations,
-    missing: &[usize],
-    retried: prompt::Translations,
-) {
-    for (offset, text) in retried.texts.into_iter().enumerate() {
-        if let Some(index) = missing.get(offset) {
-            translated.texts[*index] = text;
-        }
-    }
-    translated.untranslated = retried
-        .untranslated
-        .into_iter()
-        .filter_map(|offset| missing.get(offset).copied())
-        .collect();
 }
 
 struct LoadedLocal {
@@ -84,8 +61,8 @@ impl Translator {
     }
 
     #[must_use]
-    pub fn supports_vision(selection: &ModelSelection) -> bool {
-        selection.vision
+    pub fn supports_vision(selection: &ModelSelection, generation: &GenerationConfig) -> bool {
+        generation.vision.unwrap_or(false)
             && (selection.provider != Provider::Local || local::supports_vision(selection))
     }
 
@@ -119,82 +96,83 @@ impl Translator {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(
+        target = "koharu_metrics",
+        name = "model_run",
+        skip_all,
+        fields(
+            stage = "translation",
+            provider = %selection.provider,
+            model = selection.model.as_deref().unwrap_or("provider_default"),
+            target_language = request.target_language.tag(),
+            outcome = tracing::field::Empty,
+        ),
+    )]
     pub async fn translate(
         &self,
         selection: &ModelSelection,
         generation: GenerationConfig,
         mut request: TranslationRequest,
     ) -> anyhow::Result<(&'static str, Vec<String>)> {
+        let _metric = tracing::info_span!(
+            target: "koharu_metrics",
+            "translation_request",
+            provider = %selection.provider,
+            model = selection.model.as_deref().unwrap_or("provider_default"),
+            target_language = request.target_language.tag(),
+        );
         let provider = selection.provider;
         let provider_id: &'static str = provider.into();
         if request.segments.is_empty() {
+            tracing::Span::current().record("outcome", "skipped");
             return Ok((provider_id, request.segments));
         }
 
-        if Self::supports_vision(selection) {
+        let generation = generation.for_model(selection);
+
+        if Self::supports_vision(selection, &generation) {
             request.prepare_image()?;
         } else {
             request.remove_image();
         }
 
         let expected = request.segments.len();
-        let mut translated = self.attempt(selection, &generation, &request).await?;
-        if !translated.untranslated.is_empty() {
-            // A page must not come back half in the source language, so the
-            // segments a first response left untranslated get one focused
-            // follow-up before the caller sees the result.
-            let missing = std::mem::take(&mut translated.untranslated);
-            let retry = prompt::retry_request(&request, &missing);
-            match self.attempt(selection, &generation, &retry).await {
-                Ok(retried) => merge_retry(&mut translated, &missing, retried),
-                Err(error) => {
-                    tracing::warn!(%error, provider = provider_id, "translation retry failed");
-                    translated.untranslated = missing;
-                }
-            }
-        }
-        if !translated.untranslated.is_empty() {
-            tracing::warn!(
-                provider = provider_id,
-                segments = ?translated.untranslated,
-                "translation left segments in the source language"
-            );
-        }
-        if translated.texts.len() != expected {
+        let translated = if provider == Provider::Local {
+            self.local(selection)
+                .await?
+                .translate(request, generation)
+                .await?
+        } else {
+            let providers = self.providers.read()?.clone();
+            remote::translate(&self.client, &providers, selection, &generation, &request).await?
+        };
+        if translated.len() != expected {
             return Err(Error::SegmentCount {
                 provider: provider_id,
                 expected,
-                actual: translated.texts.len(),
+                actual: translated.len(),
             }
             .into());
         }
-        Ok((provider_id, translated.texts))
-    }
-
-    /// One round trip to the selected provider.
-    async fn attempt(
-        &self,
-        selection: &ModelSelection,
-        generation: &GenerationConfig,
-        request: &TranslationRequest,
-    ) -> Result<prompt::Translations> {
-        if selection.provider == Provider::Local {
-            let local = self.local(selection).await?;
-            local.translate(request, *generation).await
-        } else {
-            let providers = self.providers.read()?.clone();
-            remote::translate(&self.client, &providers, selection, generation, request).await
-        }
+        tracing::Span::current().record("outcome", "completed");
+        Ok((provider_id, translated))
     }
 
     #[tracing::instrument(skip_all)]
     pub async fn models() -> anyhow::Result<Vec<Model>> {
+        static CLIENT: tokio::sync::OnceCell<reqwest::Client> = tokio::sync::OnceCell::const_new();
+
         let providers = ProvidersConfig::load()?;
         let providers = providers.read()?.clone();
-        let client = koharu_runtime::http_client()?;
+        let client = CLIENT
+            .get_or_try_init(|| async {
+                reqwest::Client::builder()
+                    .timeout(Duration::from_secs(5))
+                    .build()
+            })
+            .await?;
         let mut models = local::models();
-        models.extend(remote::models(&client, &providers).await);
+        models.extend(remote::models(client, &providers).await);
         Ok(models)
     }
 
@@ -223,28 +201,38 @@ impl Translator {
 mod tests {
     use super::*;
 
-    fn local_selection(model: &str, vision: bool) -> ModelSelection {
+    fn local_selection(model: &str) -> ModelSelection {
         ModelSelection {
             provider: Provider::Local,
             model: Some(model.to_owned()),
             quantization: None,
-            vision,
+            vision: true,
+            reasoning: true,
         }
     }
 
     #[test]
-    fn local_vision_requires_capability_and_selection() {
-        assert!(Translator::supports_vision(&local_selection(
-            "gemma4-e2b-it",
-            true
-        )));
-        assert!(!Translator::supports_vision(&local_selection(
-            "gemma4-e2b-it",
-            false
-        )));
-        assert!(!Translator::supports_vision(&local_selection(
-            "lfm2.5-1.2b-instruct",
-            true
-        )));
+    fn local_vision_requires_capability_and_generation_setting() {
+        assert!(Translator::supports_vision(
+            &local_selection("gemma4-e2b-it"),
+            &GenerationConfig {
+                vision: Some(true),
+                ..GenerationConfig::default()
+            }
+        ));
+        assert!(!Translator::supports_vision(
+            &local_selection("gemma4-e2b-it"),
+            &GenerationConfig {
+                vision: Some(false),
+                ..GenerationConfig::default()
+            }
+        ));
+        assert!(!Translator::supports_vision(
+            &local_selection("lfm2.5-1.2b-instruct"),
+            &GenerationConfig {
+                vision: Some(true),
+                ..GenerationConfig::default()
+            }
+        ));
     }
 }

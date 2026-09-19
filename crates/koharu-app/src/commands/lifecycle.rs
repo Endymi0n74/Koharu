@@ -1,23 +1,19 @@
-use std::{
-    fs,
-    io::Cursor,
-    sync::{Arc, atomic::Ordering},
-};
-
 use anyhow::{Context as _, Result};
 use koharu_desktop::{CanvasState, Desktop};
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft};
 use parking_lot::Mutex;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use tauri::{AppHandle, Cef, Manager as _, State, WebviewWindow, ipc::Channel};
+use strum::{EnumMessage as _, IntoEnumIterator as _};
+use tauri::{AppHandle, Manager as _, State, WebviewWindow, ipc::Channel};
+use tauri_runtime_cef::CefRuntime;
 use walkdir::WalkDir;
 
 use super::{
     ChannelExt as _, Error,
     agent::AgentState,
-    canvas::{CanvasChannel, CanvasView},
+    canvas::CanvasChannel,
+    import,
     preferences::Preferences,
     processing::{Job, JobChannel, Processing},
     project::{
@@ -30,6 +26,12 @@ pub struct StartupState {
     pub preferences: Preferences,
     pub jobs: Vec<Job>,
     pub canvas: CanvasState,
+}
+
+#[derive(Clone, Debug, Serialize, Type)]
+pub struct PageSelection {
+    pub project: ProjectInfo,
+    pub page: Page,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Type)]
@@ -148,7 +150,7 @@ impl From<koharu_pipeline::ResourceSnapshot> for ModelResources {
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn subscribe(
-    handle: AppHandle<Cef>,
+    handle: AppHandle<CefRuntime>,
     on_canvas: Channel<CanvasState>,
     on_job: Channel<Job>,
     on_download: Channel<Download>,
@@ -163,10 +165,7 @@ pub(crate) async fn subscribe(
     *handle.state::<ResourceChannel>().channel.lock() = Some(on_resources);
     *handle.state::<ProjectChannel>().channel.lock() = Some(on_project);
 
-    let canvas = handle
-        .state::<Desktop>()
-        .lock()
-        .canvas_state(handle.state::<CanvasView>().fitted.load(Ordering::Acquire));
+    let canvas = handle.state::<Desktop>().canvas_state();
     let preferences = Preferences::load()?;
     Ok(StartupState {
         preferences,
@@ -181,7 +180,7 @@ pub(crate) async fn subscribe(
     })
 }
 
-async fn replace_project(handle: &AppHandle<Cef>, opened: Project) -> Result<()> {
+async fn replace_project(handle: &AppHandle<CefRuntime>, opened: Project) -> Result<()> {
     let snapshot = opened.snapshot();
     let page = opened.active_page();
     let info = opened.info();
@@ -200,13 +199,9 @@ async fn replace_project(handle: &AppHandle<Cef>, opened: Project) -> Result<()>
         current.replace(opened)
     };
 
-    handle
-        .state::<CanvasView>()
-        .fitted
-        .store(true, Ordering::Release);
     let desktop = handle.state::<Desktop>();
     desktop.show_page(&snapshot, page).await?;
-    let canvas = desktop.lock().canvas_state(true);
+    let canvas = desktop.canvas_state();
     drop(previous);
     handle.state::<CanvasChannel>().channel.publish(canvas);
     handle.state::<ProjectChannel>().channel.publish(Some(info));
@@ -261,11 +256,17 @@ pub(crate) async fn list_projects(
     Ok(library.list()?)
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "project_created",
+    skip_all,
+    fields(origin = "user")
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn create_project(
     name: String,
-    handle: AppHandle<Cef>,
+    handle: AppHandle<CefRuntime>,
 ) -> std::result::Result<(), Error> {
     let library = handle.state::<ProjectLibrary>().inner().clone();
     let opened = library.create(&name).await?;
@@ -273,11 +274,17 @@ pub(crate) async fn create_project(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "project_opened",
+    skip_all,
+    fields(origin = "user")
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn open_project(
     name: String,
-    handle: AppHandle<Cef>,
+    handle: AppHandle<CefRuntime>,
 ) -> std::result::Result<(), Error> {
     let library = handle.state::<ProjectLibrary>().inner().clone();
     let opened = library.open(&name).await?;
@@ -285,18 +292,30 @@ pub(crate) async fn open_project(
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "project_closed",
+    skip_all,
+    fields(origin = "user")
+)]
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn close_project(handle: AppHandle<Cef>) -> std::result::Result<(), Error> {
+pub(crate) async fn close_project(handle: AppHandle<CefRuntime>) -> std::result::Result<(), Error> {
     close_current_project(&handle).await?;
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "project_deleted",
+    skip_all,
+    fields(origin = "user")
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn delete_project(
     name: String,
-    handle: AppHandle<Cef>,
+    handle: AppHandle<CefRuntime>,
 ) -> std::result::Result<(), Error> {
     let active = handle
         .state::<CurrentProject>()
@@ -311,11 +330,11 @@ pub(crate) async fn delete_project(
     let library = handle.state::<ProjectLibrary>().inner().clone();
     tokio::task::spawn_blocking(move || library.delete(&name))
         .await
-        .context("project deletion worker stopped unexpectedly")??;
+        .context("project deletion task failed")??;
     Ok(())
 }
 
-async fn close_current_project(handle: &AppHandle<Cef>) -> Result<()> {
+async fn close_current_project(handle: &AppHandle<CefRuntime>) -> Result<()> {
     handle.state::<AgentState>().reset().await;
     let processing = handle.state::<Processing>();
     for stop in processing.stops.lock().values() {
@@ -328,35 +347,39 @@ async fn close_current_project(handle: &AppHandle<Cef>) -> Result<()> {
         let mut current = current.project.lock().await;
         current.take()
     };
-    handle
-        .state::<CanvasView>()
-        .fitted
-        .store(true, Ordering::Release);
     let desktop = handle.state::<Desktop>();
     desktop.clear().await;
-    let result = desktop.lock().canvas_state(true);
+    let result = desktop.canvas_state();
     drop(previous);
     handle.state::<CanvasChannel>().channel.publish(result);
     handle.state::<ProjectChannel>().channel.publish(None);
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "import",
+    skip_all,
+    fields(origin = "user", method = ?source),
+)]
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn import_pages(
+pub(crate) async fn import(
     source: PageImportSource,
-    window: WebviewWindow<Cef>,
+    window: WebviewWindow<CefRuntime>,
     desktop: State<'_, Desktop>,
     project: State<'_, CurrentProject>,
-    canvas_view: State<'_, CanvasView>,
     processing: State<'_, Processing>,
     canvas_channel: State<'_, CanvasChannel>,
 ) -> std::result::Result<(), Error> {
     if !processing.stops.lock().is_empty() {
         return Err(anyhow::anyhow!("pages cannot be imported while processing is running").into());
     }
+    let extensions = import::Format::iter()
+        .flat_map(|format| format.get_serializations())
+        .collect::<Vec<_>>();
     let dialog = rfd::AsyncFileDialog::new()
-        .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
+        .add_filter("Images, archives, and PDF", &extensions)
         .set_parent(&window);
     let files = match source {
         PageImportSource::Files => dialog.pick_files().await.map(|files| {
@@ -380,74 +403,43 @@ pub(crate) async fn import_pages(
                 .filter(|path| {
                     path.extension()
                         .and_then(|extension| extension.to_str())
-                        .is_some_and(|extension| {
-                            matches!(
-                                extension.to_ascii_lowercase().as_str(),
-                                "png" | "jpg" | "jpeg" | "webp"
-                            )
-                        })
+                        .is_some_and(|extension| extension.parse::<import::Format>().is_ok())
                 })
                 .collect::<Vec<_>>()
         }),
     };
-    let Some(mut files) = files else {
+    let Some(files) = files else {
         return Ok(());
     };
     if files.is_empty() {
         return Err(anyhow::anyhow!("no supported images were found in the selection").into());
     }
-    alphanumeric_sort::sort_slice_by_os_str_key(&mut files, |path| {
-        path.file_name().unwrap_or_else(|| path.as_os_str())
-    });
-    let pages = tokio::task::spawn_blocking(move || {
-        files
-            .into_par_iter()
-            .map(|file| -> Result<_> {
-                let bytes = fs::read(&file)
-                    .with_context(|| format!("failed to read {}", file.display()))?;
-                let format = image::guess_format(&bytes)
-                    .with_context(|| format!("failed to identify {}", file.display()))?;
-                let (width, height) =
-                    image::ImageReader::with_format(Cursor::new(bytes.as_slice()), format)
-                        .into_dimensions()
-                        .with_context(|| {
-                            format!("failed to read dimensions of {}", file.display())
-                        })?;
-                Ok((
-                    file.file_name()
-                        .and_then(|name| name.to_str())
-                        .unwrap_or("page")
-                        .to_owned(),
-                    Arc::<[u8]>::from(bytes),
-                    format,
-                    width,
-                    height,
-                ))
-            })
-            .collect::<Result<Vec<_>>>()
-    })
-    .await
-    .context("page import worker stopped unexpectedly")??;
+    let pages = tokio_rayon::spawn(move || import::import(files)).await?;
+    let page_count = pages.len();
 
     let (commit, page) = {
         let mut project = project.project.lock().await;
         let project = project.as_mut().context("no project is open")?;
         let source = AssetRole::new("source")?;
         let patch = project.snapshot().patch(|edit| {
-            for (name, bytes, format, width, height) in pages {
+            for imported in pages {
                 let page = edit.add_page(
-                    PageDraft::new(name, f64::from(width), f64::from(height)),
+                    PageDraft::new(
+                        imported.name,
+                        f64::from(imported.width),
+                        f64::from(imported.height),
+                    ),
                     At::End,
                 )?;
                 edit.set_asset(
                     page,
                     &source,
                     AssetInput::new(
-                        bytes,
-                        format.to_mime_type(),
+                        imported.bytes,
+                        imported.format.to_mime_type(),
                         AssetMetadata {
-                            width: Some(width),
-                            height: Some(height),
+                            width: Some(imported.width),
+                            height: Some(imported.height),
                             attributes: Default::default(),
                         },
                     ),
@@ -461,34 +453,42 @@ pub(crate) async fn import_pages(
         let page = project.active_page();
         (commit, page)
     };
-    if desktop.synchronize(&commit.snapshot, page, &commit).await? {
-        canvas_view.fitted.store(true, Ordering::Release);
-    }
-    let canvas = desktop
-        .lock()
-        .canvas_state(canvas_view.fitted.load(Ordering::Acquire));
+    desktop.synchronize(&commit.snapshot, page, &commit).await?;
+    let canvas = desktop.canvas_state();
     canvas_channel.channel.publish(canvas);
+    tracing::info!(target: "koharu_metrics", metric = "page_imported", page_count);
     Ok(())
 }
 
+#[tracing::instrument(
+    target = "koharu_metrics",
+    name = "page_selected",
+    skip_all,
+    fields(origin = "user")
+)]
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn select_page(
     desktop: State<'_, Desktop>,
     page: koharu_scene::EntityId,
     project: State<'_, CurrentProject>,
-    canvas_view: State<'_, CanvasView>,
     canvas_channel: State<'_, CanvasChannel>,
-) -> std::result::Result<(), Error> {
-    let snapshot = {
+) -> std::result::Result<PageSelection, Error> {
+    let (snapshot, project_info, selected_page) = {
         let mut project = project.project.lock().await;
         let project = project.as_mut().context("no project is open")?;
         project.select_page(page)?;
-        project.snapshot()
+        let snapshot = project.snapshot();
+        let project_info = project.info();
+        let selected_page = Project::page(&snapshot, page)?;
+        (snapshot, project_info, selected_page)
     };
-    desktop.show_page(&snapshot, Some(page)).await?;
-    canvas_view.fitted.store(true, Ordering::Release);
-    let canvas = desktop.lock().canvas_state(true);
-    canvas_channel.channel.publish(canvas);
-    Ok(())
+    if desktop.show_page(&snapshot, Some(page)).await? {
+        let canvas = desktop.canvas_state();
+        canvas_channel.channel.publish(canvas);
+    }
+    Ok(PageSelection {
+        project: project_info,
+        page: selected_page,
+    })
 }

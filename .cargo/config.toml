@@ -1,2 +1,2 @@
 [env]
-WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = { value = "--remote-debugging-port=4000", force = false }
+CARGO_WORKSPACE_DIR = { value = "", relative = true }

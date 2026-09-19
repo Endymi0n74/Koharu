@@ -12,6 +12,7 @@
     "downloadingFiles_one": "Downloading {{count}} file",
     "downloadingFiles_other": "Downloading {{count}} files",
     "modelDownload": "Model download",
+    "pageLabel": "Page {{number}}: {{label}}",
     "processing": "Processing",
     "processingFailed": "Processing failed.",
     "showLess": "Show less",
@@ -57,7 +58,8 @@
   "canvas": {
     "empty": "Select a page to begin.",
     "fit": "Fit Window",
-    "surface": "Koharu canvas"
+    "surface": "Koharu canvas",
+    "unavailable": "WebGPU canvas unavailable"
   },
   "colorPicker": {
     "brushColor": "Brush color",
@@ -246,13 +248,12 @@
     "delete": "Delete Selected",
     "discord": "Discord",
     "edit": "Edit",
-    "exportPng": "Export PNG…",
-    "exportPsd": "Export PSD…",
+    "export": "Export Project",
     "file": "File",
     "fit": "Fit Window",
     "github": "GitHub",
     "help": "Help",
-    "importPages": "Import Pages…",
+    "import": "Import Pages",
     "process": "Process",
     "processLayers": "Process Selected Layers",
     "processPages": "Process Selected Pages",
@@ -298,12 +299,12 @@
     "pages": "Pages",
     "rename": "Rename",
     "renameDescription": "Choose a new name for this page.",
-    "renameTitle": "Rename page"
+    "renameTitle": "Rename page",
+    "selected": "{{count}} selected"
   },
   "outputPicker": {
     "instructions": "Translation instructions",
     "instructionsPlaceholder": "Optional guidance for tone, names, and formatting.",
-    "saving": "Saving output settings",
     "targetLanguage": "Target language",
     "title": "Translation output"
   },
@@ -320,15 +321,16 @@
     "translation": "Convert source text to the target language."
   },
   "providerDescriptions": {
-    "atlas-cloud": "Atlas-hosted language models.",
     "caiyun": "Caiyun translation API.",
     "claude": "Anthropic Claude models.",
     "deepl": "DeepL translation API.",
     "deepseek": "DeepSeek language models.",
     "gemini": "Google Gemini models.",
     "google-cloud-translation": "Google Cloud Translation API.",
+    "grok": "xAI Grok language models.",
     "lm-studio": "Models served by LM Studio.",
     "local": "Models running on this device.",
+    "minimax": "MiniMax language models.",
     "openai": "OpenAI language models.",
     "openai-compatible": "Any server exposing an OpenAI-compatible API.",
     "openrouter": "Models routed through OpenRouter."
@@ -361,20 +363,22 @@
     "backToEditor": "Back to editor",
     "generation": {
       "description": "Fine-tune how language models generate translated text.",
-      "enableThinking": "Enable thinking",
+      "enableReasoning": "Enable reasoning",
       "frequencyPenalty": "Frequency penalty",
       "maxTokens": "Maximum tokens",
       "minP": "Min P",
       "presencePenalty": "Presence penalty",
       "repeatPenalty": "Repeat penalty",
       "sampling": "Sampling",
+      "samplingDescription": "Control how the model selects and varies generated text.",
       "temperature": "Temperature",
-      "thinking": "Thinking",
-      "thinkingDescription": "Ask reasoning-capable models to use their thinking mode.",
+      "reasoning": "Reasoning",
+      "reasoningDescription": "Use model reasoning during translation.",
       "title": "Generation",
       "topK": "Top K",
       "topP": "Top P",
-      "vision": "Vision input"
+      "vision": "Vision",
+      "visionDescription": "Feed page images to the LLM during translation."
     },
     "loading": "Loading preferences…",
     "pipeline": {
@@ -409,11 +413,10 @@
       "configured": "Configured",
       "connections": "Connections",
       "connectionsDescription": "Credentials are stored securely on this device.",
+      "credential": "Credential",
       "credentialLabel": "{{provider}} credential",
       "description": "Connect translation and language-model providers.",
-      "hideCredential": "Hide {{provider}} credential",
       "notConfigured": "Not configured",
-      "revealCredential": "Reveal {{provider}} credential",
       "title": "Providers"
     },
     "shortcuts": {
@@ -443,8 +446,10 @@
       "quantization": "Quantization",
       "quantizationDescription": "Smaller formats use less memory, usually with a quality tradeoff.",
       "selectQuantization": "Select a quantization",
+      "targetLanguageDescription": "Choose the language to translate text into.",
       "title": "Translation",
-      "translationModel": "Translation model"
+      "translationModel": "Translation model",
+      "translationModelDescription": "Choose the model used to translate text."
     },
     "typesetting": {
       "addFamily": "Add font family",
@@ -507,6 +512,7 @@
   },
   "updater": {
     "available": {
+      "description": "Koharu <strong>{{version}}</strong> is ready to install",
       "title": "Update available"
     },
     "close": "Close",

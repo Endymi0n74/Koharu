@@ -4,7 +4,7 @@ import type {
   ModelSelection,
   Provider,
   ProviderPreference,
-} from './protocol'
+} from '@koharu/bridge/protocol'
 
 export function providerName(entries: ProviderPreference[], provider: Provider): string {
   return entries.find((entry) => entry.config.provider === provider)?.name ?? provider
@@ -12,6 +12,16 @@ export function providerName(entries: ProviderPreference[], provider: Provider):
 
 export function modelKey(model: Model | ModelSelection): string {
   return `${model.provider}:${model.model ?? ''}`
+}
+
+export function modelSelection(model: Model, quantization: string | null): ModelSelection {
+  return {
+    provider: model.provider,
+    model: model.model,
+    quantization,
+    vision: model.vision,
+    reasoning: model.reasoning,
+  }
 }
 
 export function orderedLanguageChoices(

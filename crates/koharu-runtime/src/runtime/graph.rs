@@ -7,7 +7,7 @@ use petgraph::{
 };
 
 use crate::{
-    Hardware,
+    Device, Hardware,
     runtime::{
         DiscoverablePackage, RuntimePackage,
         packages::{Cuda, Diffusion, Llama, Rocm, Torch},
@@ -135,16 +135,7 @@ impl Plan {
         self.graph.update_edge(before, after, ());
     }
 
-    pub(crate) fn validate(&self) -> Result<()> {
-        toposort(&self.graph, None).map(|_| ()).map_err(|cycle| {
-            anyhow!(
-                "runtime dependency cycle contains {}",
-                self.graph[cycle.node_id()].label()
-            )
-        })
-    }
-
-    pub(crate) async fn initialize(&self) -> Result<()> {
+    pub(crate) async fn initialize(&self, mut device: Device) -> Result<Device> {
         let order = toposort(&self.graph, None).map_err(|cycle| {
             anyhow!(
                 "runtime dependency cycle contains {}",
@@ -152,9 +143,14 @@ impl Plan {
             )
         })?;
         for node in order {
-            self.graph[node].activate().await?;
+            let component = self.graph[node];
+            component.activate().await?;
+            if let Component::Rocm(rocm) = component {
+                device.index = rocm.probe().await?;
+                device.name = format!("ROCm{}", device.index);
+            }
         }
-        Ok(())
+        Ok(device)
     }
 }
 
@@ -163,7 +159,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn shared_dependencies_are_deduplicated() {
+    fn cuda_dependencies_are_shared_and_ordered() {
         let hardware = Hardware {
             devices: vec![crate::Device {
                 index: 0,
@@ -185,14 +181,27 @@ mod tests {
             .insert(Diffusion::WindowsCuda.into(), &hardware)
             .unwrap();
         plan.sequence(llama, diffusion);
-        plan.validate().unwrap();
 
-        assert_eq!(
-            plan.graph
-                .node_weights()
-                .filter(|node| **node == Component::Cuda(Cuda::Runtime13))
-                .count(),
-            1
-        );
+        for package in [Cuda::Runtime13, Cuda::Rtc13, Cuda::Blas13] {
+            assert_eq!(
+                plan.graph
+                    .node_weights()
+                    .filter(|node| **node == Component::Cuda(package))
+                    .count(),
+                1
+            );
+        }
+
+        let torch = plan.insert(Torch::Cuda.into(), &hardware).unwrap();
+        plan.sequence(diffusion, torch);
+        let order = toposort(&plan.graph, None).unwrap();
+        let position = |component| {
+            order
+                .iter()
+                .position(|node| plan.graph[*node] == component)
+                .unwrap()
+        };
+        assert!(position(Cuda::Rtc13.into()) < position(Cuda::Blas13.into()));
+        assert!(position(Cuda::Blas13.into()) < position(Llama::WindowsCuda.into()));
     }
 }

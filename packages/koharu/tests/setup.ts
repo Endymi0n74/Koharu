@@ -30,6 +30,7 @@ vi.mock('@tauri-apps/api/window', () => {
     isMaximized: vi.fn(async () => false),
     minimize: vi.fn(async () => undefined),
     onResized: vi.fn(async () => () => undefined),
+    startResizeDragging: vi.fn(async () => undefined),
     toggleMaximize: vi.fn(async () => undefined),
   }
   return { getCurrentWindow: () => window }
@@ -76,12 +77,19 @@ beforeEach(() => {
     jobs: {},
     downloads: {},
     camera: { zoom: 1, translation: [0, 0], fitted: true },
+    canvasPage: null,
+    canvasRevision: null,
+    canvasGeneration: 0,
+    canvasSize: [0, 0],
+    fitCanvasRequest: 0,
     layerFrames: {},
     selectedLayers: [],
     selectedPages: [],
     tool: 'select',
-    brush: { diameter: 48, color: '#111111' },
+    brush: { diameter: 48, color: '#FFFFFF' },
     inspector: 'copy',
+    processingScope: 'selected-pages',
+    processingStages: ['detection', 'ocr', 'translation', 'inpainting'],
     settingsOpen: false,
     shortcuts: defaultShortcuts,
   })

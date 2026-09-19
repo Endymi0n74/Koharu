@@ -1,11 +1,19 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render as testingRender, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render as testingRender,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ThemeProvider } from 'next-themes'
-import type { ReactNode } from 'react'
+import { StrictMode, type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { TitleBar } from '@/components/app/TitleBar'
+import { WindowControls } from '@/components/app/WindowChrome'
 import { ActivityCenter } from '@/components/editor/ActivityCenter'
 import { CanvasCommandBar } from '@/components/editor/CanvasCommandBar'
 import { Inspector } from '@/components/editor/Inspector'
@@ -13,10 +21,26 @@ import { PageRail } from '@/components/editor/PageRail'
 import { ResourceMonitor } from '@/components/editor/ResourceMonitor'
 import { StatusBar } from '@/components/editor/StatusBar'
 import { ToolBar } from '@/components/editor/ToolBar'
+import { ProviderPreferences } from '@/components/preferences/ProviderPreferences'
 import { SettingsPage } from '@/components/preferences/SettingsPage'
-import { commands, type Layer, type Preferences } from '@/lib/protocol'
-import { fontsKey, pageKey, pagesKey, projectKey, queryClient } from '@/lib/queries'
+import {
+  fontsKey,
+  pageKey,
+  pagesKey,
+  preparedPageKey,
+  projectKey,
+  queryClient,
+  useCommand,
+} from '@/lib/queries'
 import { useKoharuStore } from '@/lib/store'
+import * as canvasRuntime from '@koharu/bridge/canvas'
+import {
+  commands,
+  type Layer,
+  type PageSummary,
+  type Preferences,
+  type ProjectInfo,
+} from '@koharu/bridge/protocol'
 import { TooltipProvider } from '@koharu/ui/components/tooltip'
 
 const nativeWindow = vi.hoisted(() => ({
@@ -24,6 +48,7 @@ const nativeWindow = vi.hoisted(() => ({
   isMaximized: vi.fn(async () => false),
   minimize: vi.fn(async () => undefined),
   onResized: vi.fn(async () => () => undefined),
+  startResizeDragging: vi.fn(async () => undefined),
   toggleMaximize: vi.fn(async () => undefined),
 }))
 const nativeOpenUrl = vi.hoisted(() => vi.fn(async () => undefined))
@@ -37,6 +62,7 @@ const emptyCredential = () => ({ configured: false, value: null, clear: false })
 
 const textLayer: Layer = {
   type: 'text',
+  angle_degrees: 0,
   id: 'element',
   parent: 'page',
   geometry: {
@@ -65,10 +91,46 @@ const textLayer: Layer = {
     stroke_color: [255, 255, 255, 255],
     stroke_width: 0,
     alignment: 'Center',
-    writing_mode: 'Horizontal',
+    writing_mode: null,
   },
   layout: 'paragraph',
   automatic_region: null,
+}
+
+const secondLayer: Layer = {
+  ...textLayer,
+  id: 'second',
+  content: {
+    ...textLayer.content,
+    id: 'second-content',
+    translation: { text: 'Second', language: null },
+  },
+}
+
+const thirdLayer: Layer = {
+  ...textLayer,
+  id: 'third',
+  content: {
+    ...textLayer.content,
+    id: 'third-content',
+    translation: { text: 'Third', language: null },
+  },
+}
+
+const artworkLayer: Layer = {
+  type: 'artwork',
+  id: 'artwork',
+  parent: 'page',
+  geometry: {
+    points: [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+      { x: 0, y: 10 },
+    ],
+  },
+  visibility: { visible: true, opacity: 1 },
+  image: 'source',
 }
 
 const preferences: Preferences = {
@@ -81,8 +143,9 @@ const preferences: Preferences = {
         model: 'gemma4-e2b-it',
         quantization: null,
         vision: true,
+        reasoning: true,
       },
-      generation: {},
+      generation: { vision: true, reasoning: false },
       target_language: 'en-US',
       instructions: null,
     },
@@ -100,7 +163,7 @@ const preferences: Preferences = {
         name: 'OpenAI-compatible',
         config: {
           provider: 'openai-compatible',
-          settings: { base_url: 'http://localhost:11434/v1', vision: false },
+          settings: { base_url: 'http://localhost:11434/v1' },
         },
         credential: emptyCredential(),
       },
@@ -159,6 +222,7 @@ function installProject() {
         name: 'Gemma 4 E2B Instruct',
         quantizations: [],
         vision: true,
+        reasoning: true,
       },
     ],
     selectedPages: ['page'],
@@ -179,12 +243,68 @@ function render(ui: ReactNode) {
   return testingRender(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
 }
 
+function SettingsNavigationHarness() {
+  const settingsOpen = useKoharuStore((state) => state.settingsOpen)
+  return settingsOpen ? <SettingsPage /> : <CanvasCommandBar />
+}
+
 describe('greenfield editor', () => {
+  it('registers one native resize listener in React strict mode', async () => {
+    const unlisten = vi.fn()
+    nativeWindow.onResized.mockClear()
+    nativeWindow.onResized.mockResolvedValueOnce(unlisten)
+
+    const view = render(
+      <StrictMode>
+        <WindowControls />
+      </StrictMode>,
+    )
+
+    await waitFor(() => expect(nativeWindow.onResized).toHaveBeenCalledTimes(1))
+    view.unmount()
+    await waitFor(() => expect(unlisten).toHaveBeenCalledTimes(1))
+  })
+
+  it('starts native resize dragging from every frameless window edge', () => {
+    nativeWindow.startResizeDragging.mockClear()
+    const view = render(<WindowControls />)
+    const directions = [
+      'North',
+      'South',
+      'East',
+      'West',
+      'NorthEast',
+      'NorthWest',
+      'SouthEast',
+      'SouthWest',
+    ]
+
+    for (const direction of directions) {
+      fireEvent.pointerDown(
+        view.container.querySelector(`[data-window-resize-handle="${direction}"]`)!,
+        { button: 0 },
+      )
+    }
+
+    expect(nativeWindow.startResizeDragging.mock.calls).toEqual(
+      directions.map((direction) => [direction]),
+    )
+  })
+
+  it('removes resize handles while the window is maximized', async () => {
+    nativeWindow.isMaximized.mockResolvedValueOnce(true)
+    const view = render(<WindowControls />)
+
+    await waitFor(() =>
+      expect(view.container.querySelector('[data-window-resize-handle]')).not.toBeInTheDocument(),
+    )
+  })
+
   it('shows import activity and prevents duplicate imports', async () => {
     const user = userEvent.setup()
     installProject()
     let finishImport: (() => void) | undefined
-    const importPages = vi.spyOn(commands, 'importPages').mockImplementation(
+    const importPages = vi.spyOn(commands, 'import').mockImplementation(
       () =>
         new Promise<null>((resolve) => {
           finishImport = () => resolve(null)
@@ -194,16 +314,18 @@ describe('greenfield editor', () => {
       <>
         <TitleBar />
         <PageRail />
+        <ActivityCenter />
       </>,
     )
 
     expect(screen.getByText('/')).toHaveClass('mx-2')
     expect(screen.queryByRole('button', { name: 'Import pages' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('menuitem', { name: 'File' }))
-    await user.hover(await screen.findByRole('menuitem', { name: 'Import Pages…' }))
+    await user.hover(await screen.findByRole('menuitem', { name: 'Import Pages' }))
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Files…' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Importing pages…')
+    expect(screen.getByRole('complementary', { name: 'Activity' })).toBeInTheDocument()
     expect(importPages).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('menuitem', { name: 'File' }))
@@ -216,6 +338,88 @@ describe('greenfield editor', () => {
     await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   })
 
+  it.each(['png', 'psd', 'cbz'] as const)(
+    'shows %s export activity and prevents duplicate exports',
+    async (format) => {
+      const user = userEvent.setup()
+      installProject()
+      let finishExport: (() => void) | undefined
+      const exportProject = vi.spyOn(commands, 'export').mockImplementation(
+        () =>
+          new Promise<null>((resolve) => {
+            finishExport = () => resolve(null)
+          }),
+      )
+      render(
+        <>
+          <TitleBar />
+          <ActivityCenter />
+        </>,
+      )
+
+      expect(screen.queryByRole('complementary', { name: 'Activity' })).not.toBeInTheDocument()
+      await user.click(screen.getByRole('menuitem', { name: 'File' }))
+      await user.hover(await screen.findByRole('menuitem', { name: 'Export Project' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: `${format.toUpperCase()}…` }))
+
+      expect(await screen.findByRole('status')).toHaveTextContent('Export Project')
+      expect(exportProject).toHaveBeenCalledExactlyOnceWith(format)
+      await user.click(screen.getByRole('menuitem', { name: 'File' }))
+      expect(await screen.findByRole('menuitem', { name: 'Export Project' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      )
+
+      await act(async () => finishExport?.())
+      await waitFor(() =>
+        expect(screen.queryByRole('complementary', { name: 'Activity' })).not.toBeInTheDocument(),
+      )
+      expect(await screen.findByRole('menuitem', { name: 'Export Project' })).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      )
+    },
+  )
+
+  it.each([
+    { command: 'import', menu: 'Import Pages', choice: 'Files…', pending: 'Importing pages…' },
+    { command: 'export', menu: 'Export Project', choice: 'CBZ…', pending: 'Export Project' },
+  ] as const)(
+    'clears $command activity after failure',
+    async ({ command, menu, choice, pending }) => {
+      const user = userEvent.setup()
+      installProject()
+      let fail: ((error: Error) => void) | undefined
+      vi.spyOn(commands, command).mockImplementation(
+        () =>
+          new Promise<null>((_resolve, reject) => {
+            fail = reject
+          }),
+      )
+      render(
+        <>
+          <TitleBar />
+          <ActivityCenter />
+        </>,
+      )
+
+      await user.click(screen.getByRole('menuitem', { name: 'File' }))
+      await user.hover(await screen.findByRole('menuitem', { name: menu }))
+      fireEvent.click(await screen.findByRole('menuitem', { name: choice }))
+      expect(await screen.findByRole('status')).toHaveTextContent(pending)
+
+      await user.click(screen.getByRole('menuitem', { name: 'File' }))
+      await act(async () => fail?.(new Error('File operation failed')))
+      await waitFor(() =>
+        expect(screen.queryByRole('complementary', { name: 'Activity' })).not.toBeInTheDocument(),
+      )
+      expect(await screen.findByRole('menuitem', { name: menu })).not.toHaveAttribute(
+        'aria-disabled',
+        'true',
+      )
+    },
+  )
+
   it('opens community links through the Tauri opener plugin', async () => {
     nativeOpenUrl.mockClear()
     const user = userEvent.setup()
@@ -227,7 +431,7 @@ describe('greenfield editor', () => {
 
     await user.click(screen.getByRole('menuitem', { name: 'Help' }))
     fireEvent.click(await screen.findByRole('menuitem', { name: 'GitHub' }))
-    expect(nativeOpenUrl).toHaveBeenLastCalledWith('https://github.com/mayocream/koharu')
+    expect(nativeOpenUrl).toHaveBeenLastCalledWith('https://github.com/koharu-rs/koharu')
   })
 
   it('shows the current version and author in About', async () => {
@@ -243,6 +447,26 @@ describe('greenfield editor', () => {
     expect(nativeGetVersion).toHaveBeenCalledTimes(1)
   })
 
+  it('shows how many pages are selected above the filter', async () => {
+    installProject()
+    act(() => {
+      useKoharuStore.setState({ selectedPages: ['page-1'] })
+    })
+    render(<PageRail />)
+
+    // One page behaves like acting on the active page, so it is not worth
+    // announcing.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    act(() => {
+      useKoharuStore.setState({ selectedPages: ['page-1', 'page-2', 'page-3'] })
+    })
+
+    // A status region, so the count reaches assistive technology when it
+    // changes rather than only being visible.
+    expect(await screen.findByRole('status')).toHaveTextContent('3 selected')
+  })
+
   it('loads page thumbnails into the filmstrip', async () => {
     installProject()
     const thumbnail = vi.spyOn(commands, 'getThumbnail').mockResolvedValue([1])
@@ -253,6 +477,193 @@ describe('greenfield editor', () => {
       'blob:koharu-thumbnail',
     )
     expect(screen.queryByText('01')).not.toBeInTheDocument()
+  })
+
+  it('keeps rapid page switches on the latest native selection', async () => {
+    installProject()
+    const pages = [
+      { id: 'page', label: 'Page 1', size: { width: 1000, height: 1500 }, layers: [], regions: [] },
+      {
+        id: 'page-2',
+        label: 'Page 2',
+        size: { width: 1000, height: 1500 },
+        layers: [],
+        regions: [],
+      },
+      {
+        id: 'page-3',
+        label: 'Page 3',
+        size: { width: 1000, height: 1500 },
+        layers: [],
+        regions: [],
+      },
+    ]
+    queryClient.setQueryData(
+      pagesKey,
+      pages.map((page) => ({
+        id: page.id,
+        label: page.label,
+        size: page.size,
+        source_asset: null,
+        layer_count: 0,
+      })),
+    )
+    vi.spyOn(canvasRuntime, 'showCanvasPage').mockReturnValue(false)
+    const pending = new Map<
+      string,
+      (selection: Awaited<ReturnType<typeof commands.selectPage>>) => void
+    >()
+    const selectPage = vi.spyOn(commands, 'selectPage').mockImplementation(
+      (page) =>
+        new Promise((resolve) => {
+          pending.set(page, resolve)
+        }),
+    )
+    render(<PageRail />)
+
+    fireEvent.click(screen.getByText('Page 2').closest('article')!)
+    expect(selectPage).toHaveBeenLastCalledWith('page-2')
+
+    fireEvent.click(screen.getByText('Page 3').closest('article')!)
+    expect(selectPage).toHaveBeenLastCalledWith('page-3')
+
+    await act(async () => {
+      pending.get('page-3')!({
+        project: {
+          name: 'Book',
+          revision: 1,
+          active_page: 'page-3',
+          can_undo: true,
+          can_redo: false,
+        },
+        page: pages[2]!,
+      })
+      await Promise.resolve()
+    })
+    await act(async () => {
+      pending.get('page-2')!({
+        project: {
+          name: 'Book',
+          revision: 1,
+          active_page: 'page-2',
+          can_undo: true,
+          can_redo: false,
+        },
+        page: pages[1]!,
+      })
+      await Promise.resolve()
+    })
+
+    expect(queryClient.getQueryData<{ active_page: string }>(projectKey)?.active_page).toBe(
+      'page-3',
+    )
+    expect(queryClient.getQueryData<{ id: string }>(pageKey)?.id).toBe('page-3')
+  })
+
+  it('lets a cached canvas frame paint before synchronizing native page state', async () => {
+    installProject()
+    queryClient.setQueryData(pagesKey, [
+      ...(queryClient.getQueryData<PageSummary[]>(pagesKey) ?? []),
+      {
+        id: 'page-2',
+        label: 'Page 2',
+        size: { width: 1000, height: 1500 },
+        source_asset: null,
+        layer_count: 0,
+      },
+    ])
+    vi.spyOn(canvasRuntime, 'showCanvasPage').mockReturnValue(true)
+    const selectPage = vi.spyOn(commands, 'selectPage')
+    let paint: FrameRequestCallback | undefined
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      paint = callback
+      return 1
+    })
+    render(<PageRail />)
+
+    fireEvent.click(screen.getByText('Page 2').closest('article')!)
+
+    expect(selectPage).not.toHaveBeenCalled()
+    await act(async () => {
+      paint?.(performance.now())
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(selectPage).toHaveBeenCalledWith('page-2')
+  })
+
+  it('prefetches an inactive page on pointer intent and caches its preparation', async () => {
+    installProject()
+    const page = {
+      id: 'page-2',
+      label: 'Page 2',
+      size: { width: 1000, height: 1500 },
+      layers: [],
+      regions: [],
+    }
+    queryClient.setQueryData(pagesKey, [
+      ...(queryClient.getQueryData<PageSummary[]>(pagesKey) ?? []),
+      {
+        id: page.id,
+        label: page.label,
+        size: page.size,
+        source_asset: null,
+        layer_count: 0,
+      },
+    ])
+    const prepared = { revision: 1, page }
+    const prefetch = vi.spyOn(canvasRuntime, 'prefetchCanvasPages').mockResolvedValue([prepared])
+    const selectPage = vi.spyOn(commands, 'selectPage')
+    render(<PageRail />)
+
+    fireEvent.pointerEnter(screen.getByText('Page 2').closest('article')!)
+
+    await waitFor(() => expect(prefetch).toHaveBeenCalledWith(['page-2']))
+    await waitFor(() =>
+      expect(queryClient.getQueryData(preparedPageKey('page-2'))).toEqual(prepared),
+    )
+    expect(selectPage).not.toHaveBeenCalled()
+  })
+
+  it('deduplicates page intent within a project revision and retries on a newer revision', async () => {
+    installProject()
+    const page = {
+      id: 'page-2',
+      label: 'Page 2',
+      size: { width: 1000, height: 1500 },
+      layers: [],
+      regions: [],
+    }
+    queryClient.setQueryData(pagesKey, [
+      ...(queryClient.getQueryData<PageSummary[]>(pagesKey) ?? []),
+      {
+        id: page.id,
+        label: page.label,
+        size: page.size,
+        source_asset: null,
+        layer_count: 0,
+      },
+    ])
+    const prefetch = vi
+      .spyOn(canvasRuntime, 'prefetchCanvasPages')
+      .mockResolvedValueOnce([{ revision: 1, page }])
+      .mockResolvedValueOnce([{ revision: 2, page }])
+    render(<PageRail />)
+    const item = screen.getByText('Page 2').closest('article')!
+
+    fireEvent.pointerEnter(item)
+    fireEvent.focus(screen.getByRole('button', { name: 'Actions for Page 2' }))
+    await waitFor(() => expect(prefetch).toHaveBeenCalledTimes(1))
+    fireEvent.pointerEnter(item)
+    expect(prefetch).toHaveBeenCalledTimes(1)
+
+    queryClient.setQueryData(projectKey, {
+      ...queryClient.getQueryData<ProjectInfo>(projectKey)!,
+      revision: 2,
+    })
+    fireEvent.focus(item)
+
+    await waitFor(() => expect(prefetch).toHaveBeenCalledTimes(2))
+    expect(prefetch).toHaveBeenLastCalledWith(['page-2'])
   })
 
   it('switches tools and applies typography from the contextual inspector', async () => {
@@ -273,6 +684,7 @@ describe('greenfield editor', () => {
     expect(screen.getByTestId('type-font-picker')).toHaveTextContent('Noto Sans')
     expect(screen.getByTestId('type-size')).toHaveValue('')
     expect(screen.getByTestId('type-size')).toHaveAttribute('placeholder', 'Auto')
+    expect(screen.getByRole('combobox', { name: 'Text direction' })).toHaveTextContent('Auto')
     await user.clear(screen.getByTestId('type-size'))
     await user.type(screen.getByTestId('type-size'), '18')
     await user.tab()
@@ -281,7 +693,7 @@ describe('greenfield editor', () => {
         expect.arrayContaining([
           expect.objectContaining({
             layer: 'element',
-            typography: expect.objectContaining({ size: 18 }),
+            typography: expect.objectContaining({ size: 18, writing_mode: null }),
           }),
         ]),
       ),
@@ -492,6 +904,77 @@ describe('greenfield editor', () => {
     expect(screen.queryByText('Onomatopoeia')).not.toBeInTheDocument()
   })
 
+  function installLayerSelectionFixture() {
+    installProject()
+    queryClient.setQueryData(pageKey, (page: { layers: Layer[] }) => ({
+      ...page,
+      layers: [...page.layers, secondLayer, artworkLayer, thirdLayer],
+    }))
+  }
+
+  it('toggles layers in the selection with ctrl-click', () => {
+    installLayerSelectionFixture()
+    render(<Inspector />)
+
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['element'])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Second' }), { ctrlKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['element', 'second'])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Hello' }), { ctrlKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['second'])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Second' }), { ctrlKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual([])
+  })
+
+  it('toggles layers in the selection with meta-click', () => {
+    installLayerSelectionFixture()
+    render(<Inspector />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Second' }), { metaKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['element', 'second'])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Second' }), { metaKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['element'])
+  })
+
+  it('selects a display range with shift-click, skipping locked layers', () => {
+    installLayerSelectionFixture()
+    render(<Inspector />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Third' }))
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['third'])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Hello' }), { shiftKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['third', 'second', 'element'])
+  })
+
+  it('unions a shift range with the existing selection when ctrl is held', () => {
+    installLayerSelectionFixture()
+    render(<Inspector />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Second' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Third' }), {
+      ctrlKey: true,
+      shiftKey: true,
+    })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['second', 'third'])
+  })
+
+  it('falls back to single selection when shift-clicking without an anchor', () => {
+    installLayerSelectionFixture()
+    render(<Inspector />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Third' }), { shiftKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['third'])
+  })
+
+  it('collapses a multi-selection back to a single layer on plain click', () => {
+    installLayerSelectionFixture()
+    render(<Inspector />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Second' }), { ctrlKey: true })
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['element', 'second'])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Hello' }))
+    expect(useKoharuStore.getState().selectedLayers).toEqual(['element'])
+  })
+
   it('resets a custom text frame to its automatic region', async () => {
     installProject()
     queryClient.setQueryData(pageKey, (page: { layers: Layer[] }) => ({
@@ -512,7 +995,7 @@ describe('greenfield editor', () => {
   it('shows zoom before page size without a fit control', () => {
     installProject()
     useKoharuStore.setState({ camera: { zoom: 1.25, translation: [0, 0], fitted: false } })
-    render(<StatusBar />)
+    render(<StatusBar onZoomChange={vi.fn()} />)
 
     const zoom = screen.getByText('125%')
     const size = screen.getByText('1000 × 1500 px')
@@ -526,7 +1009,7 @@ describe('greenfield editor', () => {
     render(<CanvasCommandBar />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Processing settings' }))
-    fireEvent.click(screen.getByRole('button', { name: /Scope Page/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Scope Selection/ }))
     fireEvent.click(screen.getByRole('button', { name: /Entire project/ }))
     fireEvent.click(screen.getByRole('button', { name: /Stages 4 stages/ }))
     fireEvent.click(screen.getByRole('button', { name: /Translation/ }))
@@ -554,7 +1037,7 @@ describe('greenfield editor', () => {
     )
   })
 
-  it('runs the current page and exposes the runtime shortcuts', async () => {
+  it('runs the selected pages by default and exposes the runtime shortcuts', async () => {
     installProject()
     const run = vi.spyOn(commands, 'process').mockResolvedValue('job')
     render(<CanvasCommandBar />)
@@ -574,7 +1057,7 @@ describe('greenfield editor', () => {
     fireEvent.click(selector)
     await waitFor(() => expect(commands.getTranslationModels).toHaveBeenCalled())
     expect(screen.getByRole('button', { name: /Model Gemma 4 E2B Instruct/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Scope Page/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Scope Selection/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Stages 4 stages/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Output English/ })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
@@ -595,7 +1078,11 @@ describe('greenfield editor', () => {
         },
       },
     }
-    const save = vi.spyOn(commands, 'savePreferences').mockResolvedValue(nextPreferences)
+    let finishSave!: (saved: Preferences) => void
+    const pendingSave = new Promise<Preferences>((resolve) => {
+      finishSave = resolve
+    })
+    const save = vi.spyOn(commands, 'savePreferences').mockImplementation(() => pendingSave)
     render(<CanvasCommandBar />)
 
     await user.click(screen.getByRole('button', { name: 'Processing settings' }))
@@ -606,9 +1093,9 @@ describe('greenfield editor', () => {
     expect(language).not.toHaveTextContent('en-US')
     await user.click(language)
     await user.click(await screen.findByRole('option', { name: 'Japanese' }))
-    fireEvent.change(screen.getByRole('textbox', { name: 'Translation instructions' }), {
-      target: { value: 'Keep character names unchanged.' },
-    })
+    const instructions = screen.getByRole('textbox', { name: 'Translation instructions' })
+    expect(instructions).toHaveClass('max-h-20', 'overflow-y-auto')
+    await user.type(instructions, 'Keep character names unchanged.')
     expect(screen.queryByRole('button', { name: 'Apply output' })).not.toBeInTheDocument()
 
     await waitFor(() =>
@@ -618,25 +1105,90 @@ describe('greenfield editor', () => {
         preferences.typesetting,
       ),
     )
-    expect(useKoharuStore.getState().preferences?.pipeline.translation).toEqual(
-      nextPreferences.pipeline.translation,
+    expect(
+      screen.queryByLabelText(/Saving output settings|outputPicker\.saving/),
+    ).not.toBeInTheDocument()
+    expect(language).not.toBeDisabled()
+    expect(instructions).not.toBeDisabled()
+    expect(instructions).toHaveFocus()
+    await act(async () => finishSave(nextPreferences))
+    await waitFor(() =>
+      expect(useKoharuStore.getState().preferences?.pipeline.translation).toEqual(
+        nextPreferences.pipeline.translation,
+      ),
     )
+    expect(instructions).toBeInTheDocument()
+    expect(instructions).toHaveFocus()
   })
 
-  it('changes the translation model from the runtime selector', async () => {
+  it('preserves the runtime shortcuts while visiting settings', async () => {
     installProject()
     const user = userEvent.setup()
-    const nextPreferences: Preferences = {
+    const save = vi
+      .spyOn(commands, 'savePreferences')
+      .mockImplementation(async (pipeline, providers, typesetting) => ({
+        ...preferences,
+        pipeline,
+        providers,
+        typesetting,
+      }))
+    render(
+      <ThemeProvider attribute='class'>
+        <SettingsNavigationHarness />
+      </ThemeProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Processing settings' }))
+    await user.click(screen.getByRole('button', { name: /Scope Selection/ }))
+    await user.click(screen.getByRole('button', { name: /Entire project/ }))
+    await user.click(screen.getByRole('button', { name: /Stages 4 stages/ }))
+    await user.click(screen.getByRole('button', { name: /Translation/ }))
+    await user.click(screen.getByRole('button', { name: /Inpainting/ }))
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    await user.click(screen.getByRole('button', { name: /Output English/ }))
+    await user.click(screen.getByRole('combobox', { name: 'Target language' }))
+    await user.click(await screen.findByRole('option', { name: 'Japanese' }))
+
+    act(() => useKoharuStore.getState().setSettingsOpen(true))
+    await waitFor(() => expect(save).toHaveBeenCalled())
+    await user.click(screen.getByRole('button', { name: 'Back to editor' }))
+    await user.click(screen.getByRole('button', { name: 'Processing settings' }))
+
+    expect(screen.getByRole('button', { name: /Scope Project/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Stages 2 stages/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Output Japanese/ })).toBeInTheDocument()
+  })
+
+  it('changes the translation model without re-enabling vision or reasoning', async () => {
+    installProject()
+    const user = userEvent.setup()
+    const currentPreferences: Preferences = {
       ...preferences,
       pipeline: {
         ...preferences.pipeline,
         translation: {
           ...preferences.pipeline.translation,
+          generation: {
+            ...preferences.pipeline.translation.generation,
+            vision: false,
+            reasoning: false,
+          },
+        },
+      },
+    }
+    useKoharuStore.setState({ preferences: currentPreferences })
+    const nextPreferences: Preferences = {
+      ...currentPreferences,
+      pipeline: {
+        ...currentPreferences.pipeline,
+        translation: {
+          ...currentPreferences.pipeline.translation,
           model: {
             provider: 'local',
             model: 'gemma4-12b-it',
             quantization: null,
             vision: true,
+            reasoning: true,
           },
         },
       },
@@ -651,6 +1203,7 @@ describe('greenfield editor', () => {
           name: 'Gemma 4 12B',
           quantizations: [],
           vision: true,
+          reasoning: true,
         },
       ],
     })
@@ -669,12 +1222,67 @@ describe('greenfield editor', () => {
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
         nextPreferences.pipeline,
+        currentPreferences.providers,
+        currentPreferences.typesetting,
+      ),
+    )
+    expect(useKoharuStore.getState().preferences?.pipeline.translation).toEqual(
+      nextPreferences.pipeline.translation,
+    )
+  })
+
+  it('preserves vision when the runtime selector chooses a text-only model', async () => {
+    installProject()
+    const nextPreferences: Preferences = {
+      ...preferences,
+      pipeline: {
+        ...preferences.pipeline,
+        translation: {
+          ...preferences.pipeline.translation,
+          model: {
+            provider: 'deepseek',
+            model: 'deepseek-chat',
+            quantization: null,
+            vision: false,
+            reasoning: true,
+          },
+          generation: {
+            ...preferences.pipeline.translation.generation,
+            vision: true,
+            reasoning: false,
+          },
+        },
+      },
+    }
+    const save = vi.spyOn(commands, 'savePreferences').mockResolvedValue(nextPreferences)
+    useKoharuStore.setState({
+      translationModels: [
+        ...useKoharuStore.getState().translationModels,
+        {
+          provider: 'deepseek',
+          model: 'deepseek-chat',
+          name: 'DeepSeek Chat',
+          quantizations: [],
+          vision: false,
+          reasoning: true,
+        },
+      ],
+    })
+    render(<CanvasCommandBar />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Processing settings' }))
+    fireEvent.click(screen.getByRole('button', { name: /Model Gemma 4 E2B Instruct/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Use DeepSeek Chat from deepseek' }))
+
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        nextPreferences.pipeline,
         preferences.providers,
         preferences.typesetting,
       ),
     )
-    expect(useKoharuStore.getState().preferences?.pipeline.translation.model).toEqual(
-      nextPreferences.pipeline.translation.model,
+    expect(useKoharuStore.getState().preferences?.pipeline.translation).toEqual(
+      nextPreferences.pipeline.translation,
     )
   })
 
@@ -690,6 +1298,7 @@ describe('greenfield editor', () => {
           name: longName,
           quantizations: [],
           vision: true,
+          reasoning: false,
         },
       ],
     })
@@ -740,12 +1349,32 @@ describe('greenfield editor', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Providers' })).toBeInTheDocument()
     expect(screen.getByLabelText('DeepL credential')).toBeInTheDocument()
     expect(screen.getAllByLabelText('Base URL')).toHaveLength(3)
-    expect(screen.queryByRole('switch', { name: 'Vision input' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Vision' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Translation' }))
     expect(screen.getByRole('heading', { level: 2, name: 'Translation' })).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Enable thinking' })).toBeInTheDocument()
-    expect(screen.queryByText('Enable thinking')).not.toBeInTheDocument()
-    const vision = screen.getByRole('switch', { name: 'Vision input' })
+    expect(screen.getByText('Choose the model used to translate text.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Control how the model selects and varies generated text.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Use model reasoning during translation.')).toBeInTheDocument()
+    const reasoning = screen.getByRole('switch', { name: 'Enable reasoning' })
+    expect(reasoning).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByText('Enable reasoning')).not.toBeInTheDocument()
+    save.mockClear()
+    await user.click(reasoning)
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          translation: expect.objectContaining({
+            generation: expect.objectContaining({ reasoning: true }),
+          }),
+        }),
+        preferences.providers,
+        preferences.typesetting,
+      ),
+    )
+    const vision = screen.getByRole('switch', { name: 'Vision' })
+    expect(screen.getByText('Feed page images to the LLM during translation.')).toBeInTheDocument()
     expect(vision).toBeChecked()
     save.mockClear()
     await user.click(vision)
@@ -753,7 +1382,7 @@ describe('greenfield editor', () => {
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({
           translation: expect.objectContaining({
-            model: expect.objectContaining({ vision: false }),
+            generation: expect.objectContaining({ vision: false }),
           }),
         }),
         preferences.providers,
@@ -772,6 +1401,156 @@ describe('greenfield editor', () => {
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Back' }))
     expect(screen.getByLabelText('Target language')).toHaveTextContent('English')
+    expect(screen.getByText('Choose the language to translate text into.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Translation instructions')).toHaveClass(
+      'field-sizing-fixed',
+      'overflow-y-auto',
+    )
+  })
+
+  it('keeps generation controls independent from model capabilities', async () => {
+    installProject()
+    const user = userEvent.setup()
+    const configured: Preferences = {
+      ...preferences,
+      pipeline: {
+        ...preferences.pipeline,
+        translation: {
+          ...preferences.pipeline.translation,
+          model: {
+            provider: 'deepseek',
+            model: 'deepseek-chat',
+            quantization: null,
+            vision: false,
+            reasoning: true,
+          },
+          generation: {
+            ...preferences.pipeline.translation.generation,
+            reasoning: false,
+          },
+        },
+      },
+    }
+    useKoharuStore.setState({
+      settingsOpen: true,
+      preferences: configured,
+      translationModels: [
+        {
+          provider: 'deepseek',
+          model: 'deepseek-chat',
+          name: 'DeepSeek Chat',
+          quantizations: [],
+          vision: false,
+          reasoning: true,
+        },
+      ],
+    })
+    const save = vi.spyOn(commands, 'savePreferences').mockResolvedValue(configured)
+    render(
+      <ThemeProvider attribute='class'>
+        <SettingsPage />
+      </ThemeProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Translation' }))
+    const reasoning = screen.getByRole('switch', { name: 'Enable reasoning' })
+    expect(reasoning).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('switch', { name: 'Vision' })).not.toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    await user.click(reasoning)
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          translation: expect.objectContaining({
+            generation: expect.objectContaining({ reasoning: true }),
+          }),
+        }),
+        configured.providers,
+        configured.typesetting,
+      ),
+    )
+  })
+
+  it('keeps a configured provider credential private and allows clearing it', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const providers = {
+      entries: [
+        {
+          name: 'DeepL',
+          config: { provider: 'deepl' as const, settings: { base_url: null } },
+          credential: { configured: true, value: null, clear: false },
+        },
+      ],
+    }
+    render(<ProviderPreferences value={providers} onChange={onChange} />)
+
+    const input = screen.getByLabelText('DeepL credential')
+    expect(screen.getByText('Credential')).toHaveAttribute('for', input.id)
+    expect(input).toHaveAttribute('type', 'text')
+    expect(input).toHaveAttribute('autocomplete', 'off')
+    expect(input).toHaveAttribute('autocapitalize', 'none')
+    expect(input).toHaveAttribute('spellcheck', 'false')
+    expect(input).toHaveClass(
+      '[-webkit-text-security:disc]',
+      '[&::placeholder]:[-webkit-text-security:none]',
+    )
+    expect(input).toHaveValue('')
+    expect(input).toHaveAttribute('placeholder', 'Configured')
+    expect(
+      screen.queryByRole('button', { name: 'Reveal DeepL credential' }),
+    ).not.toBeInTheDocument()
+
+    const clear = screen.getByRole('button', { name: 'Clear DeepL credential' })
+    expect(clear.querySelector('.lucide-eraser')).toBeInTheDocument()
+    expect(clear).not.toHaveClass('text-destructive')
+    await user.click(clear)
+    expect(onChange).toHaveBeenCalledWith({
+      entries: [
+        expect.objectContaining({
+          credential: { configured: false, value: null, clear: true },
+        }),
+      ],
+    })
+  })
+
+  it('preserves a credential draft and focus when autosave finishes', async () => {
+    installProject()
+    const user = userEvent.setup()
+    useKoharuStore.setState({ settingsOpen: true })
+    const save = vi
+      .spyOn(commands, 'savePreferences')
+      .mockImplementation(async (pipeline, providers, typesetting) => ({
+        ...preferences,
+        pipeline,
+        providers: {
+          entries: providers.entries.map((entry) => ({
+            ...entry,
+            credential: entry.credential?.value
+              ? { configured: true, value: null, clear: false }
+              : entry.credential,
+          })),
+        },
+        typesetting,
+      }))
+    render(
+      <ThemeProvider attribute='class'>
+        <SettingsPage />
+      </ThemeProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Providers' }))
+    const input = screen.getByLabelText('DeepL credential')
+    await user.type(input, 's')
+    await waitFor(() => expect(save).toHaveBeenCalled())
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('DeepL credential')).toBe(input)
+      expect(input).toHaveFocus()
+      expect(input).toHaveValue('s')
+    })
   })
 
   it('clamps a threshold typed past its bounds before saving it', async () => {
@@ -828,6 +1607,7 @@ describe('greenfield editor', () => {
           name: 'OpenRouter Auto',
           quantizations: [],
           vision: true,
+          reasoning: true,
         },
       ],
     })
@@ -976,6 +1756,43 @@ describe('greenfield editor', () => {
     expect(screen.getByText('3%')).toBeInTheDocument()
   })
 
+  it('tracks arbitrary concurrent commands until each one settles', async () => {
+    const first = Promise.withResolvers<string>()
+    const second = Promise.withResolvers<string>()
+    const command = vi
+      .fn<(name: string, count: number) => Promise<string>>()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+    const { result } = renderHook(
+      () => useCommand(['rebuild-index'], command, 'Rebuilding index…'),
+      {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      },
+    )
+    render(<ActivityCenter />)
+
+    act(() => {
+      result.current.run('first', 2)
+      result.current.run('second', 3)
+    })
+    await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(2))
+    expect(screen.getAllByText('Rebuilding index…')).toHaveLength(2)
+    expect(command).toHaveBeenNthCalledWith(1, 'first', 2)
+    expect(command).toHaveBeenNthCalledWith(2, 'second', 3)
+    expect(result.current.busy).toBe(true)
+
+    await act(async () => first.resolve('done'))
+    await waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(1))
+    expect(result.current.busy).toBe(true)
+
+    await act(async () => second.reject(new Error('Index failed')))
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
+    expect(result.current.busy).toBe(false)
+    expect(screen.queryByRole('complementary', { name: 'Activity' })).not.toBeInTheDocument()
+  })
+
   it('keeps running work visible and stoppable', async () => {
     installProject()
     useKoharuStore.setState({
@@ -992,9 +1809,23 @@ describe('greenfield editor', () => {
         },
       },
     })
+    // A real page label is a filename, which says nothing about position in
+    // the run, so the row numbers it too.
+    queryClient.setQueryData(pagesKey, [
+      {
+        id: 'page',
+        label: 'cover.png',
+        size: { width: 1000, height: 1500 },
+        source_asset: 'source',
+        layer_count: 1,
+      },
+    ])
     const stop = vi.spyOn(commands, 'stopJob').mockResolvedValue(null)
     render(<ActivityCenter />)
     expect(screen.getByText('25%')).toBeInTheDocument()
+    // Separate elements, so a long label truncates without taking the model.
+    expect(screen.getByText('Page 1: cover.png')).toBeInTheDocument()
+    expect(screen.getByText('manga-ocr')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
     await waitFor(() => expect(stop).toHaveBeenCalledWith('job'))
   })

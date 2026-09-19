@@ -4,42 +4,56 @@ use anyhow::{Context, Result};
 use strum::EnumProperty;
 
 use crate::{
-    Hardware, Store,
-    downloads::Transfer,
+    Hardware, Store, download,
     runtime::{
-        DiscoverablePackage, Package, RuntimePackage,
-        graph::Component,
-        loader,
-        packages::{Cuda, Rocm},
+        DiscoverablePackage, Package, RuntimePackage, graph::Component, loader, packages::Cuda,
         sealed,
     },
-    source::{extract, release_asset},
+    source::extract,
 };
 
-const RELEASE: &str = "llama.cpp-b9982";
+const RELEASE: &str = "b10903";
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, strum::Display, strum::EnumProperty)]
 pub(crate) enum Llama {
     #[strum(
         serialize = "windows-cuda",
         props(
-            asset = "llama-cuda-windows-2022.tar.gz",
+            asset = "x86_64-pc-windows-msvc-cuda.tar.gz",
             libraries = "llama.dll,mtmd.dll"
         )
     )]
     WindowsCuda,
+    #[cfg_attr(
+        all(target_os = "linux", target_arch = "aarch64"),
+        strum(props(asset = "aarch64-unknown-linux-gnu-cuda.tar.gz"))
+    )]
+    #[cfg_attr(
+        not(all(target_os = "linux", target_arch = "aarch64")),
+        strum(props(asset = "x86_64-unknown-linux-gnu-cuda.tar.gz"))
+    )]
+    #[strum(serialize = "linux-cuda", props(libraries = "libllama.so,libmtmd.so"))]
+    LinuxCuda,
     #[strum(
         serialize = "windows-hip",
         props(
-            asset = "llama-hip-windows-2022.tar.gz",
+            asset = "x86_64-pc-windows-msvc-hip.tar.gz",
             libraries = "llama.dll,mtmd.dll"
         )
     )]
     WindowsHip,
     #[strum(
+        serialize = "linux-hip",
+        props(
+            asset = "x86_64-unknown-linux-gnu-hip.tar.gz",
+            libraries = "libllama.so,libmtmd.so"
+        )
+    )]
+    LinuxHip,
+    #[strum(
         serialize = "windows-vulkan",
         props(
-            asset = "llama-vulkan-windows-2022.tar.gz",
+            asset = "x86_64-pc-windows-msvc-vulkan.tar.gz",
             libraries = "llama.dll,mtmd.dll"
         )
     )]
@@ -47,7 +61,7 @@ pub(crate) enum Llama {
     #[strum(
         serialize = "linux-vulkan",
         props(
-            asset = "llama-vulkan-ubuntu-24.04.tar.gz",
+            asset = "x86_64-unknown-linux-gnu-vulkan.tar.gz",
             libraries = "libllama.so,libmtmd.so"
         )
     )]
@@ -55,7 +69,7 @@ pub(crate) enum Llama {
     #[strum(
         serialize = "macos-metal",
         props(
-            asset = "llama-metal-macos-latest.tar.gz",
+            asset = "aarch64-apple-darwin-metal.tar.gz",
             libraries = "libllama.dylib,libmtmd.dylib"
         )
     )]
@@ -86,22 +100,16 @@ impl Package for Llama {
             .join("llama")
             .join(RELEASE)
             .join(self.to_string());
-        if self.complete(&target) {
-            return Ok(target);
-        }
-        let asset = self.asset();
-        let url =
-            format!("https://github.com/mayocream/koharu/releases/download/{RELEASE}/{asset}");
-        let expected = release_asset("mayocream", "koharu", RELEASE, asset).await;
         Store::directory(
             target,
-            expected,
             move |path| self.complete(path),
-            move |stage, expected| async move {
+            move |stage| async move {
+                let asset = self.asset();
+                let url = format!(
+                    "https://github.com/koharu-rs/llama/releases/download/{RELEASE}/{asset}"
+                );
                 let archive = tempfile::Builder::new().suffix(".tar.gz").tempfile()?;
-                Transfer::new()?
-                    .fetch_verified(&url, archive.path(), &expected)
-                    .await?;
+                download::fetch(&url, archive.path()).await?;
                 extract(
                     archive.path(),
                     &stage,
@@ -119,7 +127,7 @@ impl DiscoverablePackage for Llama {
             if hardware.supports_cuda() {
                 return Some(Self::WindowsCuda);
             }
-            if Rocm::discover(hardware).is_ok() {
+            if hardware.supports_rocm() {
                 return Some(Self::WindowsHip);
             }
             if hardware.supports_vulkan() {
@@ -127,7 +135,15 @@ impl DiscoverablePackage for Llama {
             }
             None
         } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+            if hardware.supports_cuda() {
+                return Some(Self::LinuxCuda);
+            }
+            if hardware.supports_rocm() {
+                return Some(Self::LinuxHip);
+            }
             hardware.supports_vulkan().then_some(Self::LinuxVulkan)
+        } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+            hardware.supports_cuda().then_some(Self::LinuxCuda)
         } else if hardware.supports_metal() {
             Some(Self::MacosMetal)
         } else {
@@ -141,11 +157,11 @@ impl RuntimePackage for Llama {
 
     fn dependencies(self, hardware: &Hardware) -> Result<Vec<Component>> {
         match self {
-            Self::WindowsCuda => Ok(vec![
+            Self::WindowsCuda | Self::LinuxCuda => Ok(vec![
                 Component::Cuda(Cuda::Runtime13),
                 Component::Cuda(Cuda::Blas13),
             ]),
-            Self::WindowsHip => Ok(vec![Component::Rocm(Rocm::discover(hardware)?)]),
+            Self::WindowsHip | Self::LinuxHip => Ok(vec![Component::Rocm(hardware.rocm_target()?)]),
             Self::WindowsVulkan | Self::LinuxVulkan | Self::MacosMetal => Ok(Vec::new()),
         }
     }
@@ -153,7 +169,7 @@ impl RuntimePackage for Llama {
     async fn activate(self) -> Result<()> {
         let root = self.install().await?;
         for library in self.libraries() {
-            loader::load(root.join(library))
+            loader::load(root.join(library), false)
                 .with_context(|| format!("failed to activate llama library {library}"))?;
         }
         Ok(())

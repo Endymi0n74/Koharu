@@ -4,9 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import Providers from '@/app/providers'
 import { call } from '@/lib/backend'
-import { commands, type Preferences, type ProjectInfo, type StartupState } from '@/lib/protocol'
 import { useProject } from '@/lib/queries'
 import { useKoharuStore } from '@/lib/store'
+import {
+  commands,
+  type Preferences,
+  type ProjectInfo,
+  type StartupState,
+} from '@koharu/bridge/protocol'
 
 vi.mock('@tauri-apps/api/core', () => ({
   Channel: class<T> {
@@ -28,9 +33,10 @@ const preferences: Preferences = {
         provider: 'local',
         model: 'lfm2.5-1.2b-instruct',
         quantization: null,
-        vision: true,
+        vision: false,
+        reasoning: false,
       },
-      generation: {},
+      generation: { vision: true, reasoning: true },
       target_language: 'en-US',
       instructions: null,
     },
@@ -62,9 +68,10 @@ const startupState = (): StartupState => ({
   preferences,
   jobs: [],
   canvas: {
-    zoom: 1,
-    translation: [0, 0],
-    fitted: true,
+    page: null,
+    revision: null,
+    generation: 0,
+    size: [0, 0],
     element_frames: [],
   },
 })

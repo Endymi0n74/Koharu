@@ -22,6 +22,17 @@ describe('updater', () => {
     render(<Updater />)
 
     const heading = await screen.findByRole('heading', { level: 1, name: 'Highlights' })
+    const title = screen.getByRole('heading', {
+      level: 2,
+      name: 'Update available',
+    })
+    const copy = title.parentElement
+    const header = copy?.parentElement
+    expect(copy).toContainElement(
+      header?.querySelector('[data-slot="alert-dialog-description"]') ?? null,
+    )
+    expect(header).toHaveClass('flex', 'flex-row', 'items-start', 'gap-4', 'text-left')
+    expect(header).not.toHaveClass('grid', 'text-center')
     expect(screen.getByRole('listitem')).toHaveTextContent('Fixed the canvas')
     expect(heading.closest('[data-slot="scroll-area"]')).toHaveClass(
       'h-64',

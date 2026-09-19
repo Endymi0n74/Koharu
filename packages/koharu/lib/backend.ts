@@ -1,12 +1,21 @@
 'use client'
 
-import { commands } from './protocol'
+import { commands } from '@koharu/bridge/protocol'
+import type {
+  PipelineConfig,
+  Preferences,
+  ProviderPreferences,
+  TypesettingConfig,
+} from '@koharu/bridge/protocol'
+
 import { receiveError, receivePreferences, receiveTranslationModels } from './store'
 
 type Command<Args extends unknown[], Result> = (...args: Args) => Promise<Result>
 
 let translationModelsRequest: Promise<void> | null = null
 let translationModelsGeneration = 0
+let preferencesWriteGeneration = 0
+let preferencesWriteQueue: Promise<void> = Promise.resolve()
 
 export async function call<Args extends unknown[], Result>(
   command: Command<Args, Result>,
@@ -27,7 +36,26 @@ export function dispatch<Args extends unknown[], Result>(
 }
 
 export async function refreshPreferences(): Promise<void> {
-  receivePreferences(await call(commands.getPreferences))
+  const generation = preferencesWriteGeneration
+  await preferencesWriteQueue
+  const preferences = await call(commands.getPreferences)
+  if (generation === preferencesWriteGeneration) receivePreferences(preferences)
+}
+
+export function savePreferences(
+  pipeline: PipelineConfig,
+  providers: ProviderPreferences,
+  typesetting: TypesettingConfig,
+): Promise<Preferences> {
+  preferencesWriteGeneration += 1
+  const pending = preferencesWriteQueue
+    .catch(() => undefined)
+    .then(() => call(commands.savePreferences, pipeline, providers, typesetting))
+  preferencesWriteQueue = pending.then(
+    () => undefined,
+    () => undefined,
+  )
+  return pending
 }
 
 export function refreshTranslationModels(force = false): Promise<void> {
@@ -45,19 +73,6 @@ export function refreshTranslationModels(force = false): Promise<void> {
   return request
 }
 
-export function updateViewport(element: HTMLElement): Promise<void> {
-  const bounds = element.getBoundingClientRect()
-  return call(
-    commands.setViewport,
-    bounds.x,
-    bounds.y,
-    bounds.width,
-    bounds.height,
-    window.devicePixelRatio,
-    workspaceColor(),
-  ).then(() => undefined)
-}
-
 function report(error: unknown): Error {
   const message =
     error instanceof Error
@@ -67,19 +82,4 @@ function report(error: unknown): Error {
         : 'The native application returned an unknown error.'
   receiveError(message)
   return error instanceof Error ? error : new Error(message)
-}
-
-function workspaceColor(): [number, number, number] {
-  const raw = window
-    .getComputedStyle(document.documentElement)
-    .getPropertyValue('--workspace-background-rgb')
-  const values = raw.trim().split(/\s+/).map(Number)
-  if (values.length !== 3 || values.some((value) => !Number.isFinite(value))) {
-    return [183, 180, 174]
-  }
-  return values.map((value) => Math.min(255, Math.max(0, Math.round(value)))) as [
-    number,
-    number,
-    number,
-  ]
 }

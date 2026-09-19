@@ -12,6 +12,7 @@
     "downloadingFiles_one": "正在下載 {{count}} 個檔案",
     "downloadingFiles_other": "正在下載 {{count}} 個檔案",
     "modelDownload": "模型下載",
+    "pageLabel": "第 {{number}} 頁：{{label}}",
     "processing": "正在處理",
     "processingFailed": "處理失敗。",
     "showLess": "收起",
@@ -57,7 +58,8 @@
   "canvas": {
     "empty": "請選擇頁面以開始。",
     "fit": "適應視窗",
-    "surface": "Koharu 畫布"
+    "surface": "Koharu 畫布",
+    "unavailable": "WebGPU 畫布無法使用"
   },
   "colorPicker": {
     "brushColor": "筆刷顏色",
@@ -246,13 +248,12 @@
     "delete": "刪除所選項目",
     "discord": "Discord",
     "edit": "編輯",
-    "exportPng": "匯出 PNG…",
-    "exportPsd": "匯出 PSD…",
+    "export": "匯出專案",
     "file": "檔案",
     "fit": "適應視窗",
     "github": "GitHub",
     "help": "說明",
-    "importPages": "匯入頁面…",
+    "import": "匯入頁面",
     "process": "處理",
     "processLayers": "處理所選圖層",
     "processPages": "處理所選頁面",
@@ -298,12 +299,12 @@
     "pages": "頁面",
     "rename": "重新命名",
     "renameDescription": "為此頁面選擇新名稱。",
-    "renameTitle": "重新命名頁面"
+    "renameTitle": "重新命名頁面",
+    "selected": "已選擇 {{count}}"
   },
   "outputPicker": {
     "instructions": "翻譯指示",
     "instructionsPlaceholder": "關於語氣、名稱和格式的選填說明。",
-    "saving": "正在儲存輸出設定",
     "targetLanguage": "目標語言",
     "title": "翻譯輸出"
   },
@@ -320,15 +321,16 @@
     "translation": "將原文翻譯為目標語言。"
   },
   "providerDescriptions": {
-    "atlas-cloud": "由 Atlas 託管的語言模型。",
     "caiyun": "Caiyun 翻譯 API。",
     "claude": "Anthropic Claude 模型。",
     "deepl": "DeepL 翻譯 API。",
     "deepseek": "DeepSeek 語言模型。",
     "gemini": "Google Gemini 模型。",
     "google-cloud-translation": "Google Cloud Translation API。",
+    "grok": "xAI Grok 語言模型。",
     "lm-studio": "由 LM Studio 提供的模型。",
     "local": "在此裝置上執行的模型。",
+    "minimax": "MiniMax 語言模型。",
     "openai": "OpenAI 語言模型。",
     "openai-compatible": "任何提供 OpenAI 相容 API 的伺服器。",
     "openrouter": "透過 OpenRouter 路由的模型。"
@@ -361,20 +363,22 @@
     "backToEditor": "返回編輯器",
     "generation": {
       "description": "微調語言模型產生譯文的方式。",
-      "enableThinking": "啟用思考",
+      "enableReasoning": "啟用推理",
       "frequencyPenalty": "頻率懲罰",
       "maxTokens": "最大權杖數",
       "minP": "最小 P",
       "presencePenalty": "存在懲罰",
       "repeatPenalty": "重複懲罰",
       "sampling": "取樣",
+      "samplingDescription": "控制模型選擇和調整生成文字的方式。",
       "temperature": "溫度",
-      "thinking": "思考",
-      "thinkingDescription": "讓支援推理的模型使用思考模式。",
+      "reasoning": "推理",
+      "reasoningDescription": "翻譯時使用模型推理。",
       "title": "產生",
       "topK": "前 K 項",
       "topP": "Top P",
-      "vision": "視覺輸入"
+      "vision": "視覺",
+      "visionDescription": "翻譯時將頁面影像輸入給 LLM。"
     },
     "loading": "正在載入偏好設定…",
     "pipeline": {
@@ -409,11 +413,10 @@
       "configured": "已設定",
       "connections": "連線",
       "connectionsDescription": "認證資訊會安全地儲存在此裝置上。",
+      "credential": "認證資訊",
       "credentialLabel": "{{provider}} 認證資訊",
       "description": "連線翻譯和語言模型提供者。",
-      "hideCredential": "隱藏 {{provider}} 認證資訊",
       "notConfigured": "未設定",
-      "revealCredential": "顯示 {{provider}} 認證資訊",
       "title": "提供者"
     },
     "shortcuts": {
@@ -443,8 +446,10 @@
       "quantization": "量化",
       "quantizationDescription": "較小的格式使用較少記憶體，但通常會犧牲一些品質。",
       "selectQuantization": "選擇量化方式",
+      "targetLanguageDescription": "選擇文字要翻譯成的語言。",
       "title": "譯文",
-      "translationModel": "翻譯模型"
+      "translationModel": "翻譯模型",
+      "translationModelDescription": "選擇用於翻譯文字的模型。"
     },
     "typesetting": {
       "addFamily": "新增字型家族",
@@ -507,6 +512,7 @@
   },
   "updater": {
     "available": {
+      "description": "Koharu <strong>{{version}}</strong> 已準備好安裝",
       "title": "有可用更新"
     },
     "close": "關閉",

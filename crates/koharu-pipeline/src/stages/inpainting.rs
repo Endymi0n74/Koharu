@@ -102,6 +102,24 @@ impl StageProcessor for Processor {
         }
     }
 
+    fn skip(&self, input: &StageInput) -> Result<bool> {
+        if input.inpainting_mask.is_some() {
+            return Ok(false);
+        }
+        let source = AssetRole::new("source")?;
+        for entity in input.scene.children(input.page)? {
+            if input
+                .scene
+                .component::<RasterLayer>(entity)?
+                .is_some_and(|layer| layer.kind == RasterLayerKind::Cleanup)
+                && input.scene.asset(entity, &source)?.is_some()
+            {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     fn unload(&self) -> bool {
         self.model.unload()
     }
@@ -170,7 +188,7 @@ impl Model {
                 let model = model.clone();
                 (
                     "lama",
-                    tokio::task::spawn_blocking(move || -> Result<DynamicImage> {
+                    tokio_rayon::spawn(move || -> Result<DynamicImage> {
                         let model = model
                             .lock()
                             .map_err(|_| anyhow!("LaMa model lock is poisoned"))?;
@@ -188,15 +206,14 @@ impl Model {
                             },
                         )
                     })
-                    .await
-                    .context("LaMa task panicked")??,
+                    .await?,
                 )
             }
             Self::Aot(model) => {
                 let model = model.clone();
                 (
                     "aot-inpainting",
-                    tokio::task::spawn_blocking(move || -> Result<DynamicImage> {
+                    tokio_rayon::spawn(move || -> Result<DynamicImage> {
                         let model = model
                             .lock()
                             .map_err(|_| anyhow!("AOT model lock is poisoned"))?;
@@ -210,8 +227,7 @@ impl Model {
                             },
                         )
                     })
-                    .await
-                    .context("AOT task panicked")??,
+                    .await?,
                 )
             }
             Self::Flux { model, config } => {
@@ -219,7 +235,7 @@ impl Model {
                 let config = config.clone();
                 (
                     "flux2-klein",
-                    tokio::task::spawn_blocking(move || -> Result<DynamicImage> {
+                    tokio_rayon::spawn(move || -> Result<DynamicImage> {
                         let model = model
                             .lock()
                             .map_err(|_| anyhow!("FLUX model lock is poisoned"))?;
@@ -239,8 +255,7 @@ impl Model {
                             },
                         )
                     })
-                    .await
-                    .context("FLUX task panicked")??,
+                    .await?,
                 )
             }
             Self::Rorem { model, config } => {
@@ -248,7 +263,7 @@ impl Model {
                 let config = config.clone();
                 (
                     "rorem-mixed",
-                    tokio::task::spawn_blocking(move || -> Result<DynamicImage> {
+                    tokio_rayon::spawn(move || -> Result<DynamicImage> {
                         let model = model
                             .lock()
                             .map_err(|_| anyhow!("RORem model lock is poisoned"))?;
@@ -268,8 +283,7 @@ impl Model {
                             },
                         )
                     })
-                    .await
-                    .context("RORem task panicked")??,
+                    .await?,
                 )
             }
         };
@@ -469,7 +483,7 @@ async fn prepare(input: &StageInput) -> Result<InpaintInput> {
                 if layer.dimensions() != mask.dimensions() {
                     bail!("{role} dimensions do not match page {page}");
                 }
-                for (target, source) in mask.as_mut().iter_mut().zip(layer.as_raw()) {
+                for (target, source) in mask.iter_mut().zip(layer.as_raw()) {
                     *target = (*target).max(*source);
                 }
                 if role == "text-mask" {
@@ -937,6 +951,70 @@ mod tests {
         assert_eq!(prepared.mask.get_pixel(3, 4), &Luma([255]));
         assert_eq!(prepared.mask.get_pixel(0, 0), &Luma([0]));
         assert!(prepared.text_mask.pixels().all(|pixel| pixel[0] == 0));
+    }
+
+    #[tokio::test]
+    async fn automatic_inpainting_skips_committed_cleanup() {
+        let mut session = koharu_scene::Session::memory().await.unwrap();
+        let mut page = None;
+        let patch = session
+            .snapshot()
+            .patch(|edit| {
+                let id = edit.add_page(
+                    koharu_scene::PageDraft::new("page", 8.0, 8.0),
+                    koharu_scene::At::End,
+                )?;
+                let cleanup = edit.add_entity(id, At::Start)?;
+                edit.set(
+                    cleanup,
+                    &RasterLayer {
+                        origin: Origin::User,
+                        name: "Cleanup".to_owned(),
+                        kind: RasterLayerKind::Cleanup,
+                    },
+                )?;
+                edit.set_asset(
+                    cleanup,
+                    &AssetRole::new("source")?,
+                    AssetInput::new(
+                        Arc::<[u8]>::from([0]),
+                        "image/png",
+                        AssetMetadata {
+                            width: Some(8),
+                            height: Some(8),
+                            attributes: BTreeMap::new(),
+                        },
+                    ),
+                )?;
+                page = Some(id);
+                Ok(())
+            })
+            .unwrap();
+        let snapshot = session.commit(patch).await.unwrap().snapshot;
+        let page = page.unwrap();
+        let automatic = StageInput::new(
+            snapshot.clone(),
+            page,
+            None,
+            None,
+            Arc::new(crate::ImageCache::default()),
+            None,
+        );
+        let manual = StageInput::new(
+            snapshot,
+            page,
+            None,
+            None,
+            Arc::new(crate::ImageCache::default()),
+            Some(crate::InpaintingMask {
+                page,
+                png: Arc::<[u8]>::from([]),
+            }),
+        );
+        let processor = Processor::new(InpaintingModel::LaMa {}, koharu_ml::Device::cpu()).unwrap();
+
+        assert!(processor.skip(&automatic).unwrap());
+        assert!(!processor.skip(&manual).unwrap());
     }
 
     fn rectangle_region([left, top, right, bottom]: [u32; 4]) -> FlatFillRegion {

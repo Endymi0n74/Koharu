@@ -6,9 +6,10 @@
 //! https://github.com/ggml-org/llama.cpp/blob/99f3dc32296f825fec94f202da1e9fede1e78cf9/tools/mtmd/mtmd-helper.cpp
 
 use std::{
+    fmt::{Debug, Formatter},
     num::NonZeroU32,
     path::{Path, PathBuf},
-    sync::Mutex,
+    sync::{Mutex, OnceLock},
     time::Instant,
 };
 
@@ -25,19 +26,19 @@ use koharu_llama::{
     sampling::LlamaSampler,
     token::LlamaToken,
 };
+use llguidance::{Matcher, ParserFactory, api::TopLevelGrammar};
 use minijinja::{Environment, Error as TemplateError, ErrorKind as TemplateErrorKind, context};
 use serde::Serialize;
 
 use super::{
-    Capabilities, ChatMessage, FinishReason, Generation, GenerationControl, GenerationOptions,
-    Input, LoadOptions, Media, TokenChunk,
+    Capabilities, ChatMessage, ChatTemplateOptions, FinishReason, Generation, GenerationControl,
+    GenerationOptions, Input, LoadOptions, Media, TokenChunk,
 };
 use crate::Backend;
 
 const DEFAULT_MAX_UBATCH: u32 = 512;
 const CHAT_TEMPLATE_NAME: &str = "chat";
 
-#[derive(Debug)]
 pub(super) struct Model {
     backend: &'static LlamaBackend,
     model: LlamaModel,
@@ -45,6 +46,16 @@ pub(super) struct Model {
     capabilities: Capabilities,
     eos_token: LlamaToken,
     chat_template: ChatTemplate,
+    llguidance_factory: OnceLock<std::result::Result<ParserFactory, String>>,
+}
+
+impl Debug for Model {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Model")
+            .field("model", &self.model)
+            .field("capabilities", &self.capabilities)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug)]
@@ -86,7 +97,7 @@ impl ChatTemplate {
         })
     }
 
-    fn render(&self, messages: &[ChatMessage], add_generation_prompt: bool) -> Result<String> {
+    fn render(&self, messages: &[ChatMessage], options: ChatTemplateOptions) -> Result<String> {
         let messages = messages
             .iter()
             .map(|message| TemplateMessage {
@@ -104,8 +115,8 @@ impl ChatTemplate {
                 messages => messages,
                 bos_token => self.bos_token.as_str(),
                 eos_token => self.eos_token.as_str(),
-                add_generation_prompt => add_generation_prompt,
-                enable_thinking => false,
+                add_generation_prompt => options.add_generation_prompt,
+                enable_thinking => options.enable_thinking,
                 tools => Vec::<()>::new(),
                 documents => Vec::<()>::new(),
             })
@@ -203,6 +214,7 @@ impl Model {
             capabilities,
             eos_token,
             chat_template,
+            llguidance_factory: OnceLock::new(),
         })
     }
 
@@ -221,9 +233,9 @@ impl Model {
     pub(super) fn render_chat_prompt(
         &self,
         messages: &[ChatMessage],
-        add_generation_prompt: bool,
+        options: ChatTemplateOptions,
     ) -> Result<String> {
-        self.chat_template.render(messages, add_generation_prompt)
+        self.chat_template.render(messages, options)
     }
 
     pub(super) fn inference<F>(
@@ -504,12 +516,33 @@ impl Model {
         let mut samplers = Vec::new();
 
         if let Some(schema) = json_schema {
-            let schema = serde_json::to_string(schema)
+            let mut schema = schema.clone();
+            if let Some(schema) = schema.as_object_mut() {
+                schema.entry("x-guidance").or_insert_with(|| {
+                    serde_json::json!({
+                        "item_separator": ", ",
+                        "key_separator": ": ",
+                        "whitespace_flexible": false
+                    })
+                });
+            }
+            let schema = serde_json::to_string(&schema)
                 .context("failed to serialize structured output schema")?;
-            samplers.push(
-                LlamaSampler::llguidance(&self.model, "json_schema", &schema)
-                    .context("failed to compile structured output schema")?,
-            );
+            let factory = self
+                .llguidance_factory
+                .get_or_init(|| {
+                    let tok_env = LlamaSampler::llguidance_tok_env(&self.model);
+                    ParserFactory::new_simple(&tok_env).map_err(|error| error.to_string())
+                })
+                .as_ref()
+                .map_err(|error| anyhow::Error::msg(error.clone()))
+                .context("failed to initialize structured output tokenizer")?;
+            let grammar = TopLevelGrammar::from_tagged_str("json_schema", &schema)
+                .context("failed to compile structured output schema")?;
+            let parser = factory
+                .create_parser(grammar)
+                .context("failed to create structured output parser")?;
+            samplers.push(LlamaSampler::from(Matcher::new(Ok(parser))));
         }
 
         let has_repeat =
@@ -518,6 +551,7 @@ impl Model {
         let has_presence = options.presence_penalty.abs() >= f32::EPSILON;
         if has_repeat || has_frequency || has_presence {
             let mut penalties = LlamaSampler::penalties(
+                &self.model,
                 options.repeat_last_n,
                 if has_repeat {
                     options.repeat_penalty
@@ -590,8 +624,7 @@ fn model_params(
     };
     let mut params = LlamaModelParams::default()
         .with_n_gpu_layers(gpu_layers)
-        .with_use_mmap(options.use_mmap)
-        .with_use_mlock(options.use_mlock);
+        .with_load_mode(options.load_mode);
     if gpu_layers > 0 {
         params = params
             .with_devices(&[device.index])
@@ -703,8 +736,8 @@ fn validate_generation_options(options: &GenerationOptions) -> Result<()> {
         "presence_penalty must be finite"
     );
     ensure!(
-        options.repeat_last_n >= -1,
-        "repeat_last_n must be -1 or non-negative"
+        options.repeat_last_n >= 0,
+        "repeat_last_n must be non-negative"
     );
     if let Some(n_threads) = options.n_threads {
         ensure!(n_threads > 0, "n_threads must be positive");

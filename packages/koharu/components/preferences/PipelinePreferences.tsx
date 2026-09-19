@@ -20,7 +20,7 @@ import {
   PreferenceSection,
   TextField,
 } from '@/components/preferences/PreferenceFields'
-import type { PipelineConfig } from '@/lib/protocol'
+import type { PipelineConfig } from '@koharu/bridge/protocol'
 import {
   Select,
   SelectContent,
@@ -165,6 +165,7 @@ function ModelOptions({
     case 'paddleocr-vl-1.6':
     case 'manga-ocr':
     case 'baberu-ocr':
+    case 'hayai-ocr':
     case 'lama':
     case 'aot-inpainting':
       return null

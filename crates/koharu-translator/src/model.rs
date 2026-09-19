@@ -4,7 +4,7 @@ use specta::Type;
 
 use crate::Provider;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, Type)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Type)]
 #[serde(default)]
 pub struct GenerationConfig {
     pub temperature: Option<f32>,
@@ -15,7 +15,39 @@ pub struct GenerationConfig {
     pub repeat_penalty: Option<f32>,
     pub frequency_penalty: Option<f32>,
     pub presence_penalty: Option<f32>,
-    pub thinking: bool,
+    pub reasoning: Option<bool>,
+    pub vision: Option<bool>,
+}
+
+impl Default for GenerationConfig {
+    fn default() -> Self {
+        Self {
+            temperature: None,
+            top_k: None,
+            top_p: None,
+            min_p: None,
+            max_tokens: None,
+            repeat_penalty: None,
+            frequency_penalty: None,
+            presence_penalty: None,
+            reasoning: Some(false),
+            vision: Some(true),
+        }
+    }
+}
+
+impl GenerationConfig {
+    pub(crate) fn for_model(self, model: &ModelSelection) -> Self {
+        Self {
+            reasoning: if model.reasoning {
+                self.reasoning
+            } else {
+                None
+            },
+            vision: if model.vision { self.vision } else { None },
+            ..self
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Type)]
@@ -25,7 +57,10 @@ pub struct ModelSelection {
     pub model: Option<String>,
     #[serde(default)]
     pub quantization: Option<String>,
+    #[serde(default)]
     pub vision: bool,
+    #[serde(default)]
+    pub reasoning: bool,
 }
 
 impl Default for ModelSelection {
@@ -35,6 +70,7 @@ impl Default for ModelSelection {
             model: Some(crate::local::DEFAULT_MODEL.to_owned()),
             quantization: Some(crate::local::DEFAULT_QUANTIZATION.to_owned()),
             vision: true,
+            reasoning: true,
         }
     }
 }
@@ -43,6 +79,7 @@ impl Default for ModelSelection {
 pub struct Quantization {
     pub id: String,
     pub name: String,
+    pub downloaded: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Type)]
@@ -52,22 +89,10 @@ pub struct Model {
     pub name: String,
     pub quantizations: Vec<Quantization>,
     pub vision: bool,
+    pub reasoning: bool,
 }
 
 impl Model {
-    pub(crate) fn catalog(provider: Provider, entries: &[(&str, &str)], vision: bool) -> Vec<Self> {
-        entries
-            .iter()
-            .map(|&(model, name)| Self {
-                provider,
-                model: Some(model.to_owned()),
-                name: name.to_owned(),
-                quantizations: Vec::new(),
-                vision,
-            })
-            .collect()
-    }
-
     pub(crate) fn service(provider: Provider, name: &str) -> Self {
         Self {
             provider,
@@ -75,6 +100,7 @@ impl Model {
             name: name.to_owned(),
             quantizations: Vec::new(),
             vision: false,
+            reasoning: false,
         }
     }
 }
@@ -151,4 +177,47 @@ pub(crate) fn display_name(model: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn selection(vision: bool, reasoning: bool) -> ModelSelection {
+        ModelSelection {
+            provider: Provider::LmStudio,
+            model: Some("publisher/model".to_owned()),
+            quantization: None,
+            vision,
+            reasoning,
+        }
+    }
+
+    #[test]
+    fn generation_omits_unsupported_model_capabilities() {
+        let generation = GenerationConfig {
+            vision: Some(true),
+            reasoning: Some(false),
+            ..GenerationConfig::default()
+        };
+        let supported = generation.for_model(&selection(true, true));
+        assert_eq!(supported.vision, Some(true));
+        assert_eq!(supported.reasoning, Some(false));
+
+        let unsupported = generation.for_model(&selection(false, false));
+        assert_eq!(unsupported.vision, None);
+        assert_eq!(unsupported.reasoning, None);
+    }
+
+    #[test]
+    fn model_selection_defaults_missing_capabilities() {
+        let selection: ModelSelection = serde_json::from_value(serde_json::json!({
+            "provider": "lm-studio",
+            "model": "publisher/model",
+            "quantization": null
+        }))
+        .unwrap();
+        assert!(!selection.vision);
+        assert!(!selection.reasoning);
+    }
 }

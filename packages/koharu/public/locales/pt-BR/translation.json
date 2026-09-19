@@ -12,6 +12,7 @@
     "downloadingFiles_one": "Baixando {{count}} arquivos",
     "downloadingFiles_other": "Baixando {{count}} arquivos",
     "modelDownload": "Download do modelo",
+    "pageLabel": "Página {{number}}: {{label}}",
     "processing": "Processando",
     "processingFailed": "Falha no processamento.",
     "showLess": "Mostrar menos",
@@ -57,7 +58,8 @@
   "canvas": {
     "empty": "Selecione uma página para começar.",
     "fit": "Ajustar à janela",
-    "surface": "Tela do Koharu"
+    "surface": "Tela do Koharu",
+    "unavailable": "A tela WebGPU não está disponível"
   },
   "colorPicker": {
     "brushColor": "Cor do pincel",
@@ -246,13 +248,12 @@
     "delete": "Excluir seleção",
     "discord": "Discord",
     "edit": "Editar",
-    "exportPng": "Exportar PNG…",
-    "exportPsd": "Exportar PSD…",
+    "export": "Exportar projeto",
     "file": "Arquivo",
     "fit": "Ajustar à janela",
     "github": "GitHub",
     "help": "Ajuda",
-    "importPages": "Importar páginas…",
+    "import": "Importar páginas",
     "process": "Processar",
     "processLayers": "Processar camadas selecionadas",
     "processPages": "Processar páginas selecionadas",
@@ -298,12 +299,12 @@
     "pages": "Páginas",
     "rename": "Renomear",
     "renameDescription": "Escolha um novo nome para esta página.",
-    "renameTitle": "Renomear página"
+    "renameTitle": "Renomear página",
+    "selected": "{{count}} selecionadas"
   },
   "outputPicker": {
     "instructions": "Instruções de tradução",
     "instructionsPlaceholder": "Orientações opcionais sobre tom, nomes e formatação.",
-    "saving": "Salvando configurações de saída",
     "targetLanguage": "Idioma de destino",
     "title": "Saída da tradução"
   },
@@ -320,15 +321,16 @@
     "translation": "Converte o texto original para o idioma de destino."
   },
   "providerDescriptions": {
-    "atlas-cloud": "Modelos de linguagem hospedados pela Atlas.",
     "caiyun": "API de tradução do Caiyun.",
     "claude": "Modelos Claude da Anthropic.",
     "deepl": "API de tradução do DeepL.",
     "deepseek": "Modelos de linguagem da DeepSeek.",
     "gemini": "Modelos Google Gemini.",
     "google-cloud-translation": "API do Google Cloud Translation.",
+    "grok": "Modelos de linguagem Grok da xAI.",
     "lm-studio": "Modelos servidos pelo LM Studio.",
     "local": "Modelos executados neste dispositivo.",
+    "minimax": "Modelos de linguagem da MiniMax.",
     "openai": "Modelos de linguagem da OpenAI.",
     "openai-compatible": "Qualquer servidor que ofereça uma API compatível com a OpenAI.",
     "openrouter": "Modelos roteados pelo OpenRouter."
@@ -361,20 +363,22 @@
     "backToEditor": "Voltar ao editor",
     "generation": {
       "description": "Ajuste como os modelos de linguagem geram o texto traduzido.",
-      "enableThinking": "Ativar raciocínio",
+      "enableReasoning": "Ativar raciocínio",
       "frequencyPenalty": "Penalidade de frequência",
       "maxTokens": "Máximo de tokens",
       "minP": "P mínimo",
       "presencePenalty": "Penalidade de presença",
       "repeatPenalty": "Penalidade de repetição",
       "sampling": "Amostragem",
+      "samplingDescription": "Controla como o modelo seleciona e varia o texto gerado.",
       "temperature": "Temperatura",
-      "thinking": "Raciocínio",
-      "thinkingDescription": "Pede aos modelos com raciocínio que usem o modo de pensamento.",
+      "reasoning": "Raciocínio",
+      "reasoningDescription": "Usa o raciocínio do modelo durante a tradução.",
       "title": "Geração",
       "topK": "Top K",
       "topP": "Top P",
-      "vision": "Entrada de imagem"
+      "vision": "Visão",
+      "visionDescription": "Fornece imagens das páginas ao LLM durante a tradução."
     },
     "loading": "Carregando preferências…",
     "pipeline": {
@@ -409,11 +413,10 @@
       "configured": "Configurado",
       "connections": "Conexões",
       "connectionsDescription": "As credenciais são armazenadas com segurança neste dispositivo.",
+      "credential": "Credencial",
       "credentialLabel": "Credencial de {{provider}}",
       "description": "Conecte provedores de tradução e modelos de linguagem.",
-      "hideCredential": "Ocultar credencial de {{provider}}",
       "notConfigured": "Não configurado",
-      "revealCredential": "Mostrar credencial de {{provider}}",
       "title": "Provedores"
     },
     "shortcuts": {
@@ -443,8 +446,10 @@
       "quantization": "Quantização",
       "quantizationDescription": "Formatos menores usam menos memória, geralmente com perda de qualidade.",
       "selectQuantization": "Selecionar uma quantização",
+      "targetLanguageDescription": "Escolha o idioma para o qual o texto será traduzido.",
       "title": "Tradução",
-      "translationModel": "Modelo de tradução"
+      "translationModel": "Modelo de tradução",
+      "translationModelDescription": "Escolha o modelo usado para traduzir texto."
     },
     "typesetting": {
       "addFamily": "Adicionar família de fontes",
@@ -507,6 +512,7 @@
   },
   "updater": {
     "available": {
+      "description": "Koharu <strong>{{version}}</strong> está pronto para instalar",
       "title": "Atualização disponível"
     },
     "close": "Fechar",

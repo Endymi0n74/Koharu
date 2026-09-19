@@ -18,10 +18,10 @@ jobs:
       REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
     steps:
-      # refer: https://v2.tauri.app/start/prerequisites/#linux
       - run: |
           sudo apt update
-          sudo apt install libwebkit2gtk-4.1-dev \
+          sudo apt install --no-install-recommends \
+            libgtk-4-dev \
             build-essential \
             curl \
             wget \
@@ -46,6 +46,6 @@ jobs:
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-      - run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile --ignore-scripts
       - name: Lint UI
         run: bun run --filter @koharu/app lint

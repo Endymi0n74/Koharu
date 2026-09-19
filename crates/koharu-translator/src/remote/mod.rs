@@ -1,11 +1,12 @@
-mod atlas_cloud;
 mod caiyun;
 mod claude;
 mod deepl;
 mod deepseek;
 mod gemini;
 mod google_cloud;
+mod grok;
 mod lm_studio;
+mod minimax;
 mod openai;
 mod openai_compatible;
 mod openrouter;
@@ -15,14 +16,15 @@ use futures::{FutureExt, future::BoxFuture, future::join_all};
 use reqwest::{Client, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
 
-pub use atlas_cloud::AtlasCloudConfig;
 pub use caiyun::CaiyunConfig;
 pub use claude::ClaudeConfig;
 pub use deepl::DeepLConfig;
 pub use deepseek::DeepSeekConfig;
 pub use gemini::GeminiConfig;
 pub use google_cloud::GoogleCloudConfig;
+pub use grok::GrokConfig;
 pub use lm_studio::LmStudioConfig;
+pub use minimax::MiniMaxConfig;
 pub use openai::OpenAiConfig;
 pub use openai_compatible::OpenAiCompatibleConfig;
 pub use openrouter::OpenRouterConfig;
@@ -46,16 +48,6 @@ pub(crate) async fn translate(
             .with_context(|| format!("{} requires a selected model", selection.provider))
     };
     match selection.provider {
-        Provider::AtlasCloud => {
-            atlas_cloud::translate(
-                client,
-                &providers.atlas_cloud,
-                model()?,
-                generation,
-                request,
-            )
-            .await
-        }
         Provider::OpenAi => {
             openai::translate(client, &providers.openai, model()?, generation, request).await
         }
@@ -65,11 +57,17 @@ pub(crate) async fn translate(
         Provider::Claude => {
             claude::translate(client, &providers.claude, model()?, generation, request).await
         }
+        Provider::Grok => {
+            grok::translate(client, &providers.grok, model()?, generation, request).await
+        }
+        Provider::MiniMax => {
+            minimax::translate(client, &providers.minimax, model()?, generation, request).await
+        }
         Provider::DeepSeek => {
             deepseek::translate(client, &providers.deepseek, model()?, generation, request).await
         }
         Provider::OpenAiCompatible => {
-            openai_compatible::compatible(
+            openai_compatible::translate(
                 client,
                 &providers.openai_compatible,
                 model()?,
@@ -97,11 +95,12 @@ pub(crate) async fn translate(
 pub(crate) async fn models(client: &Client, providers: &ProvidersConfig) -> Vec<Model> {
     let mut models = Vec::new();
     let pending: Vec<BoxFuture<'_, Result<Vec<Model>>>> = vec![
-        atlas_cloud::models(client).boxed(),
-        openai::models().boxed(),
-        gemini::models().boxed(),
-        claude::models().boxed(),
-        deepseek::models().boxed(),
+        openai::models(client).boxed(),
+        gemini::models(client).boxed(),
+        claude::models(client).boxed(),
+        grok::models(client).boxed(),
+        minimax::models(client).boxed(),
+        deepseek::models(client).boxed(),
         openai_compatible::models(client, &providers.openai_compatible).boxed(),
         openrouter::models(client).boxed(),
         lm_studio::models(client, &providers.lm_studio).boxed(),

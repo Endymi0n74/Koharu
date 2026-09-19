@@ -15,7 +15,8 @@ use koharu_pipeline::{
     OcrModel, Operation, Pipeline, PipelineConfig, Progress, Request, RoremMixedConfig, Scope,
     StageOutput, TranslationConfig,
 };
-use koharu_renderer::{RasterOptions, Renderer};
+use koharu_rasterizer::{RasterOptions, Rasterizer};
+use koharu_renderer::Renderer;
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft, Session};
 use koharu_translator::{
     GenerationConfig, Language, ModelSelection, Provider, ProvidersConfig, TypographyProfile,
@@ -75,6 +76,8 @@ enum OcrChoice {
     MangaOcr,
     #[value(name = "baberu-ocr")]
     BaberuOcr,
+    #[value(name = "hayai-ocr")]
+    HayaiOcr,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -103,6 +106,7 @@ impl Arguments {
                 OcrChoice::PaddleOcrVl1_6 => OcrModel::PaddleOcrVl1_6,
                 OcrChoice::MangaOcr => OcrModel::MangaOcr,
                 OcrChoice::BaberuOcr => OcrModel::BaberuOcr,
+                OcrChoice::HayaiOcr => OcrModel::HayaiOcr,
             },
             translation: TranslationConfig {
                 model: ModelSelection {
@@ -110,6 +114,7 @@ impl Arguments {
                     model: Some(self.llm.clone()),
                     quantization: None,
                     vision: true,
+                    reasoning: true,
                 },
                 generation: GenerationConfig::default(),
                 target_language: self.target_language,
@@ -204,7 +209,8 @@ async fn main() -> Result<()> {
     let render_started = Instant::now();
     let snapshot = session.snapshot();
     let frame = renderer.render(&snapshot, page).await?;
-    let raster = renderer.rasterize(&frame, RasterOptions::default()).await?;
+    let rasterizer = Rasterizer::new()?;
+    let raster = rasterizer.rasterize(&frame.raster_frame()?, RasterOptions::default())?;
     let render_elapsed = render_started.elapsed();
     raster
         .image

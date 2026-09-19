@@ -6,15 +6,14 @@ use koharu_ml::llm::{
 };
 
 mod catalog;
-pub mod preset;
 
 pub use catalog::LocalConfig;
-pub use catalog::LocalModelDescriptor;
+use catalog::LocalModelDescriptor;
 pub(crate) use catalog::{DEFAULT_MODEL, DEFAULT_QUANTIZATION};
 
 use crate::{
     Device, Error, GenerationConfig, Model, ModelSelection, Provider, Quantization, Result,
-    TranslationRequest, prompt, prompt::Translations,
+    TranslationRequest, prompt,
 };
 
 #[derive(Debug)]
@@ -56,12 +55,12 @@ impl LocalTranslator {
 
     pub(crate) async fn translate(
         &self,
-        request: &TranslationRequest,
+        request: TranslationRequest,
         generation: GenerationConfig,
-    ) -> Result<Translations> {
+    ) -> Result<Vec<String>> {
         let expected = request.segments.len();
         if expected == 0 {
-            return Ok(Translations::complete(Vec::new()));
+            return Ok(Vec::new());
         }
         if !self
             .descriptor
@@ -75,29 +74,26 @@ impl LocalTranslator {
         }
 
         let image = request.image.clone();
-        let prompt = self.render_prompt(request)?;
+        let prompt = self.render_prompt(
+            &request,
+            generation.reasoning.unwrap_or(false) && self.descriptor.reasoning,
+        )?;
         let schema = prompt::output_schema(expected);
         let llm = Arc::clone(&self.llm);
-        let mut generation = self.descriptor.generation.options(generation);
-        // The schema makes the model emit one entry per segment, so a catalog
-        // default sized for a short prompt leaves the tail of a dense page
-        // untranslated.
-        generation.max_tokens = generation
-            .max_tokens
-            .max(prompt::output_budget(&request.segments));
-        let output = tokio::task::spawn_blocking(move || {
+        let generation = self.descriptor.generation.options(generation);
+        let output = tokio_rayon::spawn(move || {
             let input = image.as_deref().map_or_else(
                 || Input::new(&prompt),
                 |image| Input::new(&prompt).with_image(image),
             );
             llm.inference_with_json_schema(&input, &generation, &schema)
         })
-        .await
-        .context("local translation task panicked")??;
-        Ok(prompt::translations("local", &output.text, request)?)
+        .await?;
+        let segments = prompt::translations("local", &output.text, &request.segments)?;
+        Ok(segments)
     }
 
-    fn render_prompt(&self, request: &TranslationRequest) -> Result<String> {
+    fn render_prompt(&self, request: &TranslationRequest, reasoning: bool) -> Result<String> {
         let (system, payload) = prompt::prompts(request)?;
         let payload = if request.image.is_some() {
             format!("{}\n{payload}", media_marker())
@@ -110,6 +106,7 @@ impl LocalTranslator {
                 &[ChatMessage::system(system), ChatMessage::user(payload)],
                 ChatTemplateOptions {
                     add_generation_prompt: true,
+                    enable_thinking: reasoning,
                 },
             )
             .context("failed to render local translation prompt")?)
@@ -129,9 +126,13 @@ pub(crate) fn models() -> Vec<Model> {
                 .map(|quantization| Quantization {
                     id: quantization.id.to_owned(),
                     name: quantization.name.to_owned(),
+                    downloaded: std::iter::once(quantization.filename)
+                        .chain(descriptor.projector)
+                        .all(|filename| descriptor.file(filename).exists()),
                 })
                 .collect(),
             vision: descriptor.projector.is_some(),
+            reasoning: descriptor.reasoning,
         })
         .collect()
 }
