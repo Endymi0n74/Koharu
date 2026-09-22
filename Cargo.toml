@@ -199,3 +199,10 @@ opt-level = 3
 
 [profile.dev.package.libwebp-sys]
 opt-level = 3
+
+[profile.release]
+# Release binaries trade build time for speed: thin LTO across the workspace
+# crates with a single codegen unit. Portable by design (no target-cpu
+# tuning), because CI publishes these binaries for arbitrary machines.
+lto = "thin"
+codegen-units = 1

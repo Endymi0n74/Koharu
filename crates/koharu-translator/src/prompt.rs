@@ -293,6 +293,15 @@ fn translation_system_prompt(request: &TranslationRequest) -> String {
     .trim_end()
     .to_owned();
 
+    if let Some(guidance) = source_guidance(request.source_language, request.target_language) {
+        prompt.push_str("\n\n");
+        prompt.push_str(&guidance);
+    }
+    if let Some(style) = target_style(request.target_language) {
+        prompt.push_str("\n\n");
+        prompt.push_str(style);
+    }
+
     if !request.context.is_empty() {
         prompt.push_str("\n\n");
         prompt.push_str(indoc! {"
@@ -321,6 +330,62 @@ fn translation_system_prompt(request: &TranslationRequest) -> String {
         prompt.push_str(instructions);
     }
     prompt
+}
+
+/// Source-language guidance for a translation *into* `target`.
+///
+/// Japanese and Russian both carry meaning in morphology that a small model
+/// tends to drop when rendering directly into a Latin-script language: the
+/// honorific/particle layer in Japanese, verbal aspect and diminutives in
+/// Russian. Calling that out explicitly is cheaper than a pivot through
+/// English and keeps the single-pass pipeline intact.
+///
+/// Returns `None` for other sources so the prompt stays unchanged for the
+/// languages that do not need it.
+fn source_guidance(source: Option<Language>, target: Language) -> Option<String> {
+    let source = source?;
+    let guidance = match source {
+        Language::Japanese => format!(
+            indoc! {"
+                Japanese source guidance:
+                - Honorifics and name suffixes (-san, -kun, -sama, -sensei) signal rank and intimacy: render that relationship in {target} rather than dropping it or copying the suffix verbatim.
+                - Sentence-final particles and speech-endings (ね, よ, ぞ, ぜ, か) carry tone: convey the tone in {target}, do not transliterate them.
+                - Onomatopoeia and sound effects follow {target} manga conventions; localize them, and do not leave the kana in place.
+            "},
+            target = target,
+        ),
+        Language::Russian => format!(
+            indoc! {"
+                Russian source guidance:
+                - Verbal aspect (completed vs ongoing) is often implied rather than stated: choose the {target} tense that preserves the aspect.
+                - Diminutives and patronymics signal affection, familiarity, or respect: carry that nuance into {target} instead of using the bare name.
+                - Flexible word order marks emphasis: keep the emphasis natural in {target} rather than mirroring the Russian order.
+            "},
+            target = target,
+        ),
+        _ => return None,
+    };
+    Some(guidance.trim_end().to_owned())
+}
+
+/// Target-language style guidance for `target`.
+///
+/// The base prompt only says "into natural {target}", which is too thin for a
+/// language whose register, idiom, and punctuation differ sharply from the
+/// English the prompt itself is written in. French is the case this repo cares
+/// about (it also gets a typography pass in [`crate::typography`]), so it gets
+/// an explicit style block; other targets keep the base prompt unchanged.
+fn target_style(target: Language) -> Option<&'static str> {
+    match target {
+        Language::French => Some(indoc! {"
+            French style requirements:
+            - Write natural, idiomatic French as it would appear in a manga: favour spoken phrasing and contractions over literal wording.
+            - Avoid anglicisms and calques; do not translate word for word.
+            - Keep the register consistent with the character's tone (tu/vous, formal/informal) and the emotional beat of the scene.
+            - Punctuation and spacing follow French conventions; the pipeline normalizes them afterwards, so do not add your own thin spaces.
+        "}.trim_end()),
+        _ => None,
+    }
 }
 
 #[derive(Serialize)]
@@ -566,6 +631,77 @@ mod tests {
         assert!(prompt.contains("from Japanese into natural Korean"));
         assert!(prompt.contains("Copy every input ID exactly once"));
         assert!(prompt.contains("Use informal speech."));
+    }
+
+    #[test]
+    fn japanese_source_gets_source_guidance_name_for_the_target() {
+        let request = TranslationRequest::new(["こんにちは"], Language::French)
+            .with_source_language(Language::Japanese);
+        let prompt = translation_system_prompt(&request);
+        assert!(prompt.contains("Japanese source guidance"), "{prompt}");
+        assert!(
+            prompt.contains("render that relationship in French"),
+            "{prompt}"
+        );
+        assert!(prompt.contains("localize them"), "{prompt}");
+    }
+
+    #[test]
+    fn russian_source_gets_aspect_and_diminutive_guidance() {
+        let request = TranslationRequest::new(["привет"], Language::French)
+            .with_source_language(Language::Russian);
+        let prompt = translation_system_prompt(&request);
+        assert!(prompt.contains("Russian source guidance"), "{prompt}");
+        assert!(prompt.contains("preserves the aspect"), "{prompt}");
+        assert!(prompt.contains("carry that nuance into French"), "{prompt}");
+    }
+
+    #[test]
+    fn source_guidance_is_scoped_to_japanese_and_russian() {
+        let english = translation_system_prompt(
+            &TranslationRequest::new(["hello"], Language::French)
+                .with_source_language(Language::English),
+        );
+        assert!(!english.contains("source guidance"), "{english}");
+
+        let unknown =
+            translation_system_prompt(&TranslationRequest::new(["hello"], Language::French));
+        assert!(!unknown.contains("source guidance"), "{unknown}");
+    }
+
+    #[test]
+    fn french_target_gets_a_style_block_and_other_targets_do_not() {
+        let french = translation_system_prompt(&TranslationRequest::new(["hi"], Language::French));
+        assert!(french.contains("French style requirements"), "{french}");
+        assert!(french.contains("Avoid anglicisms"), "{french}");
+
+        let english =
+            translation_system_prompt(&TranslationRequest::new(["hi"], Language::English));
+        assert!(!english.contains("French style requirements"), "{english}");
+    }
+
+    #[test]
+    fn guidance_is_appended_before_context_and_image_requirements() {
+        let request = TranslationRequest::new(["text"], Language::French)
+            .with_source_language(Language::Japanese)
+            .with_context([TranslationContext::new("old", "traduction")])
+            .with_image(std::sync::Arc::new(image::DynamicImage::new_rgb8(1, 1)));
+        let prompt = translation_system_prompt(&request);
+
+        let guidance = prompt
+            .find("Japanese source guidance")
+            .expect("guidance present");
+        let style = prompt
+            .find("French style requirements")
+            .expect("style present");
+        let context = prompt
+            .find("Context requirements")
+            .expect("context present");
+        let image = prompt.find("Image requirements").expect("image present");
+        assert!(
+            guidance < style && style < context && context < image,
+            "{prompt}"
+        );
     }
 
     #[test]

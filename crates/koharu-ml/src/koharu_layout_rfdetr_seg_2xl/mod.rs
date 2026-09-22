@@ -132,7 +132,7 @@ mod tests {
         for (actual, expected) in lower_panel
             .bbox
             .into_iter()
-            .zip([69.179_69, 799.453_1, 700.820_3, 1006.171_9])
+            .zip([69.179_69, 799.453_1, 700.820_3, 1006.1719])
         {
             assert!((actual - expected).abs() < 7.0);
         }

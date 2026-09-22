@@ -1071,8 +1071,12 @@ impl LocalModelDescriptor {
         let model = self.file(filename).resolve();
         let projector = async {
             match self.projector {
-                Some(filename) => Ok(Some(self.file(filename).resolve().await?)),
-                None => Ok(None),
+                // A text-only selection neither downloads nor loads the
+                // projector (see `LocalTranslator::load`).
+                Some(filename) if selection.vision => {
+                    Ok(Some(self.file(filename).resolve().await?))
+                }
+                _ => Ok(None),
             }
         };
         let (model, projector) = tokio::try_join!(model, projector)?;

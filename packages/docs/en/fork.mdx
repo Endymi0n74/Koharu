@@ -175,8 +175,14 @@ Key behaviors:
   restarts where it stopped; pass `--overwrite` to redo them.
 - **Per-page fault isolation** — a page that fails (bad OCR, corrupted image) is reported and
   skipped; it does not abort the chapter.
-- **VRAM budget guard** — the binary queries the GPU (NVML on Windows) and refuses to start
-  if the selected model/quantization cannot fit; `--llm auto` picks the strongest model that
+- **Model-resident stage ordering** — detection runs across the whole chapter, then OCR,
+  then inpainting, then translation: each model loads once per chapter instead of once per
+  page (decisive on 8 GB cards, where the vision and language models cannot coexist).
+  Fault isolation and the per-page report are unchanged, and each output page is written as
+  soon as its own translation finishes.
+- **VRAM budget guard** — the binary queries the GPU (NVML on Windows), caps the budget at
+  the VRAM actually free at startup, and refuses to start if the selected model/quantization
+  cannot fit; `--llm auto` picks the strongest model that
   fits (and warns before a large first download), and `--force` overrides the check.
 - **French typography by default** — output text goes through the `fr-FR` profile:
   guillemets « », curly apostrophes ’, and narrow no-break spaces before `; : ! ?` and inside
@@ -207,6 +213,16 @@ Build it once from the repository (LLVM and CMake must be on the PATH, see
 cargo build --release -p koharu-pipeline --bin koharu-batch
 ```
 
+For the fastest binary on the machine that runs it, prefix that build with
+`RUSTFLAGS="-C target-cpu=native"` (PowerShell:
+`$env:RUSTFLAGS="-C target-cpu=native"`). The result targets that CPU only, so keep such
+builds local and rebuild after a CPU change.
+
+Flash attention needs no flag: the bundled llama.cpp defaults `flash_attn_type` to `AUTO`,
+which already enables it on CUDA builds. Measured on an RTX 3070 (E4B, one fixture page),
+disabling it raised translation from ~11 s to ~16 s, while forcing it `ENABLED` over `AUTO`
+changed nothing beyond run-to-run noise — so the default is left as is.
+
 Then copy the single self-contained executable (48 MB on Windows, no extra DLLs) next to
 a Koharu app installation — or anywhere else:
 
@@ -219,10 +235,16 @@ automatically (all the models the app downloaded are reused); anywhere else, pas
 `--store D:\koharu\store` once or let it fall back to `%LOCALAPPDATA%\koharu\packages`.
 
 Full options (from `koharu-batch --help`): `--input`, `--output`, `--lang` (default
-`fr-FR`), `--llm` (model id or `auto`), `--quantization`, `--force`, `--vram-budget-mib`,
+`fr-FR`), `--llm` (model id or `auto`), `--quantization`, `--no-vision` (text-only
+translation, skips the vision projector), `--force`, `--vram-budget-mib`,
 `--detection`, `--ocr`, `--inpainting`, `--translation-instructions`, `--format`
 (png/jpg/webp for folder outputs), `--store`, `--report <BASE|none>`, `--list-models`,
-`--overwrite`, `--dry-run`, `--cpu`.
+`--reset-calibration`, `--no-calibration`, `--overwrite`, `--dry-run`, `--cpu`.
+
+`--lang` picks the target language (default `fr-FR`). English (`--lang en-US`) is a
+solid fallback: every catalog model handles it, and for Japanese or Russian sources it
+is usually the strongest pair the small local models produce — use it when the target
+language's output quality matters more than the language itself.
 
 The runtime store resolves like the desktop app: when the binary sits next to a Koharu
 installation (a `store` directory alongside the executable), that store is used and every

@@ -1,5 +1,7 @@
 //! `koharu-batch` translates a whole chapter — a folder of images or a CBZ —
-//! in one command, page by page, with resume support and VRAM budgeting.
+//! in one command, running each pipeline stage across every page so loaded
+//! models stay resident for the whole chapter, with resume support and VRAM
+//! budgeting.
 
 use std::{
     collections::BTreeMap,
@@ -20,11 +22,11 @@ use koharu_pipeline::batch::{bootstrap, cbz, pages, report};
 use koharu_pipeline::{
     Committer, DetectionModel, Flux2KleinConfig, InpaintingModel, KoharuLayoutRFDetrSeg2XLConfig,
     OcrModel, Operation, Pipeline, PipelineConfig, Progress, Request, RoremMixedConfig, Scope,
-    StageOutput, TranslationConfig, vram::VramSampler,
+    Stage, StageOutput, TranslationConfig, vram::VramSampler,
 };
 use koharu_rasterizer::{RasterOptions, Rasterizer};
 use koharu_renderer::Renderer;
-use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, PageDraft, Session};
+use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, EntityId, PageDraft, Session};
 use koharu_translator::preset::{MeasuredPeak, MeasuredPeaks};
 use koharu_translator::{
     GenerationConfig, Language, ModelSelection, Provider, ProvidersConfig, TypographyProfile,
@@ -54,7 +56,9 @@ struct Arguments {
     #[arg(short, long, value_name = "OUTPUT")]
     output: Option<PathBuf>,
 
-    /// Target language tag (fr-FR, en-US, …).
+    /// Target language tag (fr-FR, en-US, …). English (en-US) is a safe
+    /// fallback: every catalog model handles it well, and JA/RU → EN is
+    /// typically the strongest pair for the small local models.
     #[arg(long, default_value = "fr-FR")]
     lang: Language,
 
@@ -66,6 +70,11 @@ struct Arguments {
     /// Local LLM quantization (defaults to the model's first entry).
     #[arg(long)]
     quantization: Option<String>,
+
+    /// Translate text-only: never feed the page image to the LLM, skipping
+    /// the vision projector's download and its VRAM.
+    #[arg(long)]
+    no_vision: bool,
 
     /// Skip the VRAM budget check (not recommended).
     #[arg(long)]
@@ -184,6 +193,9 @@ struct Resolved {
     estimate: preset::VramEstimate,
     /// Bytes the configuration needs in the store (weights and projector).
     download: u64,
+    /// Whether the page image is fed to the model: a `--no-vision` run neither
+    /// downloads nor loads the projector and translates from OCR text alone.
+    vision: bool,
     /// Whether the model emits reasoning traces the backend must strip.
     reasoning: bool,
 }
@@ -230,7 +242,12 @@ fn detect_budget(arguments: &Arguments, device: &Device) -> Option<u64> {
     if arguments.cpu {
         return None;
     }
-    koharu_pipeline::vram::total_bytes(device).map(preset::budget_from_total)
+    let budget = koharu_pipeline::vram::total_bytes(device).map(preset::budget_from_total)?;
+    // The margin on the total only covers a typical desktop; the compositor,
+    // browser tabs, and every other process already own part of the card at
+    // startup, so never budget past what is actually free right now.
+    let free = koharu_pipeline::vram::free_bytes(device).unwrap_or(u64::MAX);
+    Some(budget.min(free))
 }
 
 /// Resolves the local LLM: `auto` scans the preference list, an explicit id is
@@ -245,7 +262,8 @@ fn resolve_model(
         let Some(budget) = budget else {
             bail!("--llm auto requires a queryable GPU (or --vram-budget <MiB> / --cpu with an explicit --llm)");
         };
-        let Some(choice) = preset::resolve_auto_with(budget, true, measurements) else {
+        let vision = !arguments.no_vision;
+        let Some(choice) = preset::resolve_auto_with(budget, vision, measurements) else {
             bail!(
                 "no local translation model fits the VRAM budget {}",
                 gib(budget)
@@ -255,9 +273,9 @@ fn resolve_model(
             model: choice.model.to_owned(),
             quantization: choice.quantization.to_owned(),
             estimate: choice.estimate,
-            download: download_bytes(choice.model, choice.quantization, true)?,
-            reasoning: preset::descriptor_for(choice.model)
-                .is_some_and(preset::is_reasoning),
+            download: download_bytes(choice.model, choice.quantization, vision)?,
+            vision,
+            reasoning: preset::descriptor_for(choice.model).is_some_and(preset::is_reasoning),
         });
     }
 
@@ -267,7 +285,7 @@ fn resolve_model(
             arguments.llm
         );
     };
-    let vision = preset::supports_vision(descriptor);
+    let vision = preset::supports_vision(descriptor) && !arguments.no_vision;
     let quantization = arguments
         .quantization
         .clone()
@@ -304,6 +322,7 @@ fn resolve_model(
         quantization,
         estimate,
         download,
+        vision,
         reasoning: preset::is_reasoning(descriptor),
     })
 }
@@ -327,10 +346,15 @@ fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineConfig
                 provider: Provider::Local,
                 model: Some(resolved.model.clone()),
                 quantization: Some(resolved.quantization.clone()),
-                vision: true,
+                vision: resolved.vision,
                 reasoning: resolved.reasoning,
             },
-            generation: GenerationConfig::default(),
+            // `vision` on the generation gates the image both in the stage
+            // (attaching the page crop) and in the translator itself.
+            generation: GenerationConfig {
+                vision: Some(resolved.vision),
+                ..GenerationConfig::default()
+            },
             target_language: arguments.lang,
             instructions: arguments.translation_instructions.clone(),
             typography: TypographyProfile::default(),
@@ -542,6 +566,121 @@ fn encode_image(image: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, format: Fo
     Ok(encoded)
 }
 
+/// One page admitted to the phase-major run: its session entity plus the
+/// report data accumulated across the pipeline stages.
+struct LoadedPage {
+    /// Index of the page in the input listing (its report slot).
+    index: usize,
+    page_id: EntityId,
+    name: String,
+    media_type: &'static str,
+    before_uri: Option<String>,
+    /// Active wall time spent on this page (load plus every phase run).
+    elapsed: Duration,
+    stage_timings: Arc<Mutex<Vec<(String, Duration)>>>,
+    /// Largest per-phase GPU peak above baseline attributed to this page.
+    vram_peak: Option<u64>,
+}
+
+/// Runs one pipeline stage across every surviving page, in reading order.
+///
+/// The stage's model loads once and stays resident for the whole phase; a
+/// phase failure reports the page and drops it from the later phases, keeping
+/// the per-page fault isolation of a per-page run.
+async fn run_phase(
+    stage: Stage,
+    pages: &mut Vec<LoadedPage>,
+    session: &mut Session,
+    pipeline: &Pipeline,
+    vram_sampler: Option<&VramSampler>,
+    pages_report: &mut [Option<PageReport>],
+    failures: &mut Vec<(String, String)>,
+) {
+    eprintln!("{}: {} page(s)", stage, pages.len());
+    let mut index = 0;
+    while index < pages.len() {
+        let (page_id, timings) = {
+            let page = &pages[index];
+            (page.page_id, Arc::clone(&page.stage_timings))
+        };
+        if let Some(sampler) = vram_sampler {
+            sampler.reset_window();
+        }
+        let phase_started = Instant::now();
+        let outcome = {
+            let snapshot = session.snapshot();
+            let mut committer = SessionCommitter(&mut *session);
+            pipeline
+                .execute(
+                    snapshot,
+                    Request {
+                        operation: Operation::Only { stage },
+                        scope: Scope::Pages(vec![page_id]),
+                        progress: Some(Arc::new(move |event| {
+                            if let Progress::Finished { stage, elapsed, .. } = event {
+                                eprintln!("  {stage} finished in {:.2}s", elapsed.as_secs_f64());
+                                timings
+                                    .lock()
+                                    .expect("stage timings mutex")
+                                    .push((stage.to_string(), elapsed));
+                            }
+                        })),
+                        ..Request::default()
+                    },
+                    &mut committer,
+                )
+                .await
+        };
+        match outcome {
+            Ok(_) => {
+                let page = &mut pages[index];
+                page.elapsed += phase_started.elapsed();
+                if let Some(sampler) = vram_sampler
+                    && let Some(delta) = sampler.window_delta_bytes()
+                {
+                    page.vram_peak = Some(page.vram_peak.map_or(delta, |peak| peak.max(delta)));
+                }
+                index += 1;
+            }
+            Err(error) => {
+                let page = pages.remove(index);
+                eprintln!("[{}] {} failed: {error:#}", page.name, stage);
+                pages_report[page.index] = Some(PageReport::failed(
+                    page.index,
+                    page.name.clone(),
+                    format!("{} failed: {error:#}", stage),
+                ));
+                failures.push((page.name.clone(), error.to_string()));
+            }
+        }
+    }
+}
+
+/// Ends the process with `code`, skipping native teardown entirely.
+///
+/// After a full GPU run, process shutdown segfaults inside the CUDA driver
+/// (`nvcuda64.dll` fault, observed in both debug and release) and would
+/// replace the documented exit code with `0xC0000005` — turning a successful
+/// chapter into a failure for any script checking the exit status. Every
+/// output file is already written and stderr is unbuffered at the call
+/// sites, so nothing depends on CRT destructors or DLL detach handlers;
+/// terminating directly is what the kernel does after any such crash anyway.
+fn exit_with(code: i32) -> ! {
+    #[cfg(windows)]
+    unsafe {
+        TerminateProcess(GetCurrentProcess(), code as u32);
+    }
+    // Only reachable if the kernel refused to terminate this process.
+    std::process::exit(code)
+}
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn GetCurrentProcess() -> *mut core::ffi::c_void;
+    fn TerminateProcess(process: *mut core::ffi::c_void, exit_code: u32) -> i32;
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let arguments = Arguments::parse();
@@ -706,14 +845,16 @@ async fn main() -> Result<()> {
     let mut failures = Vec::new();
     let total_pages = pending.len();
 
+    // Phase-major execution: every page is added to the session first, then
+    // each stage runs across all surviving pages before the next stage starts.
+    // Models therefore load once per chapter instead of once per page — on a
+    // small card the vision and language models cannot coexist and used to be
+    // evicted and reloaded around every page. Fault isolation is preserved: a
+    // phase failure drops that page from the later phases only.
+    let mut loaded: Vec<LoadedPage> = Vec::new();
     for page in &pending {
+        let load_started = Instant::now();
         let page_name = page.name.clone();
-        let page_started = Instant::now();
-        if let Some(sampler) = &vram_sampler {
-            sampler.reset_window();
-        }
-        let stage_timings = Arc::new(Mutex::new(Vec::<(String, Duration)>::new()));
-        let closure_timings = Arc::clone(&stage_timings);
         let bytes = match read_page_bytes(&input, page) {
             Ok(bytes) => bytes,
             Err(error) => {
@@ -773,45 +914,111 @@ async fn main() -> Result<()> {
             Ok(())
         })?;
         session.commit(patch).await?;
-        let page_id = session_page.expect("page ID is assigned by the edit");
+        loaded.push(LoadedPage {
+            index: page.index,
+            page_id: session_page.expect("page ID is assigned by the edit"),
+            name: page_name,
+            media_type: page.media_type,
+            before_uri,
+            elapsed: load_started.elapsed(),
+            stage_timings: Arc::new(Mutex::new(Vec::new())),
+            vram_peak: None,
+        });
+    }
 
-        let snapshot = session.snapshot();
-        let mut committer = SessionCommitter(&mut session);
-        let report = match pipeline
-            .execute(
-                snapshot,
-                Request {
-                    operation: Operation::Full,
-                    scope: Scope::Pages(vec![page_id]),
-                    progress: Some(Arc::new(move |event| {
-                        if let Progress::Finished { stage, elapsed, .. } = event {
-                            eprintln!("  {stage} finished in {:.2}s", elapsed.as_secs_f64());
-                            closure_timings
-                                .lock()
-                                .expect("stage timings mutex")
-                                .push((stage.to_string(), elapsed));
-                        }
-                    })),
-                    ..Request::default()
-                },
-                &mut committer,
-            )
-            .await
-        {
-            Ok(report) => report,
-            Err(error) => {
-                eprintln!("[{page_name}] translation failed: {error:#}");
-                pages_report[page.index] = Some(PageReport::failed(
-                    page.index,
-                    page_name.clone(),
-                    format!("pipeline failed: {error:#}"),
-                ));
-                failures.push((page_name, error.to_string()));
-                continue;
-            }
+    run_phase(
+        Stage::Detection,
+        &mut loaded,
+        &mut session,
+        &pipeline,
+        vram_sampler.as_ref(),
+        &mut pages_report,
+        &mut failures,
+    )
+    .await;
+    run_phase(
+        Stage::Ocr,
+        &mut loaded,
+        &mut session,
+        &pipeline,
+        vram_sampler.as_ref(),
+        &mut pages_report,
+        &mut failures,
+    )
+    .await;
+    run_phase(
+        Stage::Inpainting,
+        &mut loaded,
+        &mut session,
+        &pipeline,
+        vram_sampler.as_ref(),
+        &mut pages_report,
+        &mut failures,
+    )
+    .await;
+
+    // Translation runs last (the chapter context needs every earlier page's
+    // text, and the language model loads once the vision models have been
+    // evicted), and each page is rendered and written right after its own
+    // translation so outputs still appear progressively during this phase.
+    let mut remaining = loaded;
+    while !remaining.is_empty() {
+        let (page_id, timings) = {
+            let page = &remaining[0];
+            (page.page_id, Arc::clone(&page.stage_timings))
         };
+        if let Some(sampler) = &vram_sampler {
+            sampler.reset_window();
+        }
+        let phase_started = Instant::now();
+        let outcome = {
+            let snapshot = session.snapshot();
+            let mut committer = SessionCommitter(&mut session);
+            pipeline
+                .execute(
+                    snapshot,
+                    Request {
+                        operation: Operation::Only {
+                            stage: Stage::Translation,
+                        },
+                        scope: Scope::Pages(vec![page_id]),
+                        progress: Some(Arc::new(move |event| {
+                            if let Progress::Finished { stage, elapsed, .. } = event {
+                                eprintln!("  {stage} finished in {:.2}s", elapsed.as_secs_f64());
+                                timings
+                                    .lock()
+                                    .expect("stage timings mutex")
+                                    .push((stage.to_string(), elapsed));
+                            }
+                        })),
+                        ..Request::default()
+                    },
+                    &mut committer,
+                )
+                .await
+        };
+        if let Err(error) = &outcome {
+            let page = remaining.remove(0);
+            eprintln!("[{}] translation failed: {error:#}", page.name);
+            pages_report[page.index] = Some(PageReport::failed(
+                page.index,
+                page.name.clone(),
+                format!("translation failed: {error:#}"),
+            ));
+            failures.push((page.name.clone(), error.to_string()));
+            continue;
+        }
+        let mut page = remaining.remove(0);
+        page.elapsed += phase_started.elapsed();
+        if let Some(sampler) = &vram_sampler
+            && let Some(delta) = sampler.window_delta_bytes()
+        {
+            page.vram_peak = Some(page.vram_peak.map_or(delta, |peak| peak.max(delta)));
+        }
+        let page_name = page.name.clone();
 
-        let frame = renderer.render(&session.snapshot(), page_id).await?;
+        let finalize_started = Instant::now();
+        let frame = renderer.render(&session.snapshot(), page.page_id).await?;
         let raster = rasterizer.rasterize(&frame.raster_frame()?, RasterOptions::default())?;
         let encoded = match encode_image(&raster.image, arguments.format) {
             Ok(encoded) => encoded,
@@ -829,11 +1036,7 @@ async fn main() -> Result<()> {
         match archive_output.as_mut() {
             Some(archive) => archive.add_page(&page_name, page.media_type, &encoded)?,
             None => {
-                let target = output_page_path(
-                    &output,
-                    page.index,
-                    arguments.format.extension(),
-                );
+                let target = output_page_path(&output, page.index, arguments.format.extension());
                 fs::write(&target, &encoded)
                     .with_context(|| format!("failed to write {}", target.display()))?;
             }
@@ -841,12 +1044,10 @@ async fn main() -> Result<()> {
         let after_uri = thumbnail_data_uri(&image::DynamicImage::ImageRgba8(raster.image.clone()))
             .map_err(|error| eprintln!("[{page_name}] thumbnail (after) skipped: {error}"))
             .ok();
-        let page_vram_peak = vram_sampler
-            .as_ref()
-            .and_then(|sampler| sampler.window_delta_bytes())
-            .map(gib);
-        eprintln!("[{page_name}] done in {:.2}s", report.elapsed.as_secs_f64());
-        let thumbnails = match (before_uri, after_uri) {
+        let page_vram_peak = page.vram_peak.map(gib);
+        let elapsed = page.elapsed + finalize_started.elapsed();
+        eprintln!("[{page_name}] done in {:.2}s", elapsed.as_secs_f64());
+        let thumbnails = match (page.before_uri, after_uri) {
             (Some(before), Some(after)) => Some(Thumbnails { before, after }),
             _ => None,
         };
@@ -854,8 +1055,9 @@ async fn main() -> Result<()> {
             index: page.index,
             name: page_name,
             outcome: PageOutcome::Translated {
-                elapsed: page_started.elapsed(),
-                stages: stage_timings
+                elapsed,
+                stages: page
+                    .stage_timings
                     .lock()
                     .expect("stage timings mutex")
                     .clone(),
@@ -878,7 +1080,7 @@ async fn main() -> Result<()> {
         let peak = MeasuredPeak {
             model: resolved.model.clone(),
             quantization: resolved.quantization.clone(),
-            vision: true,
+            vision: resolved.vision,
             bytes,
         };
         match calibration::record(path, peak) {
@@ -907,7 +1109,9 @@ async fn main() -> Result<()> {
             started.elapsed().as_secs_f64(),
             total_pages
         );
-        return Ok(());
+        // Exit explicitly: the native teardown (CUDA driver) segfaults after a
+        // full run and would replace this success code with 0xC0000005.
+        exit_with(0);
     }
     eprintln!(
         "chapter finished with {} failure(s) in {:.2}s:",
@@ -917,5 +1121,8 @@ async fn main() -> Result<()> {
     for (name, error) in &failures {
         eprintln!("  - {name}: {error}");
     }
-    bail!("{} page(s) failed", failures.len())
+    let error = anyhow::anyhow!("{} page(s) failed", failures.len());
+    eprintln!("Error: {error:?}");
+    // Same reason as above: report the real failure code, not a teardown crash.
+    exit_with(1);
 }
