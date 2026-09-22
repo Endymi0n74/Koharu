@@ -14,7 +14,31 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove incomplete release uploads
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          release_id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | select(.tag_name == env.RELEASE_TAG) | .id')
+          if [[ -z "$release_id" ]]; then
+            exit 0
+          fi
+
+          # Failed GitHub uploads can leave unreadable assets that block updater JSON generation.
+          # Clean them once before any matrix job starts uploading.
+          asset_ids=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" \
+            --jq '.[] | select(.state == "starter") | .id')
+          for asset_id in $asset_ids; do
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id"
+          done
+
   release:
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -140,6 +164,7 @@ jobs:
           releaseBody: ${{ steps.release_notes.outputs.release_body }}
           releaseDraft: false
           prerelease: false
+          retryAttempts: 3
           args: ${{ matrix.args }}
 
   winget:
