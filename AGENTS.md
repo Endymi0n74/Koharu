@@ -39,6 +39,13 @@ Document only durable, repository-specific constraints here. Do not record curre
 - Account for asynchronous accelerator execution when timing work.
 - Load assets and warm models outside measured regions.
 - Report the device, input size, baseline, result, and correctness difference.
+- Keep flash attention at the build default (`-1`, AUTO on CUDA); do not reintroduce a runtime switch — forced-on versus AUTO measured as noise on the reference GPU.
+- Do not adopt prompt prefill / KV-cache reuse without re-measuring on the target device: the ceiling is low (measured ~12-15 % of a stage), the risk is a silently wrong output, and the reference budget is 8 GB VRAM with concurrent stage execution.
+
+## Batch CLI Contract
+
+- `koharu-batch` exits 0 only when every page succeeded and non-zero otherwise. Keep the binary, `exit_with()`, and `packages/docs/en/fork.mdx` aligned when this contract changes.
+- Benchmarks and smoke runs pass `--no-calibration`; never write or depend on the machine's `vram-calibration.toml`.
 
 ## Verification
 
