@@ -42,7 +42,9 @@ impl LocalTranslator {
         let llm = Llm::load_with_options(device, resolved.model, options)
             .await
             .context("failed to load local translation model")?;
-        if llm.capabilities().vision != descriptor.projector.is_some() {
+        // A text-only selection (`--no-vision`) deliberately resolves and
+        // loads without the projector; otherwise the catalog must hold.
+        if llm.capabilities().vision != (selection.vision && descriptor.projector.is_some()) {
             return Err(anyhow::anyhow!(
                 "local translator vision capability does not match its catalog"
             )

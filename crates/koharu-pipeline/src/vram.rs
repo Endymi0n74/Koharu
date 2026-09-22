@@ -26,6 +26,26 @@ pub fn total_bytes(device: &Device) -> Option<u64> {
     }
 }
 
+/// Free (not currently in use) VRAM of `device` in bytes, when discoverable.
+///
+/// Unlike [`total_bytes`] a failed telemetry query yields `None` rather than
+/// 0: callers use this value as a ceiling and a bogus zero would refuse every
+/// model.
+#[must_use]
+pub fn free_bytes(device: &Device) -> Option<u64> {
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    {
+        nvml_device(device)
+            .and_then(|gpu| gpu.memory_info().ok())
+            .map(|memory| memory.free)
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    {
+        let _ = device;
+        None
+    }
+}
+
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 fn nvml_device(device: &Device) -> Option<nvml_wrapper::Device<'static>> {
     use std::sync::OnceLock;
@@ -224,6 +244,11 @@ mod tests {
     #[test]
     fn cpu_devices_have_no_budget() {
         assert_eq!(total_bytes(&Device::cpu()), None);
+    }
+
+    #[test]
+    fn cpu_devices_have_no_free_bytes() {
+        assert_eq!(free_bytes(&Device::cpu()), None);
     }
 
     #[test]
