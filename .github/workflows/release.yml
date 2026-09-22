@@ -19,8 +19,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
+          # macOS disabled: the Apple Developer certificate secrets are not
+          # configured in this repo, so this leg always failed at "Import
+          # Apple Developer Certificate" and marked the whole run red. The
+          # macOS-only steps below are `if:`-guarded and stay inert. Re-enable
+          # once BUILD_CERTIFICATE_BASE64 / KEYCHAIN_PASSWORD are set.
+          # - platform: 'macos-latest' # for Arm based macs (M1 and above).
+          #   args: '--target aarch64-apple-darwin'
           - platform: 'ubuntu-latest'
             args: ''
           - platform: 'ubuntu-24.04-arm'
