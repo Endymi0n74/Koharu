@@ -1,5 +1,8 @@
 <h1 align="center">Koharu</h1>
 
+> [!NOTE]
+> **Fork Endymi0n74** — nettoyage UI : `41` composants `packages/ui/src/components/*.tsx` jamais importés purgés + 1 hook `use-mobile.ts` + 6 deps lourdes retirées (`cmdk` `date-fns` `embla-carousel-react` `input-otp` `react-day-picker` `recharts`), `typecheck @koharu/ui` vert. Voir `packages/ui/package.json`.
+
 <p align="center">ML-powered manga translator, written in <b>Rust</b>.</p>
 
 <p align="center">
