@@ -210,7 +210,11 @@ const LARGE_DOWNLOAD_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 fn download_bytes(model: &str, quantization: &str, vision: bool) -> Result<u64> {
     let descriptor = preset::descriptor_for(model)
         .ok_or_else(|| anyhow::anyhow!("unknown local model '{model}'"))?;
-    Ok(preset::download_bytes(descriptor, Some(quantization), vision))
+    Ok(preset::download_bytes(
+        descriptor,
+        Some(quantization),
+        vision,
+    ))
 }
 
 /// Store root used when `--store` is not given: the `store` directory next to
@@ -260,7 +264,9 @@ fn resolve_model(
 ) -> Result<Resolved> {
     if arguments.llm == "auto" {
         let Some(budget) = budget else {
-            bail!("--llm auto requires a queryable GPU (or --vram-budget <MiB> / --cpu with an explicit --llm)");
+            bail!(
+                "--llm auto requires a queryable GPU (or --vram-budget <MiB> / --cpu with an explicit --llm)"
+            );
         };
         let vision = !arguments.no_vision;
         let Some(choice) = preset::resolve_auto_with(budget, vision, measurements) else {
@@ -331,9 +337,7 @@ fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineConfig
     PipelineConfig {
         detection: match arguments.detection {
             DetectionChoice::KoharuLayoutRFDetrSeg2XL => {
-                DetectionModel::KoharuLayoutRFDetrSeg2XL(
-                    KoharuLayoutRFDetrSeg2XLConfig::default(),
-                )
+                DetectionModel::KoharuLayoutRFDetrSeg2XL(KoharuLayoutRFDetrSeg2XLConfig::default())
             }
         },
         ocr: match arguments.ocr {
@@ -409,8 +413,9 @@ fn list_input_pages(input: &Path) -> Result<InputPages> {
 fn read_page_bytes(input: &InputPages, source: &pages::PageSource) -> Result<Vec<u8>> {
     match input {
         InputPages::Directory(_) => match &source.location {
-            pages::Location::File(path) => fs::read(path)
-                .with_context(|| format!("failed to read {}", path.display())),
+            pages::Location::File(path) => {
+                fs::read(path).with_context(|| format!("failed to read {}", path.display()))
+            }
             pages::Location::Entry(_) => bail!("page {} has an inconsistent source", source.name),
         },
         InputPages::Archive(archive, _) => match &source.location {
@@ -449,7 +454,10 @@ const THUMBNAIL_EDGE: u32 = 220;
 fn thumbnail_data_uri(image: &image::DynamicImage) -> Result<String> {
     let thumbnail = image.thumbnail(THUMBNAIL_EDGE, THUMBNAIL_EDGE).to_rgb8();
     let mut jpeg = Vec::new();
-    thumbnail.write_to(&mut std::io::Cursor::new(&mut jpeg), image::ImageFormat::Jpeg)?;
+    thumbnail.write_to(
+        &mut std::io::Cursor::new(&mut jpeg),
+        image::ImageFormat::Jpeg,
+    )?;
     Ok(format!(
         "data:image/jpeg;base64,{}",
         base64::engine::general_purpose::STANDARD.encode(jpeg)
@@ -480,7 +488,9 @@ fn vram_peak_line(sampler: Option<&VramSampler>) -> Option<String> {
         Some(0) | None => Some(format!("pic GPU entier {whole_gib:.1} GiB")),
         Some(run_peak) => {
             let run_gib = run_peak as f64 / (1024.0 * 1024.0 * 1024.0);
-            Some(format!("{run_gib:.1} GiB (pic GPU entier {whole_gib:.1} GiB)"))
+            Some(format!(
+                "{run_gib:.1} GiB (pic GPU entier {whole_gib:.1} GiB)"
+            ))
         }
     }
 }
@@ -555,7 +565,10 @@ fn list_models(measurements: &MeasuredPeaks) {
     }
 }
 
-fn encode_image(image: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, format: FormatChoice) -> Result<Vec<u8>> {
+fn encode_image(
+    image: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+    format: FormatChoice,
+) -> Result<Vec<u8>> {
     let mut encoded = Vec::new();
     let target = match format {
         FormatChoice::Png => image::ImageFormat::Png,
@@ -709,8 +722,12 @@ async fn main() -> Result<()> {
         bail!("--output is required (folder for page images, or a .cbz path)");
     };
     let store = arguments.store.clone().unwrap_or_else(default_store_root);
-    koharu_runtime::Store::configure(&store)
-        .with_context(|| format!("failed to configure the runtime store at {}", store.display()))?;
+    koharu_runtime::Store::configure(&store).with_context(|| {
+        format!(
+            "failed to configure the runtime store at {}",
+            store.display()
+        )
+    })?;
 
     let input = list_input_pages(input_path)?;
     let all_pages = input.list();
@@ -721,7 +738,10 @@ async fn main() -> Result<()> {
             extension.eq_ignore_ascii_case("cbz") || extension.eq_ignore_ascii_case("zip")
         });
     if output_is_archive {
-        if let Some(parent) = output.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+        if let Some(parent) = output
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
             fs::create_dir_all(parent)
                 .with_context(|| format!("failed to create {}", parent.display()))?;
         }
@@ -745,10 +765,8 @@ async fn main() -> Result<()> {
             })
         })
         .collect();
-    let pending: Vec<&pages::PageSource> = all_pages
-        .iter()
-        .filter(|page| !resume_skip(page))
-        .collect();
+    let pending: Vec<&pages::PageSource> =
+        all_pages.iter().filter(|page| !resume_skip(page)).collect();
     eprintln!(
         "{} pages ({} to translate) -> {}",
         all_pages.len(),

@@ -469,8 +469,7 @@ mod tests {
     fn parses_plain_json() {
         let source = ["one".to_owned(), "two".to_owned()];
         let response = r#"{"translations":[{"id":0,"text":"hello"},{"id":1,"text":"world"}]}"#;
-        let parsed =
-            translations("test", response, &request(&source, Language::Japanese)).unwrap();
+        let parsed = translations("test", response, &request(&source, Language::Japanese)).unwrap();
 
         assert_eq!(parsed.texts, ["hello", "world"]);
         assert!(parsed.untranslated.is_empty());
@@ -552,8 +551,7 @@ mod tests {
         let source = ["one".to_owned(), "two".to_owned()];
         let response = r#"{"translations":[{"id":1,"text":"world"}]}"#;
 
-        let parsed =
-            translations("test", response, &request(&source, Language::Japanese)).unwrap();
+        let parsed = translations("test", response, &request(&source, Language::Japanese)).unwrap();
         assert_eq!(parsed.texts, ["one", "world"]);
         assert_eq!(parsed.untranslated, [0]);
     }
@@ -563,8 +561,7 @@ mod tests {
         let source = ["こんにちは".to_owned()];
         let response = r#"{"translations":[{"id":0,"text":"こんにちは"}]}"#;
 
-        let parsed =
-            translations("test", response, &request(&source, Language::French)).unwrap();
+        let parsed = translations("test", response, &request(&source, Language::French)).unwrap();
         assert_eq!(parsed.untranslated, [0]);
     }
 
@@ -573,8 +570,7 @@ mod tests {
         let source = ["OK".to_owned()];
         let response = r#"{"translations":[{"id":0,"text":"OK"}]}"#;
 
-        let parsed =
-            translations("test", response, &request(&source, Language::French)).unwrap();
+        let parsed = translations("test", response, &request(&source, Language::French)).unwrap();
         assert!(parsed.untranslated.is_empty(), "{:?}", parsed.untranslated);
     }
 
@@ -602,7 +598,10 @@ mod tests {
         assert_eq!(retry.source_language, Some(Language::Japanese));
         assert_eq!(retry.context, request.context);
         let instructions = retry.instructions.as_deref().unwrap_or_default();
-        assert!(instructions.contains("Use informal speech."), "{instructions}");
+        assert!(
+            instructions.contains("Use informal speech."),
+            "{instructions}"
+        );
         assert!(
             instructions.contains("never return the source text"),
             "{instructions}"

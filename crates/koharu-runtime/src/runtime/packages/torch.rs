@@ -91,8 +91,7 @@ impl Package for Torch {
             .join(RELEASE)
             .join(self.to_string());
         let asset = self.asset()?;
-        let url =
-            format!("https://github.com/koharu-rs/torch/releases/download/{RELEASE}/{asset}");
+        let url = format!("https://github.com/koharu-rs/torch/releases/download/{RELEASE}/{asset}");
         let expected = release_asset("koharu-rs", "torch", RELEASE, &asset).await;
 
         Store::directory(

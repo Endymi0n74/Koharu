@@ -13,8 +13,8 @@ use super::pages::{Location, PageSource, media_type_of, natural_cmp};
 
 /// Lists the page entries of a CBZ archive in reading order.
 pub fn list_archive_pages(archive_path: &Path) -> Result<Vec<PageSource>> {
-    let file =
-        fs::File::open(archive_path).with_context(|| format!("failed to open {}", archive_path.display()))?;
+    let file = fs::File::open(archive_path)
+        .with_context(|| format!("failed to open {}", archive_path.display()))?;
     let mut archive = ZipArchive::new(file)
         .with_context(|| format!("failed to read {}", archive_path.display()))?;
     let mut entries = Vec::new();
@@ -44,8 +44,8 @@ pub fn list_archive_pages(archive_path: &Path) -> Result<Vec<PageSource>> {
 
 /// Reads one entry's bytes out of a CBZ archive.
 pub fn read_entry(archive_path: &Path, entry_index: usize) -> Result<(Vec<u8>, String)> {
-    let file =
-        fs::File::open(archive_path).with_context(|| format!("failed to open {}", archive_path.display()))?;
+    let file = fs::File::open(archive_path)
+        .with_context(|| format!("failed to open {}", archive_path.display()))?;
     let mut archive = ZipArchive::new(file)
         .with_context(|| format!("failed to read {}", archive_path.display()))?;
     let mut entry = archive.by_index(entry_index)?;
@@ -73,7 +73,10 @@ impl ArchiveOutput {
             "{}partial",
             target
                 .extension()
-                .map_or_else(String::new, |extension| format!("{}.", extension.to_string_lossy()))
+                .map_or_else(String::new, |extension| format!(
+                    "{}.",
+                    extension.to_string_lossy()
+                ))
         ));
         let file = fs::File::create(&partial)
             .with_context(|| format!("failed to create {}", partial.display()))?;
@@ -116,12 +119,8 @@ impl ArchiveOutput {
             .finish()
             .with_context(|| format!("failed to write {}", self.partial.display()))?;
         self.finished = true;
-        fs::rename(&self.partial, &self.target).with_context(|| {
-            format!(
-                "failed to publish {}",
-                self.target.display()
-            )
-        })?;
+        fs::rename(&self.partial, &self.target)
+            .with_context(|| format!("failed to publish {}", self.target.display()))?;
         Ok(())
     }
 }
@@ -172,7 +171,10 @@ mod tests {
 
         let pages = list_archive_pages(&archive).unwrap();
         assert_eq!(
-            pages.iter().map(|page| page.name.as_str()).collect::<Vec<_>>(),
+            pages
+                .iter()
+                .map(|page| page.name.as_str())
+                .collect::<Vec<_>>(),
             ["p2.png", "p10.png"]
         );
         assert_eq!(pages[0].media_type, "image/png");
@@ -200,9 +202,7 @@ mod tests {
         let target = directory.path().join("out.cbz");
         {
             let mut output = ArchiveOutput::create(&target).unwrap();
-            output
-                .add_page("p1", "image/jpeg", b"jpeg-bytes")
-                .unwrap();
+            output.add_page("p1", "image/jpeg", b"jpeg-bytes").unwrap();
             output.finish().unwrap();
         }
         assert!(target.exists());
@@ -224,12 +224,7 @@ mod tests {
         }
         assert!(!target.exists());
         assert!(
-            directory
-                .path()
-                .read_dir()
-                .unwrap()
-                .next()
-                .is_none(),
+            directory.path().read_dir().unwrap().next().is_none(),
             "the partial file is cleaned up"
         );
     }

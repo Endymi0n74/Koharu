@@ -1,10 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    fs,
-    path::PathBuf,
-    sync::Arc,
-    time::Instant,
-};
+use std::{collections::BTreeMap, fs, path::PathBuf, sync::Arc, time::Instant};
 
 use anyhow::{Context as _, Result};
 use clap::{Parser, ValueEnum};

@@ -45,8 +45,14 @@ mod tests {
 
     #[test]
     fn media_types_follow_extensions() {
-        assert_eq!(image_media_type(std::path::Path::new("a.jpg")), "image/jpeg");
-        assert_eq!(image_media_type(std::path::Path::new("a.webp")), "image/webp");
+        assert_eq!(
+            image_media_type(std::path::Path::new("a.jpg")),
+            "image/jpeg"
+        );
+        assert_eq!(
+            image_media_type(std::path::Path::new("a.webp")),
+            "image/webp"
+        );
         assert_eq!(image_media_type(std::path::Path::new("a.png")), "image/png");
         assert_eq!(image_media_type(std::path::Path::new("a")), "image/png");
     }

@@ -69,10 +69,7 @@ fn split_chunk(text: &str) -> (Chunk<'_>, &str) {
         .find(|character: char| !character.is_ascii_digit())
         .unwrap_or(rest.len());
     let (digits, remainder) = rest.split_at(end);
-    (
-        Chunk::Digits(digits.parse().unwrap_or(u64::MAX)),
-        remainder,
-    )
+    (Chunk::Digits(digits.parse().unwrap_or(u64::MAX)), remainder)
 }
 
 /// Natural-sort comparison: digits compare numerically so `p2.png < p10.png`.
