@@ -121,20 +121,20 @@ jieba-rs = "0.10.3"
 fontique = "0.11.1"
 pollster = "1.0.1"
 vello = "0.10.0"
-tauri = { version = "=3.0.0-alpha.1", default-features = false, features = [
+tauri = { version = "=3.0.0-alpha.2", default-features = false, features = [
     "compression",
     "dynamic-acl",
     "macos-private-api",
     "specta",
 ] }
-tauri-build = "=3.0.0-alpha.0"
-tauri-runtime-cef = { version = "=3.0.0-alpha.1", features = ["macos-private-api"] }
-tauri-plugin-log = "=3.0.0-alpha.0"
-tauri-plugin-opener = "=3.0.0-alpha.0"
-tauri-plugin-process = "=3.0.0-alpha.0"
-tauri-plugin-single-instance = "=3.0.0-alpha.0"
-tauri-plugin-updater = "=3.0.0-alpha.0"
-tauri-plugin-window-state = "=3.0.0-alpha.0"
+tauri-build = "=3.0.0-alpha.1"
+tauri-runtime-cef = { version = "=3.0.0-alpha.2", features = ["macos-private-api"] }
+tauri-plugin-log = "=3.0.0-alpha.1"
+tauri-plugin-opener = "=3.0.0-alpha.1"
+tauri-plugin-process = "=3.0.0-alpha.1"
+tauri-plugin-single-instance = "=3.0.0-alpha.1"
+tauri-plugin-updater = "=3.0.0-alpha.1"
+tauri-plugin-window-state = "=3.0.0-alpha.1"
 tauri-specta = { git = "https://github.com/koharu-rs/tauri-specta", tag = "v2.0.0-rc.25-koharu.1", features = ["derive", "typescript"] }
 schemars = { version = "1.2.2", features = ["chrono04", "indexmap2", "uuid1"] }
 uuid = { version = "1.26.0", features = ["v4", "v7", "serde"] }
