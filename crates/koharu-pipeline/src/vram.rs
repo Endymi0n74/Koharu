@@ -165,7 +165,10 @@ impl VramSampler {
     /// start — the run's own footprint, desktop and other processes excluded.
     #[must_use]
     pub fn peak_bytes(&self) -> Option<u64> {
-        let baseline = self.shared.baseline.load(std::sync::atomic::Ordering::Relaxed);
+        let baseline = self
+            .shared
+            .baseline
+            .load(std::sync::atomic::Ordering::Relaxed);
         let peak = self
             .shared
             .peak_total
@@ -198,7 +201,10 @@ impl VramSampler {
     /// GPU baseline — the window's own footprint (for one report page).
     #[must_use]
     pub fn window_delta_bytes(&self) -> Option<u64> {
-        let baseline = self.shared.baseline.load(std::sync::atomic::Ordering::Relaxed);
+        let baseline = self
+            .shared
+            .baseline
+            .load(std::sync::atomic::Ordering::Relaxed);
         let peak = self
             .shared
             .peak_window
@@ -265,8 +271,7 @@ mod tests {
         if device.backend == Backend::Cpu {
             return;
         }
-        let Some(sampler) = VramSampler::start(device, std::time::Duration::from_millis(50))
-        else {
+        let Some(sampler) = VramSampler::start(device, std::time::Duration::from_millis(50)) else {
             return;
         };
         std::thread::sleep(std::time::Duration::from_millis(250));

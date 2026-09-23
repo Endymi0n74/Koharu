@@ -108,11 +108,7 @@ impl StageProcessor for Processor {
             let text = if source.trim() == "\u{2026}" {
                 "\u{2026}".to_owned()
             } else {
-                normalize_segment(
-                    self.config.typography,
-                    self.config.target_language,
-                    &text,
-                )
+                normalize_segment(self.config.typography, self.config.target_language, &text)
             };
             edit.set(
                 entity,

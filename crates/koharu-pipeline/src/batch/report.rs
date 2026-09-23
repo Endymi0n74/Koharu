@@ -357,8 +357,8 @@ pub fn to_html(report: &RunReport) -> String {
     let (translated, skipped, failed) = report.counts();
     let mut rows = String::new();
     for page in &report.pages {
-        let (status_class, status, elapsed, vram_peak, stages_detail, thumbs) =
-            match &page.outcome {
+        let (status_class, status, elapsed, vram_peak, stages_detail, thumbs) = match &page.outcome
+        {
             PageOutcome::Translated {
                 elapsed,
                 stages,
@@ -486,9 +486,7 @@ pub fn format_timestamp_utc(system_time: std::time::SystemTime) -> String {
         (time_of_day % 3_600) / 60,
         time_of_day % 60,
     );
-    format!(
-        "{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}:{second:02} UTC"
-    )
+    format!("{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}:{second:02} UTC")
 }
 
 /// Current wall-clock time, formatted for the report header.

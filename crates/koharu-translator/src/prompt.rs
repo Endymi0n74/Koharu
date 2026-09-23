@@ -24,6 +24,7 @@ pub(crate) fn prompts(request: &TranslationRequest) -> anyhow::Result<(String, S
 }
 
 /// Parsed translator response, with the segments it failed to translate.
+#[derive(Debug)]
 pub(crate) struct Translations {
     /// One entry per input segment, in input order. A segment the provider did
     /// not return keeps its source text so callers still get an entry for it.
@@ -49,8 +50,13 @@ pub(crate) fn translations(
     text: &str,
     request: &TranslationRequest,
 ) -> anyhow::Result<Translations> {
-    let output = crate::json::from_str::<TranslationOutput>(text)
-        .with_context(|| format!("{provider} returned invalid translation JSON"))?;
+    let output = serde_json::from_str::<TranslationOutput>(text).with_context(|| {
+        format!(
+            "{provider} returned invalid translation JSON for {} segments; response was: {}",
+            request.segments.len(),
+            snippet(text),
+        )
+    })?;
     let mut texts = request.segments.clone();
     let mut translated = vec![false; texts.len()];
 
@@ -107,11 +113,11 @@ source text as the translation.";
 
 /// Upper bound on the tokens one constrained-JSON response needs.
 ///
-/// The schema forces one `{\"id\":…,\"text\":…}` entry per segment, so the
-/// budget has to grow with the page: a fixed budget truncated the JSON of
-/// dense pages and their tail came back untranslated.
+/// The schema forces one `{"id":…,"text":…}` entry per segment, so the budget
+/// has to grow with the page: a fixed budget truncated the JSON of dense pages
+/// and their tail came back untranslated.
 pub(crate) fn output_budget(segments: &[String]) -> usize {
-    /// Framing of one `{\"id\":0,\"text\":\"…\"}` entry, separator included.
+    /// Framing of one `{"id":0,"text":"…"}` entry, separator included.
     const JSON_TOKENS_PER_SEGMENT: usize = 24;
     const MIN_OUTPUT_TOKENS: usize = 768;
     const MAX_OUTPUT_TOKENS: usize = 2560;
@@ -264,18 +270,23 @@ fn translation_system_prompt(request: &TranslationRequest) -> String {
         .map(|language| language.to_string())
         .unwrap_or_else(|| "the detected source language".to_owned());
     let mut prompt = format!(
-        concat!(
-            "You are a professional manga translator. ",
-            "Translate every input segment from {source} into natural {target}. ",
-            "Preserve character voice, emotional tone, relationship nuance, emphasis, and sound ",
-            "effects while keeping wording concise enough for speech bubbles. ",
-            "Write every returned `text` in {target}: never copy a source segment as its ",
-            "translation, and never leave a segment untranslated. ",
-            "Each input segment has a numeric `id`. Return only a JSON object whose ",
-            "`translations` array contains one object with `id` and translated `text` for every ",
-            "input segment. Copy every input ID exactly once; order does not matter. Never merge, ",
-            "split, omit, or add segments."
-        ),
+        indoc! {"
+            You are a professional manga translator.
+
+            Translation requirements:
+            - Translate every input segment from {source} into natural {target}.
+            - Preserve meaning, character voice, emotional tone, relationship nuance, emphasis, and sound effects.
+            - Localize idioms and sound effects naturally while keeping wording concise enough for speech bubbles.
+            - Use surrounding segments only for disambiguation and continuity; never merge or split segments.
+            - Write every translated `text` value only in {target}; do not include source text, notes, explanations, or alternatives.
+            - Never preserve or repeat original-language text; translate names, terms, and sound effects using natural {target} conventions.
+
+            Output requirements:
+            - Each input segment has a numeric `id`.
+            - Return only a JSON object whose `translations` array contains one object with `id` and translated `text` for every input segment.
+            - Copy every input ID exactly once; order does not matter.
+            - Never merge, split, omit, duplicate, or add segments.
+        "},
         source = source,
         target = request.target_language,
     )
@@ -292,12 +303,12 @@ fn translation_system_prompt(request: &TranslationRequest) -> String {
     }
 
     if !request.context.is_empty() {
-        prompt.push_str(
-            " The `context` array holds earlier lines of this same chapter with the translation \
-used for them: keep names, places, and recurring phrases consistent with those, so the \
-chapter reads as one continuous translation. Do not translate or return the context \
-entries.",
-        );
+        prompt.push_str("\n\n");
+        prompt.push_str(indoc! {"
+            Context requirements:
+            Use the supplied context only to preserve terminology, character voice, and dialogue continuity.
+            Do not translate or return the context entries.
+        "}.trim_end());
     }
 
     if request.image.is_some() {
@@ -424,133 +435,99 @@ where
 mod tests {
     use super::*;
 
-    fn request(segments: &[&str], target: Language) -> TranslationRequest {
-        TranslationRequest::new(segments.iter().copied(), target)
+    /// Request around source segments, for the response parsers.
+    fn request(segments: &[String], target: Language) -> TranslationRequest {
+        TranslationRequest::new(segments.iter().cloned(), target)
     }
 
     #[test]
-    fn parses_plain_json_and_markdown_fences() {
-        let request = request(&["one", "two"], Language::French);
-        let expected = vec!["hello".to_owned(), "world".to_owned()];
+    fn snippet_keeps_a_response_on_one_line() {
+        let flattened = snippet("{\n  \"translations\": [\n\t\"hello\"\n  ]\n}");
+
+        assert!(!flattened.contains('\n'), "{flattened}");
+        assert!(!flattened.contains('\t'), "{flattened}");
+        assert_eq!(flattened, r#"{\n  "translations": [\n\t"hello"\n  ]\n}"#);
+    }
+
+    #[test]
+    fn snippet_escapes_other_control_characters() {
+        assert_eq!(snippet("before\u{7}after"), r"before\u{0007}after");
+    }
+
+    #[test]
+    fn snippet_reports_the_length_it_elided() {
+        let flattened = snippet(&"x".repeat(2_500));
+
+        assert!(flattened.starts_with(&"x".repeat(2_000)));
+        assert!(
+            flattened.ends_with("\u{2026} (2500 bytes total)"),
+            "{flattened}"
+        );
+    }
+
+    #[test]
+    fn parses_plain_json() {
+        let source = ["one".to_owned(), "two".to_owned()];
+        let response = r#"{"translations":[{"id":0,"text":"hello"},{"id":1,"text":"world"}]}"#;
+        let parsed = translations("test", response, &request(&source, Language::Japanese)).unwrap();
+
+        assert_eq!(parsed.texts, ["hello", "world"]);
+        assert!(parsed.untranslated.is_empty());
+    }
+
+    #[test]
+    fn rejects_wrapped_and_malformed_json() {
+        let source = ["one".to_owned(), "two".to_owned()];
         for response in [
             "```json\n{\"translations\":[{\"id\":0,\"text\":\"hello\"},{\"id\":1,\"text\":\"world\"}]}\n```",
             r#"{translations: [{id: 0, text: 'hello'}, {id: 1, text: 'world'},],}"#,
             r#"Here is the result: {"translations": [{"id": 0, "text": "hello"}, {"id": 1, "text": "world"},]}"#,
             "{\"translations\":[{\"id\":0,\"text\":\"hello\"},{\"id\":1,\"text\":\"world\"",
         ] {
-            let parsed = translations("test", response, &request).unwrap();
-            assert_eq!(parsed.texts, expected);
-            assert!(parsed.untranslated.is_empty());
+            assert!(
+                translations("test", response, &request(&source, Language::Japanese)).is_err(),
+                "{response}"
+            );
         }
     }
 
     #[test]
-    fn repairs_malformed_llm_json() {
-        let request = request(&["one", "two"], Language::French);
-        let expected = vec!["hello".to_owned(), "world".to_owned()];
-        for response in [
-            r#"{translations: [{id: 0, text: 'hello'}, {id: 1, text: 'world'},],}"#,
-            r#"Here is the result: {"translations": [{"id": 0, "text": "hello"}, {"id": 1, "text": "world"},]}"#,
-            "{\"translations\":[{\"id\":0,\"text\":\"hello\"},{\"id\":1,\"text\":\"world\"",
-            r#"{"translations":[{"id":"0","text":"hello"},{"id":"1","text":"world"}]}"#,
-        ] {
-            let parsed = translations("test", response, &request).unwrap();
-            assert_eq!(parsed.texts, expected);
-            assert!(parsed.untranslated.is_empty());
-        }
+    fn parse_error_preserves_the_root_failure_and_response() {
+        let source = ["one".to_owned()];
+        let response = "{\n  \"translations\": [{\"id\": 0}]\n}";
+        let error = format!(
+            "{:#}",
+            translations("test", response, &request(&source, Language::Japanese))
+                .expect_err("missing text should fail")
+        );
+
+        assert!(error.contains("missing field `text`"), "{error}");
+        assert!(
+            error.contains(r#"response was: {\n  "translations": [{"id": 0}]\n}"#),
+            "{error}"
+        );
     }
 
     #[test]
     fn restores_input_order_from_ids() {
-        let request = request(&["one", "two"], Language::French);
+        let source = ["one".to_owned(), "two".to_owned()];
         let response = r#"{"translations":[{"id":1,"text":"world"},{"id":0,"text":"hello"}]}"#;
         assert_eq!(
-            translations("test", response, &request).unwrap().texts,
+            translations("test", response, &request(&source, Language::Japanese))
+                .unwrap()
+                .texts,
             ["hello", "world"]
         );
     }
 
     #[test]
-    fn missing_segments_are_reported_not_silently_echoed() {
-        let request = request(&["one", "two"], Language::French);
-        let short = r#"{"translations":[{"id":1,"text":"world"}]}"#;
-        let parsed = translations("test", short, &request).unwrap();
-        assert_eq!(parsed.texts, ["one", "world"]);
-        assert_eq!(parsed.untranslated, [0]);
-    }
-
-    #[test]
-    fn source_text_left_in_a_latin_target_is_reported() {
-        let request = request(&["こんにちは", "Salut !"], Language::French);
-        let response = concat!(
-            r#"{"translations":["#,
-            r#"{"id":0,"text":"こんにちは"},"#,
-            r#"{"id":1,"text":"Bonjour !"}"#,
-            "]}"
-        );
-        assert_eq!(
-            translations("test", response, &request)
-                .unwrap()
-                .untranslated,
-            [0]
-        );
-    }
-
-    #[test]
-    fn latin_output_that_matches_the_source_is_not_flagged() {
-        let request = request(&["OK", "SASUKE"], Language::French);
-        let response = concat!(
-            r#"{"translations":["#,
-            r#"{"id":0,"text":"OK"},"#,
-            r#"{"id":1,"text":"SASUKE"}"#,
-            "]}"
-        );
-        assert!(
-            translations("test", response, &request)
-                .unwrap()
-                .untranslated
-                .is_empty()
-        );
-    }
-
-    #[test]
-    fn the_output_budget_grows_with_the_page_and_stays_bounded() {
-        let short = vec!["a".to_owned()];
-        assert_eq!(output_budget(&short), 768);
-
-        let dense = vec!["こんにちは、元気ですか？".to_owned(); 40];
-        assert!(output_budget(&dense) > 1000);
-        assert!(output_budget(&dense) <= 2560);
-
-        let huge = vec!["long line".to_owned(); 400];
-        assert_eq!(output_budget(&huge), 2560, "the budget must stay bounded");
-    }
-
-    #[test]
-    fn a_retry_keeps_the_context_and_the_caller_instructions() {
-        let request = request(&["one", "two"], Language::French)
-            .with_source_language(Language::Japanese)
-            .with_context([TranslationContext::new("old", "previous")])
-            .with_instructions("Use informal speech.");
-        let retry = retry_request(&request, &[1]);
-        assert_eq!(retry.segments, ["two"]);
-        assert_eq!(retry.source_language, Some(Language::Japanese));
-        assert_eq!(retry.context, request.context);
-        let instructions = retry
-            .instructions
-            .as_deref()
-            .expect("a retry always adds instructions");
-        assert!(instructions.contains("Use informal speech."));
-        assert!(instructions.contains("never return the source text"));
-        assert!(translation_system_prompt(&retry).contains("left these segments untranslated"));
-    }
-
-    #[test]
     fn tolerates_duplicate_missing_and_out_of_range_ids() {
-        let request = request(&["one", "two"], Language::French);
+        let source = ["one".to_owned(), "two".to_owned()];
         let short = r#"{"translations":[{"id":1,"text":"world"}]}"#;
         assert_eq!(
-            translations("test", short, &request).unwrap().texts,
+            translations("test", short, &request(&source, Language::Japanese))
+                .unwrap()
+                .texts,
             ["one", "world"]
         );
 
@@ -562,9 +539,74 @@ mod tests {
             "]}"
         );
         assert_eq!(
-            translations("test", response, &request).unwrap().texts,
+            translations("test", response, &request(&source, Language::Japanese))
+                .unwrap()
+                .texts,
             ["hello", "two"]
         );
+    }
+
+    #[test]
+    fn missing_segments_are_reported_not_silently_echoed() {
+        let source = ["one".to_owned(), "two".to_owned()];
+        let response = r#"{"translations":[{"id":1,"text":"world"}]}"#;
+
+        let parsed = translations("test", response, &request(&source, Language::Japanese)).unwrap();
+        assert_eq!(parsed.texts, ["one", "world"]);
+        assert_eq!(parsed.untranslated, [0]);
+    }
+
+    #[test]
+    fn source_text_in_a_latin_target_is_reported() {
+        let source = ["こんにちは".to_owned()];
+        let response = r#"{"translations":[{"id":0,"text":"こんにちは"}]}"#;
+
+        let parsed = translations("test", response, &request(&source, Language::French)).unwrap();
+        assert_eq!(parsed.untranslated, [0]);
+    }
+
+    #[test]
+    fn latin_output_that_matches_the_source_is_not_flagged() {
+        let source = ["OK".to_owned()];
+        let response = r#"{"translations":[{"id":0,"text":"OK"}]}"#;
+
+        let parsed = translations("test", response, &request(&source, Language::French)).unwrap();
+        assert!(parsed.untranslated.is_empty(), "{:?}", parsed.untranslated);
+    }
+
+    #[test]
+    fn the_output_budget_grows_with_the_page_and_stays_bounded() {
+        assert_eq!(output_budget(&["hello".to_owned()]), 768);
+
+        let dense = vec!["a sentence that is reasonably long".to_owned(); 40];
+        assert!(output_budget(&dense) > 1000);
+        assert!(output_budget(&dense) <= 2560);
+
+        let huge = vec!["x".repeat(200); 40];
+        assert_eq!(output_budget(&huge), 2560, "the budget must stay bounded");
+    }
+
+    #[test]
+    fn a_retry_keeps_the_context_and_the_caller_instructions() {
+        let request = TranslationRequest::new(["one", "two"], Language::French)
+            .with_source_language(Language::Japanese)
+            .with_context([TranslationContext::new("source", "traduction")])
+            .with_instructions("Use informal speech.");
+        let retry = retry_request(&request, &[1]);
+
+        assert_eq!(retry.segments, ["two"]);
+        assert_eq!(retry.source_language, Some(Language::Japanese));
+        assert_eq!(retry.context, request.context);
+        let instructions = retry.instructions.as_deref().unwrap_or_default();
+        assert!(
+            instructions.contains("Use informal speech."),
+            "{instructions}"
+        );
+        assert!(
+            instructions.contains("never return the source text"),
+            "{instructions}"
+        );
+        assert!(translation_system_prompt(&retry).contains("left these segments untranslated"));
     }
 
     #[test]
@@ -684,7 +726,7 @@ mod tests {
         let request = TranslationRequest::new(["Where is she?"], Language::Japanese)
             .with_context([TranslationContext::new("I saw Alice.", "アリスを見た。")]);
         let prompt = translation_system_prompt(&request);
-        assert!(prompt.contains("earlier lines of this same chapter"));
+        assert!(prompt.contains("dialogue continuity"));
         assert!(prompt.contains("Do not translate or return the context"));
     }
 

@@ -69,7 +69,10 @@ fn serialize(measurements: &MeasuredPeaks) -> String {
 
 /// Saves the calibration table, creating the parent directory as needed.
 pub fn save(path: &Path, measurements: &MeasuredPeaks) -> Result<()> {
-    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         std::fs::create_dir_all(parent)
             .with_context(|| format!("failed to create {}", parent.display()))?;
     }
@@ -108,12 +111,7 @@ mod tests {
     #[test]
     fn tables_round_trip_through_toml() {
         let mut written = MeasuredPeaks::new();
-        written.record(peak(
-            "gemma4-e4b-uncensored",
-            "Q4_K_P",
-            true,
-            6_400_000_000,
-        ));
+        written.record(peak("gemma4-e4b-uncensored", "Q4_K_P", true, 6_400_000_000));
         written.record(peak("gemma4-e2b-it", "Q4_K_XL", false, 3_100_000_000));
         let text = serialize(&written);
         assert!(text.contains("[[peaks]]"));
@@ -139,25 +137,32 @@ mod tests {
 
     #[test]
     fn recording_merges_with_the_highest_observation() {
-        let directory = std::env::temp_dir().join(format!(
-            "koharu-calibration-test-{}",
-            std::process::id()
-        ));
+        let directory =
+            std::env::temp_dir().join(format!("koharu-calibration-test-{}", std::process::id()));
         let path = directory.join("vram-calibration.toml");
         let _ = std::fs::remove_file(&path);
 
-        let first = record(&path, peak("gemma4-e4b-uncensored", "Q4_K_P", true, 6 * GIB_TEST))
-            .expect("saves");
+        let first = record(
+            &path,
+            peak("gemma4-e4b-uncensored", "Q4_K_P", true, 6 * GIB_TEST),
+        )
+        .expect("saves");
         assert_eq!(first.len(), 1);
-        let second = record(&path, peak("gemma4-e4b-uncensored", "Q4_K_P", true, 7 * GIB_TEST))
-            .expect("saves");
+        let second = record(
+            &path,
+            peak("gemma4-e4b-uncensored", "Q4_K_P", true, 7 * GIB_TEST),
+        )
+        .expect("saves");
         assert_eq!(
             second.peak_bytes("gemma4-e4b-uncensored", "Q4_K_P", true),
             Some(7 * GIB_TEST),
             "the higher observation wins"
         );
-        let third = record(&path, peak("gemma4-e4b-uncensored", "Q4_K_P", true, 5 * GIB_TEST))
-            .expect("saves");
+        let third = record(
+            &path,
+            peak("gemma4-e4b-uncensored", "Q4_K_P", true, 5 * GIB_TEST),
+        )
+        .expect("saves");
         assert_eq!(
             third.peak_bytes("gemma4-e4b-uncensored", "Q4_K_P", true),
             Some(7 * GIB_TEST),

@@ -74,14 +74,17 @@ pub fn normalize_segment(profile: TypographyProfile, language: Language, text: &
                 output.push(':');
             }
             _ if THIN_SPACE_PUNCTUATION.contains(&current) => {
-                let repeated = previous.is_some_and(|previous| THIN_SPACE_PUNCTUATION.contains(&previous));
+                let repeated =
+                    previous.is_some_and(|previous| THIN_SPACE_PUNCTUATION.contains(&previous));
                 if !repeated && previous.is_some_and(|previous| !previous.is_whitespace()) {
                     output.push(NARROW_NO_BREAK_SPACE);
                 }
                 output.push(current);
             }
             // A regular space hugging a guillemet is upgraded to the narrow one.
-            ' ' if previous == Some('«') || next == Some('»') => output.push(NARROW_NO_BREAK_SPACE),
+            ' ' if previous == Some('«') || next == Some('»') => {
+                output.push(NARROW_NO_BREAK_SPACE)
+            }
             _ => output.push(current),
         }
     }
@@ -181,9 +184,15 @@ mod tests {
 
     #[test]
     fn stylized_lettering_is_preserved() {
-        assert_eq!(normalize_segment(AUTO, Language::French, "DOOM!!"), "DOOM!!");
+        assert_eq!(
+            normalize_segment(AUTO, Language::French, "DOOM!!"),
+            "DOOM!!"
+        );
         assert_eq!(normalize_segment(AUTO, Language::French, "…?!"), "…?!");
-        assert_eq!(normalize_segment(AUTO, Language::French, "はぁ？"), "はぁ？");
+        assert_eq!(
+            normalize_segment(AUTO, Language::French, "はぁ？"),
+            "はぁ？"
+        );
     }
 
     #[test]

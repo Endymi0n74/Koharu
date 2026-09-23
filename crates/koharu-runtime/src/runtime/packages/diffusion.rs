@@ -101,9 +101,8 @@ impl Package for Diffusion {
             .join(RELEASE)
             .join(self.to_string());
         let asset = self.asset();
-        let url = format!(
-            "https://github.com/koharu-rs/diffusion/releases/download/{RELEASE}/{asset}"
-        );
+        let url =
+            format!("https://github.com/koharu-rs/diffusion/releases/download/{RELEASE}/{asset}");
         let expected = release_asset("koharu-rs", "diffusion", RELEASE, asset).await;
         Store::directory(
             target,

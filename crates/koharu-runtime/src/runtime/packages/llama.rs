@@ -101,8 +101,7 @@ impl Package for Llama {
             .join(RELEASE)
             .join(self.to_string());
         let asset = self.asset();
-        let url =
-            format!("https://github.com/koharu-rs/llama/releases/download/{RELEASE}/{asset}");
+        let url = format!("https://github.com/koharu-rs/llama/releases/download/{RELEASE}/{asset}");
         let expected = release_asset("koharu-rs", "llama", RELEASE, asset).await;
         Store::directory(
             target,
