@@ -43,7 +43,13 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force "${{ runner.temp }}/koharu-volume/ch1" | Out-Null
           Copy-Item "crates/koharu-ml/benches/fixtures/object_detection/1.jpg" "${{ runner.temp }}/koharu-volume/ch1/page1.jpg"
+          New-Item -ItemType Directory -Force "${{ runner.temp }}/koharu-volume/Vol/Ch2" | Out-Null
+          Copy-Item "crates/koharu-ml/benches/fixtures/object_detection/1.jpg" "${{ runner.temp }}/koharu-volume/Vol/Ch2/page1.jpg"
           ./target/release/koharu-batch.exe --input "${{ runner.temp }}/koharu-volume" --output "${{ runner.temp }}/koharu-volume-out" --json "${{ runner.temp }}/koharu-volume-out/plan.json" --dry-run --no-calibration --vram-budget-mib 8192
+          $plan = Get-Content "${{ runner.temp }}/koharu-volume-out/plan.json" | ConvertFrom-Json
+          if ($plan.chapters.Count -ne 2 -or $plan.chapters[0].label -ne 'ch1' -or $plan.chapters[1].label -ne 'Vol/Ch2') {
+            throw "nested volume detection failed: $($plan.chapters.label -join ', ')"
+          }
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
