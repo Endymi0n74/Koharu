@@ -1,4 +1,8 @@
-use std::{collections::HashSet, io::Cursor, path::PathBuf};
+use std::{
+    collections::HashSet,
+    io::Cursor,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context as _, Result, anyhow, bail};
 use image::{DynamicImage, ImageFormat, RgbaImage};
@@ -248,6 +252,37 @@ impl ProjectLibrary {
     fn resolve(&self, name: &str) -> Result<(String, PathBuf)> {
         let name = validate_project_name(name)?;
         Ok((name.clone(), self.root.join(format!("{name}.khrproj"))))
+    }
+
+    /// Name for a project created out of `folder`: its file name, sanitized
+    /// into what a project name accepts and suffixed when already taken.
+    pub(crate) fn folder_project_name(&self, folder: &Path) -> Result<String> {
+        let base = folder
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default()
+            .chars()
+            .map(|character| {
+                if character.is_control() || r#"<>:"/\|?*"#.contains(character) {
+                    '-'
+                } else {
+                    character
+                }
+            })
+            .collect::<String>();
+        let base = base.trim_matches(['.', ' ']);
+        let base = if base.is_empty() {
+            "Imported folder".to_owned()
+        } else {
+            validate_project_name(base).unwrap_or_else(|_| "Imported folder".to_owned())
+        };
+        let mut candidate = base.clone();
+        let mut suffix = 2;
+        while self.resolve(&candidate)?.1.is_dir() {
+            candidate = format!("{base}-{suffix}");
+            suffix += 1;
+        }
+        Ok(candidate)
     }
 }
 
@@ -1481,5 +1516,48 @@ mod tests {
             &[ScenePoint { x: 2.0, y: 2.0 }],
         );
         assert_eq!(white.get_pixel(2, 2).0, [255, 255, 255, 255]);
+    }
+}
+
+#[cfg(test)]
+mod library_tests {
+    use super::*;
+
+    #[test]
+    fn a_folder_becomes_a_project_named_after_it() {
+        let directory = tempfile::tempdir().unwrap();
+        let library = ProjectLibrary {
+            root: directory.path().to_owned(),
+        };
+
+        assert_eq!(
+            library
+                .folder_project_name(Path::new("/scans/chapitre 01"))
+                .unwrap(),
+            "chapitre 01"
+        );
+        assert_eq!(
+            library
+                .folder_project_name(Path::new(r"C:\scans\a:b*c"))
+                .unwrap(),
+            "a-b-c",
+            "characters a file name cannot hold are replaced"
+        );
+        assert_eq!(
+            library
+                .folder_project_name(Path::new("/scans/CON"))
+                .unwrap(),
+            "Imported folder",
+            "a name Windows reserves never becomes a project"
+        );
+
+        std::fs::create_dir(library.root.join("chapitre 01.khrproj")).unwrap();
+        assert_eq!(
+            library
+                .folder_project_name(Path::new("/scans/chapitre 01"))
+                .unwrap(),
+            "chapitre 01-2",
+            "an existing project is never overwritten"
+        );
     }
 }

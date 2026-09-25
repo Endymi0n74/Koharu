@@ -206,6 +206,7 @@
   "languages": {
     "en-US": "English",
     "es-ES": "Español",
+    "fr-FR": "Français",
     "ja-JP": "日本語",
     "ko-KR": "한국어",
     "pt-BR": "Português brasileiro",
@@ -478,6 +479,7 @@
     "loadingProjects": "프로젝트 불러오는 중…",
     "newDescription": "페이지, 번역 및 내보내기를 위한 새 작업 공간을 만드세요.",
     "newProject": "새 프로젝트",
+    "openFolder": "폴더 열기…",
     "projectKind": "Koharu 프로젝트",
     "projectList": "프로젝트",
     "projectName": "프로젝트 이름",

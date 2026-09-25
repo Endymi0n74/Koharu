@@ -381,15 +381,20 @@ pub(crate) async fn import(
     let dialog = rfd::AsyncFileDialog::new()
         .add_filter("Images, archives, and PDF", &extensions)
         .set_parent(&window);
-    let files = match source {
+    // The picked folder is kept alongside its files: a folder import with no
+    // project open opens the folder as the project.
+    let selection = match source {
         PageImportSource::Files => dialog.pick_files().await.map(|files| {
-            files
-                .into_iter()
-                .map(|file| file.path().to_owned())
-                .collect::<Vec<_>>()
+            (
+                None,
+                files
+                    .into_iter()
+                    .map(|file| file.path().to_owned())
+                    .collect::<Vec<_>>(),
+            )
         }),
         PageImportSource::Folder => dialog.pick_folder().await.map(|folder| {
-            WalkDir::new(folder.path())
+            let files = WalkDir::new(folder.path())
                 .follow_links(false)
                 .into_iter()
                 .filter_map(|entry| match entry {
@@ -405,10 +410,11 @@ pub(crate) async fn import(
                         .and_then(|extension| extension.to_str())
                         .is_some_and(|extension| extension.parse::<import::Format>().is_ok())
                 })
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>();
+            (Some(folder.path().to_owned()), files)
         }),
     };
-    let Some(files) = files else {
+    let Some((folder, files)) = selection else {
         return Ok(());
     };
     if files.is_empty() {
@@ -416,6 +422,20 @@ pub(crate) async fn import(
     }
     let pages = tokio_rayon::spawn(move || import::import(files)).await?;
     let page_count = pages.len();
+
+    // Folder mode: with no project open, the chosen folder becomes one — the
+    // folder name is the project name, so a chapter opens in a single action
+    // instead of creating an empty project first and importing into it.
+    if let Some(folder) = &folder {
+        let open = project.project.lock().await.is_none();
+        if open {
+            let handle = window.app_handle().clone();
+            let library = handle.state::<ProjectLibrary>().inner().clone();
+            let name = library.folder_project_name(folder)?;
+            let opened = library.create(&name).await?;
+            replace_project(&handle, opened).await?;
+        }
+    }
 
     let (commit, page) = {
         let mut project = project.project.lock().await;

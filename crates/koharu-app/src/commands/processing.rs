@@ -71,6 +71,74 @@ pub(crate) struct JobChannel {
     pub(crate) channel: Mutex<Option<Channel<Job>>>,
 }
 
+/// Removes a job from the running tables and reports its final state.
+///
+/// `outcome` is what the task observed; a missing outcome means the task ended
+/// without one — a panic — and the job is retired as failed so the tables never
+/// keep a job that will report nothing again.
+fn retire_job(
+    stops: &mut HashMap<JobId, StopToken>,
+    jobs: &mut HashMap<JobId, Job>,
+    id: JobId,
+    outcome: Option<(JobState, Option<String>)>,
+) -> Option<Job> {
+    stops.remove(&id);
+    let job = jobs.remove(&id)?;
+    let (state, error) = outcome.unwrap_or((
+        JobState::Failed,
+        Some("the pipeline task ended without reporting a result".to_owned()),
+    ));
+    Some(Job {
+        state,
+        error,
+        ..job
+    })
+}
+
+/// Retires its job however the pipeline task ends, panic included.
+///
+/// A leaked entry would keep `process` refusing every later run with "another
+/// process is already running" until the app restarts.
+struct JobGuard {
+    handle: AppHandle<CefRuntime>,
+    id: JobId,
+    outcome: Option<(JobState, Option<String>)>,
+}
+
+impl JobGuard {
+    fn new(handle: AppHandle<CefRuntime>, id: JobId) -> Self {
+        Self {
+            handle,
+            id,
+            outcome: None,
+        }
+    }
+
+    fn finish(&mut self, stopped: bool, error: Option<String>) {
+        self.outcome = Some((
+            if stopped {
+                JobState::Stopped
+            } else if error.is_some() {
+                JobState::Failed
+            } else {
+                JobState::Finished
+            },
+            error,
+        ));
+    }
+}
+
+impl Drop for JobGuard {
+    fn drop(&mut self) {
+        let processing = self.handle.state::<Processing>();
+        let mut stops = processing.stops.lock();
+        let mut jobs = processing.jobs.lock();
+        if let Some(job) = retire_job(&mut stops, &mut jobs, self.id, self.outcome.take()) {
+            self.handle.state::<JobChannel>().channel.publish(job);
+        }
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 #[allow(clippy::too_many_arguments)]
@@ -115,6 +183,7 @@ pub(crate) async fn process(
     let task_handle = handle.clone();
     let inpainting_mask = processing.inpainting_mask.lock().take();
     drop(tokio::spawn(async move {
+        let mut guard = JobGuard::new(task_handle.clone(), id);
         let progress = Arc::new(Mutex::new((0_usize, 0_usize)));
         let progress_handle = task_handle.clone();
         let mut request = koharu_pipeline::Request {
@@ -254,26 +323,9 @@ pub(crate) async fn process(
                 "completed"
             },
         );
-        task_handle.state::<Processing>().stops.lock().remove(&id);
-        let job = task_handle
-            .state::<Processing>()
-            .jobs
-            .lock()
-            .remove(&id)
-            .map(|mut job| {
-                job.state = if stopped {
-                    JobState::Stopped
-                } else if error.is_some() {
-                    JobState::Failed
-                } else {
-                    JobState::Finished
-                };
-                job.error = error;
-                job
-            });
-        if let Some(job) = job {
-            task_handle.state::<JobChannel>().channel.publish(job);
-        }
+        guard.finish(stopped, error);
+        // Dropping the guard retires the job and publishes its final state;
+        // it runs on a panic too, so the tables stay usable either way.
     }));
     Ok(id)
 }
@@ -296,4 +348,65 @@ pub(crate) async fn stop_job(
         .with_context(|| format!("job {job} is not running"))?;
     stop.stop();
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn running(id: JobId) -> Job {
+        Job {
+            id,
+            state: JobState::Running,
+            completed: 2,
+            total: 5,
+            page: None,
+            stage: None,
+            model: None,
+            error: None,
+        }
+    }
+
+    #[test]
+    fn a_task_that_ends_without_a_result_is_retired_as_failed() {
+        let mut stops = HashMap::new();
+        let mut jobs = HashMap::new();
+        let id = JobId::new();
+        stops.insert(id, StopToken::default());
+        jobs.insert(id, running(id));
+
+        let retired =
+            retire_job(&mut stops, &mut jobs, id, None).expect("the running job is reported");
+
+        assert!(stops.is_empty(), "a stop token is never left behind");
+        assert!(
+            jobs.is_empty(),
+            "a job that will not report again is removed"
+        );
+        assert_eq!(retired.state, JobState::Failed);
+        assert!(retired.error.is_some());
+    }
+
+    #[test]
+    fn retiring_keeps_the_outcome_the_task_observed() {
+        let mut stops = HashMap::new();
+        let mut jobs = HashMap::new();
+        let id = JobId::new();
+        stops.insert(id, StopToken::default());
+        jobs.insert(id, running(id));
+
+        let retired = retire_job(&mut stops, &mut jobs, id, Some((JobState::Finished, None)))
+            .expect("the running job is reported");
+
+        assert_eq!(retired.state, JobState::Finished);
+        assert!(retired.error.is_none());
+        assert_eq!(retired.completed, 2, "the job keeps its progress");
+    }
+
+    #[test]
+    fn retiring_an_unknown_job_publishes_nothing() {
+        let mut stops = HashMap::new();
+        let mut jobs = HashMap::new();
+        assert!(retire_job(&mut stops, &mut jobs, JobId::new(), None).is_none());
+    }
 }
