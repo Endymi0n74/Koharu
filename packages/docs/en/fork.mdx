@@ -329,7 +329,8 @@ OCR, then inpainting, then translation chapter by chapter. Each model therefore 
 for the entire volume — the same win as the per-chapter ordering, at volume scale — while
 chapters keep separate sessions so the translator's chapter context never bleeds from one
 chapter into the next. A chapter that is already fully translated (resume) is skipped and
-reported as such without touching its outputs.
+reported as such without touching its outputs — and its rows keep the original run's
+durations and thumbnails (see *End-of-run report*).
 
 ### Machine-readable summary (`--json`)
 
@@ -381,6 +382,14 @@ error message for failed pages. The HTML report also embeds before/after thumbna
 each translated page (small base64 JPEGs, click to zoom), so the chapter can be reviewed
 without opening the output. It is rewritten after every phase and page, so an interrupted
 run still leaves the partial report on disk.
+
+Beside the report, `<CHAPTER-OUTPUT>.report.state.json` remembers every page's durations,
+stage breakdown and thumbnails across runs. When a resume skips pages it did not touch,
+the rewritten report keeps the original run's data in those rows: the status stays
+« skipped », but the duration, stage breakdown, VRAM peak and before/after previews are
+the ones recorded when the page was actually translated. Pages left out by `--pages`
+survive in the state too, so no run can destroy what an earlier one produced.
+`--report none` writes neither the report nor that state.
 
 The HTML report is keyboard-navigable: `←`/`→` (or `↑`/`↓`) move the selected page
 (highlighted row), `Enter` opens the selected page full screen (press `←`/`→` again to

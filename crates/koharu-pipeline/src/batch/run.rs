@@ -369,10 +369,12 @@ fn vram_peak_line(sampler: Option<&VramSampler>) -> Option<String> {
     }
 }
 
-/// Writes the Markdown and HTML reports for the run.
+/// Writes the Markdown and HTML reports for the run — and, with them, the
+/// report state a later resume reads to rebuild its skipped rows.
 fn write_run_report(
     base: &Path,
     pages: Vec<PageReport>,
+    previous_state: &[PageReport],
     total_elapsed: Duration,
     metadata: &RunMetadata,
     vram_sampler: Option<&VramSampler>,
@@ -392,6 +394,11 @@ fn write_run_report(
     };
     let markdown_path = base.with_extension("md");
     let html_path = base.with_extension("html");
+    // Persisting the state is auxiliary: a disk that cannot hold it costs
+    // future reports their thumbnails, never this run's own files.
+    if let Err(error) = report::save_state(base, &run_report.pages, previous_state) {
+        eprintln!("warning: report state not updated: {error:#}");
+    }
     fs::write(&markdown_path, report::to_markdown(&run_report))
         .with_context(|| format!("failed to write {}", markdown_path.display()))?;
     fs::write(&html_path, report::to_html(&run_report))
@@ -414,6 +421,7 @@ fn announce_report(base: &Path) {
 fn save_report(
     base: Option<&Path>,
     pages_report: &[Option<PageReport>],
+    previous_state: &[PageReport],
     elapsed: Duration,
     metadata: &RunMetadata,
     vram_sampler: Option<&VramSampler>,
@@ -422,7 +430,9 @@ fn save_report(
         return;
     };
     let pages = pages_report.iter().flatten().cloned().collect();
-    if let Err(error) = write_run_report(base, pages, elapsed, metadata, vram_sampler) {
+    if let Err(error) =
+        write_run_report(base, pages, previous_state, elapsed, metadata, vram_sampler)
+    {
         eprintln!("warning: interim report not updated: {error:#}");
     }
 }
@@ -446,6 +456,7 @@ fn finish_chapter_report(
     write_run_report(
         base,
         pages,
+        &chapter.previous_state,
         elapsed,
         chapter
             .metadata
@@ -575,6 +586,9 @@ struct Chapter {
     pending: Vec<pages::PageSource>,
     /// Report rows by page index; `None` for pages outside `--pages`.
     pages_report: Vec<Option<PageReport>>,
+    /// Rows of the previous run (`report::load_state`): what a page skipped
+    /// by this resume remembers — its original durations and thumbnails.
+    previous_state: Vec<PageReport>,
     failures: Vec<(String, String)>,
     /// `pending.len()` when the chapter was planned (final summary).
     total_pending: usize,
@@ -623,6 +637,12 @@ fn prepare_chapters(
             Some(base) => Some(report_base_specified(base, &source.label)),
             None => Some(report_base_for(&chapter_output)),
         };
+        // What an earlier run recorded: a page this run skips keeps the
+        // durations and thumbnails of the run that wrote its output.
+        let previous_state = report_base
+            .as_ref()
+            .and_then(|base| report::load_state(base))
+            .unwrap_or_default();
         let all_pages = source.input.list();
 
         // Pages already present in an existing output archive: a resumed CBZ
@@ -681,10 +701,8 @@ fn prepare_chapters(
         let pages_report: Vec<Option<PageReport>> = all_pages
             .iter()
             .map(|page| {
-                (in_scope(page) && resume_skip(page)).then(|| PageReport {
-                    index: page.index,
-                    name: page.name.clone(),
-                    outcome: PageOutcome::Skipped,
+                (in_scope(page) && resume_skip(page)).then(|| {
+                    PageReport::skipped(page.index, page.name.as_str()).remembering(&previous_state)
                 })
             })
             .collect();
@@ -714,6 +732,7 @@ fn prepare_chapters(
             output: chapter_output,
             output_is_archive,
             report_base,
+            previous_state,
             metadata: None,
             total_pending: pending.len(),
             pending,
@@ -862,6 +881,8 @@ struct Phases<'a> {
     retries: usize,
     quiet: bool,
     report_base: Option<&'a Path>,
+    /// Rows of the previous run, kept in the state written with each report.
+    previous_state: &'a [PageReport],
     metadata: &'a RunMetadata,
     started: Instant,
     prefix: String,
@@ -968,6 +989,7 @@ impl Phases<'_> {
         save_report(
             self.report_base,
             self.pages_report,
+            self.previous_state,
             self.started.elapsed(),
             self.metadata,
             self.vram_sampler,
@@ -1204,6 +1226,7 @@ impl Translation<'_> {
         let prefix = chapter.prefix.clone();
         let quiet = self.quiet;
         let report_base = chapter.report_base.as_deref();
+        let previous_state: &[PageReport] = &chapter.previous_state;
         let metadata = chapter
             .metadata
             .as_ref()
@@ -1296,7 +1319,12 @@ impl Translation<'_> {
                             .failures
                             .push((page.name.clone(), error.to_string()));
                         self.processed += 1;
-                        self.checkpoint(report_base, &chapter.pages_report, metadata);
+                        self.checkpoint(
+                            report_base,
+                            &chapter.pages_report,
+                            previous_state,
+                            metadata,
+                        );
                         break None;
                     }
                 }
@@ -1307,21 +1335,22 @@ impl Translation<'_> {
             let page_name = page.name.clone();
 
             let finalize_started = Instant::now();
-            let raster =
-                match render_page(self.renderer, self.rasterizer, session, page.page_id).await {
-                    Ok(raster) => raster,
-                    Err(error) => {
-                        eprintln!("{prefix}[{page_name}] failed to render: {error:#}");
-                        chapter.pages_report[page.index] = Some(PageReport::failed(
-                            page.index,
-                            page_name.clone(),
-                            format!("render failed: {error:#}"),
-                        ));
-                        chapter.failures.push((page_name, error.to_string()));
-                        self.checkpoint(report_base, &chapter.pages_report, metadata);
-                        continue;
-                    }
-                };
+            let raster = match render_page(self.renderer, self.rasterizer, session, page.page_id)
+                .await
+            {
+                Ok(raster) => raster,
+                Err(error) => {
+                    eprintln!("{prefix}[{page_name}] failed to render: {error:#}");
+                    chapter.pages_report[page.index] = Some(PageReport::failed(
+                        page.index,
+                        page_name.clone(),
+                        format!("render failed: {error:#}"),
+                    ));
+                    chapter.failures.push((page_name, error.to_string()));
+                    self.checkpoint(report_base, &chapter.pages_report, previous_state, metadata);
+                    continue;
+                }
+            };
             // Rendering stays on this thread (it borrows the session); every
             // step after it moves to the worker and overlaps the translation
             // of the next page.
@@ -1346,7 +1375,7 @@ impl Translation<'_> {
                     &mut chapter.failures,
                     finalized,
                 );
-                self.checkpoint(report_base, &chapter.pages_report, metadata);
+                self.checkpoint(report_base, &chapter.pages_report, previous_state, metadata);
             }
             finalizer.push(job)?;
         }
@@ -1360,7 +1389,7 @@ impl Translation<'_> {
                 &mut chapter.failures,
                 finalized,
             );
-            self.checkpoint(report_base, &chapter.pages_report, metadata);
+            self.checkpoint(report_base, &chapter.pages_report, previous_state, metadata);
         }
         published?;
         Ok(())
@@ -1421,6 +1450,7 @@ impl Translation<'_> {
             index,
             name,
             outcome,
+            previous: None,
         });
     }
 
@@ -1431,11 +1461,13 @@ impl Translation<'_> {
         &self,
         report_base: Option<&Path>,
         pages_report: &[Option<PageReport>],
+        previous_state: &[PageReport],
         metadata: &RunMetadata,
     ) {
         save_report(
             report_base,
             pages_report,
+            previous_state,
             self.started.elapsed(),
             metadata,
             self.vram_sampler,
@@ -1785,6 +1817,7 @@ pub async fn run(arguments: Arguments) -> Result<i32> {
                 retries: arguments.retries,
                 quiet: arguments.quiet,
                 report_base: chapter.report_base.as_deref(),
+                previous_state: &chapter.previous_state,
                 metadata: chapter
                     .metadata
                     .as_ref()
@@ -2188,6 +2221,83 @@ mod tests {
         );
     }
 
+    #[test]
+    fn the_report_state_is_written_with_the_report_and_carries_pages_left_out() {
+        let directory = tempfile::tempdir().unwrap();
+        let base = directory.path().join("Ch1.report");
+        let original = PageOutcome::Translated {
+            elapsed: Duration::from_millis(3210),
+            stages: vec![("translation".to_owned(), Duration::from_millis(3000))],
+            thumbnails: None,
+            vram_peak: None,
+        };
+        // This run translated page 1 and skipped page 2 (its output exists,
+        // its data comes from the state); page 3 was left out by `--pages`.
+        let current = vec![
+            Some(PageReport {
+                index: 0,
+                name: "p1.png".to_owned(),
+                outcome: PageOutcome::Translated {
+                    elapsed: Duration::from_millis(1200),
+                    stages: Vec::new(),
+                    thumbnails: None,
+                    vram_peak: None,
+                },
+                previous: None,
+            }),
+            Some(PageReport::skipped(1, "p2.png").remembering(&[PageReport {
+                index: 1,
+                name: "p2.png".to_owned(),
+                outcome: original.clone(),
+                previous: None,
+            }])),
+        ];
+        let previous = vec![PageReport {
+            index: 2,
+            name: "p3.png".to_owned(),
+            outcome: PageOutcome::Translated {
+                elapsed: Duration::from_millis(2000),
+                stages: Vec::new(),
+                thumbnails: None,
+                vram_peak: None,
+            },
+            previous: None,
+        }];
+
+        save_report(
+            Some(&base),
+            &current,
+            &previous,
+            Duration::from_secs(1),
+            &sample_metadata(),
+            None,
+        );
+
+        assert!(
+            base.with_extension("md").exists() && base.with_extension("html").exists(),
+            "the report files are written as before"
+        );
+        let state = report::load_state(&base).unwrap();
+        assert_eq!(
+            state.iter().map(|row| row.index).collect::<Vec<_>>(),
+            [0, 1, 2],
+            "the page left out of this run survives in the state"
+        );
+        assert!(
+            matches!(
+                state[1].previous.as_deref(),
+                Some(PageOutcome::Translated { .. })
+            ),
+            "the skipped row remembers the run that translated it"
+        );
+        let markdown = fs::read_to_string(base.with_extension("md")).unwrap();
+        assert!(
+            markdown.contains("| ⏭️ ignorée | 3.2s |"),
+            "the rewritten report shows the original run's duration: {markdown}"
+        );
+        assert!(markdown.contains("translation 3.0s"));
+    }
+
     fn sample_metadata() -> RunMetadata {
         RunMetadata {
             model: "gemma4-e4b-it".to_owned(),
@@ -2210,6 +2320,7 @@ mod tests {
             output: PathBuf::from("out/ch1"),
             output_is_archive: false,
             report_base: None,
+            previous_state: Vec::new(),
             metadata: Some(RunMetadata {
                 output: "out/ch1".to_owned(),
                 ..sample_metadata()
@@ -2225,6 +2336,7 @@ mod tests {
                         thumbnails: None,
                         vram_peak: Some("5.9 GiB".to_owned()),
                     },
+                    previous: None,
                 }),
                 Some(PageReport::failed(1, "p2.png", "ocr failed: boom")),
             ],
@@ -2284,11 +2396,7 @@ mod tests {
         // A dry run never processes anything: only resumed pages and the
         // pages it plans to translate appear in the summary.
         chapters[0].failures.clear();
-        chapters[0].pages_report = vec![Some(PageReport {
-            index: 0,
-            name: "p1.png".to_owned(),
-            outcome: PageOutcome::Skipped,
-        })];
+        chapters[0].pages_report = vec![Some(PageReport::skipped(0, "p1.png"))];
         chapters[0].pending = vec![pages::PageSource {
             index: 1,
             name: "p2.png".to_owned(),
