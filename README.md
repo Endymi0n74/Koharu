@@ -57,8 +57,9 @@ Koharu introduit un workflow local-first pour la traduction de manga, en exploit
 > **CLI par lot — `koharu-batch`.** Cette branche ajoute une CLI headless qui traduit des chapitres
 > entiers depuis le terminal avec le même pipeline local : un dossier de scans ou une archive CBZ en
 > entrée, des pages françaises en sortie (`--lang` pour changer la cible) — ou un **volume entier** :
-> pointez-la vers un dossier de sous-dossiers/archives et chacun devient son propre chapitre, en
-> sortie en miroir sous `--output` avec un rapport par chapitre. Les pages s'exécutent en mode
+> pointez-la vers un dossier de sous-dossiers/archives et chacun devient son propre chapitre — les
+> dossiers de regroupement descendent, ainsi `Vol/Ch1/p.png` vaut le chapitre `Vol/Ch1` — en sortie
+> en miroir sous `--output` avec un rapport par chapitre. Les pages s'exécutent en mode
 > **phase-major** — une étape à la fois sur toutes les pages (de tout le volume), si bien que les
 > modèles sont chargés une seule fois au lieu d'une fois par page — le budget VRAM est plafonné par
 > la mémoire réellement disponible, `--no-vision` saute la détection, l'OCR et l'inpainting pour les
@@ -82,7 +83,7 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr
 # A CBZ archive → a CBZ archive, letting the tool pick the model for your GPU
 koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
 
-# A whole volume: every subfolder and .cbz of ./series becomes one chapter
+# A whole volume: every subfolder and .cbz of ./series becomes one chapter (grouping folders descend)
 koharu-batch --input ./series --output ./series-fr
 
 # Machine-readable summary of the run (works with --dry-run too)

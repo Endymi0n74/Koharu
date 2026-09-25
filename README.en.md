@@ -57,8 +57,9 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 > **Batch CLI — `koharu-batch`.** This fork adds a headless CLI that translates whole chapters
 > from the terminal with the same local pipeline: a folder of scans or a CBZ archive in, French
 > pages out (`--lang` to change the target) — or a **whole volume**: point it at a folder of
-> subfolders/archives and each one becomes its own chapter, mirrored under `--output` with one
-> report per chapter. Pages run **phase-major** — one stage at a time across every page (of the
+> subfolders/archives and each one becomes its own chapter — grouping folders descend, so
+> `Vol/Ch1/p.png` is the chapter `Vol/Ch1` — mirrored under `--output` with one report per
+> chapter. Pages run **phase-major** — one stage at a time across every page (of the
 > whole volume), so models load once instead of once per page — the VRAM budget is capped by the
 > memory actually free, `--no-vision` skips detection/OCR/inpainting for text-only runs, and the
 > process exits 0 only when every page of every chapter succeeded (ready for CI). It picks the
@@ -80,7 +81,7 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr
 # A CBZ archive → a CBZ archive, letting the tool pick the model for your GPU
 koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
 
-# A whole volume: every subfolder and .cbz of ./series becomes one chapter
+# A whole volume: every subfolder and .cbz of ./series becomes one chapter (grouping folders descend)
 koharu-batch --input ./series --output ./series-fr
 
 # Machine-readable summary of the run (works with --dry-run too)

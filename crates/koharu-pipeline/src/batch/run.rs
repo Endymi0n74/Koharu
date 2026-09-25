@@ -63,7 +63,7 @@ fn is_archive_path(path: &Path) -> bool {
 }
 
 /// One input of the run: a whole chapter (`label` empty) or one chapter of a
-/// volume (`label` is its folder or archive name).
+/// volume (`label` is its folder path or archive name, relative to the input).
 #[derive(Debug)]
 struct ChapterSource {
     label: String,
@@ -76,7 +76,10 @@ struct ChapterSource {
 /// The rule: page images at the top level of a folder mean "this is one
 /// chapter" (`--recursive` flattens the whole tree into one chapter instead);
 /// a folder whose images only live in subfolders or `.cbz`/`.zip` archives is
-/// a volume, one chapter per subfolder and per archive, in natural order.
+/// a volume: one chapter per subfolder holding pages and per archive, in
+/// natural order. Grouping folders — folders that hold no pages of their own
+/// but only other folders — descend, so `Vol/Ch1/p.png` is the chapter
+/// `Vol/Ch1`, not one chapter `Vol`.
 ///
 /// Returns the sources plus the classification line to print — the line is
 /// part of `--dry-run`: it explains the rule that decided the plan.
@@ -126,44 +129,10 @@ fn plan_sources(input: &Path, recursive: bool) -> Result<(Vec<ChapterSource>, St
             ),
         ));
     }
-    // No page at the top level: the folder is a volume, one chapter per
-    // subfolder that holds pages (at any depth) and per CBZ/ZIP archive.
+    // No page at the top level: the folder is a volume, chapters found by
+    // walking the tree of subfolders and archives.
     let mut chapters = Vec::new();
-    for entry in
-        fs::read_dir(input).with_context(|| format!("failed to read {}", input.display()))?
-    {
-        let entry = entry.with_context(|| format!("failed to read {}", input.display()))?;
-        let path = entry.path();
-        let name = entry.file_name().to_string_lossy().into_owned();
-        // Dot-prefixed entries are hidden files and folders in disguise.
-        if name.starts_with('.') {
-            continue;
-        }
-        // `file_type` does not follow symbolic links, so a link to a folder
-        // can never send this scan in circles.
-        if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
-            if let Ok(listing) = pages::list_directory_pages(&path, true) {
-                chapters.push(ChapterSource {
-                    label: name,
-                    source: path.clone(),
-                    input: InputPages::Directory(listing),
-                });
-            }
-        } else if path.is_file()
-            && is_archive_path(&path)
-            && let Ok(listing) = cbz::list_archive_pages(&path)
-        {
-            let label = path
-                .file_stem()
-                .map(|stem| stem.to_string_lossy().into_owned())
-                .unwrap_or(name);
-            chapters.push(ChapterSource {
-                label,
-                source: path.clone(),
-                input: InputPages::Archive(path.clone(), listing),
-            });
-        }
-    }
+    collect_volume_chapters(input, "", &mut chapters)?;
     chapters.sort_by(|left, right| pages::natural_cmp(&left.label, &right.label));
     dedup_labels(&mut chapters);
     if chapters.is_empty() {
@@ -173,21 +142,90 @@ fn plan_sources(input: &Path, recursive: bool) -> Result<(Vec<ChapterSource>, St
         );
     }
     let rule = format!(
-        "input: volume — {} holds no page images at its top level; {} chapter(s) detected",
+        "input: volume — {} holds no page images at its top level; {} chapter(s) detected (grouping folders descend to the chapters inside)",
         input.display(),
         chapters.len()
     );
     Ok((chapters, rule))
 }
 
+/// Collects the chapters of a volume from `directory`, one per subfolder that
+/// holds pages directly (its whole subtree listed with it) and one per
+/// `.cbz`/`.zip` archive. A folder without pages of its own only groups other
+/// folders: it descends into each, its relative path (`Vol/Ch1`) extending
+/// `prefix` — that is what makes a nested `Vol/Ch1/p.png` its own chapter
+/// instead of merging into one chapter `Vol`.
+///
+/// Dot-prefixed entries are skipped at every depth, and `file_type` never
+/// follows symbolic links, so this walk cannot run in circles.
+fn collect_volume_chapters(
+    directory: &Path,
+    prefix: &str,
+    chapters: &mut Vec<ChapterSource>,
+) -> Result<()> {
+    for entry in fs::read_dir(directory)
+        .with_context(|| format!("failed to read {}", directory.display()))?
+    {
+        let entry = entry.with_context(|| format!("failed to read {}", directory.display()))?;
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        // Dot-prefixed entries are hidden files and folders in disguise.
+        if name.starts_with('.') {
+            continue;
+        }
+        // `file_type` does not follow symbolic links, so a link to a folder
+        // can never send this scan in circles.
+        if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+            let label = format!("{prefix}{name}");
+            if pages::has_pages(&path, false) {
+                // Pages right here: this folder stays one chapter, its own
+                // subfolders included (listed recursively).
+                if let Ok(listing) = pages::list_directory_pages(&path, true) {
+                    chapters.push(ChapterSource {
+                        label,
+                        source: path.clone(),
+                        input: InputPages::Directory(listing),
+                    });
+                }
+            } else {
+                // Grouping folder: descend, its path prefixes the chapters.
+                collect_volume_chapters(&path, &format!("{label}/"), chapters)?;
+            }
+        } else if path.is_file()
+            && is_archive_path(&path)
+            && let Ok(listing) = cbz::list_archive_pages(&path)
+        {
+            let stem = path
+                .file_stem()
+                .map(|stem| stem.to_string_lossy().into_owned())
+                .unwrap_or(name);
+            chapters.push(ChapterSource {
+                label: format!("{prefix}{stem}"),
+                source: path.clone(),
+                input: InputPages::Archive(path.clone(), listing),
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Label usable inside one report base path: a nested label carries `/`,
+/// which would make the report writers create (or require) directories
+/// instead of `<BASE>-<label>.md`, so separators become `-`.
+fn report_label(label: &str) -> String {
+    label.replace('/', "-")
+}
+
 /// Gives every chapter a unique label: a folder and an archive of the same
-/// name must not mirror their outputs onto the same path.
+/// name must not mirror their outputs onto the same path, and labels that
+/// differ only by their `/` (real folder) versus `-` (file name) must not
+/// share one report base.
 fn dedup_labels(chapters: &mut [ChapterSource]) {
     let mut seen = HashSet::new();
     for chapter in chapters.iter_mut() {
         let base = chapter.label.clone();
         let mut suffix = 2;
-        while !seen.insert(chapter.label.clone()) {
+        while !seen.insert(report_label(&chapter.label)) {
             chapter.label = format!("{base}-{suffix}");
             suffix += 1;
         }
@@ -196,7 +234,8 @@ fn dedup_labels(chapters: &mut [ChapterSource]) {
 
 /// Output path of a chapter: the run's output for a plain single-chapter run,
 /// mirrored under it for a volume — `<OUTPUT>/<label>/` for a folder output,
-/// `<OUTPUT-STEM>/<label>.cbz` for an archive output.
+/// `<OUTPUT-STEM>/<label>.cbz` for an archive output. A nested label
+/// (`Vol/Ch1`) mirrors the folders it descends through (`out/Vol/Ch1/`).
 fn chapter_output_path(output: &Path, output_is_archive: bool, label: &str) -> PathBuf {
     if label.is_empty() {
         return output.to_owned();
@@ -229,14 +268,15 @@ fn report_base_for(output: &Path) -> PathBuf {
 }
 
 /// Report base from an explicit `--report <BASE>`: one pair of files at
-/// `BASE` for a single chapter, `BASE-<label>` for every chapter of a volume.
+/// `BASE` for a single chapter, `BASE-<label>` for every chapter of a volume
+/// (a nested label's `/` flattened to `-`, so both files stay beside `BASE`).
 /// The `.report` suffix keeps dots in `BASE` or in the label from being
 /// mistaken for the extension the writers replace.
 fn report_base_specified(base: &str, label: &str) -> PathBuf {
     let mut path = if label.is_empty() {
         base.to_owned()
     } else {
-        format!("{base}-{label}")
+        format!("{base}-{}", report_label(label))
     };
     path.push_str(".report");
     PathBuf::from(path)
@@ -1940,6 +1980,71 @@ mod tests {
     }
 
     #[test]
+    fn grouping_folders_descend_to_the_chapters_inside() {
+        let directory = tempfile::tempdir().unwrap();
+        let volume = directory.path().join("Vol");
+        for name in ["Ch2", "Ch1"] {
+            fs::create_dir_all(volume.join(name)).unwrap();
+            fs::write(volume.join(name).join("p1.png"), b"x").unwrap();
+        }
+        write_cbz(&volume.join("Ch0.cbz"), &["p1.png", "p2.png"]);
+        // A folder that groups nothing contributes nothing.
+        fs::create_dir(directory.path().join("empty")).unwrap();
+
+        let (chapters, rule) = plan_sources(directory.path(), false).unwrap();
+        assert_eq!(
+            labels(&chapters),
+            ["Vol/Ch0", "Vol/Ch1", "Vol/Ch2"],
+            "the grouping folder descends, labels are relative paths in natural order"
+        );
+        assert!(rule.contains("volume"), "{rule}");
+        assert!(rule.contains("3 chapter(s)"), "{rule}");
+        match &chapters[0].input {
+            InputPages::Archive(path, listing) => {
+                assert_eq!(path, &volume.join("Ch0.cbz"));
+                assert_eq!(listing.len(), 2);
+            }
+            InputPages::Directory(_) => panic!("the archive chapter lists archive pages"),
+        }
+    }
+
+    #[test]
+    fn grouping_folders_descend_through_every_level() {
+        let directory = tempfile::tempdir().unwrap();
+        let deep = directory.path().join("Vol").join("Book1").join("Ch1");
+        fs::create_dir_all(&deep).unwrap();
+        fs::write(deep.join("p1.png"), b"x").unwrap();
+
+        let (chapters, _) = plan_sources(directory.path(), false).unwrap();
+        assert_eq!(labels(&chapters), ["Vol/Book1/Ch1"]);
+    }
+
+    #[test]
+    fn a_chapter_folder_keeps_its_own_subfolders_as_one_chapter() {
+        let directory = tempfile::tempdir().unwrap();
+        fs::create_dir(directory.path().join("ch1")).unwrap();
+        fs::write(directory.path().join("ch1").join("p1.png"), b"x").unwrap();
+        fs::create_dir(directory.path().join("ch1").join("extras")).unwrap();
+        fs::write(
+            directory.path().join("ch1").join("extras").join("p2.png"),
+            b"x",
+        )
+        .unwrap();
+
+        let (chapters, _) = plan_sources(directory.path(), false).unwrap();
+        assert_eq!(
+            labels(&chapters),
+            ["ch1"],
+            "a folder holding pages never descends, whatever it contains"
+        );
+        assert_eq!(
+            chapters[0].input.list().len(),
+            2,
+            "its own subfolders join the chapter, listed recursively"
+        );
+    }
+
+    #[test]
     fn archives_beside_subfolders_become_chapters_of_the_volume() {
         let directory = tempfile::tempdir().unwrap();
         fs::create_dir(directory.path().join("ch1")).unwrap();
@@ -2006,6 +2111,24 @@ mod tests {
     }
 
     #[test]
+    fn labels_that_flatten_to_the_same_report_base_never_collide() {
+        let mut chapters = vec![
+            ChapterSource {
+                label: "Vol/Ch1".to_owned(),
+                source: PathBuf::from("Vol/Ch1"),
+                input: InputPages::Directory(Vec::new()),
+            },
+            ChapterSource {
+                label: "Vol-Ch1".to_owned(),
+                source: PathBuf::from("Vol-Ch1"),
+                input: InputPages::Directory(Vec::new()),
+            },
+        ];
+        dedup_labels(&mut chapters);
+        assert_eq!(labels(&chapters), ["Vol/Ch1", "Vol-Ch1-2"]);
+    }
+
+    #[test]
     fn volume_outputs_mirror_under_the_output_path() {
         assert_eq!(
             chapter_output_path(Path::new("out"), false, ""),
@@ -2017,8 +2140,17 @@ mod tests {
             Path::new("out").join("ch1")
         );
         assert_eq!(
+            chapter_output_path(Path::new("out"), false, "Vol/Ch1"),
+            Path::new("out/Vol/Ch1"),
+            "a nested label mirrors the folders it descends through"
+        );
+        assert_eq!(
             chapter_output_path(Path::new("out.cbz"), true, "ch1"),
             Path::new("out").join("ch1.cbz")
+        );
+        assert_eq!(
+            chapter_output_path(Path::new("out.cbz"), true, "Vol/Ch1"),
+            Path::new("out/Vol/Ch1.cbz")
         );
         assert_eq!(
             chapter_output_path(Path::new("out.zip"), true, "ch1"),
@@ -2048,6 +2180,11 @@ mod tests {
             report_base_specified("run", "ch.1").with_extension("md"),
             Path::new("run-ch.1.md"),
             "explicit bases stay collision-free across chapters"
+        );
+        assert_eq!(
+            report_base_specified("run", "Vol/Ch1").with_extension("md"),
+            Path::new("run-Vol-Ch1.md"),
+            "a nested label's '/' never makes the report writers create a directory"
         );
     }
 

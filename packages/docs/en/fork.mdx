@@ -182,7 +182,9 @@ Key behaviors:
   and the report is rewritten after every phase and page — an interruption costs the current
   page at most.
 - **Volume mode** — an input folder with no images at its top level but with subfolders and/or
-  `.cbz` archives is translated as a volume: one chapter per subfolder and per archive, outputs
+  `.cbz` archives is translated as a volume: one chapter per subfolder and per archive — a
+  folder that only groups other folders (no pages of its own) descends into them, so
+  `Vol/Ch1/p.png` is the chapter `Vol/Ch1` — outputs
   mirrored under `--output`, one report per chapter, and a global summary. The phases run
   across the whole volume so each model loads once for all of it (see *Volume mode* below).
 - **Progress with ETA** — every phase prints `[i/n] stage · Xs · ETA …` per chapter; `--quiet`
@@ -267,7 +269,8 @@ instead of the volume rule), `--quiet`, `--list-models`, `--reset-calibration`,
 In a volume, `--pages` applies to **each** chapter (it must fit the smallest one), and
 `--recursive` opts out of the volume rule: the whole tree becomes one chapter with
 relative page names. `--report` follows the same split: one file pair per chapter at
-`<BASE>-<label>.md` / `.html`.
+`<BASE>-<label>.md` / `.html`, a nested label's `/` flattened to `-` so both files stay beside
+`BASE` (`<BASE>-Vol-Ch03.md`).
 
 `--lang` picks the target language (default `fr-FR`). English (`--lang en-US`) is a
 solid fallback: every catalog model handles it, and for Japanese or Russian sources it
@@ -294,7 +297,11 @@ series/                    ← no .png/.jpg directly inside
 ├── Ch01/                  ← chapter 1 (pages at any depth)
 │   ├── p1.png
 ├── Ch02.cbz               ← chapter 2 (an archive is its own chapter)
-└── Ch03/
+└── Vol/                   ← a grouping folder: no pages of its own → it descends
+    ├── Ch03/              ← chapter 3, label `Vol/Ch03`
+    │   └── p1.png
+    └── Ch04/              ← chapter 4, label `Vol/Ch04`
+        └── p1.png
 ```
 
 The rule, printed by every run and by `--dry-run`, is:
@@ -303,10 +310,15 @@ The rule, printed by every run and by `--dry-run`, is:
 - `--recursive` → **one chapter** flattened from the whole tree;
 - otherwise, with subfolders/archives → **a volume**, chapters in natural order
   (`Ch01` before `Ch10`), one report per chapter;
+- a folder without pages of its own but with subfolders → **descends into it**: every chapter
+  below it is one level deeper, at any depth, labelled by its path relative to the input
+  (`Vol/Ch1`, `Vol/Book1/Ch2`); a folder that holds pages never descends (it stays one chapter
+  listing its own subfolders);
 - neither → the run refuses with a message naming both possibilities.
 
 Outputs are mirrored under `--output`: a folder output gets one subfolder per chapter
-(`--output ./out` → `./out/Ch01/p1.png`, …), an archive output becomes a folder of archives
+(`--output ./out` → `./out/Ch01/p1.png`, …; a nested chapter keeps its folders:
+`./out/Vol/Ch03/p1.png`), an archive output becomes a folder of archives
 (`--output out.cbz` → `out/Ch01.cbz`, `out/Ch02.cbz`). Each chapter gets its own report
 (`<CHAPTER-OUTPUT>.md`/`.html`), and the run ends with a global summary listing every
 chapter's translated/skipped/failed counts. The exit code is `0` only when **every page of
@@ -354,7 +366,8 @@ runs where some pages failed — so scripts can consume the outcome without pars
 triple). `status` is one of `translated`, `skipped`, `failed`, or `planned` (pages a dry run
 would translate); `index` is the 1-based reading-order position; `counts.planned` is non-zero
 only in a dry run. In a volume, `chapters` holds one entry per chapter with its own paths
-(`label` is empty for a single-chapter run).
+(`label` is empty for a single-chapter run, otherwise the chapter's path relative to the input,
+such as `Vol/Ch1`).
 
 ### End-of-run report
 
