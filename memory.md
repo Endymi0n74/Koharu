@@ -14,7 +14,7 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   `target_style` (FR) — seul levier retenu pour la qualité JA/RU→FR (échantillonnage et pivot EN
   écartés). 81/81 tests translator.
 - **`koharu-batch`** : logique déplacée du binaire vers la lib (`crates/koharu-pipeline/src/batch/`
-  : `cli.rs`, `run.rs`) — **110 tests lib** exécutés par CI (`cargo test --tests` n'exécute pas
+  : `cli.rs`, `run.rs`) — **115 tests lib** exécutés par CI (`cargo test --tests` n'exécute pas
   les tests d'une cible binaire). Exécution **phase-major** ; exit 0 = toutes les pages réussies.
 - **Robustesse batch** : `--retries` (défaut 1) par stage, rapports réécrits à chaque phase/page
   (checkpoint), toutes les erreurs de finalisation restent des échecs page, reprise CBZ avec
@@ -31,6 +31,9 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   la traduction suivante (le render reste sur le thread principal — il emprunte la session) ;
   archive CBZ d'entrée ouverte **une seule fois** (`cbz::ArchiveReader`) au lieu d'une fois par
   page. Mesures : voir *Mesures* plus bas.
+- **Rapport de reprise** : les pages ignorées d'une reprise gardent durées, stages et vignettes
+  du run d'origine — état `.report.state.json` par chapitre écrit avec chaque rapport
+  (fixtures e2e : run `--overwrite` puis reprise, 5/5 ignorées avec données intactes).
 - **App desktop** : locale **fr-FR** complète (434 clés, tests de parité sur les 10 locales) +
   `languages.*` ; **mode dossier** (« Open a folder… » importe un dossier comme projet via
   `ProjectLibrary::folder_project_name`) ; `JobGuard` (Drop retire stop+job, panique → Failed).
@@ -52,6 +55,11 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   récursivement. `/` conservé dans les sorties miroir, remplacé par `-` dans les bases
   `--report`, et le dédoublonnage compare la forme rapport (`Vol/Ch1` vs `Vol-Ch1` ⇒ second
   renommé `Vol-Ch1-2`).
+- **Rapports de reprise** : état `<base>.report.state.json` écrit à chaque rapport
+  (`report::save_state`, fusion par index — les pages hors `--pages` survivent) ; une reprise
+  réécrit ses lignes « ignorée » avec durées/stages/vignettes du run d'origine (`PageReport::
+  previous`, appariement index **+ nom** pour ne jamais accoler des données périmées).
+  `--report none` n'écrit ni rapport ni état. JSON inchangé : statut = ce run.
 - **Rapports** : base = sortie sans `.cbz`/`.zip` + `.report` poussé littéralement → fichiers
   `<chemin>.md`/`.html` même avec des points dans les noms (`vol.1` → `vol.1.md`, pas `vol.md`,
   et pas de collision `ch.1`/`ch.2`). Pas de rapport HTML global en volume : rapports par
@@ -95,25 +103,39 @@ E2E volume réel (3 chapitres, 4 pages) : 47 s, sorties + rapports par chapitre 
 ### Vrai CBZ 50 pages (2026-09-25, idem + `real50.cbz`)
 
 Charge : 50 pages extraites de *Dragon Ball Full Color Vol. 01* (1662×2560 couleur, 31,5 Mo),
-CBZ → CBZ, `gemma4-e4b-it`, avant = HEAD `4466b975`, après = worker finalizer. Les deux runs :
-exit 0, 50/50 pages traduites, archives de ~202 Mo valides.
+CBZ → CBZ, `gemma4-e4b-it`, avant = HEAD `4466b975` (rebuild dans le worktree
+`koharu-bench-before`), après = worker finalizer. **Banc croisé** (2026-09-25 17 h) : chaque
+binaire exécuté dans les deux ordres — ordre 1 (11 h 15) : avant (froid) puis après ; ordre 2 :
+après (froid) puis avant. 4 runs, tous exit 0, 50/50 traduites, archives ~202 Mo valides.
+Artefacts : `%TEMP%\koharu-bench\real50-{xafter,xbefore}.*` + `cross-results.txt`.
 
-| Run | avant | après |
-|---|---|---|
-| mur total | 1294 s | 1083 s (−211 s, −16,3 %) |
-| Σ étapes (traduction + phases) | 1261,4 s | 1065,8 s (−195,6 s) |
-| résidu `mur − Σétapes` | 32,6 s | 17,2 s (**−15,4 s**) |
-| chaîne hors étapes par page (load+render+finalisation) | 0,39 s | 0,36 s |
+| Ordre d'exécution | mur | Σétapes | résidu `mur − Σétapes` |
+|---|---:|---:|---:|
+| ordre 1 : avant (froid) → après (chaud) | 1294 → 1083 s | 1261,4 → 1065,8 s | 32,6 → 17,2 s |
+| ordre 2 croisé : après (froid) → avant (chaud) | 1131 → 1108 s | 1114,2 → 1086,5 s | 16,8 → 21,5 s |
 
-- **Le −211 s brut n'est PAS le gain** : −195,6 s sont du **drift d'étapes** (GPU chaud +
-  variance d'échantillonnage ; le run « après » a passé après le « avant »).
-- **Gain structurel = −15,4 s** (résidu immunitaire à la génération) ≈ 49 × 0,31 s : la
-  finalisation (~0,3 s/page : encode PNG du render 1662×2560 + écriture + vignette) sort du
-  chemin critique. Le **render (~2,2 s/page, déduit du gap inline 2,56 s/page) reste
-  sérialisé** dans les deux binaires (borrow session) — c'est le plafond annoncé.
+| Résidu par binaire | 1er exécuté (froid) | 2e exécuté (chaud) | moyenne | par page |
+|---|---|---|---|---|
+| avant `4466b975` | 32,6 s | 21,5 s | 27,1 s | 0,54 s |
+| après (finalizer) | 16,8 s | 17,2 s | 17,0 s | 0,34 s |
+
+- **Le −211 s brut de l'ordre 1 n'est PAS le gain** : dans l'ordre croisé le signe s'inverse
+  (« après » froid = 1131 s > « avant » chaud = 1108 s). La position domine : les runs en
+  1er (GPU froid) ont Σétapes 1187,8 s en moyenne contre 1076,2 s en 2e (**−112 s de
+  warm-up**), plus la variance run-à-run du LLM (1066 à 1261 s sur les 4 runs).
+- **Gain structurel ordre-neutralisé = −10,1 s** (résidu moyen 27,1 → 17,0 s) ≈ **0,20 s/page**
+  et non −15,4 s : le warm-up gonflait le résidu « avant » de ~11 s (32,6 → 21,5 s), alors que
+  le résidu « après » est stable quel que soit l'ordre (16,8 / 17,2 s). La finalisation
+  (~0,3 s/page : encode PNG du render 1662×2560 + écriture + vignette) sort du chemin
+  critique **et** l'hors-étapes devient prévisible.
+- Σétapes moyennes position-neutralisées : avant 1174,0 s vs après 1090,0 s (−84 s) —
+  direction favorable, mais n=2/cellule : à confirmer avant tout chiffre public.
+- Le **render (~2,2 s/page, déduit du gap inline 2,56 s/page) reste sérialisé** dans les deux
+  binaires (borrow session) — c'est le plafond annoncé.
 - Ouverture CBZ 1× vs 50× : < 0,1 s sur 50 entrées — invisible, comme prévu.
-- Caveat d'ordre : « avant » exécuté en premier (GPU froid) — le résidu peut être surestimé
-  de ~1-3 s par le warm-up du render. Un banc croisé (ordre inversé) le neutraliserait.
+- **Argument public** : « ~0,2 s/page de finalisation sortent du chemin critique ;
+  l'hors-étapes tombe à ~17 s par 50 pages et ne dépend plus de l'ordre » — pas « −15 s »
+  ni « −211 s ».
 
 ## Pièges
 
@@ -155,7 +177,5 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
 
 ## À faire plus tard (choix ouverts)
 
-- Banc croisé (ordre avant/après inversé) pour neutraliser le warm-up GPU du résidu du
-  banc `real50` — si un argument public doit reposer sur les 15 s mesurées.
 - Réactiver le job macOS si les secrets Apple sont configurés.
 - Mode dossier dans `koharu-app` (piloter un lot en GUI).
