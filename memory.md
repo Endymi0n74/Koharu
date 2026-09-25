@@ -14,7 +14,7 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   `target_style` (FR) — seul levier retenu pour la qualité JA/RU→FR (échantillonnage et pivot EN
   écartés). 81/81 tests translator.
 - **`koharu-batch`** : logique déplacée du binaire vers la lib (`crates/koharu-pipeline/src/batch/`
-  : `cli.rs`, `run.rs`) — **106 tests lib** exécutés par CI (`cargo test --tests` n'exécute pas
+  : `cli.rs`, `run.rs`) — **110 tests lib** exécutés par CI (`cargo test --tests` n'exécute pas
   les tests d'une cible binaire). Exécution **phase-major** ; exit 0 = toutes les pages réussies.
 - **Robustesse batch** : `--retries` (défaut 1) par stage, rapports réécrits à chaque phase/page
   (checkpoint), toutes les erreurs de finalisation restent des échecs page, reprise CBZ avec
@@ -22,8 +22,10 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   réels (fin du bug JPEG-nommé-PNG), `finish()` avant rename (Windows).
 - **Fonctionnalités batch** : `--pages` (plage 1-based), `--recursive`, `--quiet`, progres
   `[i/n] stage · Xs · ETA`, **mode volume** (dossier sans images au premier niveau → un chapitre
-  par sous-dossier et par .cbz, sorties miroir sous `--output`, rapports par chapitre + résumé
-  global, phase-major sur tout le volume), **`--json <PATH>`** (résumé machine : ok/compteurs/
+  par sous-dossier contenant des images et par .cbz ; un dossier de regroupement sans images
+  descend jusqu'aux chapitres — `Vol/Ch1/p.png` = chapitre `Vol/Ch1` —, sorties miroir sous
+  `--output`, rapports par chapitre + résumé global, phase-major sur tout le volume),
+  **`--json <PATH>`** (résumé machine : ok/compteurs/
   chapitres/pages/échecs, écrit aussi en dry-run).
 - **Perf batch** : finalisation (encode/écriture/vignette) sur un **thread worker** qui chevauche
   la traduction suivante (le render reste sur le thread principal — il emprunte la session) ;
@@ -33,7 +35,8 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   `languages.*` ; **mode dossier** (« Open a folder… » importe un dossier comme projet via
   `ProjectLibrary::folder_project_name`) ; `JobGuard` (Drop retire stop+job, panique → Failed).
 - **CI** : step *Typecheck UI* dans `lint.yml` + `typecheck` dans `@koharu/app`, smoke tests
-  `--dry-run` **et mode volume** dans `koharu-batch.yml`.
+  `--dry-run` **et mode volume** (dossier `ch1` + sous-dossier imbriqué `Vol/Ch2`, assertion sur
+  les labels du JSON) dans `koharu-batch.yml`.
 - **Release** : `lto = "thin"` dans le profil release ; tag **`v0.83.5`** publié ; job **macOS
   désactivé** dans `release.yml` (secrets Apple absents) — réactiver quand
   `BUILD_CERTIFICATE_BASE64` / `KEYCHAIN_PASSWORD` seront configurés.
@@ -42,9 +45,13 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 - **Règle du mode volume** : ≥1 image au premier niveau ⇒ un chapitre (sous-dossiers ignorés) ;
   `--recursive` ⇒ arbre entier aplati en un chapitre ; sinon sous-dossiers + .cbz = volume ;
-  rien ⇒ refus avec message expliquant les deux cas. Imprimée par `--dry-run`. Une seule
-  profondeur de sous-dossiers (un sous-dossier est listé récursivement, mais un volume niché
-  `Vol/Ch/p.png` est un seul chapitre `Vol`).
+  rien ⇒ refus avec message expliquant les deux cas. Imprimée par `--dry-run`. Dossiers
+  **imbriqués** : un dossier sans images directes mais avec des sous-dossiers est un dossier de
+  regroupement et **descend** jusqu'aux chapitres (`Vol/Ch/p.png` → chapitre `Vol/Ch`, labels =
+  chemins relatifs, tri naturel) ; un dossier avec des images reste un seul chapitre listé
+  récursivement. `/` conservé dans les sorties miroir, remplacé par `-` dans les bases
+  `--report`, et le dédoublonnage compare la forme rapport (`Vol/Ch1` vs `Vol-Ch1` ⇒ second
+  renommé `Vol-Ch1-2`).
 - **Rapports** : base = sortie sans `.cbz`/`.zip` + `.report` poussé littéralement → fichiers
   `<chemin>.md`/`.html` même avec des points dans les noms (`vol.1` → `vol.1.md`, pas `vol.md`,
   et pas de collision `ch.1`/`ch.2`). Pas de rapport HTML global en volume : rapports par
@@ -79,14 +86,34 @@ Charge : 6 pages 770×1080 (fixture object_detection), avant = binaire buildé d
 | cbz → cbz | 69,3 s | 70,1 s |
 | overhead hors stages (load+render+finalisation+rapport) | ~0,13 s/page | ~0,10 s/page |
 
-**Conclusion honnête** : la variance de génération du LLM (±10 s sur des pages identiques)
-noie le gain dans le bruit total ; décomposé, la finalisation (encode PNG ~0,2-0,3 s/page +
-écriture + vignette) sort du chemin critique et le coût par page mesuré est cohérent, mais le
-gain mur est < 1,5 s par chapitre de 6 pages sur cette petite charge. L'ouverture du CBZ une
-seule fois ne se distingue pas du bruit ici (l'ancien coût était déjà < 0,1 s/page sur un
-archive de 6 entrées) mais supprime un `ZipArchive::new` complet par page — à re-mesurer sur
-un vrai tankōbon (50+ pages, pages plus grandes) avant d'en faire un argument. E2E volume réel
-(3 chapitres, 4 pages) : 47 s, sorties + rapports par chapitre + JSON, exit 0.
+**Conclusion honnête (petites charges)** : la variance de génération du LLM (±10 s sur des
+pages identiques) noie le gain dans le bruit total ; décomposé, la finalisation (encode PNG
+~0,2-0,3 s/page + écriture + vignette) sort du chemin critique et le coût par page mesuré est
+cohérent, mais le gain mur est < 1,5 s par chapitre de 6 pages sur cette petite charge.
+E2E volume réel (3 chapitres, 4 pages) : 47 s, sorties + rapports par chapitre + JSON, exit 0.
+
+### Vrai CBZ 50 pages (2026-09-25, idem + `real50.cbz`)
+
+Charge : 50 pages extraites de *Dragon Ball Full Color Vol. 01* (1662×2560 couleur, 31,5 Mo),
+CBZ → CBZ, `gemma4-e4b-it`, avant = HEAD `4466b975`, après = worker finalizer. Les deux runs :
+exit 0, 50/50 pages traduites, archives de ~202 Mo valides.
+
+| Run | avant | après |
+|---|---|---|
+| mur total | 1294 s | 1083 s (−211 s, −16,3 %) |
+| Σ étapes (traduction + phases) | 1261,4 s | 1065,8 s (−195,6 s) |
+| résidu `mur − Σétapes` | 32,6 s | 17,2 s (**−15,4 s**) |
+| chaîne hors étapes par page (load+render+finalisation) | 0,39 s | 0,36 s |
+
+- **Le −211 s brut n'est PAS le gain** : −195,6 s sont du **drift d'étapes** (GPU chaud +
+  variance d'échantillonnage ; le run « après » a passé après le « avant »).
+- **Gain structurel = −15,4 s** (résidu immunitaire à la génération) ≈ 49 × 0,31 s : la
+  finalisation (~0,3 s/page : encode PNG du render 1662×2560 + écriture + vignette) sort du
+  chemin critique. Le **render (~2,2 s/page, déduit du gap inline 2,56 s/page) reste
+  sérialisé** dans les deux binaires (borrow session) — c'est le plafond annoncé.
+- Ouverture CBZ 1× vs 50× : < 0,1 s sur 50 entrées — invisible, comme prévu.
+- Caveat d'ordre : « avant » exécuté en premier (GPU froid) — le résidu peut être surestimé
+  de ~1-3 s par le warm-up du render. Un banc croisé (ordre inversé) le neutraliserait.
 
 ## Pièges
 
@@ -128,8 +155,7 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
 
 ## À faire plus tard (choix ouverts)
 
-- Re-mesurer le finalizer worker sur un vrai tankōbon (50+ pages, pages lourdes) — la charge
-  de mesure actuelle (6 petites pages) ne montre pas le gain.
-- Volume imbriqué (>1 niveau de sous-dossiers) si un cas réel en a besoin.
+- Banc croisé (ordre avant/après inversé) pour neutraliser le warm-up GPU du résidu du
+  banc `real50` — si un argument public doit reposer sur les 15 s mesurées.
 - Réactiver le job macOS si les secrets Apple sont configurés.
 - Mode dossier dans `koharu-app` (piloter un lot en GUI).
