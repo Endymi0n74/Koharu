@@ -101,29 +101,77 @@ fn alphanumeric_cmp(left: &str, right: &str) -> std::cmp::Ordering {
 }
 
 /// Lists the image files of a directory in reading order.
-pub fn list_directory_pages(directory: &Path) -> Result<Vec<PageSource>> {
+///
+/// With `recursive`, pages held in subdirectories join the listing and are
+/// named by their path relative to `directory`, so pages from different
+/// folders still order against each other. Symbolic links are never followed.
+pub fn list_directory_pages(directory: &Path, recursive: bool) -> Result<Vec<PageSource>> {
+    let mut entries: Vec<(String, PathBuf, &'static str)> = Vec::new();
+    collect_pages(directory, directory, recursive, &mut entries)?;
+    entries.sort_by(|left, right| natural_cmp(&left.0, &right.0));
+    let pages = entries
+        .into_iter()
+        .map(|(name, path, media_type)| PageSource {
+            index: 0,
+            name,
+            media_type,
+            location: Location::File(path),
+        })
+        .collect();
+    finalize_entries(pages)
+}
+
+/// Whether `directory` holds at least one page image, searched the requested
+/// way: directly inside it (`recursive == false`) or at any depth.
+///
+/// Unlike [`list_directory_pages`] this reports an empty listing instead of
+/// failing, so callers can ask "are there pages here?" while classifying an
+/// input tree.
+#[must_use = "the answer decides how the input is classified"]
+pub fn has_pages(directory: &Path, recursive: bool) -> bool {
     let mut entries = Vec::new();
+    collect_pages(directory, directory, recursive, &mut entries).is_ok() && !entries.is_empty()
+}
+
+/// Collects the pages of `directory`, descending into it when `recursive`.
+fn collect_pages(
+    root: &Path,
+    directory: &Path,
+    recursive: bool,
+    entries: &mut Vec<(String, PathBuf, &'static str)>,
+) -> Result<()> {
     for entry in std::fs::read_dir(directory)
         .with_context(|| format!("failed to read {}", directory.display()))?
     {
         let entry = entry.with_context(|| format!("failed to read {}", directory.display()))?;
         let path = entry.path();
+        // `file_type` does not follow links, so a link to a folder can never
+        // send this walk in circles.
+        if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+            if recursive {
+                collect_pages(root, &path, true, entries)?;
+            }
+            continue;
+        }
         if !path.is_file() {
             continue;
         }
-        let name = entry.file_name().to_string_lossy().into_owned();
-        let Some(media_type) = page_media_type(&name) else {
+        let file_name = entry.file_name().to_string_lossy().into_owned();
+        let Some(media_type) = page_media_type(&file_name) else {
             continue;
         };
-        entries.push(PageSource {
-            index: 0,
-            name,
-            media_type,
-            location: Location::File(path),
-        });
+        // Joined with `/` so a page keeps the same name on every platform,
+        // which the report and the CBZ entry names depend on.
+        let name = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .components()
+            .map(|component| component.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join("/");
+        entries.push((name, path, media_type));
     }
-    entries.sort_by(|left, right| natural_cmp(&left.name, &right.name));
-    finalize_entries(entries)
+    Ok(())
 }
 
 /// Finalizes the reading-order index after sorting.
@@ -176,5 +224,39 @@ mod tests {
         assert_eq!(page_media_type("a.webp"), Some("image/webp"));
         assert_eq!(page_media_type("a.txt"), None);
         assert_eq!(page_media_type("a"), None);
+    }
+
+    #[test]
+    fn recursive_listing_names_pages_after_their_folder() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(directory.path().join("p2.png"), b"x").unwrap();
+        std::fs::write(directory.path().join("notes.txt"), b"x").unwrap();
+        std::fs::create_dir(directory.path().join("sub")).unwrap();
+        std::fs::write(directory.path().join("sub").join("p1.png"), b"x").unwrap();
+
+        let flat = list_directory_pages(directory.path(), false).unwrap();
+        assert_eq!(
+            flat.iter()
+                .map(|page| page.name.as_str())
+                .collect::<Vec<_>>(),
+            ["p2.png"],
+            "subdirectories are skipped by default"
+        );
+
+        let deep = list_directory_pages(directory.path(), true).unwrap();
+        assert_eq!(
+            deep.iter()
+                .map(|page| page.name.as_str())
+                .collect::<Vec<_>>(),
+            ["p2.png", "sub/p1.png"]
+        );
+        assert_eq!(deep[1].index, 1);
+        assert!(matches!(deep[1].location, Location::File(_)));
+    }
+
+    #[test]
+    fn an_empty_directory_still_reports_that_it_has_no_pages() {
+        let directory = tempfile::tempdir().unwrap();
+        assert!(list_directory_pages(directory.path(), true).is_err());
     }
 }

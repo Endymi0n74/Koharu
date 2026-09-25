@@ -13,10 +13,11 @@ consumer GPU with 8 GB of VRAM (for example an RTX 3070).
 
 On top of upstream Koharu, this fork currently adds:
 
-- **Batch CLI (`koharu-batch`)** — translate a whole chapter (folder of images or CBZ) in one
-  unattended command, with natural page ordering, resume support, per-page fault isolation,
-  a VRAM budget guard, and a `--llm auto` model picker that scales up with the GPU (see
-  *Batch mode* below).
+- **Batch CLI (`koharu-batch`)** — translate a whole chapter (folder of images or CBZ) — or a
+  whole volume, one chapter per subfolder and per archive — in one unattended command, with
+  natural page ordering, resume support, per-page fault isolation, retries, a machine-readable
+  `--json` summary, a VRAM budget guard, and a `--llm auto` model picker that scales up with the
+  GPU (see *Batch mode* below).
 - **French typography profile** — `fr-FR` output normalization (guillemets, curly apostrophes,
   narrow no-break spaces) applied before rendering, with stylized lettering preserved
   (see *French typography profile* below).
@@ -172,14 +173,26 @@ Key behaviors:
 - **Natural page ordering** — `page2.png` sorts before `page10.png`, padding is ignored
   (`p01_10.jpg` compares like `p1_10.jpg`), and only images (png/jpg/webp) count as pages.
 - **Resume support** — pages whose output already exists are skipped, so an interrupted run
-  restarts where it stopped; pass `--overwrite` to redo them.
+  restarts where it stopped; pass `--overwrite` to redo them. A resumed `.cbz` output carries
+  the pages it already holds over into the rewritten archive instead of translating them again,
+  relabeling each entry's extension from the bytes it actually contains.
 - **Per-page fault isolation** — a page that fails (bad OCR, corrupted image) is reported and
-  skipped; it does not abort the chapter.
-- **Model-resident stage ordering** — detection runs across the whole chapter, then OCR,
-  then inpainting, then translation: each model loads once per chapter instead of once per
-  page (decisive on 8 GB cards, where the vision and language models cannot coexist).
-  Fault isolation and the per-page report are unchanged, and each output page is written as
-  soon as its own translation finishes.
+  skipped; it does not abort the chapter. Each stage grants `--retries` extra attempts (default
+  `1`) before a page is dropped, so a transient failure does not cost a page the run paid for,
+  and the report is rewritten after every phase and page — an interruption costs the current
+  page at most.
+- **Volume mode** — an input folder with no images at its top level but with subfolders and/or
+  `.cbz` archives is translated as a volume: one chapter per subfolder and per archive, outputs
+  mirrored under `--output`, one report per chapter, and a global summary. The phases run
+  across the whole volume so each model loads once for all of it (see *Volume mode* below).
+- **Progress with ETA** — every phase prints `[i/n] stage · Xs · ETA …` per chapter; `--quiet`
+  keeps failures and the final summary only.
+- **Model-resident stage ordering** — detection runs across every page (of every chapter of a
+  volume), then OCR, then inpainting, then translation: each model loads once per run instead
+  of once per page (decisive on 8 GB cards, where the vision and language models cannot
+  coexist). Fault isolation and the per-page report are unchanged, and each output page is
+  written as soon as its own translation finishes — encoding, writing, and thumbnails run on a
+  worker thread so they overlap the next page's translation.
 - **VRAM budget guard** — the binary queries the GPU (NVML on Windows), caps the budget at
   the VRAM actually free at startup, and refuses to start if the selected model/quantization
   cannot fit; `--llm auto` picks the strongest model that
@@ -197,8 +210,15 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr
 # Same, packaged as a CBZ, letting the tool pick the model for the GPU
 koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
 
-# Inspect what would run (pages, chosen model, VRAM estimate) without executing
+# A whole volume: every subfolder and .cbz of ./series becomes one chapter
+koharu-batch --input ./series --output ./series-fr
+
+# Inspect what would run (pages, chosen model, VRAM estimate, volume rule)
+# without executing
 koharu-batch --input ./chapter-12 --output ./chapter-12-fr --dry-run
+
+# Same, plus a machine-readable plan for scripts
+koharu-batch --input ./series --output ./series-fr --dry-run --json plan.json
 
 # List local models with their VRAM estimates and exit
 koharu-batch --list-models
@@ -238,8 +258,16 @@ Full options (from `koharu-batch --help`): `--input`, `--output`, `--lang` (defa
 `fr-FR`), `--llm` (model id or `auto`), `--quantization`, `--no-vision` (text-only
 translation, skips the vision projector), `--force`, `--vram-budget-mib`,
 `--detection`, `--ocr`, `--inpainting`, `--translation-instructions`, `--format`
-(png/jpg/webp for folder outputs), `--store`, `--report <BASE|none>`, `--list-models`,
-`--reset-calibration`, `--no-calibration`, `--overwrite`, `--dry-run`, `--cpu`.
+(png/jpg/webp for folder outputs), `--store`, `--report <BASE|none>`, `--json <PATH>`,
+`--retries <N>` (extra attempts per stage, default `1`), `--pages <RANGE>` (translate only
+these pages, 1-based, `1-10,15`), `--recursive` (flatten subfolders into one chapter
+instead of the volume rule), `--quiet`, `--list-models`, `--reset-calibration`,
+`--no-calibration`, `--overwrite`, `--dry-run`, `--cpu`.
+
+In a volume, `--pages` applies to **each** chapter (it must fit the smallest one), and
+`--recursive` opts out of the volume rule: the whole tree becomes one chapter with
+relative page names. `--report` follows the same split: one file pair per chapter at
+`<BASE>-<label>.md` / `.html`.
 
 `--lang` picks the target language (default `fr-FR`). English (`--lang en-US`) is a
 solid fallback: every catalog model handles it, and for Japanese or Russian sources it
@@ -253,18 +281,93 @@ operating-system cache (`%LOCALAPPDATA%\koharu\packages` on Windows); `--store <
 points at any other store explicitly. `--dry-run` plans the run (pages, model, VRAM) without
 downloading runtimes or processing pages.
 
-Exit codes: `0` when every page succeeds, non-zero when the
+Exit codes: `0` when every page of every chapter succeeds, non-zero when the
 run cannot start (no pages found, VRAM guard tripped) or when at least one page failed.
+
+### Volume mode
+
+A **volume** is an input folder that holds **no page images at its top level** but does hold
+subfolders and/or `.cbz`/`.zip` archives — the typical layout of a series or a tankōbon:
+
+```text
+series/                    ← no .png/.jpg directly inside
+├── Ch01/                  ← chapter 1 (pages at any depth)
+│   ├── p1.png
+├── Ch02.cbz               ← chapter 2 (an archive is its own chapter)
+└── Ch03/
+```
+
+The rule, printed by every run and by `--dry-run`, is:
+
+- page images at the top level → **one chapter** (the whole folder, subfolders ignored);
+- `--recursive` → **one chapter** flattened from the whole tree;
+- otherwise, with subfolders/archives → **a volume**, chapters in natural order
+  (`Ch01` before `Ch10`), one report per chapter;
+- neither → the run refuses with a message naming both possibilities.
+
+Outputs are mirrored under `--output`: a folder output gets one subfolder per chapter
+(`--output ./out` → `./out/Ch01/p1.png`, …), an archive output becomes a folder of archives
+(`--output out.cbz` → `out/Ch01.cbz`, `out/Ch02.cbz`). Each chapter gets its own report
+(`<CHAPTER-OUTPUT>.md`/`.html`), and the run ends with a global summary listing every
+chapter's translated/skipped/failed counts. The exit code is `0` only when **every page of
+every chapter** succeeded.
+
+Execution is phase-major **across the whole volume**: detection runs over every chapter, then
+OCR, then inpainting, then translation chapter by chapter. Each model therefore loads once
+for the entire volume — the same win as the per-chapter ordering, at volume scale — while
+chapters keep separate sessions so the translator's chapter context never bleeds from one
+chapter into the next. A chapter that is already fully translated (resume) is skipped and
+reported as such without touching its outputs.
+
+### Machine-readable summary (`--json`)
+
+`--json <PATH>` writes a UTF-8 JSON document when the run ends — including dry runs and
+runs where some pages failed — so scripts can consume the outcome without parsing stderr:
+
+```json
+{
+  "ok": true,
+  "volume": false,
+  "dry_run": false,
+  "started_at": "2026-09-25 08:12:00 UTC",
+  "elapsed_seconds": 73.3,
+  "input": "./chapter-12",
+  "output": "./chapter-12-fr",
+  "language": "fr-FR",
+  "model": { "id": "gemma4-e4b-it", "quantization": "Q4_K_XL",
+             "vram_estimate": "4.3 GiB (measured)", "device": "NVIDIA GeForce RTX 3070" },
+  "counts": { "translated": 6, "skipped": 0, "failed": 0, "planned": 0 },
+  "chapters": [
+    { "label": "", "input": "./chapter-12", "output": "./chapter-12-fr",
+      "counts": { "translated": 6, "skipped": 0, "failed": 0, "planned": 0 },
+      "pages": [
+        { "index": 1, "name": "p1.png", "status": "translated",
+          "elapsed_seconds": 11.9, "stages": [{ "stage": "translation", "seconds": 10.9 }],
+          "vram_peak": "5.9 GiB", "error": null }
+      ] }
+  ],
+  "failures": []
+}
+```
+
+`ok` is `false` as soon as one page failed (`failures` then carries every chapter/page/error
+triple). `status` is one of `translated`, `skipped`, `failed`, or `planned` (pages a dry run
+would translate); `index` is the 1-based reading-order position; `counts.planned` is non-zero
+only in a dry run. In a volume, `chapters` holds one entry per chapter with its own paths
+(`label` is empty for a single-chapter run).
 
 ### End-of-run report
 
 After every run (success, resume, or partial failure), `koharu-batch` writes a Markdown and
-an HTML report next to the output: `<OUTPUT-STEM>.md` and `<OUTPUT-STEM>.html`. The report
+an HTML report next to the output: the output path with `.cbz`/`.zip` replaced (when present)
+and `.md` / `.html` appended — `--output ./out` reports to `./out.md`, `--output out.cbz` to
+`out.md`, a volume chapter `./out/Ch01` to `./out/Ch01.md`. The report
 lists every page in reading order with its status (translated / skipped / failed), total
 page duration, per-stage durations (detection, OCR, inpainting, translation), and the full
 error message for failed pages. The HTML report also embeds before/after thumbnails for
 each translated page (small base64 JPEGs, click to zoom), so the chapter can be reviewed
-without opening the output.
+without opening the output. It is rewritten after every phase and page, so an interrupted
+run still leaves the partial report on disk.
 
 The HTML report is keyboard-navigable: `←`/`→` (or `↑`/`↓`) move the selected page
 (highlighted row), `Enter` opens the selected page full screen (press `←`/`→` again to
@@ -286,7 +389,8 @@ Q4_K_P run peaks around 6.0–6.4 GiB above the desktop baseline — slightly mo
 static estimate — so real measurements are worth checking before tightening a budget.
 
 Use `--report <BASE>` to choose a different base path (two files `<BASE>.md` and
-`<BASE>.html` are written), or `--report none` to skip the report entirely.
+`<BASE>.html` are written; a volume writes one pair per chapter at `<BASE>-<label>`), or
+`--report none` to skip the report entirely.
 
 ## French typography profile
 

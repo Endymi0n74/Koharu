@@ -56,14 +56,19 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 > [!TIP]
 > **Batch CLI — `koharu-batch`.** This fork adds a headless CLI that translates whole chapters
 > from the terminal with the same local pipeline: a folder of scans or a CBZ archive in, French
-> pages out (`--lang` to change the target). Pages run **phase-major** — one stage at a time across
-> every chapter, so models load once instead of once per page — the VRAM budget is capped by the
+> pages out (`--lang` to change the target) — or a **whole volume**: point it at a folder of
+> subfolders/archives and each one becomes its own chapter, mirrored under `--output` with one
+> report per chapter. Pages run **phase-major** — one stage at a time across every page (of the
+> whole volume), so models load once instead of once per page — the VRAM budget is capped by the
 > memory actually free, `--no-vision` skips detection/OCR/inpainting for text-only runs, and the
-> process exits 0 only when every page succeeded (ready for CI). It picks the strongest model that
-> fits your GPU budget (warning before a large first download), translates each page with the
-> context of the pages before it, retries segments a response left untranslated, supports
-> page-by-page resume, and writes an end-of-run HTML/Markdown report with before/after page
-> previews. See [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) for the full documentation.
+> process exits 0 only when every page of every chapter succeeded (ready for CI). It picks the
+> strongest model that fits your GPU budget (warning before a large first download), translates
+> each page with the context of the pages before it, retries segments a response left
+> untranslated, supports page-by-page resume (including carried-over pages of an existing output
+> CBZ), and writes an end-of-run HTML/Markdown report with before/after page previews — plus a
+> machine-readable `--json` summary for scripts (`--retries`, `--pages`, `--recursive`,
+> `--quiet` round out the run control). See
+> [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) for the full documentation.
 
 ```bash
 # Preview what would run (pages, model, VRAM) without executing anything
@@ -74,6 +79,12 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr
 
 # A CBZ archive → a CBZ archive, letting the tool pick the model for your GPU
 koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
+
+# A whole volume: every subfolder and .cbz of ./series becomes one chapter
+koharu-batch --input ./series --output ./series-fr
+
+# Machine-readable summary of the run (works with --dry-run too)
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --json run.json
 
 # Text-only run: skip detection, OCR and inpainting
 koharu-batch --input ./chapter-14 --output ./chapter-14-fr --no-vision
