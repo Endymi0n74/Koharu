@@ -6,10 +6,17 @@
 //! between pages, `+`/`-` adjust the thumbnail scale and `Enter` opens the
 //! selected page full screen.
 
-use std::time::Duration;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
+
+use anyhow::{Context as _, Result};
+use serde::{Deserialize, Serialize};
 
 /// Before/after thumbnails of a translated page, as data URIs.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Thumbnails {
     /// Original page thumbnail (`data:image/jpeg;base64,…`).
     pub before: String,
@@ -18,7 +25,7 @@ pub struct Thumbnails {
 }
 
 /// Outcome of one page within the batch run.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub enum PageOutcome {
     /// The page was fully translated and written.
     Translated {
@@ -38,7 +45,7 @@ pub enum PageOutcome {
 }
 
 /// One row of the report.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct PageReport {
     /// Zero-based reading-order position.
     pub index: usize,
@@ -46,6 +53,12 @@ pub struct PageReport {
     pub name: String,
     /// What happened to the page.
     pub outcome: PageOutcome,
+    /// Translated outcome of the run that produced a skipped page's output,
+    /// remembered by the report state (see [`save_state`]) so a resumed run
+    /// rewrites the row with the original durations and thumbnails instead
+    /// of an empty one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous: Option<Box<PageOutcome>>,
 }
 
 impl PageReport {
@@ -56,8 +69,110 @@ impl PageReport {
             index,
             name: name.into(),
             outcome: PageOutcome::Failed(error.into()),
+            previous: None,
         }
     }
+
+    /// A skipped page's row (resume); [`PageReport::remembering`] fills its
+    /// `previous` field from the history.
+    #[must_use]
+    pub fn skipped(index: usize, name: impl Into<String>) -> Self {
+        Self {
+            index,
+            name: name.into(),
+            outcome: PageOutcome::Skipped,
+            previous: None,
+        }
+    }
+
+    /// This row with `previous` set to the translated outcome `history`
+    /// remembers for it: a resumed run's skipped rows keep the durations,
+    /// stage breakdown and thumbnails of the run that wrote their output.
+    /// A renamed page (or one whose recorded run never translated it) is
+    /// left bare rather than paired with the wrong data.
+    #[must_use]
+    pub fn remembering(mut self, history: &[PageReport]) -> Self {
+        self.previous = history
+            .iter()
+            .find(|row| row.index == self.index && row.name == self.name)
+            .and_then(Self::translated)
+            .map(|outcome| Box::new(outcome.clone()));
+        self
+    }
+
+    /// The translated outcome a stored row holds — its own, or one a resume
+    /// carried into its skipped row.
+    fn translated(row: &PageReport) -> Option<&PageOutcome> {
+        match &row.outcome {
+            outcome @ PageOutcome::Translated { .. } => Some(outcome),
+            _ => match row.previous.as_deref() {
+                outcome @ Some(PageOutcome::Translated { .. }) => outcome,
+                _ => None,
+            },
+        }
+    }
+
+    /// The outcome to display: a page this run skipped falls back to the
+    /// remembered one, so its row still carries data; every other row shows
+    /// what this run did.
+    #[must_use]
+    pub fn display_outcome(&self) -> &PageOutcome {
+        match &self.outcome {
+            PageOutcome::Skipped => self.previous.as_deref().unwrap_or(&self.outcome),
+            outcome => outcome,
+        }
+    }
+}
+
+/// State file remembering every page's last known outcome across runs:
+/// `<base>.state.json`, rewritten together with the report files so an
+/// interrupted or resumed run always knows what earlier runs produced.
+#[must_use]
+pub fn state_path(base: &Path) -> PathBuf {
+    let mut path = base.as_os_str().to_owned();
+    path.push(".state.json");
+    PathBuf::from(path)
+}
+
+/// The remembered rows of an earlier run, or `None` when there is no state
+/// yet — or it cannot be read, in which case a stale state must never block
+/// the run that follows it.
+pub fn load_state(base: &Path) -> Option<Vec<PageReport>> {
+    let path = state_path(base);
+    let data = fs::read_to_string(&path).ok()?;
+    match serde_json::from_str(&data) {
+        Ok(pages) => Some(pages),
+        Err(error) => {
+            eprintln!(
+                "warning: {} cannot be read ({error}); the previous report data is not reused",
+                path.display()
+            );
+            None
+        }
+    }
+}
+
+/// The state to persist: `pages` (what this run knows) with the rows of
+/// `previous` this run does not know — pages left out by `--pages` — so the
+/// next resume still remembers them.
+#[must_use]
+pub fn merge_state(pages: &[PageReport], previous: &[PageReport]) -> Vec<PageReport> {
+    let mut state = pages.to_vec();
+    for row in previous {
+        if !state.iter().any(|known| known.index == row.index) {
+            state.push(row.clone());
+        }
+    }
+    state.sort_by_key(|row| row.index);
+    state
+}
+
+/// Persists the rows a later resume reads to rebuild its skipped rows.
+pub fn save_state(base: &Path, pages: &[PageReport], previous: &[PageReport]) -> Result<()> {
+    let path = state_path(base);
+    let document = serde_json::to_string(&merge_state(pages, previous))
+        .with_context(|| format!("failed to encode {}", path.display()))?;
+    fs::write(&path, document).with_context(|| format!("failed to write {}", path.display()))
 }
 
 /// End-of-run summary handed to the writers.
@@ -177,21 +292,27 @@ pub fn to_markdown(report: &RunReport) -> String {
         "| # | Page | Statut | Durée | Pic VRAM | Détail |\n|---:|---|---|---:|---|---|\n",
     );
     for page in &report.pages {
-        let detail = match &page.outcome {
+        // A skipped page displays the run the state remembers: its durations,
+        // stage breakdown and thumbnails survive the resume that left it be.
+        let shown = page.display_outcome();
+        let detail = match shown {
             PageOutcome::Translated { stages, .. } => stage_seconds(stages),
             PageOutcome::Skipped => "sortie déjà présente".to_owned(),
             PageOutcome::Failed(error) => escape_markdown_cell(error),
         };
-        let (status, elapsed, vram_peak) = match &page.outcome {
+        let (elapsed, vram_peak) = match shown {
             PageOutcome::Translated {
                 elapsed, vram_peak, ..
             } => (
-                "✅ traduite",
                 seconds(*elapsed),
                 vram_peak.clone().unwrap_or_else(|| "—".to_owned()),
             ),
-            PageOutcome::Skipped => ("⏭️ ignorée", "—".to_owned(), "—".to_owned()),
-            PageOutcome::Failed(_) => ("❌ échec", "—".to_owned(), "—".to_owned()),
+            _ => ("—".to_owned(), "—".to_owned()),
+        };
+        let status = match &page.outcome {
+            PageOutcome::Translated { .. } => "✅ traduite",
+            PageOutcome::Skipped => "⏭️ ignorée",
+            PageOutcome::Failed(_) => "❌ échec",
         };
         document.push_str(&format!(
             "| {} | `{}` | {} | {} | {} | {} |\n",
@@ -357,16 +478,21 @@ pub fn to_html(report: &RunReport) -> String {
     let (translated, skipped, failed) = report.counts();
     let mut rows = String::new();
     for page in &report.pages {
-        let (status_class, status, elapsed, vram_peak, stages_detail, thumbs) = match &page.outcome
-        {
+        let (status_class, status) = match &page.outcome {
+            PageOutcome::Translated { .. } => ("ok", "traduite"),
+            PageOutcome::Skipped => ("skipped", "ignorée"),
+            PageOutcome::Failed(_) => ("failed", "échec"),
+        };
+        // Status comes from this run, the row's data from what the state
+        // remembers: a skipped page keeps the original run's numbers and
+        // before/after previews instead of showing an empty row.
+        let (elapsed, vram_peak, stages_detail, thumbs) = match page.display_outcome() {
             PageOutcome::Translated {
                 elapsed,
                 stages,
                 thumbnails,
                 vram_peak,
             } => (
-                "ok",
-                "traduite",
                 seconds(*elapsed),
                 vram_peak.clone().unwrap_or_else(|| "—".to_owned()),
                 html_escape(&stage_seconds(stages)),
@@ -380,16 +506,12 @@ pub fn to_html(report: &RunReport) -> String {
                 },
             ),
             PageOutcome::Skipped => (
-                "skipped",
-                "ignorée",
                 "—".to_owned(),
                 "—".to_owned(),
                 "sortie déjà présente".to_owned(),
                 "—".to_owned(),
             ),
             PageOutcome::Failed(error) => (
-                "failed",
-                "échec",
                 "—".to_owned(),
                 "—".to_owned(),
                 html_escape(&error.replace('\n', " ")),
@@ -519,12 +641,9 @@ mod tests {
                         }),
                         vram_peak: Some("5.9 GiB".to_owned()),
                     },
+                    previous: None,
                 },
-                PageReport {
-                    index: 1,
-                    name: "002.png".to_owned(),
-                    outcome: PageOutcome::Skipped,
-                },
+                PageReport::skipped(1, "002.png"),
                 PageReport::failed(2, "010.png", "translation failed: model timeout"),
             ],
             total_elapsed: Duration::from_millis(15_000),
@@ -629,5 +748,105 @@ mod tests {
         let leap_day = epoch + std::time::Duration::from_secs(951_782_400);
         // 2000-02-29 00:00:00 UTC
         assert_eq!(format_timestamp_utc(leap_day), "2000-02-29 00:00:00 UTC");
+    }
+
+    fn remembered_translated() -> PageOutcome {
+        PageOutcome::Translated {
+            elapsed: Duration::from_millis(3210),
+            stages: vec![("detection".to_owned(), Duration::from_millis(500))],
+            thumbnails: Some(Thumbnails {
+                before: "data:image/jpeg;base64,QUJPUkVf".to_owned(),
+                after: "data:image/jpeg;base64,QVJFVEVS".to_owned(),
+            }),
+            vram_peak: Some("6.0 GiB".to_owned()),
+        }
+    }
+
+    #[test]
+    fn a_skipped_row_displays_the_run_that_translated_it() {
+        let mut report = sample();
+        report.pages[1] = PageReport::skipped(1, "002.png").remembering(&[PageReport {
+            index: 1,
+            name: "002.png".to_owned(),
+            outcome: remembered_translated(),
+            previous: None,
+        }]);
+
+        let markdown = to_markdown(&report);
+        // Status of this run, numbers of the original one.
+        assert!(
+            markdown.contains("| ⏭️ ignorée | 3.2s | 6.0 GiB |"),
+            "{markdown}"
+        );
+        assert!(markdown.contains("detection 0.5s"));
+        assert!(
+            markdown.contains("1 traduite, 1 ignorée, 1 en échec"),
+            "the counts stay this run's own"
+        );
+
+        let html = to_html(&report);
+        assert!(html.contains("tr class=\"skipped\""));
+        assert!(
+            html.contains("src=\"data:image/jpeg;base64,QUJPUkVf\""),
+            "the original run's thumbnails stay in the rewritten report"
+        );
+        assert!(html.contains("src=\"data:image/jpeg;base64,QVJFVEVS\""));
+    }
+
+    #[test]
+    fn a_renamed_page_is_never_paired_with_stale_data() {
+        let history = [PageReport {
+            index: 0,
+            name: "p1.png".to_owned(),
+            outcome: remembered_translated(),
+            previous: None,
+        }];
+        assert!(
+            PageReport::skipped(0, "p1.png")
+                .remembering(&history)
+                .previous
+                .is_some()
+        );
+        assert!(
+            PageReport::skipped(0, "renamed.png")
+                .remembering(&history)
+                .previous
+                .is_none()
+        );
+        assert!(
+            PageReport::skipped(1, "p1.png")
+                .remembering(&history)
+                .previous
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn the_state_lives_beside_the_report_and_roundtrips() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::create_dir(directory.path().join("Vol")).unwrap();
+        let base = directory.path().join("Vol").join("Ch1.report");
+        assert_eq!(
+            state_path(&base),
+            directory.path().join("Vol/Ch1.report.state.json")
+        );
+        assert!(load_state(&base).is_none(), "no state yet");
+
+        let pages = sample().pages;
+        save_state(&base, &pages, &[]).unwrap();
+        assert_eq!(load_state(&base).unwrap(), pages);
+    }
+
+    #[test]
+    fn the_state_keeps_pages_this_run_left_out() {
+        let pages = sample().pages;
+        // A `--pages` run knows only its first row; the earlier state's other
+        // rows must survive so a later full resume still remembers them.
+        let merged = merge_state(&pages[..1], &pages);
+        assert_eq!(
+            merged.iter().map(|row| row.index).collect::<Vec<_>>(),
+            [0, 1, 2]
+        );
+        assert_eq!(merged[1], pages[1]);
     }
 }
