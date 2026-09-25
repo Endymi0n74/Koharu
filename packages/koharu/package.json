@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "oxlint -c .oxlintrc.json",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {

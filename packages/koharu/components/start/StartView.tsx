@@ -1,11 +1,11 @@
 'use client'
 
-import { Folder, FolderPlus, Plus, Settings, Trash2 } from 'lucide-react'
+import { Folder, FolderOpen, FolderPlus, Plus, Settings, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { call } from '@/lib/backend'
-import { pageKey, pagesKey, projectKey, refresh } from '@/lib/queries'
+import { pageKey, pagesKey, projectKey, refresh, useImportPages } from '@/lib/queries'
 import { useKoharuStore } from '@/lib/store'
 import { commands, type ProjectSummary } from '@koharu/bridge/protocol'
 import {
@@ -31,6 +31,7 @@ export function StartView() {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState<string | null>('list')
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null)
+  const { importPages, importing } = useImportPages()
 
   const reload = useCallback(async () => {
     setBusy('list')
@@ -160,6 +161,19 @@ export function StartView() {
                     {t('start.create')}
                   </Button>
                 </form>
+
+                <Button
+                  type='button'
+                  size='sm'
+                  variant='outline'
+                  className='mt-2 h-9 justify-center gap-1.5 text-[11px]'
+                  disabled={busy !== null || importing}
+                  aria-busy={importing}
+                  onClick={() => importPages('folder')}
+                >
+                  <FolderOpen className='size-3.5' />
+                  {t('start.openFolder')}
+                </Button>
 
                 <p className='mt-auto pt-8 text-[10px] leading-4 text-muted-foreground'>
                   {t('start.storageHint')}

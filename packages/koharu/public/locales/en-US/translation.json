@@ -481,6 +481,7 @@
     "loadingProjects": "Loading projects…",
     "newDescription": "Create a clean workspace for your pages, translations, and exports.",
     "newProject": "New project",
+    "openFolder": "Open a folder…",
     "projectKind": "Koharu project",
     "projectList": "Projects",
     "projectName": "Project name",

@@ -25,6 +25,7 @@ export const resources = {
   'ja-JP': { translation: jaJP },
   'ru-RU': { translation: ruRU },
   'es-ES': { translation: esES },
+  'fr-FR': { translation: frFR },
   'tr-TR': { translation: trTR },
   'ko-KR': { translation: koKR },
   'pt-BR': { translation: ptBR },

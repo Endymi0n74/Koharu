@@ -81,12 +81,42 @@ describe('StartView', () => {
     expect(await screen.findByText('Opened Blue Archive')).toBeInTheDocument()
   })
 
+  it('opens a folder as a project when none is open', async () => {
+    let opened = false
+    vi.spyOn(commands, 'getProject').mockImplementation(async () =>
+      opened
+        ? {
+            name: 'chapitre 12',
+            revision: 0,
+            active_page: null,
+            can_undo: false,
+            can_redo: false,
+          }
+        : null,
+    )
+    vi.spyOn(commands, 'listProjects').mockResolvedValue([])
+    const importFolder = vi.spyOn(commands, 'import').mockImplementation(async () => {
+      opened = true
+      return null
+    })
+    renderProjectFlow()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Open a folder…' }))
+
+    await waitFor(() => expect(importFolder).toHaveBeenCalledWith('folder'))
+    expect(await screen.findByText('Opened chapitre 12')).toBeInTheDocument()
+  })
+
   it('confirms before deleting a managed project', async () => {
     vi.spyOn(commands, 'listProjects')
       .mockResolvedValueOnce([{ name: 'Blue Archive' }])
       .mockResolvedValueOnce([])
     const remove = vi.spyOn(commands, 'deleteProject').mockResolvedValue(null)
-    render(<StartView />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <StartView />
+      </QueryClientProvider>,
+    )
 
     const deleteButton = await screen.findByRole('button', { name: 'Delete Blue Archive' })
     await waitFor(() => expect(deleteButton).toBeEnabled())
