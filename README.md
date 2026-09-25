@@ -56,17 +56,21 @@ Koharu introduit un workflow local-first pour la traduction de manga, en exploit
 > [!TIP]
 > **CLI par lot — `koharu-batch`.** Cette branche ajoute une CLI headless qui traduit des chapitres
 > entiers depuis le terminal avec le même pipeline local : un dossier de scans ou une archive CBZ en
-> entrée, des pages françaises en sortie (`--lang` pour changer la cible). Les pages s'exécutent en
-> mode **phase-major** — une étape à la fois sur tous les chapitres, si bien que les modèles sont
-> chargés une seule fois au lieu d'une fois par page — le budget VRAM est plafonné par la mémoire
-> réellement disponible, `--no-vision` saute la détection, l'OCR et l'inpainting pour les exécutions
-> uniquement textuelles, et le processus ne renvoie le code 0 que si toutes les pages ont réussi
-> (prêt pour la CI). Il choisit le modèle le plus performant qui tient dans le budget de votre GPU
-> (avertissement avant un premier téléchargement important), traduit chaque page avec le contexte des
-> pages précédentes, réessaie les segments qu'une réponse a laissés non traduits, prend en charge la
-> reprise page par page et écrit un rapport HTML/Markdown de fin d'exécution avec des aperçus
-> avant/après des pages. Voir [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) pour la
-> documentation complète.
+> entrée, des pages françaises en sortie (`--lang` pour changer la cible) — ou un **volume entier** :
+> pointez-la vers un dossier de sous-dossiers/archives et chacun devient son propre chapitre, en
+> sortie en miroir sous `--output` avec un rapport par chapitre. Les pages s'exécutent en mode
+> **phase-major** — une étape à la fois sur toutes les pages (de tout le volume), si bien que les
+> modèles sont chargés une seule fois au lieu d'une fois par page — le budget VRAM est plafonné par
+> la mémoire réellement disponible, `--no-vision` saute la détection, l'OCR et l'inpainting pour les
+> exécutions uniquement textuelles, et le processus ne renvoie le code 0 que si toutes les pages de
+> tous les chapitres ont réussi (prêt pour la CI). Il choisit le modèle le plus performant qui tient
+> dans le budget de votre GPU (avertissement avant un premier téléchargement important), traduit
+> chaque page avec le contexte des pages précédentes, réessaie les segments qu'une réponse a laissés
+> non traduits, prend en charge la reprise page par page (y compris les entrées reprises d'une
+> archive CBZ de sortie existante) et écrit un rapport HTML/Markdown de fin d'exécution avec des
+> aperçus avant/après des pages — plus un résumé `--json` lisible par les machines (`--retries`,
+> `--pages`, `--recursive`, `--quiet` complètent le contrôle de l'exécution). Voir
+> [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) pour la documentation complète.
 
 ```bash
 # Preview what would run (pages, model, VRAM) without executing anything
@@ -77,6 +81,12 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr
 
 # A CBZ archive → a CBZ archive, letting the tool pick the model for your GPU
 koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
+
+# A whole volume: every subfolder and .cbz of ./series becomes one chapter
+koharu-batch --input ./series --output ./series-fr
+
+# Machine-readable summary of the run (works with --dry-run too)
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --json run.json
 
 # Text-only run: skip detection, OCR and inpainting
 koharu-batch --input ./chapter-14 --output ./chapter-14-fr --no-vision

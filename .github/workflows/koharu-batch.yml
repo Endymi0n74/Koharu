@@ -36,7 +36,14 @@ jobs:
       - name: Build koharu-batch (release)
         run: cargo build --release --locked -p koharu-pipeline --bin koharu-batch
       - name: Smoke test
-        run: ./target/release/koharu-batch.exe --list-models
+        run: |
+          ./target/release/koharu-batch.exe --list-models
+          ./target/release/koharu-batch.exe --input crates/koharu-ml/benches/fixtures/object_detection --output ${{ runner.temp }}/koharu-dry-run --dry-run --no-calibration --vram-budget-mib 8192
+      - name: Smoke test (volume mode)
+        run: |
+          New-Item -ItemType Directory -Force "${{ runner.temp }}/koharu-volume/ch1" | Out-Null
+          Copy-Item "crates/koharu-ml/benches/fixtures/object_detection/1.jpg" "${{ runner.temp }}/koharu-volume/ch1/page1.jpg"
+          ./target/release/koharu-batch.exe --input "${{ runner.temp }}/koharu-volume" --output "${{ runner.temp }}/koharu-volume-out" --json "${{ runner.temp }}/koharu-volume-out/plan.json" --dry-run --no-calibration --vram-budget-mib 8192
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
