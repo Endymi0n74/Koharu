@@ -108,6 +108,13 @@ CBZ → CBZ, `gemma4-e4b-it`, avant = HEAD `4466b975` (rebuild dans le worktree
 binaire exécuté dans les deux ordres — ordre 1 (11 h 15) : avant (froid) puis après ; ordre 2 :
 après (froid) puis avant. 4 runs, tous exit 0, 50/50 traduites, archives ~202 Mo valides.
 Artefacts : `%TEMP%\koharu-bench\real50-{xafter,xbefore}.*` + `cross-results.txt`.
+**Banc rejouable** : `bun scripts/bench-cross.ts --before <ancien> --after <nouveau>
+--input <cbz|dossier> --store D:/koharu/store` — exécute les 2 ordres, épingle le modèle
+résolu (la dérive de VRAM libre fait changer `auto` en cours de session), refuse tout
+argument hors `--no-calibration`, persiste dans `runs.json` (2 sessions `--orders 1` puis
+`--orders 2` fusionnent) et écrit `summary.md` (résidus par slot froid/chaud + gain
+ordre-neutralisé). `--plan` pour vérifier sans traduire, `--pause` pour le cooldown entre
+les ordres (défaut 600 s).
 
 | Ordre d'exécution | mur | Σétapes | résidu `mur − Σétapes` |
 |---|---:|---:|---:|
