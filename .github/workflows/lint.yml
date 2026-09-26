@@ -56,3 +56,5 @@ jobs:
         run: bun run --filter '@koharu/*' typecheck
       - name: Typecheck scripts (bench-cross, guards)
         run: bunx tsc -p scripts/tsconfig.json
+      - name: Smoke bench-cross (--help)
+        run: bun scripts/bench-cross.ts --help
