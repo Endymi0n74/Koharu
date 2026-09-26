@@ -54,3 +54,5 @@ jobs:
         run: bun run --filter @koharu/app lint
       - name: Typecheck UI
         run: bun run --filter '@koharu/*' typecheck
+      - name: Typecheck scripts (bench-cross, guards)
+        run: bunx tsc -p scripts/tsconfig.json
