@@ -257,6 +257,7 @@ impl ContextParams {
             embeddings_connectors_path,
             vae_path,
             audio_vae_path,
+            audio_encoder_path: ptr::null(),
             taesd_path,
             control_net_path,
             ip_adapter_path,
@@ -290,6 +291,11 @@ impl ContextParams {
             rpc_servers,
             model_args,
             disable_segmented_compute: self.disable_segmented_compute,
+            linear_scale: 0.0,
+            attn_scale: 0.0,
+            tokenizer: ptr::null(),
+            sage_attn: false,
+            conditioning_cache_size: 4,
         };
         Ok(NativeContextParams {
             raw,
@@ -494,11 +500,11 @@ impl TilingParams {
         Ok(sys::sd_tiling_params_t {
             enabled: self.enabled,
             temporal_tiling: self.temporal_tiling,
-            tile_size_x: self.tile_size_x,
-            tile_size_y: self.tile_size_y,
+            tile_size_w: self.tile_size_x,
+            tile_size_h: self.tile_size_y,
             target_overlap: self.target_overlap,
-            rel_size_x: self.relative_size_x,
-            rel_size_y: self.relative_size_y,
+            rel_size_w: self.relative_size_x,
+            rel_size_h: self.relative_size_y,
             extra_tiling_args: strings
                 .add_optional(self.extra_args.as_deref(), "extra_tiling_args")?,
         })
@@ -861,6 +867,7 @@ impl ImageGenerationParams {
             cache,
             hires: hires.raw,
             qwen_image_layers: self.qwen_image_layers,
+            image_preprocess: sys::sd_image_preprocess_params_t { rules: ptr::null() },
             circular_x: self.circular_x,
             circular_y: self.circular_y,
         };
@@ -1100,6 +1107,7 @@ impl VideoGenerationParams {
             video_frames: self.video_frames,
             fps: self.fps,
             vace_strength: self.vace_strength,
+            image_preprocess: sys::sd_image_preprocess_params_t { rules: ptr::null() },
             vae_tiling_params: vae_tiling,
             cache,
             hires: hires.raw,
