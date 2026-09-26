@@ -8,8 +8,11 @@ use std::{
 };
 
 use crate::{
-    Audio, CancelMode, ContextParams, Error, ImageGenerationParams, Result, RgbImage, SampleMethod,
-    Scheduler, Video, VideoGenerationParams, ffi::NativeCall, image::copy_rgb_from_raw, sys,
+    Audio, CancelMode, ContextParams, Error, ImageGenerationParams, Result, RgbImage, RgbaImage,
+    SampleMethod, Scheduler, Video, VideoGenerationParams,
+    ffi::NativeCall,
+    image::{copy_rgb_from_raw, copy_rgba_from_raw},
+    sys,
 };
 
 struct ContextInner {
@@ -105,6 +108,30 @@ impl Context {
             return Err(Error::ImageGenerationFailed);
         }
         output.copy("image")
+    }
+
+    /// Generates one or more owned images, keeping a native alpha channel when
+    /// the model produces one (Qwen Image 2.1 emits RGBA) and synthesizing an
+    /// opaque one for RGB-only models.
+    pub fn generate_image_rgba(
+        &mut self,
+        params: &ImageGenerationParams,
+    ) -> Result<Vec<RgbaImage>> {
+        let native = params.to_native()?;
+        let _call = NativeCall::enter();
+        let mut output = RawImages::default();
+        let succeeded = unsafe {
+            sys::generate_image(
+                self.inner.pointer.as_ptr(),
+                &raw const native.raw,
+                &raw mut output.pointer,
+                &raw mut output.count,
+            )
+        };
+        if !succeeded {
+            return Err(Error::ImageGenerationFailed);
+        }
+        output.copy_rgba("image")
     }
 
     /// Generates owned video frames and optional audio.
@@ -206,6 +233,21 @@ impl RawImages {
         raw_images
             .iter()
             .map(|raw| unsafe { copy_rgb_from_raw(raw) })
+            .collect()
+    }
+
+    pub(crate) fn copy_rgba(&self, kind: &'static str) -> Result<Vec<RgbaImage>> {
+        let count = usize::try_from(self.count).map_err(|_| Error::InvalidNativeOutput { kind })?;
+        if count == 0 || self.pointer.is_null() {
+            return Err(Error::InvalidNativeOutput { kind });
+        }
+        if count > isize::MAX as usize / size_of::<sys::sd_image_t>() {
+            return Err(Error::InvalidNativeOutput { kind });
+        }
+        let raw_images = unsafe { slice::from_raw_parts(self.pointer, count) };
+        raw_images
+            .iter()
+            .map(|raw| unsafe { copy_rgba_from_raw(raw) })
             .collect()
     }
 }
