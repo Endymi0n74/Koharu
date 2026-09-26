@@ -1538,7 +1538,7 @@ mod library_tests {
         );
         assert_eq!(
             library
-                .folder_project_name(Path::new(r"C:\scans\a:b*c"))
+                .folder_project_name(Path::new("/scans/a:b*c"))
                 .unwrap(),
             "a-b-c",
             "characters a file name cannot hold are replaced"
