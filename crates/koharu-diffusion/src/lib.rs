@@ -42,7 +42,7 @@ mod params;
 mod system;
 mod upscaler;
 
-pub use ::image::{GrayImage, RgbImage};
+pub use ::image::{GrayImage, RgbImage, RgbaImage};
 pub use callbacks::{
     GraphEvaluation, LogMessage, Preview, PreviewOptions, Progress,
     clear_graph_evaluation_callback, clear_log_callback, clear_preview_callback,

@@ -1,6 +1,6 @@
 use std::slice;
 
-use ::image::{GrayImage, ImageBuffer, Rgb, RgbImage};
+use ::image::{GrayImage, ImageBuffer, Rgb, RgbImage, RgbaImage};
 
 use crate::{Error, Result, sys};
 
@@ -67,6 +67,33 @@ pub(crate) unsafe fn copy_rgb_from_raw(raw: &sys::sd_image_t) -> Result<RgbImage
     let bytes = unsafe { slice::from_raw_parts(raw.data, len) }.to_vec();
     RgbImage::from_raw(raw.width, raw.height, bytes)
         .ok_or(Error::InvalidNativeOutput { kind: "RGB image" })
+}
+
+pub(crate) unsafe fn copy_rgba_from_raw(raw: &sys::sd_image_t) -> Result<RgbaImage> {
+    if raw.channel != 3 && raw.channel != 4 {
+        return Err(Error::UnexpectedNativeImageChannelCount {
+            expected: 4,
+            actual: raw.channel,
+        });
+    }
+    let len = image_len(raw.width, raw.height, raw.channel)?;
+    if raw.data.is_null() {
+        return Err(Error::InvalidNativeOutput { kind: "RGBA image" });
+    }
+    let bytes = unsafe { slice::from_raw_parts(raw.data, len) };
+    let rgba = if raw.channel == 4 {
+        bytes.to_vec()
+    } else {
+        // RGB-only models still satisfy RGBA consumers: every pixel is opaque.
+        let mut rgba = Vec::with_capacity(len / 3 * 4);
+        for pixel in bytes.chunks_exact(3) {
+            rgba.extend_from_slice(pixel);
+            rgba.push(u8::MAX);
+        }
+        rgba
+    };
+    RgbaImage::from_raw(raw.width, raw.height, rgba)
+        .ok_or(Error::InvalidNativeOutput { kind: "RGBA image" })
 }
 
 pub(crate) unsafe fn rgb_view_from_raw<'a>(raw: &'a sys::sd_image_t) -> Result<RgbImageView<'a>> {
@@ -185,7 +212,7 @@ pub(crate) const fn empty_raw_image() -> sys::sd_image_t {
 mod tests {
     use ::image::RgbImage;
 
-    use super::{copy_rgb_from_raw, raw_rgb_image, rgb_view_from_raw};
+    use super::{copy_rgb_from_raw, copy_rgba_from_raw, raw_rgb_image, rgb_view_from_raw};
     use crate::sys;
 
     #[test]
@@ -213,6 +240,44 @@ mod tests {
         };
         let image = unsafe { copy_rgb_from_raw(&raw) }.unwrap();
         assert_eq!(image.into_raw(), pixels);
+    }
+
+    #[test]
+    fn copies_native_rgba_outputs_unchanged() {
+        let mut pixels = vec![1, 2, 3, 4, 5, 6, 7, 8];
+        let raw = sys::sd_image_t {
+            width: 2,
+            height: 1,
+            channel: 4,
+            data: pixels.as_mut_ptr(),
+        };
+        let image = unsafe { copy_rgba_from_raw(&raw) }.unwrap();
+        assert_eq!(image.into_raw(), pixels);
+    }
+
+    #[test]
+    fn rgb_native_outputs_become_opaque_rgba() {
+        let mut pixels = vec![1, 2, 3, 4, 5, 6];
+        let raw = sys::sd_image_t {
+            width: 2,
+            height: 1,
+            channel: 3,
+            data: pixels.as_mut_ptr(),
+        };
+        let image = unsafe { copy_rgba_from_raw(&raw) }.unwrap();
+        assert_eq!(image.into_raw(), vec![1, 2, 3, 255, 4, 5, 6, 255]);
+    }
+
+    #[test]
+    fn rgba_copy_rejects_unexpected_channel_counts() {
+        let mut pixels = vec![1, 2];
+        let raw = sys::sd_image_t {
+            width: 1,
+            height: 1,
+            channel: 2,
+            data: pixels.as_mut_ptr(),
+        };
+        assert!(unsafe { copy_rgba_from_raw(&raw) }.is_err());
     }
 
     #[test]
