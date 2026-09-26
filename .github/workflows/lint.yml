@@ -31,6 +31,9 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
       - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - name: Path portability (no Windows literals)
+        run: bun scripts/check-path-portability.ts
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt -- --check
       - run: cargo check
