@@ -104,10 +104,12 @@ E2E volume réel (3 chapitres, 4 pages) : 47 s, sorties + rapports par chapitre 
 
 Charge : 50 pages extraites de *Dragon Ball Full Color Vol. 01* (1662×2560 couleur, 31,5 Mo),
 CBZ → CBZ, `gemma4-e4b-it`, avant = HEAD `4466b975` (rebuild dans le worktree
-`koharu-bench-before`), après = worker finalizer. **Banc croisé** (2026-09-25 17 h) : chaque
-binaire exécuté dans les deux ordres — ordre 1 (11 h 15) : avant (froid) puis après ; ordre 2 :
-après (froid) puis avant. 4 runs, tous exit 0, 50/50 traduites, archives ~202 Mo valides.
-Artefacts : `%TEMP%\koharu-bench\real50-{xafter,xbefore}.*` + `cross-results.txt`.
+`koharu-bench-before`), après = worker finalizer. **Banc croisé rejoué par `bench-cross.ts`**
+(2026-09-25 22 h 48 → 09-26 00 h 26 ; binaires reconstruits avec
+`cargo build --release --locked -p koharu-pipeline --bin koharu-batch`) : chaque binaire dans
+les deux ordres (cooldown 600 s). 4 runs, tous exit 0, 50/50 traduites, archives ~202 Mo
+valides, modèle épinglé identique sur les 4 runs ; chiffres ci-dessous régénérés par le script.
+Artefacts : `%TEMP%\koharu-bench-cross\{summary.md,runs.json,o1-*,o2-*}`.
 **Banc rejouable** : `bun scripts/bench-cross.ts --before <ancien> --after <nouveau>
 --input <cbz|dossier> --store D:/koharu/store` — exécute les 2 ordres, épingle le modèle
 résolu (la dérive de VRAM libre fait changer `auto` en cours de session), refuse tout
@@ -118,31 +120,32 @@ les ordres (défaut 600 s).
 
 | Ordre d'exécution | mur | Σétapes | résidu `mur − Σétapes` |
 |---|---:|---:|---:|
-| ordre 1 : avant (froid) → après (chaud) | 1294 → 1083 s | 1261,4 → 1065,8 s | 32,6 → 17,2 s |
-| ordre 2 croisé : après (froid) → avant (chaud) | 1131 → 1108 s | 1114,2 → 1086,5 s | 16,8 → 21,5 s |
+| ordre 1 : avant (froid) → après (chaud) | 1681,8 → 1246,3 s | 1648,1 → 1229,3 s | 33,7 → 17,0 s |
+| ordre 2 croisé : après (froid) → avant (chaud) | 1179,0 → 1205,1 s | 1162,3 → 1183,7 s | 16,7 → 21,4 s |
 
 | Résidu par binaire | 1er exécuté (froid) | 2e exécuté (chaud) | moyenne | par page |
 |---|---|---|---|---|
-| avant `4466b975` | 32,6 s | 21,5 s | 27,1 s | 0,54 s |
-| après (finalizer) | 16,8 s | 17,2 s | 17,0 s | 0,34 s |
+| avant `4466b975` | 33,7 s | 21,4 s | 27,5 s | 0,55 s |
+| après (finalizer) | 16,7 s | 17,0 s | 16,8 s | 0,34 s |
 
-- **Le −211 s brut de l'ordre 1 n'est PAS le gain** : dans l'ordre croisé le signe s'inverse
-  (« après » froid = 1131 s > « avant » chaud = 1108 s). La position domine : les runs en
-  1er (GPU froid) ont Σétapes 1187,8 s en moyenne contre 1076,2 s en 2e (**−112 s de
-  warm-up**), plus la variance run-à-run du LLM (1066 à 1261 s sur les 4 runs).
-- **Gain structurel ordre-neutralisé = −10,1 s** (résidu moyen 27,1 → 17,0 s) ≈ **0,20 s/page**
-  et non −15,4 s : le warm-up gonflait le résidu « avant » de ~11 s (32,6 → 21,5 s), alors que
-  le résidu « après » est stable quel que soit l'ordre (16,8 / 17,2 s). La finalisation
-  (~0,3 s/page : encode PNG du render 1662×2560 + écriture + vignette) sort du chemin
-  critique **et** l'hors-étapes devient prévisible.
-- Σétapes moyennes position-neutralisées : avant 1174,0 s vs après 1090,0 s (−84 s) —
-  direction favorable, mais n=2/cellule : à confirmer avant tout chiffre public.
+- **L'écart brut varie de −435,5 s à −26,1 s selon l'ordre** : l'ordre 1 (avant froid →
+  après chaud) éclate à −435 s, l'ordre croisé (après froid → avant chaud) ne donne que
+  −26 s — session de nuit plus chargée (Σétapes de 1162 à 1648 s sur les 4 runs) et la
+  position domine : runs en 1er = 1405,2 s de Σétapes en moyenne contre 1206,5 s en 2e
+  (**−198,7 s de warm-up**). Aucun de ces écarts bruts n'est le gain.
+- **Gain structurel ordre-neutralisé = −10,7 s** (résidu moyen 27,5 → 16,8 s) ≈ **0,21 s/page**,
+  stable au bruit près (ancien banc manuel : −10,1 s / 0,20 s) : le warm-up gonfle le résidu
+  « avant » (33,7 → 21,4 s) alors que le résidu « après » reste stable quel que soit l'ordre
+  (16,7 / 17,0 s). La finalisation (~0,3 s/page : encode PNG du render 1662×2560 + écriture +
+  vignette) sort du chemin critique **et** l'hors-étapes devient prévisible.
+- Σétapes moyennes position-neutralisées : avant 1415,9 s vs après 1195,8 s (−220,1 s) —
+  direction favorable, mais n=2/cellule et session chargée : à confirmer avant tout chiffre public.
 - Le **render (~2,2 s/page, déduit du gap inline 2,56 s/page) reste sérialisé** dans les deux
   binaires (borrow session) — c'est le plafond annoncé.
 - Ouverture CBZ 1× vs 50× : < 0,1 s sur 50 entrées — invisible, comme prévu.
 - **Argument public** : « ~0,2 s/page de finalisation sortent du chemin critique ;
-  l'hors-étapes tombe à ~17 s par 50 pages et ne dépend plus de l'ordre » — pas « −15 s »
-  ni « −211 s ».
+  l'hors-étapes tombe à ~17 s par 50 pages et ne dépend plus de l'ordre » — pas « −15 s »,
+  « −211 s » ni « −435 s » : ces écarts bruts ne se reproduisent pas.
 
 ## Pièges
 
@@ -155,6 +158,14 @@ les ordres (défaut 600 s).
   relancer (cargo reprend) ou lancer par crate. Build release complet : ~6-10 min.
 - **Chemins Windows pour les runs réels** : passer `--store D:/koharu/store` (pas `/d/...`) au
   binaire release.
+- **Rebuild du binaire de banc** : `cargo build --release` ne build PAS `koharu-batch` (cible
+  hors défaut) — viser `cargo build --release --locked -p koharu-pipeline --bin koharu-batch`,
+  après `cargo clean -p koharu-pipeline --release` (un `clean -p` sans `--release` ne nettoie
+  que le debug et laisse le binaire périmé ; des hash md5 identiques trahissent un binaire
+  hérité). Ne pas builder les deux checkouts dans un target partagé : les artefacts du
+  worktree écrasent ceux de main — le worktree avec son propre `target/` est isolé.
+  `koharu.exe` réclame `libcef.dll` à côté (exit 53 = STATUS_DLL_NOT_FOUND), pas
+  `koharu-batch.exe`.
 - **« Exit code 1 » PowerShell après `git push`** = artefact stderr (git écrit la progression sur
   stderr), pas un échec : la ligne `... main -> main` confirme la réussite.
 - **`koharu/` est son propre dépôt git** (le dépôt `D:\Codex` le voit comme non suivi) :
@@ -172,7 +183,7 @@ les ordres (défaut 600 s).
 | Workflow | Déclencheur | État |
 |---|---|---|
 | `build.yml` / `test.yml` | push `main` | verts |
-| `koharu-batch.yml` | `main` + tag | vert (smoke dry-run + volume ajoutés) |
+| `koharu-batch.yml` | `main` + tag | vert (smoke dry-run + volume ; + smoke `bun scripts/bench-cross.ts --plan` ajouté — validé en local, à confirmer au push) |
 | `lint.yml` | push `main` | **vert localement** (fmt/check/clippy `-D warnings`/UI lint/typecheck tous OK) |
 | `release.yml` | tag `v*` | Windows / Ubuntu / ARM ✅ ; macOS désactivé |
 
