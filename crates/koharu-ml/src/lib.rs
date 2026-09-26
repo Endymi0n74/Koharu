@@ -23,6 +23,7 @@ pub mod paddle_ocr_vl;
 pub mod paddle_ocr_vl_quantized;
 pub mod pp_doclayout_v3;
 pub mod pp_ocr_v6;
+pub mod qwen_image;
 pub mod rorem_mixed;
 pub mod speech_bubble_yolo11n;
 pub mod speech_bubble_yolov8m;
