@@ -379,4 +379,45 @@ describe('smoke --help — CI guard against a broken bench-cross', () => {
       },
     )
   }, 30_000)
+
+  it('fails when the anti-calibration guard itself is broken', () => {
+    let guardLine = 0
+    withMutant(
+      (source) => {
+        const flagList = "const forbidden = ['calibration', '--cpu']"
+        const index = source.split('\n').findIndex((line) => line.includes(flagList))
+        expect(index).toBeGreaterThan(-1)
+        guardLine = index + 1
+        // Drop the closing bracket of the guard's forbidden list: the module
+        // stops parsing, with the failure pointing into the guard block.
+        return source.replace(flagList, "const forbidden = ['calibration', '--cpu'")
+      },
+      (mutant) => {
+        const run = smoke(mutant)
+        expect(run.status).not.toBe(0)
+        expect(run.status).not.toBeNull()
+        // Bun reports the offending `const clash =` line, still inside the
+        // guard block that starts at guardLine.
+        const where = /bench-cross\.ts:(\d+):/.exec(`${run.stdout}${run.stderr}`)
+        expect(where).not.toBeNull()
+        const line = Number(where![1])
+        expect(line).toBeGreaterThanOrEqual(guardLine)
+        expect(line).toBeLessThanOrEqual(guardLine + 8)
+        // The smoke never got as far as printing the usage banner.
+        expect(run.stdout).not.toContain('Cross-over (two-order) wall-time benchmark')
+      },
+    )
+  }, 30_000)
+
+  it('cannot see a guard that silently stops refusing — the unit test does', () => {
+    withMutant(
+      // Structurally valid, semantically dead: `--help` exits before the guard
+      // is ever evaluated, so only `refuses calibration and --cpu flags…`
+      // (unit level) pins the refusal itself.
+      (source) => source.replace('if (clash) {', 'if (false && clash) {'),
+      (mutant) => {
+        expect(smoke(mutant).status).toBe(0)
+      },
+    )
+  }, 30_000)
 })
