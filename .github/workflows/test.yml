@@ -50,3 +50,5 @@ jobs:
       - run: bun install --frozen-lockfile --ignore-scripts
       - name: Run headless Vitest suite
         run: bun run --filter @koharu/app test
+      - name: Run script unit tests (bench-cross)
+        run: bun test scripts/
