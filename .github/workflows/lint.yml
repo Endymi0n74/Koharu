@@ -58,3 +58,5 @@ jobs:
         run: bunx tsc -p scripts/tsconfig.json
       - name: Smoke bench-cross (--help)
         run: bun scripts/bench-cross.ts --help
+      - name: Anti-calibration guard (semantic mutant)
+        run: bun scripts/check-calibration-guard.ts
