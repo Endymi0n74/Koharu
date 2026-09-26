@@ -22,7 +22,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 
-interface Options {
+export interface Options {
   before: string
   after: string
   input: string
@@ -36,7 +36,7 @@ interface Options {
   pin: string[]
 }
 
-interface RunSpec {
+export interface RunSpec {
   tag: string
   order: number
   position: number
@@ -44,7 +44,7 @@ interface RunSpec {
   bin: string
 }
 
-interface RunResult {
+export interface RunResult {
   spec: RunSpec
   wall: number
   endedAt: string
@@ -77,9 +77,9 @@ Options:
 Anything after \`--\` is forwarded to every koharu-batch run (e.g. --llm gemma4-e4b-it).
 Flags touching the calibration file are rejected: bench runs stay --no-calibration.`
 
-function parseOptions(): Options {
+export function parseOptions(argv: string[] = process.argv.slice(2)): Options {
   const { values, positionals } = parseArgs({
-    args: process.argv.slice(2),
+    args: argv,
     options: {
       before: { type: 'string' },
       after: { type: 'string' },
@@ -112,12 +112,17 @@ function parseOptions(): Options {
 
   // The whole bench rests on --no-calibration: refuse anything that could
   // touch vram-calibration.toml. `--cpu` would bench the wrong device.
+  // Flags before `--` land in `values` (parseArgs runs with strict: false),
+  // not in positionals — check both, or they'd be silently dropped instead
+  // of refused.
   const forbidden = ['calibration', '--cpu']
-  const clash = positionals.find(
-    (arg) => forbidden.some((flag) => arg.includes(flag)) && arg !== '--no-calibration',
-  )
+  const clash =
+    positionals.find(
+      (arg) => forbidden.some((flag) => arg.includes(flag)) && arg !== '--no-calibration',
+    ) ?? Object.keys(values).find((key) => ['calibration', 'cpu'].includes(key))
   if (clash) {
-    throw new Error(`refusing to forward ${clash}: every bench run stays --no-calibration (AGENTS.md)`)
+    const flag = clash.startsWith('--') ? clash : `--${clash}`
+    throw new Error(`refusing to forward ${flag}: every bench run stays --no-calibration (AGENTS.md)`)
   }
 
   const pause = Number(values.pause ?? '600')
@@ -149,7 +154,7 @@ function parseOptions(): Options {
   }
 }
 
-function specs(options: Options): RunSpec[] {
+export function specs(options: Options): RunSpec[] {
   const binaries = {
     before: options.before,
     after: options.after,
@@ -411,7 +416,7 @@ function saveRuns(options: Options, model: string, results: RunResult[]): void {
   writeFileSync(runsPath(options), `${JSON.stringify(stored, null, 2)}\n`)
 }
 
-function summarise(options: Options, model: string, results: RunResult[]): string {
+export function summarise(options: Options, model: string, results: RunResult[]): string {
   const lines: string[] = []
   lines.push('# Cross-over bench — koharu-batch')
   lines.push('')
@@ -539,7 +544,10 @@ async function main(): Promise<void> {
   console.log(`\n${summary}\nsummary written to ${summaryPath}`)
 }
 
-main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error)
-  process.exit(1)
-})
+// Importing the module (unit tests) must not launch the bench.
+if (import.meta.main) {
+  main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : error)
+    process.exit(1)
+  })
+}
