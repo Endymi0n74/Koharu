@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { parseOptions, specs, summarise } from './bench-cross'
+import { loadRuns, parseOptions, saveRuns, specs, summarise } from './bench-cross'
 import type { Options, RunResult } from './bench-cross'
 
 const baseArgs = ['--before', '/bin/before', '--after', '/bin/after', '--input', '/data/pages']
@@ -206,4 +209,174 @@ describe('summarise — cross-over summary', () => {
       '2 2nd (warm)',
     ])
   })
+})
+
+describe('loadRuns/saveRuns — session persistence', () => {
+  const model = 'gemma4-e4b-it q4_1'
+  let workdir: string
+  let log: ReturnType<typeof spyOn>
+
+  beforeEach(() => {
+    workdir = mkdtempSync(path.join(tmpdir(), 'koharu-runs-'))
+    // loadRuns narrates what it drops; keep the test output quiet.
+    log = spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    log.mockRestore()
+    rmSync(workdir, { recursive: true, force: true })
+  })
+
+  it('merges an --orders 1 session with a later --orders 2 session', () => {
+    // Session 1: only the first order was run and persisted.
+    const session1 = options(['--orders', '1', '--workdir', workdir])
+    saveRuns(session1, model, [result(1, 1, 'before', 100, 80), result(1, 2, 'after', 70, 60)])
+
+    // Session 2 resumes in the same workdir with the other order.
+    const session2 = options(['--orders', '2', '--workdir', workdir])
+    const resumed = loadRuns(session2, model)
+    expect(resumed.map((run) => run.spec.tag)).toEqual(['o1-before', 'o1-after'])
+
+    // The second order joins in and the merged set feeds the cross-over summary.
+    const merged = [...resumed, result(2, 1, 'after', 85, 70), result(2, 2, 'before', 75, 65)]
+    saveRuns(session2, model, merged)
+    const summary = summarise(options(['--workdir', workdir]), model, merged)
+    expect(summary).toContain('order-neutralised gain')
+  })
+
+  it('keeps the second order when an --orders 2 session is resumed by --orders 1', () => {
+    const first = options(['--orders', '2', '--workdir', workdir])
+    saveRuns(first, model, [result(2, 1, 'after', 85, 70), result(2, 2, 'before', 75, 65)])
+    const back = options(['--orders', '1', '--workdir', workdir])
+    expect(loadRuns(back, model).map((run) => run.spec.tag)).toEqual(['o2-after', 'o2-before'])
+  })
+
+  it('drops stored runs whose tags this invocation is about to re-run', () => {
+    const opts = options(['--workdir', workdir])
+    saveRuns(opts, model, [
+      result(1, 1, 'before', 100, 80),
+      result(1, 2, 'after', 70, 60),
+      result(2, 1, 'after', 85, 70),
+      result(2, 2, 'before', 75, 65),
+    ])
+    // `--orders both` re-runs every tag, so nothing stale survives…
+    expect(loadRuns(opts, model)).toEqual([])
+    // …while a single-order session keeps the other order's runs only.
+    expect(loadRuns(options(['--orders', '1', '--workdir', workdir]), model).map((r) => r.spec.tag)).toEqual([
+      'o2-after',
+      'o2-before',
+    ])
+  })
+
+  it('rejects runs recorded for a different input, binary pair or model', () => {
+    const opts = options(['--workdir', workdir])
+    saveRuns(opts, model, [result(1, 1, 'before', 100, 80)])
+
+    const otherInput = options(['--orders', '1', '--workdir', workdir, '--input', '/data/other'])
+    const otherBefore = options(['--orders', '1', '--workdir', workdir, '--before', '/bin/other'])
+    const otherAfter = options(['--orders', '1', '--workdir', workdir, '--after', '/bin/other'])
+    expect(loadRuns(otherInput, model)).toEqual([])
+    expect(loadRuns(otherBefore, model)).toEqual([])
+    expect(loadRuns(otherAfter, model)).toEqual([])
+    expect(loadRuns(opts, 'other-model q4_k_m')).toEqual([])
+    expect(log).toHaveBeenCalledWith(
+      `ignoring ${path.join(workdir, 'runs.json')}: it records a different input, binary pair or model`,
+    )
+  })
+
+  it('returns nothing when runs.json is missing or unreadable', () => {
+    const opts = options(['--orders', '1', '--workdir', workdir])
+    expect(loadRuns(opts, model)).toEqual([])
+    writeFileSync(path.join(workdir, 'runs.json'), '{ not json')
+    expect(loadRuns(opts, model)).toEqual([])
+    expect(log).toHaveBeenCalledWith(`ignoring unreadable ${path.join(workdir, 'runs.json')}`)
+  })
+
+  it('persists the full experiment fingerprint alongside the results', () => {
+    const opts = options(['--orders', '1', '--workdir', workdir])
+    saveRuns(opts, model, [result(1, 1, 'before', 100, 80)])
+    const stored = JSON.parse(readFileSync(path.join(workdir, 'runs.json'), 'utf8'))
+    expect(stored).toEqual({
+      input: path.resolve('/data/pages'),
+      before,
+      after,
+      model,
+      results: [result(1, 1, 'before', 100, 80)],
+    })
+  })
+})
+
+// The CI smoke step (`bun scripts/bench-cross.ts --help` in lint.yml) only
+// guards the bench if a broken script really makes it fail. These tests run
+// the very same smoke against mutants of the script to pin that contract down.
+describe('smoke --help — CI guard against a broken bench-cross', () => {
+  const scriptPath = path.join(import.meta.dir, 'bench-cross.ts')
+
+  interface SmokeResult {
+    status: number | null
+    stdout: string
+    stderr: string
+  }
+
+  function smoke(target: string): SmokeResult {
+    const run = spawnSync(process.execPath, [target, '--help'], { encoding: 'utf8' })
+    return { status: run.status, stdout: run.stdout, stderr: run.stderr }
+  }
+
+  // Writes a mutated copy of the script to its own temp dir (so relative
+  // imports resolve there) and lets the assertion run against it.
+  function withMutant(mutate: (source: string) => string, assert: (mutant: string) => void): void {
+    const dir = mkdtempSync(path.join(tmpdir(), 'koharu-mutant-'))
+    try {
+      const mutant = path.join(dir, 'bench-cross.ts')
+      writeFileSync(mutant, mutate(readFileSync(scriptPath, 'utf8')))
+      assert(mutant)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }
+
+  it('passes on the intact script', () => {
+    const run = smoke(scriptPath)
+    expect(run.status).toBe(0)
+    expect(run.stdout).toContain('Cross-over (two-order) wall-time benchmark')
+  }, 30_000)
+
+  it('fails on an import that no longer resolves', () => {
+    withMutant(
+      // Keep the shebang on line 1: inserting above it would only test a
+      // syntax error, not module resolution.
+      (source) => source.replace(/^(#![^\n]*\n)/, "$1import './missing-helper.ts'\n"),
+      (mutant) => {
+        const run = smoke(mutant)
+        expect(run.status).not.toBe(0)
+        expect(run.status).not.toBeNull()
+        expect(`${run.stdout}${run.stderr}`).toContain('missing-helper')
+      },
+    )
+  }, 30_000)
+
+  it('fails on a syntax error', () => {
+    withMutant(
+      (source) => `${source}\nconst broken = ;\n`,
+      (mutant) => {
+        const run = smoke(mutant)
+        expect(run.status).not.toBe(0)
+        expect(run.status).not.toBeNull()
+      },
+    )
+  }, 30_000)
+
+  it('fails when the script dies before --help can answer', () => {
+    withMutant(
+      (source) => source.replace('if (values.help) {', 'if (false && values.help) {'),
+      (mutant) => {
+        // Help is unreachable → the parser reports the missing required
+        // options and exits 1 instead of printing the usage banner.
+        const run = smoke(mutant)
+        expect(run.status).not.toBe(0)
+        expect(run.stdout).not.toContain('Cross-over (two-order) wall-time benchmark')
+      },
+    )
+  }, 30_000)
 })

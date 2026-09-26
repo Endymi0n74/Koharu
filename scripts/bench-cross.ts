@@ -377,7 +377,7 @@ function runsPath(options: Options): string {
 
 /// Stored runs from a *different* experiment (other input, binaries or model)
 /// must never blend into this one — they are dropped with a note instead.
-function loadRuns(options: Options, model: string): RunResult[] {
+export function loadRuns(options: Options, model: string): RunResult[] {
   let text: string
   try {
     text = readFileSync(runsPath(options), 'utf8')
@@ -405,7 +405,7 @@ function loadRuns(options: Options, model: string): RunResult[] {
   return stored.results.filter((result) => !rerun.has(result.spec.tag))
 }
 
-function saveRuns(options: Options, model: string, results: RunResult[]): void {
+export function saveRuns(options: Options, model: string, results: RunResult[]): void {
   const stored: StoredRuns = {
     input: options.input,
     before: options.before,
