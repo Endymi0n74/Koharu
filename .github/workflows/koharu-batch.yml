@@ -29,6 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
+      - name: Anti-calibration guard (semantic mutant)
+        run: bun scripts/check-calibration-guard.ts
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: koharu-batch
