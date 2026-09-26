@@ -184,7 +184,7 @@ les ordres (défaut 600 s).
 |---|---|---|
 | `build.yml` / `test.yml` | push `main` | verts |
 | `koharu-batch.yml` | `main` + tag | vert (smoke dry-run + volume ; + smoke `bun scripts/bench-cross.ts --plan` ajouté — validé en local, à confirmer au push) |
-| `lint.yml` | push `main` | **vert localement** (fmt/check/clippy `-D warnings`/UI lint/typecheck tous OK) |
+| `lint.yml` | push `main` | **vert localement** (fmt/check/clippy `-D warnings`/UI lint/typecheck tous OK) + guard `bun scripts/check-path-portability.ts` (bannit les littéraux `Path::new(r"C:\...")` — piège du fix `3cd290b9`) |
 | `release.yml` | tag `v*` | Windows / Ubuntu / ARM ✅ ; macOS désactivé |
 
 **Release = tag `v*` déclenche `release.yml`.** Pousser sur `main` ne publie rien.
