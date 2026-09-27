@@ -15,6 +15,7 @@ use koharu_ml::{
     aot_inpainting::AotInpainting,
     flux2_klein::{Flux2KleinInpaint, Flux2KleinInpaintOptions},
     lama::{InpaintRequest, LaMa},
+    qwen_image::{QwenImageInpaint, QwenImageInpaintOptions},
     rorem_mixed::{DEFAULT_NEGATIVE_PROMPT, DEFAULT_PROMPT, RoremMixed, RoremMixedOptions},
 };
 use koharu_scene::{
@@ -36,6 +37,20 @@ pub struct Flux2KleinConfig {
 }
 
 impl Default for Flux2KleinConfig {
+    fn default() -> Self {
+        Self {
+            prompt: "Remove the text and reconstruct the background.".to_owned(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
+#[serde(default)]
+pub struct QwenImageConfig {
+    pub prompt: String,
+}
+
+impl Default for QwenImageConfig {
     fn default() -> Self {
         Self {
             prompt: "Remove the text and reconstruct the background.".to_owned(),
@@ -75,6 +90,12 @@ impl Processor {
                     "FLUX.2 prompt contains NUL"
                 );
             }
+            InpaintingModel::QwenImage(settings) => {
+                ensure!(
+                    !settings.prompt.contains('\0'),
+                    "Qwen Image 2.1 prompt contains NUL"
+                );
+            }
             InpaintingModel::RoremMixed(settings) => {
                 ensure!(
                     !settings.prompt.contains('\0') && !settings.negative_prompt.contains('\0'),
@@ -98,6 +119,7 @@ impl StageProcessor for Processor {
             InpaintingModel::LaMa {} => "lama",
             InpaintingModel::AotInpainting {} => "aot-inpainting",
             InpaintingModel::Flux2Klein(_) => "flux2-klein",
+            InpaintingModel::QwenImage(_) => "qwen-image",
             InpaintingModel::RoremMixed(_) => "rorem-mixed",
         }
     }
@@ -148,6 +170,10 @@ enum Model {
         model: Arc<Mutex<Flux2KleinInpaint>>,
         config: Flux2KleinConfig,
     },
+    Qwen {
+        model: Arc<Mutex<QwenImageInpaint>>,
+        config: QwenImageConfig,
+    },
     Rorem {
         model: Arc<Mutex<RoremMixed>>,
         config: RoremMixedConfig,
@@ -165,6 +191,10 @@ impl Model {
             )))),
             InpaintingModel::Flux2Klein(config) => Ok(Self::Flux {
                 model: Arc::new(Mutex::new(Flux2KleinInpaint::load(device).await?)),
+                config: config.clone(),
+            }),
+            InpaintingModel::QwenImage(config) => Ok(Self::Qwen {
+                model: Arc::new(Mutex::new(QwenImageInpaint::load(device).await?)),
                 config: config.clone(),
             }),
             InpaintingModel::RoremMixed(config) => Ok(Self::Rorem {
@@ -251,6 +281,34 @@ impl Model {
                                     None,
                                     &DynamicImage::ImageLuma8(mask.clone()),
                                     &Flux2KleinInpaintOptions::default(),
+                                )
+                            },
+                        )
+                    })
+                    .await?,
+                )
+            }
+            Self::Qwen { model, config } => {
+                let model = model.clone();
+                let config = config.clone();
+                (
+                    "qwen-image",
+                    tokio_rayon::spawn(move || -> Result<DynamicImage> {
+                        let model = model
+                            .lock()
+                            .map_err(|_| anyhow!("Qwen Image model lock is poisoned"))?;
+                        inpaint_tiled(
+                            &prepared.image,
+                            &prepared.mask,
+                            &prepared.text_mask,
+                            &prepared.flat_fill_regions,
+                            |image, mask| {
+                                model.inference(
+                                    &config.prompt,
+                                    image,
+                                    None,
+                                    &DynamicImage::ImageLuma8(mask.clone()),
+                                    &QwenImageInpaintOptions::default(),
                                 )
                             },
                         )
@@ -1015,6 +1073,32 @@ mod tests {
 
         assert!(processor.skip(&automatic).unwrap());
         assert!(!processor.skip(&manual).unwrap());
+    }
+
+    #[test]
+    fn qwen_image_rejects_prompts_containing_nul() {
+        let error = Processor::new(
+            InpaintingModel::QwenImage(QwenImageConfig {
+                prompt: "erase\0the text".to_owned(),
+            }),
+            koharu_ml::Device::cpu(),
+        )
+        .err()
+        .expect("a prompt containing NUL must be refused");
+
+        assert!(
+            error
+                .to_string()
+                .contains("Qwen Image 2.1 prompt contains NUL"),
+            "the guard must name the refused prompt: {error}"
+        );
+        assert!(
+            Processor::new(
+                InpaintingModel::QwenImage(QwenImageConfig::default()),
+                koharu_ml::Device::cpu()
+            )
+            .is_ok()
+        );
     }
 
     fn rectangle_region([left, top, right, bottom]: [u32; 4]) -> FlatFillRegion {

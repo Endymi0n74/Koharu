@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use koharu_scene::{Edit, EntityId, Generation, Patch, ProducerId, Snapshot};
 
 pub use detection::KoharuLayoutRFDetrSeg2XLConfig;
-pub use inpainting::{Flux2KleinConfig, RoremMixedConfig};
+pub use inpainting::{Flux2KleinConfig, QwenImageConfig, RoremMixedConfig};
 
 use crate::{Bounds, ImageCache, InpaintingMask, PipelineConfig, Stage};
 
