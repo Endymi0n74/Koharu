@@ -33,7 +33,9 @@ Text, bubble, and panel thresholds control how much evidence each class needs. L
     **LaMa** is the default. **AOT Inpainting** is another direct reconstruction model. Start here for routine lettering removal.
   </Tab>
   <Tab title="Generative">
-    **FLUX.2 Klein** accepts a reconstruction prompt. **RORem Mixed** is manga-focused and exposes positive and negative prompts.
+    **FLUX.2 Klein** accepts a reconstruction prompt. **Qwen Image 2.1** rebuilds masked regions
+    through a native denoise mask and conditions on reference images. **RORem Mixed** is
+    manga-focused and exposes positive and negative prompts.
 
     These choices generally need more runtime data, memory, and time. Describe surrounding artwork and the removal of letters; typeset the translation with text layers.
 
