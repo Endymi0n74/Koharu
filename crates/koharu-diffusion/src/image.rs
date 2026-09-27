@@ -85,8 +85,10 @@ pub(crate) unsafe fn copy_rgba_from_raw(raw: &sys::sd_image_t) -> Result<RgbaIma
         bytes.to_vec()
     } else {
         // RGB-only models still satisfy RGBA consumers: every pixel is opaque.
-        let mut rgba = Vec::with_capacity(len / 3 * 4);
-        for pixel in bytes.chunks_exact(3) {
+        let (pixels, remainder) = bytes.as_chunks::<3>();
+        debug_assert!(remainder.is_empty(), "native RGB buffer is whole pixels");
+        let mut rgba = Vec::with_capacity(pixels.len() * 4);
+        for pixel in pixels {
             rgba.extend_from_slice(pixel);
             rgba.push(u8::MAX);
         }
