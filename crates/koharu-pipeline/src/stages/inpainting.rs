@@ -48,12 +48,16 @@ impl Default for Flux2KleinConfig {
 #[serde(default)]
 pub struct QwenImageConfig {
     pub prompt: String,
+    /// Condition on the neighbouring page's artwork as an extra editing
+    /// reference, so the reconstruction follows the chapter's style.
+    pub reference_neighbor: bool,
 }
 
 impl Default for QwenImageConfig {
     fn default() -> Self {
         Self {
             prompt: "Remove the text and reconstruct the background.".to_owned(),
+            reference_neighbor: true,
         }
     }
 }
@@ -213,6 +217,12 @@ impl Model {
         let original = prepared.original.clone();
         let cleanup = prepared.cleanup.take();
         let cleanup_entity = prepared.cleanup_entity;
+        let reference = match self {
+            Self::Qwen { config, .. } if config.reference_neighbor => {
+                neighbor_reference(&input).await?
+            }
+            _ => None,
+        };
         let (model_name, image) = match self {
             Self::LaMa(model) => {
                 let model = model.clone();
@@ -306,7 +316,7 @@ impl Model {
                                 model.inference(
                                     &config.prompt,
                                     image,
-                                    None,
+                                    reference.as_deref(),
                                     &DynamicImage::ImageLuma8(mask.clone()),
                                     &QwenImageInpaintOptions::default(),
                                 )
@@ -483,6 +493,55 @@ struct InpaintInput {
     mask: GrayImage,
     text_mask: GrayImage,
     flat_fill_regions: Vec<FlatFillRegion>,
+}
+
+/// The page neighbouring `page`: the one before it in reading order, or the
+/// one after it when the page opens the chapter.
+fn neighboring_page(
+    scene: &koharu_scene::Snapshot,
+    page: koharu_scene::EntityId,
+) -> Option<koharu_scene::EntityId> {
+    let pages: Vec<_> = scene.pages().map(|candidate| candidate.id()).collect();
+    let position = pages.iter().position(|candidate| *candidate == page)?;
+    position
+        .checked_sub(1)
+        .map(|previous| pages[previous])
+        .or_else(|| pages.get(position + 1).copied())
+}
+
+/// Neighbouring artwork fed to Qwen Image 2.1 as an editing reference: the
+/// neighbour's cleanup layer once it has been processed, its source image
+/// otherwise. A neighbour too small or too wide to be encoded degrades to
+/// plain inpainting instead of failing the page.
+async fn neighbor_reference(input: &StageInput) -> Result<Option<Arc<DynamicImage>>> {
+    let Some(neighbor) = neighboring_page(&input.scene, input.page) else {
+        return Ok(None);
+    };
+    let cleanup_entity = input.scene.children(neighbor)?.find(|entity| {
+        input
+            .scene
+            .component::<RasterLayer>(*entity)
+            .ok()
+            .flatten()
+            .is_some_and(|layer| layer.kind == RasterLayerKind::Cleanup)
+    });
+    let image = match cleanup_entity {
+        Some(entity) => input.images.get(&input.scene, entity, "source").await?,
+        None => None,
+    };
+    let image = match image {
+        Some(image) => Some(image),
+        None => input.images.get(&input.scene, neighbor, "source").await?,
+    };
+    Ok(image.filter(|image| usable_as_reference(image)))
+}
+
+/// Mirrors the input checks `QwenImageInpaint::inference` applies to
+/// reference images.
+fn usable_as_reference(image: &DynamicImage) -> bool {
+    let long = image.width().max(image.height());
+    let short = image.width().min(image.height());
+    image.width() >= 64 && image.height() >= 64 && f64::from(long) / f64::from(short) <= 8.0
 }
 
 async fn prepare(input: &StageInput) -> Result<InpaintInput> {
@@ -1080,6 +1139,7 @@ mod tests {
         let error = Processor::new(
             InpaintingModel::QwenImage(QwenImageConfig {
                 prompt: "erase\0the text".to_owned(),
+                ..QwenImageConfig::default()
             }),
             koharu_ml::Device::cpu(),
         )
@@ -1099,6 +1159,163 @@ mod tests {
             )
             .is_ok()
         );
+    }
+
+    fn solid_page(gray: u8) -> DynamicImage {
+        DynamicImage::ImageRgb8(image::RgbImage::from_pixel(64, 64, image::Rgb([gray; 3])))
+    }
+
+    fn encode_png(image: &DynamicImage) -> Arc<[u8]> {
+        let mut bytes = Cursor::new(Vec::new());
+        image
+            .write_to(&mut bytes, ImageFormat::Png)
+            .expect("PNG encoding of a test asset succeeds");
+        Arc::<[u8]>::from(bytes.into_inner())
+    }
+
+    fn gray_reference(reference: Option<Arc<DynamicImage>>) -> u8 {
+        let reference = reference.expect("a neighbouring reference image");
+        reference.to_rgb8().get_pixel(0, 0)[0]
+    }
+
+    #[tokio::test]
+    async fn qwen_reference_reads_the_neighbouring_page() {
+        let mut session = koharu_scene::Session::memory().await.unwrap();
+        let mut pages = Vec::new();
+        let patch = session
+            .snapshot()
+            .patch(|edit| {
+                for (label, gray) in [("first", 40_u8), ("second", 120), ("third", 200)] {
+                    let id = edit.add_page(
+                        koharu_scene::PageDraft::new(label, 64.0, 64.0),
+                        koharu_scene::At::End,
+                    )?;
+                    edit.set_asset(
+                        id,
+                        &AssetRole::new("source")?,
+                        AssetInput::new(
+                            encode_png(&solid_page(gray)),
+                            "image/png",
+                            AssetMetadata {
+                                width: Some(64),
+                                height: Some(64),
+                                attributes: BTreeMap::new(),
+                            },
+                        ),
+                    )?;
+                    pages.push(id);
+                }
+                Ok(())
+            })
+            .unwrap();
+        let snapshot = session.commit(patch).await.unwrap().snapshot;
+        let images = Arc::new(crate::ImageCache::default());
+        let input =
+            |page| StageInput::new(snapshot.clone(), page, None, None, images.clone(), None);
+
+        // The opening page falls forward to its follower…
+        assert_eq!(
+            gray_reference(neighbor_reference(&input(pages[0])).await.unwrap()),
+            120
+        );
+        // …a middle page prefers the page that precedes it…
+        assert_eq!(
+            gray_reference(neighbor_reference(&input(pages[1])).await.unwrap()),
+            40
+        );
+        // …and the closing page falls back to its predecessor.
+        assert_eq!(
+            gray_reference(neighbor_reference(&input(pages[2])).await.unwrap()),
+            120
+        );
+
+        // Once the predecessor carries a cleanup layer, that clean artwork is
+        // the reference instead of the text-bearing source.
+        let patch = snapshot
+            .patch(|edit| {
+                let cleanup = edit.add_entity(pages[0], At::Start)?;
+                edit.set(
+                    cleanup,
+                    &RasterLayer {
+                        origin: Origin::User,
+                        name: "Cleanup".to_owned(),
+                        kind: RasterLayerKind::Cleanup,
+                    },
+                )?;
+                edit.set_asset(
+                    cleanup,
+                    &AssetRole::new("source")?,
+                    AssetInput::new(
+                        encode_png(&solid_page(255)),
+                        "image/png",
+                        AssetMetadata {
+                            width: Some(64),
+                            height: Some(64),
+                            attributes: BTreeMap::new(),
+                        },
+                    ),
+                )?;
+                Ok(())
+            })
+            .unwrap();
+        let snapshot = session.commit(patch).await.unwrap().snapshot;
+        let input = |page| StageInput::new(snapshot, page, None, None, images.clone(), None);
+        assert_eq!(
+            gray_reference(neighbor_reference(&input(pages[1])).await.unwrap()),
+            255
+        );
+    }
+
+    #[tokio::test]
+    async fn a_lone_page_has_no_neighbour_reference() {
+        let mut session = koharu_scene::Session::memory().await.unwrap();
+        let mut page = None;
+        let patch = session
+            .snapshot()
+            .patch(|edit| {
+                let id = edit.add_page(
+                    koharu_scene::PageDraft::new("only", 64.0, 64.0),
+                    koharu_scene::At::End,
+                )?;
+                edit.set_asset(
+                    id,
+                    &AssetRole::new("source")?,
+                    AssetInput::new(
+                        encode_png(&solid_page(64)),
+                        "image/png",
+                        AssetMetadata {
+                            width: Some(64),
+                            height: Some(64),
+                            attributes: BTreeMap::new(),
+                        },
+                    ),
+                )?;
+                page = Some(id);
+                Ok(())
+            })
+            .unwrap();
+        let snapshot = session.commit(patch).await.unwrap().snapshot;
+        let input = StageInput::new(
+            snapshot,
+            page.unwrap(),
+            None,
+            None,
+            Arc::new(crate::ImageCache::default()),
+            None,
+        );
+
+        assert!(neighbor_reference(&input).await.unwrap().is_none());
+    }
+
+    #[test]
+    fn reference_images_must_be_encodable() {
+        assert!(usable_as_reference(&solid_page(8)));
+        assert!(!usable_as_reference(&DynamicImage::ImageRgb8(
+            image::RgbImage::new(32, 32)
+        )));
+        assert!(!usable_as_reference(&DynamicImage::ImageRgb8(
+            image::RgbImage::new(2304, 256)
+        )));
     }
 
     fn rectangle_region([left, top, right, bottom]: [u32; 4]) -> FlatFillRegion {
