@@ -4889,6 +4889,7 @@ dependencies = [
  "arc-swap",
  "async-trait",
  "base64 0.23.1",
+ "blake3",
  "clap",
  "dirs 7.0.0",
  "futures",
@@ -4913,6 +4914,7 @@ dependencies = [
  "tokio-rayon",
  "toml",
  "tracing",
+ "tracing-subscriber",
  "windows 0.62.2",
  "zip 8.6.0",
 ]

@@ -1,6 +1,7 @@
 mod detection;
 mod inpainting;
 mod ocr;
+mod ocr_cache;
 mod translation;
 
 use std::{collections::BTreeSet, sync::Arc};
@@ -84,7 +85,7 @@ impl Stages {
     ) -> Result<Self> {
         Ok(Self {
             detection: detection::Processor::new(config.detection()?, device.clone()),
-            ocr: ocr::Processor::new(config.ocr.clone(), device.clone()),
+            ocr: ocr::Processor::new(config.ocr.clone(), config.ocr_cache.clone(), device.clone()),
             translation: translation::Processor::new(config.translation.clone(), translator),
             inpainting: inpainting::Processor::new(config.inpainting()?, device.clone())?,
         })

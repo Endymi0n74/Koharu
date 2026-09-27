@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{Result, bail};
 use koharu_translator::{GenerationConfig, Language, TypographyProfile};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -16,6 +18,11 @@ pub struct PipelineConfig {
     /// Settings for every model are kept independently of the active model.
     /// The active stage fields above only select which profile is used.
     pub processor: ProcessorConfig,
+    /// Batch-only OCR text persistence (`--ocr-cache`). It is never read from
+    /// or written to `pipeline.toml`, and stays out of the TypeScript
+    /// protocol so the app keeps re-running OCR on demand.
+    #[specta(skip)]
+    pub ocr_cache: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -162,6 +169,7 @@ impl<'de> Deserialize<'de> for PipelineConfig {
             translation: file.translation,
             inpainting,
             processor: file.processor,
+            ocr_cache: None,
         })
     }
 }
@@ -176,6 +184,7 @@ impl Default for PipelineConfig {
             translation: TranslationConfig::default(),
             inpainting: InpaintingModel::LaMa {},
             processor: ProcessorConfig::default(),
+            ocr_cache: None,
         }
     }
 }
@@ -463,6 +472,7 @@ mod tests {
                 prompt: "Keep the line art.".to_owned(),
             }),
             processor: ProcessorConfig::default(),
+            ocr_cache: None,
         };
         let document = toml::to_string(&config).unwrap();
         assert!(document.contains("[detection]\nmodel = \"koharu-layout-rfdetr-seg-2xl\""));

@@ -36,6 +36,17 @@ unsafe extern "system" {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // The library reports through `tracing` (OCR cache statistics, retries,
+    // model loads); nothing else installs a subscriber for this process, so
+    // events would be dropped. They join the progress lines on stderr at INFO
+    // level, tunable through RUST_LOG.
+    let filter = tracing_subscriber::EnvFilter::builder()
+        .with_default_directive(tracing::Level::INFO.into())
+        .from_env_lossy();
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .init();
     let arguments = Arguments::parse();
     match run::run(arguments).await {
         // Both paths terminate directly: the native teardown of a GPU run

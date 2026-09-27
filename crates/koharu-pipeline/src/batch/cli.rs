@@ -109,6 +109,17 @@ pub struct Arguments {
     #[arg(long)]
     pub deterministic: bool,
 
+    /// Store OCR text at PATH and reuse it for identical crops on later runs,
+    /// so the translation stage reads the same text every time (OCR inference
+    /// is not bit-stable on the GPU). Defaults to `.ocr-cache.json` inside
+    /// --input, or beside it when --input is a .cbz/.zip archive.
+    #[arg(long, value_name = "PATH", conflicts_with = "no_ocr_cache")]
+    pub ocr_cache: Option<PathBuf>,
+
+    /// Re-run OCR on every page without reading or writing an OCR cache.
+    #[arg(long)]
+    pub no_ocr_cache: bool,
+
     /// Output image format when writing a folder.
     #[arg(long, value_enum, default_value = "png")]
     pub format: FormatChoice,
@@ -388,6 +399,7 @@ pub fn parse_page_range(specification: &str, total: usize) -> Result<Vec<usize>>
 #[must_use]
 pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineConfig {
     PipelineConfig {
+        ocr_cache: ocr_cache_path(arguments),
         detection: match arguments.detection {
             DetectionChoice::KoharuLayoutRFDetrSeg2XL => {
                 DetectionModel::KoharuLayoutRFDetrSeg2XL(KoharuLayoutRFDetrSeg2XLConfig::default())
@@ -433,6 +445,32 @@ pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineCo
         },
         processor: Default::default(),
     }
+}
+
+/// Where `--ocr-cache` persists OCR text: an explicit `--ocr-cache <PATH>`,
+/// `.ocr-cache.json` inside an input directory (beside an input archive), or
+/// `None` with `--no-ocr-cache`.
+pub fn ocr_cache_path(arguments: &Arguments) -> Option<PathBuf> {
+    if arguments.no_ocr_cache {
+        return None;
+    }
+    if let Some(path) = &arguments.ocr_cache {
+        return Some(path.clone());
+    }
+    let input = arguments.input.as_deref()?;
+    let archive = input
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("cbz") || extension.eq_ignore_ascii_case("zip")
+        });
+    Some(if archive {
+        let mut path = input.as_os_str().to_owned();
+        path.push(".ocr-cache.json");
+        PathBuf::from(path)
+    } else {
+        input.join(".ocr-cache.json")
+    })
 }
 
 #[cfg(test)]
@@ -629,4 +667,66 @@ mod tests {
         assert!(matches!(arguments.inpainting, InpaintingChoice::QwenImage));
     }
 
+    #[test]
+    fn the_ocr_cache_defaults_inside_the_input_directory() {
+        let arguments = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
+
+        assert_eq!(
+            ocr_cache_path(&arguments),
+            Some(PathBuf::from("in").join(".ocr-cache.json"))
+        );
+    }
+
+    #[test]
+    fn the_ocr_cache_lands_beside_an_input_archive() {
+        let arguments =
+            Arguments::parse_from(["koharu-batch", "--input", "volume.cbz", "--output", "out"]);
+
+        assert_eq!(
+            ocr_cache_path(&arguments),
+            Some(PathBuf::from("volume.cbz.ocr-cache.json"))
+        );
+    }
+
+    #[test]
+    fn an_explicit_ocr_cache_path_wins_and_no_ocr_cache_disables_it() {
+        let explicit = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--ocr-cache",
+            "elsewhere.json",
+        ]);
+        assert_eq!(
+            ocr_cache_path(&explicit),
+            Some(PathBuf::from("elsewhere.json"))
+        );
+
+        let disabled = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--no-ocr-cache",
+        ]);
+        assert_eq!(ocr_cache_path(&disabled), None);
+
+        assert!(
+            Arguments::try_parse_from([
+                "koharu-batch",
+                "--input",
+                "in",
+                "--output",
+                "out",
+                "--ocr-cache",
+                "cache.json",
+                "--no-ocr-cache",
+            ])
+            .is_err(),
+            "the two cache flags must conflict"
+        );
+    }
 }

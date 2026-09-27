@@ -131,6 +131,7 @@ impl Arguments {
                 }
             },
             processor: Default::default(),
+            ocr_cache: None,
         }
     }
 }
