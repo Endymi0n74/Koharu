@@ -6,8 +6,8 @@ use koharu_config::Config;
 use koharu_pipeline::batch::bootstrap::{image_media_type, initialize_with_retry};
 use koharu_pipeline::{
     Committer, DetectionModel, Flux2KleinConfig, InpaintingModel, KoharuLayoutRFDetrSeg2XLConfig,
-    OcrModel, Operation, Pipeline, PipelineConfig, Progress, Request, RoremMixedConfig, Scope,
-    StageOutput, TranslationConfig,
+    OcrModel, Operation, Pipeline, PipelineConfig, Progress, QwenImageConfig, Request,
+    RoremMixedConfig, Scope, StageOutput, TranslationConfig,
 };
 use koharu_rasterizer::{RasterOptions, Rasterizer};
 use koharu_renderer::Renderer;
@@ -82,6 +82,8 @@ enum InpaintingChoice {
     AotInpainting,
     #[value(name = "flux2-klein")]
     Flux2Klein,
+    #[value(name = "qwen-image")]
+    QwenImage,
     #[value(name = "rorem-mixed")]
     RoremMixed,
 }
@@ -120,6 +122,9 @@ impl Arguments {
                 InpaintingChoice::AotInpainting => InpaintingModel::AotInpainting {},
                 InpaintingChoice::Flux2Klein => {
                     InpaintingModel::Flux2Klein(Flux2KleinConfig::default())
+                }
+                InpaintingChoice::QwenImage => {
+                    InpaintingModel::QwenImage(QwenImageConfig::default())
                 }
                 InpaintingChoice::RoremMixed => {
                     InpaintingModel::RoremMixed(RoremMixedConfig::default())
@@ -243,6 +248,25 @@ mod tests {
         assert!(matches!(
             arguments.pipeline_config().inpainting,
             InpaintingModel::Flux2Klein(_)
+        ));
+    }
+
+    #[test]
+    fn qwen_image_is_selectable_for_inpainting() {
+        let arguments = Arguments::try_parse_from([
+            "run",
+            "--input",
+            "input.png",
+            "--output",
+            "output.png",
+            "--inpainting",
+            "qwen-image",
+        ])
+        .unwrap();
+
+        assert!(matches!(
+            arguments.pipeline_config().inpainting,
+            InpaintingModel::QwenImage(_)
         ));
     }
 }

@@ -15,7 +15,7 @@ use koharu_translator::{GenerationConfig, Language, ModelSelection, Provider, Ty
 
 use crate::{
     DetectionModel, Flux2KleinConfig, InpaintingModel, KoharuLayoutRFDetrSeg2XLConfig, OcrModel,
-    PipelineConfig, RoremMixedConfig, TranslationConfig, vram,
+    PipelineConfig, QwenImageConfig, RoremMixedConfig, TranslationConfig, vram,
 };
 
 #[derive(Debug, Parser)]
@@ -160,6 +160,8 @@ pub enum InpaintingChoice {
     AotInpainting,
     #[value(name = "flux2-klein")]
     Flux2Klein,
+    #[value(name = "qwen-image")]
+    QwenImage,
     #[value(name = "rorem-mixed")]
     RoremMixed,
 }
@@ -409,6 +411,7 @@ pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineCo
             InpaintingChoice::Flux2Klein => {
                 InpaintingModel::Flux2Klein(Flux2KleinConfig::default())
             }
+            InpaintingChoice::QwenImage => InpaintingModel::QwenImage(QwenImageConfig::default()),
             InpaintingChoice::RoremMixed => {
                 InpaintingModel::RoremMixed(RoremMixedConfig::default())
             }
@@ -522,5 +525,20 @@ mod tests {
         ]);
         assert!(forced.no_vision);
         assert_eq!(forced.format.extension(), "jpg");
+    }
+
+    #[test]
+    fn qwen_image_is_a_selectable_inpainting_processor() {
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--inpainting",
+            "qwen-image",
+        ]);
+
+        assert!(matches!(arguments.inpainting, InpaintingChoice::QwenImage));
     }
 }
