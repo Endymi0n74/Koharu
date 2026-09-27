@@ -13,7 +13,7 @@ export type ModelName = PipelineModel['model']
 export const modelOptions = {
   detection: ['koharu-layout-rfdetr-seg-2xl'],
   ocr: ['paddleocr-vl-1.6', 'manga-ocr', 'baberu-ocr', 'hayai-ocr'],
-  inpainting: ['lama', 'aot-inpainting', 'flux2-klein', 'rorem-mixed'],
+  inpainting: ['lama', 'aot-inpainting', 'flux2-klein', 'qwen-image', 'rorem-mixed'],
 } satisfies Record<ModelStage, ModelName[]>
 
 export const modelNames: Record<ModelName, string> = {
@@ -25,6 +25,7 @@ export const modelNames: Record<ModelName, string> = {
   lama: 'LaMa',
   'aot-inpainting': 'AOT Inpainting',
   'flux2-klein': 'FLUX.2 Klein',
+  'qwen-image': 'Qwen Image 2.1',
   'rorem-mixed': 'RORem Mixed',
 }
 
@@ -40,6 +41,8 @@ export function defaultModel(model: ModelName): PipelineModel {
     case 'aot-inpainting':
       return { model }
     case 'flux2-klein':
+      return { model, prompt: 'Remove the text and reconstruct the background.' }
+    case 'qwen-image':
       return { model, prompt: 'Remove the text and reconstruct the background.' }
     case 'rorem-mixed':
       return { model }
@@ -88,6 +91,14 @@ export function replaceStage(
           ...config.processor,
           ...(model.model === 'flux2-klein'
             ? { 'flux2-klein': { prompt: model.prompt ?? undefined } }
+            : {}),
+          ...(model.model === 'qwen-image'
+            ? {
+                'qwen-image': {
+                  prompt: model.prompt ?? undefined,
+                  reference_neighbor: model.reference_neighbor ?? undefined,
+                },
+              }
             : {}),
           ...(model.model === 'rorem-mixed'
             ? {

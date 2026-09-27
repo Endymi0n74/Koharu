@@ -390,6 +390,7 @@
         "negativePrompt": "Prompt negativo",
         "panelThreshold": "Limite de quadro",
         "prompt": "Prompt",
+        "referenceNeighbor": "Referenciar a página vizinha",
         "textThreshold": "Limite de texto"
       },
       "processing": "Processando",

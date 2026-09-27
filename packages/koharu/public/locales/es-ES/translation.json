@@ -390,6 +390,7 @@
         "negativePrompt": "Indicación negativa",
         "panelThreshold": "Umbral de viñeta",
         "prompt": "Indicación",
+        "referenceNeighbor": "Referenciar la página vecina",
         "textThreshold": "Umbral de texto"
       },
       "processing": "Procesando",

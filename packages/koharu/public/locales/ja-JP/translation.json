@@ -390,6 +390,7 @@
         "negativePrompt": "ネガティブプロンプト",
         "panelThreshold": "コマしきい値",
         "prompt": "プロンプト",
+        "referenceNeighbor": "隣のページを参照する",
         "textThreshold": "テキストしきい値"
       },
       "processing": "処理中",

@@ -390,6 +390,7 @@
         "negativePrompt": "Invite négative",
         "panelThreshold": "Seuil des vignettes",
         "prompt": "Invite",
+        "referenceNeighbor": "Se référer à la page voisine",
         "textThreshold": "Seuil du texte"
       },
       "processing": "Traitement",

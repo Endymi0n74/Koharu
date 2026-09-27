@@ -390,6 +390,7 @@
         "negativePrompt": "Negative prompt",
         "panelThreshold": "Panel threshold",
         "prompt": "Prompt",
+        "referenceNeighbor": "Reference the neighbouring page",
         "textThreshold": "Text threshold"
       },
       "processing": "Processing",

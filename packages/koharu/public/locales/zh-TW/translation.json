@@ -390,6 +390,7 @@
         "negativePrompt": "負面提示詞",
         "panelThreshold": "分鏡閾值",
         "prompt": "提示詞",
+        "referenceNeighbor": "參考相鄰頁面",
         "textThreshold": "文字閾值"
       },
       "processing": "正在處理",

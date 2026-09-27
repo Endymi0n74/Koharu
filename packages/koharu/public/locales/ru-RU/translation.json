@@ -390,6 +390,7 @@
         "negativePrompt": "Негативный промпт",
         "panelThreshold": "Порог панели",
         "prompt": "Промпт",
+        "referenceNeighbor": "Ссылаться на соседнюю страницу",
         "textThreshold": "Порог текста"
       },
       "processing": "Обработка",
