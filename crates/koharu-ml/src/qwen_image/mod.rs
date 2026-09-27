@@ -118,6 +118,7 @@ impl QwenImage {
             },
             seed: options.seed,
             batch_count: options.num_images_per_prompt,
+            vae_tiling: self.model.vae_tiling(),
             ..ImageGenerationParams::default()
         })
     }
@@ -273,6 +274,7 @@ impl QwenImageInpaint {
                 seed: options.seed,
                 batch_count: 1,
                 strength,
+                vae_tiling: self.model.vae_tiling(),
                 ..ImageGenerationParams::default()
             })?
             .into_iter()
