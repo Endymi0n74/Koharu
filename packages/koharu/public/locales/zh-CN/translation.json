@@ -387,6 +387,7 @@
         "negativePrompt": "负面提示词",
         "panelThreshold": "分镜阈值",
         "prompt": "提示词",
+        "referenceNeighbor": "参考相邻页面",
         "textThreshold": "文本阈值"
       },
       "processing": "正在处理",

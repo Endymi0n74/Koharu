@@ -387,6 +387,7 @@
         "negativePrompt": "Negatif istem",
         "panelThreshold": "Panel eşiği",
         "prompt": "İstem",
+        "referenceNeighbor": "Komşu sayfayı referans al",
         "textThreshold": "Metin eşiği"
       },
       "processing": "İşleniyor",

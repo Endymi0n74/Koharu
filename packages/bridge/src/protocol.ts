@@ -261,6 +261,8 @@ export type GroupRole = "text";
 export type InpaintingModel = { model: "lama" } | { model: "aot-inpainting" } | {
 	model: "flux2-klein",
 } & Flux2KleinConfig | {
+	model: "qwen-image",
+} & QwenImageConfig | {
 	model: "rorem-mixed",
 } & RoremMixedConfig;
 
@@ -408,6 +410,7 @@ export type Preferences = {
 export type ProcessorConfig = {
 	"koharu-layout-rfdetr-seg-2xl"?: KoharuLayoutRFDetrSeg2XLConfig | null,
 	"flux2-klein"?: Flux2KleinConfig | null,
+	"qwen-image"?: QwenImageConfig | null,
 	"rorem-mixed"?: RoremMixedConfig | null,
 };
 
@@ -441,6 +444,15 @@ export type Quantization = {
 	id: string,
 	name: string,
 	downloaded: boolean,
+};
+
+export type QwenImageConfig = {
+	prompt?: string,
+	/**
+	 *  Condition on the neighbouring page's artwork as an extra editing
+	 *  reference, so the reconstruction follows the chapter's style.
+	 */
+	reference_neighbor?: boolean,
 };
 
 export type RasterLayerKind = "cleanup" | "paint";
