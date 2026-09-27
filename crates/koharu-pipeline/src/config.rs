@@ -3,7 +3,9 @@ use koharu_translator::{GenerationConfig, Language};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use specta::Type;
 
-use crate::stages::{Flux2KleinConfig, KoharuLayoutRFDetrSeg2XLConfig, RoremMixedConfig};
+use crate::stages::{
+    Flux2KleinConfig, KoharuLayoutRFDetrSeg2XLConfig, QwenImageConfig, RoremMixedConfig,
+};
 
 #[derive(Clone, Debug, PartialEq, Type)]
 pub struct PipelineConfig {
@@ -69,6 +71,7 @@ impl Serialize for PipelineConfig {
             InpaintingModel::LaMa {} => "lama",
             InpaintingModel::AotInpainting {} => "aot-inpainting",
             InpaintingModel::Flux2Klein(_) => "flux2-klein",
+            InpaintingModel::QwenImage(_) => "qwen-image",
             InpaintingModel::RoremMixed(_) => "rorem-mixed",
         };
         let mut processor = self.processor.clone();
@@ -79,6 +82,9 @@ impl Serialize for PipelineConfig {
         match &self.inpainting {
             InpaintingModel::Flux2Klein(config) => {
                 processor.flux2_klein.get_or_insert_with(|| config.clone());
+            }
+            InpaintingModel::QwenImage(config) => {
+                processor.qwen_image.get_or_insert_with(|| config.clone());
             }
             InpaintingModel::RoremMixed(config) => {
                 processor.rorem_mixed.get_or_insert_with(|| config.clone());
@@ -137,6 +143,9 @@ impl<'de> Deserialize<'de> for PipelineConfig {
             "aot-inpainting" => InpaintingModel::AotInpainting {},
             "flux2-klein" => {
                 InpaintingModel::Flux2Klein(file.processor.flux2_klein.clone().unwrap_or_default())
+            }
+            "qwen-image" => {
+                InpaintingModel::QwenImage(file.processor.qwen_image.clone().unwrap_or_default())
             }
             "rorem-mixed" => {
                 InpaintingModel::RoremMixed(file.processor.rorem_mixed.clone().unwrap_or_default())
@@ -219,6 +228,12 @@ impl PipelineConfig {
                     .clone()
                     .unwrap_or_else(|| config.clone()),
             )),
+            InpaintingModel::QwenImage(config) => Ok(InpaintingModel::QwenImage(
+                self.processor
+                    .qwen_image
+                    .clone()
+                    .unwrap_or_else(|| config.clone()),
+            )),
             InpaintingModel::RoremMixed(config) => Ok(InpaintingModel::RoremMixed(
                 self.processor
                     .rorem_mixed
@@ -251,6 +266,8 @@ pub struct ProcessorConfig {
     pub koharu_layout_rfdetr_seg_2xl: Option<KoharuLayoutRFDetrSeg2XLConfig>,
     #[serde(rename = "flux2-klein")]
     pub flux2_klein: Option<Flux2KleinConfig>,
+    #[serde(rename = "qwen-image")]
+    pub qwen_image: Option<QwenImageConfig>,
     #[serde(rename = "rorem-mixed")]
     pub rorem_mixed: Option<RoremMixedConfig>,
 }
@@ -284,6 +301,8 @@ pub enum InpaintingModel {
     AotInpainting {},
     #[serde(rename = "flux2-klein")]
     Flux2Klein(Flux2KleinConfig),
+    #[serde(rename = "qwen-image")]
+    QwenImage(QwenImageConfig),
     #[serde(rename = "rorem-mixed")]
     RoremMixed(RoremMixedConfig),
 }
@@ -453,6 +472,36 @@ mod tests {
         assert!(matches!(
             restored.inpainting().unwrap(),
             InpaintingModel::Flux2Klein(config) if config.prompt == "Keep the line art."
+        ));
+    }
+
+    #[test]
+    fn parses_and_round_trips_qwen_image_profiles() {
+        let config = toml::from_str::<PipelineConfig>(
+            r#"
+                [detection]
+                model = "koharu-layout-rfdetr-seg-2xl"
+
+                [inpainting]
+                model = "qwen-image"
+
+                [processor."qwen-image"]
+                prompt = "Erase the lettering."
+            "#,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            config.inpainting().unwrap(),
+            InpaintingModel::QwenImage(config) if config.prompt == "Erase the lettering."
+        ));
+
+        let document = toml::to_string(&config).unwrap();
+        assert!(document.contains("[processor.qwen-image]"));
+        let restored = toml::from_str::<PipelineConfig>(&document).unwrap();
+        assert!(matches!(
+            restored.inpainting().unwrap(),
+            InpaintingModel::QwenImage(config) if config.prompt == "Erase the lettering."
         ));
     }
 }
