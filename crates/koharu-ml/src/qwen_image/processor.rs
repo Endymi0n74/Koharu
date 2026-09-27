@@ -44,7 +44,11 @@ impl Default for QwenImageInpaintOptions {
         Self {
             padding_mask_crop: None,
             strength: 0.8,
-            num_inference_steps: 20,
+            // 14 requested steps sample 12 (stable-diffusion.cpp drops
+            // ceil(steps/10) at this strength). Measured on the RTX 3070:
+            // indistinguishable from 18 sampled steps (same-seed PSNR
+            // 12↔18 ≈ 18↔27) for 17% less inpainting time.
+            num_inference_steps: 14,
             seed: -1,
         }
     }
@@ -306,9 +310,10 @@ mod tests {
     }
 
     #[test]
-    fn defaults_match_upstream_examples() {
+    fn defaults_keep_upstream_strength_with_twelve_sampled_steps() {
         let options = QwenImageInpaintOptions::default();
-        assert_eq!(options.num_inference_steps, 20);
+        // 14 requested steps run 12 sampling iterations at strength 0.8.
+        assert_eq!(options.num_inference_steps, 14);
         assert_eq!(options.strength, 0.8);
         assert_eq!(options.seed, -1);
         assert_eq!(options.padding_mask_crop, None);
