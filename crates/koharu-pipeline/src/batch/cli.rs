@@ -94,6 +94,12 @@ pub struct Arguments {
     #[arg(long, value_enum, default_value = "lama")]
     pub inpainting: InpaintingChoice,
 
+    /// Sampling steps requested from stable-diffusion.cpp for Qwen Image
+    /// inpainting (14 samples 12 at the default strength). Only used with
+    /// --inpainting qwen-image.
+    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    pub qwen_steps: Option<u32>,
+
     /// Extra instructions passed to the translator.
     #[arg(long)]
     pub translation_instructions: Option<String>,
@@ -411,7 +417,10 @@ pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineCo
             InpaintingChoice::Flux2Klein => {
                 InpaintingModel::Flux2Klein(Flux2KleinConfig::default())
             }
-            InpaintingChoice::QwenImage => InpaintingModel::QwenImage(QwenImageConfig::default()),
+            InpaintingChoice::QwenImage => InpaintingModel::QwenImage(QwenImageConfig {
+                num_inference_steps: arguments.qwen_steps,
+                ..QwenImageConfig::default()
+            }),
             InpaintingChoice::RoremMixed => {
                 InpaintingModel::RoremMixed(RoremMixedConfig::default())
             }
@@ -446,6 +455,38 @@ mod tests {
                 "{invalid:?} must be rejected"
             );
         }
+    }
+
+    #[test]
+    fn qwen_steps_is_opt_in_and_parsed_as_a_step_count() {
+        let plain = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
+        assert_eq!(plain.qwen_steps, None);
+
+        let stepped = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--inpainting",
+            "qwen-image",
+            "--qwen-steps",
+            "20",
+        ]);
+        assert_eq!(stepped.qwen_steps, Some(20));
+
+        assert!(
+            Arguments::try_parse_from([
+                "koharu-batch",
+                "--input",
+                "in",
+                "--output",
+                "out",
+                "--qwen-steps",
+                "0",
+            ])
+            .is_err()
+        );
     }
 
     #[test]
@@ -541,4 +582,5 @@ mod tests {
 
         assert!(matches!(arguments.inpainting, InpaintingChoice::QwenImage));
     }
+
 }

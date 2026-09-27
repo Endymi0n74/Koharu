@@ -51,6 +51,9 @@ pub struct QwenImageConfig {
     /// Condition on the neighbouring page's artwork as an extra editing
     /// reference, so the reconstruction follows the chapter's style.
     pub reference_neighbor: bool,
+    /// Sampling steps requested from stable-diffusion.cpp. `None` keeps the
+    /// library default (14 requested, which samples 12 at strength 0.8).
+    pub num_inference_steps: Option<u32>,
 }
 
 impl Default for QwenImageConfig {
@@ -58,6 +61,7 @@ impl Default for QwenImageConfig {
         Self {
             prompt: "Remove the text and reconstruct the background.".to_owned(),
             reference_neighbor: true,
+            num_inference_steps: None,
         }
     }
 }
@@ -313,12 +317,21 @@ impl Model {
                             &prepared.text_mask,
                             &prepared.flat_fill_regions,
                             |image, mask| {
+                                let options = QwenImageInpaintOptions {
+                                    num_inference_steps: config
+                                        .num_inference_steps
+                                        .map(|steps| steps as usize)
+                                        .unwrap_or(
+                                            QwenImageInpaintOptions::default().num_inference_steps,
+                                        ),
+                                    ..QwenImageInpaintOptions::default()
+                                };
                                 model.inference(
                                     &config.prompt,
                                     image,
                                     reference.as_deref(),
                                     &DynamicImage::ImageLuma8(mask.clone()),
-                                    &QwenImageInpaintOptions::default(),
+                                    &options,
                                 )
                             },
                         )

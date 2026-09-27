@@ -524,4 +524,31 @@ mod tests {
             InpaintingModel::QwenImage(config) if !config.reference_neighbor
         ));
     }
+
+    #[test]
+    fn parses_a_qwen_inpainting_step_override() {
+        let config = toml::from_str::<PipelineConfig>(
+            r#"
+                [inpainting]
+                model = "qwen-image"
+
+                [processor."qwen-image"]
+                num_inference_steps = 18
+            "#,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            config.inpainting().unwrap(),
+            InpaintingModel::QwenImage(config) if config.num_inference_steps == Some(18)
+        ));
+
+        let document = toml::to_string(&config).unwrap();
+        assert!(document.contains("num_inference_steps = 18"));
+        let restored = toml::from_str::<PipelineConfig>(&document).unwrap();
+        assert!(matches!(
+            restored.inpainting().unwrap(),
+            InpaintingModel::QwenImage(config) if config.num_inference_steps == Some(18)
+        ));
+    }
 }

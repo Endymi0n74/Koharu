@@ -453,6 +453,11 @@ export type QwenImageConfig = {
 	 *  reference, so the reconstruction follows the chapter's style.
 	 */
 	reference_neighbor?: boolean,
+	/**
+	 *  Sampling steps requested from stable-diffusion.cpp. `None` keeps the
+	 *  library default (14 requested, which samples 12 at strength 0.8).
+	 */
+	num_inference_steps?: number | null,
 };
 
 export type RasterLayerKind = "cleanup" | "paint";
