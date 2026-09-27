@@ -104,6 +104,11 @@ pub struct Arguments {
     #[arg(long)]
     pub translation_instructions: Option<String>,
 
+    /// Reproducible output: translate greedily (temperature 0) so rerunning
+    /// the same chapter renders the same text on every run.
+    #[arg(long)]
+    pub deterministic: bool,
+
     /// Output image format when writing a folder.
     #[arg(long, value_enum, default_value = "png")]
     pub format: FormatChoice,
@@ -405,6 +410,7 @@ pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineCo
             // (attaching the page crop) and in the translator itself.
             generation: GenerationConfig {
                 vision: Some(resolved.vision),
+                temperature: arguments.deterministic.then_some(0.0),
                 ..GenerationConfig::default()
             },
             target_language: arguments.lang,
@@ -455,6 +461,46 @@ mod tests {
                 "{invalid:?} must be rejected"
             );
         }
+    }
+
+    #[test]
+    fn deterministic_translates_greedily() {
+        let resolved = Resolved {
+            model: "gemma4-e2b-it".to_owned(),
+            quantization: "Q4_K_XL".to_owned(),
+            estimate: preset::VramEstimate {
+                bytes: 0,
+                measured: false,
+            },
+            download: 0,
+            vision: true,
+            reasoning: false,
+        };
+
+        let plain = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
+        assert_eq!(
+            pipeline_config(&plain, &resolved)
+                .translation
+                .generation
+                .temperature,
+            None
+        );
+
+        let det = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--deterministic",
+        ]);
+        assert_eq!(
+            pipeline_config(&det, &resolved)
+                .translation
+                .generation
+                .temperature,
+            Some(0.0)
+        );
     }
 
     #[test]
