@@ -1,6 +1,9 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
-use super::{StageInput, StageProcessor, finish, generation};
+use super::{StageInput, StageProcessor, finish, generation, ocr_cache::OcrCache};
 use crate::{ModelCell, OcrModel, scope::geometry_extents};
 use anyhow::{Context as _, Result, anyhow, bail};
 use async_trait::async_trait;
@@ -20,14 +23,18 @@ pub(super) struct Processor {
     config: OcrModel,
     device: koharu_ml::Device,
     model: ModelCell<Model>,
+    /// Text a previous run recorded for identical crops; `None` keeps every
+    /// run independent (`--no-ocr-cache`, and the app by default).
+    cache: Option<Arc<OcrCache>>,
 }
 
 impl Processor {
-    pub(super) fn new(config: OcrModel, device: koharu_ml::Device) -> Self {
+    pub(super) fn new(config: OcrModel, cache: Option<PathBuf>, device: koharu_ml::Device) -> Self {
         Self {
             config,
             device,
             model: ModelCell::new(),
+            cache: cache.map(|path| Arc::new(OcrCache::open(path))),
         }
     }
 }
@@ -54,13 +61,11 @@ impl StageProcessor for Processor {
     }
 
     async fn process(&self, input: StageInput) -> Result<koharu_scene::Patch> {
-        self.model
-            .lock()
-            .await
+        let model = self.model.lock().await;
+        let model = model
             .as_ref()
-            .ok_or_else(|| anyhow!("OCR model is not loaded"))?
-            .run(input)
-            .await
+            .ok_or_else(|| anyhow!("OCR model is not loaded"))?;
+        model.run(input, self.cache.as_deref()).await
     }
 }
 
@@ -89,7 +94,11 @@ impl Model {
         }
     }
 
-    async fn run(&self, input: StageInput) -> Result<koharu_scene::Patch> {
+    async fn run(
+        &self,
+        input: StageInput,
+        cache: Option<&OcrCache>,
+    ) -> Result<koharu_scene::Patch> {
         let model_name = match self {
             Self::Manga(_) => "manga-ocr",
             Self::Baberu(_) => "baberu-ocr",
@@ -136,36 +145,69 @@ impl Model {
                     geometry: geometry.clone(),
                     previous,
                     image: crop.clone(),
+                    key: OcrCache::key(model_name, &crop),
                 });
             }
         }
 
-        let results = match self {
-            Self::Manga(model) => {
-                infer_text(model.clone(), targets, |model, image| {
-                    model.inference(image)
-                })
-                .await?
+        // Identical crops reuse the text a previous run read from them:
+        // OCR inference itself is not bit-stable on the GPU, so replaying the
+        // stored reading is what gives the translation stage the same input
+        // on every run.
+        let mut results = Vec::with_capacity(targets.len());
+        let mut pending = Vec::new();
+        for target in targets {
+            match cache.and_then(|cache| cache.lookup(&target.key)) {
+                Some(text) => results.push(OcrResult::from_target(target, text)),
+                None => pending.push(target),
             }
-            Self::Baberu(model) => {
-                infer_text(model.clone(), targets, |model, image| {
-                    model.inference(image)
-                })
-                .await?
-            }
-            Self::Hayai(model) => {
-                infer_text(model.clone(), targets, |model, image| {
-                    model.inference(image)
-                })
-                .await?
-            }
-            Self::Paddle(model) => {
-                infer_text(model.clone(), targets, |model, image| {
-                    Ok(model.inference(image, PaddleOCRVLTask::Ocr)?.text)
-                })
-                .await?
+        }
+        let hits = results.len();
+        let misses = pending.len();
+        let inferred = if pending.is_empty() {
+            Vec::new()
+        } else {
+            match self {
+                Self::Manga(model) => {
+                    infer_text(model.clone(), pending, |model, image| {
+                        model.inference(image)
+                    })
+                    .await?
+                }
+                Self::Baberu(model) => {
+                    infer_text(model.clone(), pending, |model, image| {
+                        model.inference(image)
+                    })
+                    .await?
+                }
+                Self::Hayai(model) => {
+                    infer_text(model.clone(), pending, |model, image| {
+                        model.inference(image)
+                    })
+                    .await?
+                }
+                Self::Paddle(model) => {
+                    infer_text(model.clone(), pending, |model, image| {
+                        Ok(model.inference(image, PaddleOCRVLTask::Ocr)?.text)
+                    })
+                    .await?
+                }
             }
         };
+        if let Some(cache) = cache {
+            tracing::info!(hits, misses, model = model_name, "ocr cache");
+            if misses > 0 {
+                cache.store(
+                    inferred
+                        .iter()
+                        .map(|result| (result.key.clone(), result.text.clone())),
+                );
+                if let Err(error) = cache.save() {
+                    tracing::warn!(%error, "failed to persist the OCR cache");
+                }
+            }
+        }
+        results.extend(inferred);
 
         let generation = generation(PRODUCER, model_name)?;
         let mut edit = input.scene.edit_as(generation.clone());
@@ -213,6 +255,8 @@ struct OcrTarget {
     geometry: Geometry,
     previous: Option<SourceText>,
     image: DynamicImage,
+    /// Cache key of `image` under the running model.
+    key: String,
 }
 
 struct OcrResult {
@@ -221,6 +265,20 @@ struct OcrResult {
     geometry: Geometry,
     previous: Option<SourceText>,
     text: String,
+    key: String,
+}
+
+impl OcrResult {
+    fn from_target(target: OcrTarget, text: String) -> Self {
+        Self {
+            content: target.content,
+            region: target.region,
+            geometry: target.geometry,
+            previous: target.previous,
+            text,
+            key: target.key,
+        }
+    }
 }
 
 async fn infer_text<M: Send + 'static>(
@@ -235,13 +293,8 @@ async fn infer_text<M: Send + 'static>(
         targets
             .into_iter()
             .map(|target| {
-                Ok(OcrResult {
-                    content: target.content,
-                    region: target.region,
-                    geometry: target.geometry,
-                    previous: target.previous,
-                    text: normalize_ocr_text(inference(&model, &target.image)?),
-                })
+                let text = normalize_ocr_text(inference(&model, &target.image)?);
+                Ok(OcrResult::from_target(target, text))
             })
             .collect()
     })
