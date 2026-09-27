@@ -13,6 +13,8 @@ consumer GPU with 8 GB of VRAM (for example an RTX 3070).
 
 On top of upstream Koharu, this fork currently adds:
 
+- **Qwen Image 2.1 inpainting** — a generative processor that rebuilds masked regions through a
+  native denoise mask, alongside the stable-diffusion.cpp runtime bump that unlocks the model.
 - **Batch CLI (`koharu-batch`)** — translate a whole chapter (folder of images or CBZ) — or a
   whole volume, one chapter per subfolder and per archive — in one unattended command, with
   natural page ordering, resume support, per-page fault isolation, retries, a machine-readable

@@ -152,6 +152,7 @@ L'OCR lit le texte source à partir des zones détectées.
 L'inpainting reconstruit l'image derrière le texte source avant que la traduction ne soit rendue.
 
 - [FLUX.2 Klein](https://huggingface.co/unsloth/FLUX.2-klein-4B-GGUF)
+- [Qwen Image 2.1](https://huggingface.co/leejet/Qwen-Image-2.1-GGUF)
 - [RORem mixed](https://huggingface.co/mayocream/RORem-mixed-GGUF)
 - [LaMa](https://huggingface.co/mayocream/lama-manga)
 - [AOT GAN](https://huggingface.co/mayocream/aot-inpainting)
