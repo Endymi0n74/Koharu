@@ -38,6 +38,7 @@ pub struct QwenImage {
 
 impl QwenImage {
     pub async fn load(device: crate::Device) -> Result<Self> {
+        let started = std::time::Instant::now();
         let (diffusion_model, text_encoder, text_encoder_vision, vae) = tokio::try_join!(
             DIFFUSION_WEIGHTS.resolve(),
             TEXT_ENCODER_WEIGHTS.resolve(),
@@ -54,6 +55,10 @@ impl QwenImage {
                 vae,
             },
         )?;
+        tracing::info!(
+            elapsed = format!("{:.1}s", started.elapsed().as_secs_f32()),
+            "loaded Qwen Image 2.1"
+        );
         Ok(Self { model })
     }
 
@@ -125,6 +130,7 @@ pub struct QwenImageInpaint {
 
 impl QwenImageInpaint {
     pub async fn load(device: crate::Device) -> Result<Self> {
+        let started = std::time::Instant::now();
         let (diffusion_model, text_encoder, text_encoder_vision, vae) = tokio::try_join!(
             DIFFUSION_WEIGHTS.resolve(),
             TEXT_ENCODER_WEIGHTS.resolve(),
@@ -141,6 +147,10 @@ impl QwenImageInpaint {
                 vae,
             },
         )?;
+        tracing::info!(
+            elapsed = format!("{:.1}s", started.elapsed().as_secs_f32()),
+            "loaded Qwen Image 2.1"
+        );
         Ok(Self { model })
     }
 
