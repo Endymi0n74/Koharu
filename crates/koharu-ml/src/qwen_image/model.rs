@@ -6,7 +6,7 @@
 use std::{path::PathBuf, sync::Mutex};
 
 use anyhow::{Context as _, Result, anyhow, ensure};
-use koharu_diffusion::{Context, ContextParams, ImageGenerationParams, RgbaImage};
+use koharu_diffusion::{Context, ContextParams, ImageGenerationParams, RgbaImage, TilingParams};
 
 use crate::Backend;
 
@@ -21,6 +21,8 @@ pub(super) struct ModelPaths {
 #[derive(Debug)]
 pub(super) struct Model {
     context: Mutex<Context>,
+    /// Whether the card lacks headroom for a single-pass VAE decode.
+    low_vram: bool,
 }
 
 impl Model {
@@ -33,7 +35,19 @@ impl Model {
         );
         Ok(Self {
             context: Mutex::new(context),
+            low_vram: device.memory_free < 20 * 1024 * 1024 * 1024,
         })
+    }
+
+    /// Spatial VAE tiling keeps the decode spike inside the graph-cut budget on
+    /// cards without headroom; larger cards decode in a single pass.
+    pub(super) fn vae_tiling(&self) -> TilingParams {
+        TilingParams {
+            enabled: self.low_vram,
+            tile_size_x: 512,
+            tile_size_y: 512,
+            ..TilingParams::default()
+        }
     }
 
     pub fn forward(&self, params: &ImageGenerationParams) -> Result<Vec<RgbaImage>> {
@@ -67,7 +81,15 @@ fn context_params(device: &crate::Device, paths: ModelPaths) -> ContextParams {
         // The text encoder and denoiser run in separate phases. Cards with less
         // headroom keep source parameters in RAM; high-VRAM cards avoid repeated
         // staging by retaining both quantized models on the accelerator.
+        // On constrained cards, cap the managed weight and runner buffers
+        // (text/vision encode included) below the live free VRAM, reserving up
+        // to 2 GiB so transient spikes cannot trip the driver, but never below
+        // 3.5 GiB: the graph cut cannot segment the 8B text encoder any tighter.
         params_backend: (use_accelerator && !keep_parameters_resident).then(|| "*=cpu".to_owned()),
+        max_vram: (use_accelerator && !keep_parameters_resident).then(|| {
+            let free_gib = device.memory_free as f64 / (1024.0 * 1024.0 * 1024.0);
+            format!("{:.2}", (free_gib - 2.0).max(3.5))
+        }),
         ..ContextParams::default()
     }
 }
