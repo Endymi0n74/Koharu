@@ -493,7 +493,8 @@ mod tests {
 
         assert!(matches!(
             config.inpainting().unwrap(),
-            InpaintingModel::QwenImage(config) if config.prompt == "Erase the lettering."
+            InpaintingModel::QwenImage(config)
+                if config.prompt == "Erase the lettering." && config.reference_neighbor
         ));
 
         let document = toml::to_string(&config).unwrap();
@@ -501,7 +502,23 @@ mod tests {
         let restored = toml::from_str::<PipelineConfig>(&document).unwrap();
         assert!(matches!(
             restored.inpainting().unwrap(),
-            InpaintingModel::QwenImage(config) if config.prompt == "Erase the lettering."
+            InpaintingModel::QwenImage(config)
+                if config.prompt == "Erase the lettering." && config.reference_neighbor
+        ));
+
+        let disabled = toml::from_str::<PipelineConfig>(
+            r#"
+                [inpainting]
+                model = "qwen-image"
+
+                [processor."qwen-image"]
+                reference_neighbor = false
+            "#,
+        )
+        .unwrap();
+        assert!(matches!(
+            disabled.inpainting().unwrap(),
+            InpaintingModel::QwenImage(config) if !config.reference_neighbor
         ));
     }
 }
