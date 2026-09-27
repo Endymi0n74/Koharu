@@ -240,6 +240,8 @@ export type GroupRole = "text";
 export type InpaintingModel = { model: "lama" } | { model: "aot-inpainting" } | {
 	model: "flux2-klein",
 } & Flux2KleinConfig | {
+	model: "qwen-image",
+} & QwenImageConfig | {
 	model: "rorem-mixed",
 } & RoremMixedConfig;
 
@@ -387,6 +389,7 @@ export type Preferences = {
 export type ProcessorConfig = {
 	"koharu-layout-rfdetr-seg-2xl"?: KoharuLayoutRFDetrSeg2XLConfig | null,
 	"flux2-klein"?: Flux2KleinConfig | null,
+	"qwen-image"?: QwenImageConfig | null,
 	"rorem-mixed"?: RoremMixedConfig | null,
 };
 
@@ -420,6 +423,15 @@ export type Quantization = {
 	id: string,
 	name: string,
 	downloaded: boolean,
+};
+
+export type QwenImageConfig = {
+	prompt?: string,
+	/**
+	 *  Condition on the neighbouring page's artwork as an extra editing
+	 *  reference, so the reconstruction follows the chapter's style.
+	 */
+	reference_neighbor?: boolean,
 };
 
 export type RasterLayerKind = "cleanup" | "paint";
@@ -482,6 +494,8 @@ export type TranslationConfig = {
 	generation: GenerationConfig,
 	target_language: string,
 	instructions: string | null,
+	/**  Typographic conventions applied to translated text before rendering. */
+	typography: TypographyProfile,
 };
 
 export type TypesettingConfig = {
@@ -500,6 +514,13 @@ export type Typography = {
 	alignment: TextAlignment | null,
 	writing_mode: WritingMode | null,
 };
+
+/**  How translated segments are normalized before rendering and export. */
+export type TypographyProfile = 
+/**  Apply the conventions of the target language when they are known. */
+"Auto" | 
+/**  Keep translated text exactly as the translator produced it. */
+"Off";
 
 export type TypographyUpdate = {
 	layer: EntityId,

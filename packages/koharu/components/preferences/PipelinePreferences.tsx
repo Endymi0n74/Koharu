@@ -20,6 +20,7 @@ import {
   PreferenceSection,
   TextField,
 } from '@/components/preferences/PreferenceFields'
+import { Switch } from '@koharu/ui/components/switch'
 import type { PipelineConfig } from '@koharu/bridge/protocol'
 import {
   Select,
@@ -146,6 +147,26 @@ function ModelOptions({
           value={model.prompt ?? 'Remove the text and reconstruct the background.'}
           onChange={(prompt) => onChange({ ...model, prompt })}
         />
+      )
+    case 'qwen-image':
+      return (
+        <div className='grid gap-3'>
+          <TextField
+            label={t('settings.pipeline.options.prompt')}
+            value={model.prompt ?? 'Remove the text and reconstruct the background.'}
+            onChange={(prompt) => onChange({ ...model, prompt })}
+          />
+          <div className='flex items-center justify-between gap-2 text-[10px] text-muted-foreground'>
+            <span>{t('settings.pipeline.options.referenceNeighbor')}</span>
+            <Switch
+              aria-label={t('settings.pipeline.options.referenceNeighbor')}
+              checked={model.reference_neighbor ?? true}
+              onCheckedChange={(reference_neighbor) =>
+                onChange({ ...model, reference_neighbor })
+              }
+            />
+          </div>
+        </div>
       )
     case 'rorem-mixed':
       return (
