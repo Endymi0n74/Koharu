@@ -61,4 +61,17 @@ The resource monitor in the page rail footer reports process and system memory, 
 
 Start with a moderate local quantization. Smaller files usually need less memory, with a possible quality trade-off. A model that fits on disk can still exceed device memory.
 
+### Qwen Image 2.1 reference measurements
+
+Measured on an NVIDIA GeForce RTX 3070 (8 GB) with the model files &mdash; about 10.4 GB shared by every mode: the Q4_K denoiser, the Q4_K_M text encoder, its vision projector, and the VAE &mdash; already in the OS file cache:
+
+| Qwen Image 2.1                    | Text-to-image 1024&sup2; | Inpainting 1 MP | Inpainting + neighbouring page |
+| --------------------------------- | ------------------------ | --------------- | ------------------------------ |
+| Context load                      | 0.6 s                    | 1.1 s           | 0.6 s                          |
+| Wait until the first sampling step | 9 s                      | 28 s            | 44 s                           |
+| Steady sampling step              | 3.7 s                    | 9.4 s           | 17 s                           |
+| Whole-card memory peak            | 7.2 GiB                  | 7.6 GiB         | 7.5 GiB                        |
+
+Weights page into VRAM on first use, so the context load stays sub-second while the wait until the first step carries the transfer, the prompt encoding, and the first step itself; the first run after a reboot adds the 10.4 GB disk read. The whole-card peak includes 1.5&ndash;2.4 GiB of desktop and browser &mdash; Qwen itself accounts for roughly 5.8&ndash;6.2 GiB &mdash; and inpainting steps run slower because every step is conditioned on the cropped page, plus the neighbouring page when the reference is enabled.
+
 If startup fails, check network access to the package repositories, update the driver, and retry once. Capture the full error if it repeats and follow [troubleshooting](/en/reference/troubleshooting).
