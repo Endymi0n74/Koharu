@@ -4,6 +4,7 @@ use koharu_runtime::{Feature, Hardware, Runtime};
 use tokio::sync::OnceCell;
 
 mod backend;
+pub mod determinism;
 
 pub mod aot_inpainting;
 pub mod baberu_ocr;
