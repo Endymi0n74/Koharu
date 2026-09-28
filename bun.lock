@@ -18,7 +18,7 @@
       "name": "@koharu/bridge",
       "version": "0.1.0",
       "dependencies": {
-        "@tauri-apps/api": "3.0.0-alpha.1",
+        "@tauri-apps/api": "3.0.0-alpha.2",
       },
       "devDependencies": {
         "nodemon": "^3.1.14",
@@ -40,7 +40,7 @@
         "@koharu/ui": "workspace:*",
         "@tanstack/react-query": "^5.102.8",
         "@tanstack/react-virtual": "^3.14.11",
-        "@tauri-apps/api": "3.0.0-alpha.1",
+        "@tauri-apps/api": "3.0.0-alpha.2",
         "@tauri-apps/plugin-opener": "3.0.0-alpha.1",
         "@tauri-apps/plugin-process": "3.0.0-alpha.1",
         "@tauri-apps/plugin-updater": "3.0.0-alpha.1",
@@ -696,7 +696,7 @@
 
     "@tanstack/virtual-core": ["@tanstack/virtual-core@3.17.9", "", {}, "sha512-M8Bzy7CCMvUjRiuoHVH9mRjyUVczRs8v8RcUEphLFGc445ZP4KQ15Y1sLqhQqJi/HgGJrxfCHnEnIX0x9mVrBg=="],
 
-    "@tauri-apps/api": ["@tauri-apps/api@3.0.0-alpha.1", "", {}, "sha512-ZbpbBlsiX/RH4ovDYhpqM3pelFvxi39ZMu+q7fjhn0C6jHP3Rm9gRrMZQL6egqpkevDlWw2waEnh5GOeHEGkQw=="],
+    "@tauri-apps/api": ["@tauri-apps/api@3.0.0-alpha.2", "", {}, "sha512-W5MTTRAsbNqxSO5hf6U6gHwtTfW0ZnEyIWkmn9L6XYWFcSi0n1JtVQAIsJ6EZHLpJkchGEFwSeVBy+IcrtXl4g=="],
 
     "@tauri-apps/plugin-opener": ["@tauri-apps/plugin-opener@3.0.0-alpha.1", "", { "dependencies": { "@tauri-apps/api": "^3.0.0-alpha.1" } }, "sha512-3QTvnEqaVXhDrf5N5rmoghReOc0kuSPHpNDgX6R3oWbOdwQBTCriCb2DIkE6uSukuHKFRCx2bjmHcQbr1Gb6GQ=="],
 
