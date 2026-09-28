@@ -88,6 +88,9 @@ wheels whose index publishes no digest.
 
 The store can grow to tens of gigabytes. Deleting it forces every model and runtime to be
 re-downloaded (several hours on a typical connection), so keep it intact when reinstalling.
+Entries no longer referenced by any model in the code — removed catalog entries, probe runs,
+experiments, runtime releases older than the pinned one — can be listed and removed with
+`koharu-batch --prune` (see *Batch mode* below).
 
 ## Choosing a translation model for 8 GB of VRAM
 
@@ -226,6 +229,9 @@ koharu-batch --input ./series --output ./series-fr --dry-run --json plan.json
 
 # List local models with their VRAM estimates and exit
 koharu-batch --list-models
+
+# List store model directories that no pinned model references anymore
+koharu-batch --prune
 ```
 
 ### Installing the binary outside the repository
@@ -269,7 +275,8 @@ instead of the volume rule), `--quiet`, `--list-models`, `--reset-calibration`,
 `--no-calibration`, `--deterministic` (greedy translation), `--torch-fp32` (fp32 Torch
 models, see *Reproducible sessions*), `--ocr-cache <PATH>` / `--no-ocr-cache` (persist
 OCR text between runs, see *Reproducible sessions*), `--qwen-steps <N>` (Qwen Image
-inpainting sampling steps), `--overwrite`, `--dry-run`, `--cpu`.
+inpainting sampling steps), `--overwrite`, `--dry-run`, `--cpu`, `--prune` /
+`--prune-delete` (store housekeeping, see below).
 
 In a volume, `--pages` applies to **each** chapter (it must fit the smallest one), and
 `--recursive` opts out of the volume rule: the whole tree becomes one chapter with
@@ -291,6 +298,41 @@ downloading runtimes or processing pages.
 
 Exit codes: `0` when every page of every chapter succeeds, non-zero when the
 run cannot start (no pages found, VRAM guard tripped) or when at least one page failed.
+
+### Store housekeeping (`--prune`)
+
+The store keeps one directory per Hugging Face repository under
+`<store>/hugging-face/models` and `.../datasets`, plus one directory per runtime release
+(`packages/llama/b10903`, `packages/torch/v2.13.0.7`, …), and nothing removes those by
+itself: entries left behind by removed catalog models, probe binaries, or older runtimes
+after an update stay on disk with their multi-gigabyte contents.
+
+```bash
+# List every entry nothing in the code references anymore, with its size
+koharu-batch --prune
+
+# Then delete them once the list looks right
+koharu-batch --prune --prune-delete
+```
+
+Three categories are covered:
+
+- **models** — a directory counts as orphaned when **no** model in the code pins a file
+  inside it: the keep-list joins every `model_repository!` pin in `koharu-ml` (all pipeline
+  stages, not only the batch's current picks) with every repository of the translator
+  catalog. A model the batch never invokes — Qwen Image inpainting, the uncensored
+  variants, the small E2B — is therefore kept, because the code can still resolve it.
+- **datasets** — the same rule under `hugging-face/datasets` (the renderer's font
+  repository is pinned and stays).
+- **runtimes** — under `packages/llama`, `packages/torch`, and `packages/diffusion`, every
+  release directory other than the one the current build pins is orphaned: a `b10902`
+  llama.cpp left by last month's binary goes, the pinned `b10903` stays. The `cuda` wheel
+  tree is left untouched.
+
+`--prune` alone never deletes anything; `--prune-delete` performs the deletion. Both exit
+`0` and accept `--store <dir>` like any run. Nothing is lost permanently: if a model later
+needs a deleted artifact, it re-downloads it once, verified against the repository's size
+and SHA-256 as usual.
 
 ### Reproducible sessions
 
