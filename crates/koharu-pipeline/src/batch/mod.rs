@@ -5,5 +5,6 @@ pub mod calibration;
 pub mod cbz;
 pub mod cli;
 pub mod pages;
+pub mod prune;
 pub mod report;
 pub mod run;

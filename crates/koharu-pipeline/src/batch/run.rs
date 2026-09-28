@@ -26,7 +26,7 @@ use serde_json::{Value, json};
 
 use super::cli::{self, Arguments, FormatChoice, gib};
 use super::report::{PageOutcome, PageReport, RunReport, Thumbnails};
-use super::{bootstrap, calibration, cbz, pages, report};
+use super::{bootstrap, calibration, cbz, pages, prune, report};
 use crate::vram::VramSampler;
 use crate::{Committer, Operation, Pipeline, Progress, Request, Scope, Stage, StageOutput};
 
@@ -537,6 +537,41 @@ fn finish_chapter_report(
     )?;
     announce_report(base);
     Ok(())
+}
+
+/// Lists or deletes the Hugging Face model directories of the store that no
+/// pinned model references. Listing is the default — deletion is explicit —
+/// because every deleted entry only re-downloads when a model needs it again.
+fn prune_store(store: &Path, delete: bool) -> Result<i32> {
+    let orphans = prune::orphan_repositories(store)?;
+    if orphans.is_empty() {
+        println!("no orphaned models in {}", store.display());
+        return Ok(0);
+    }
+    let total: u64 = orphans.iter().map(|(_, bytes)| *bytes).sum();
+    for (path, bytes) in &orphans {
+        println!("{:<55} {}", path.display(), prune::gib(*bytes));
+    }
+    println!(
+        "{} orphaned model(s), {} total",
+        orphans.len(),
+        prune::gib(total)
+    );
+    if !delete {
+        println!("pass --prune-delete to remove them");
+        return Ok(0);
+    }
+    let paths = orphans
+        .iter()
+        .map(|(path, _)| path.clone())
+        .collect::<Vec<_>>();
+    let reclaimed = prune::delete_orphans(&paths)?;
+    println!(
+        "deleted {} orphaned model(s), {} reclaimed",
+        paths.len(),
+        prune::gib(reclaimed)
+    );
+    Ok(0)
 }
 
 fn list_models(measurements: &MeasuredPeaks) {
@@ -1725,6 +1760,19 @@ pub async fn run(arguments: Arguments) -> Result<i32> {
     if arguments.list_models {
         list_models(&measurements);
         return Ok(0);
+    }
+    if arguments.prune {
+        let store = arguments
+            .store
+            .clone()
+            .unwrap_or_else(cli::default_store_root);
+        koharu_runtime::Store::configure(&store).with_context(|| {
+            format!(
+                "failed to configure the runtime store at {}",
+                store.display()
+            )
+        })?;
+        return prune_store(store.as_path(), arguments.prune_delete);
     }
     let run_started_at = report::timestamp_now();
     let Some(input_path) = arguments.input.as_deref() else {
