@@ -266,7 +266,10 @@ translation, skips the vision projector), `--force`, `--vram-budget-mib`,
 `--retries <N>` (extra attempts per stage, default `1`), `--pages <RANGE>` (translate only
 these pages, 1-based, `1-10,15`), `--recursive` (flatten subfolders into one chapter
 instead of the volume rule), `--quiet`, `--list-models`, `--reset-calibration`,
-`--no-calibration`, `--overwrite`, `--dry-run`, `--cpu`.
+`--no-calibration`, `--deterministic` (greedy translation), `--torch-fp32` (fp32 Torch
+models, see *Reproducible sessions*), `--ocr-cache <PATH>` / `--no-ocr-cache` (persist
+OCR text between runs, see *Reproducible sessions*), `--qwen-steps <N>` (Qwen Image
+inpainting sampling steps), `--overwrite`, `--dry-run`, `--cpu`.
 
 In a volume, `--pages` applies to **each** chapter (it must fit the smallest one), and
 `--recursive` opts out of the volume rule: the whole tree becomes one chapter with
@@ -288,6 +291,38 @@ downloading runtimes or processing pages.
 
 Exit codes: `0` when every page of every chapter succeeds, non-zero when the
 run cannot start (no pages found, VRAM guard tripped) or when at least one page failed.
+
+### Reproducible sessions
+
+Three flags make a session reproducible — rerunning the same chapter produces the same
+pages — each removing one source of run-to-run drift:
+
+- `--deterministic` translates greedily (temperature 0 instead of the default sampled
+  generation), so the same OCR text always renders the same translation.
+- `--ocr-cache` (on by default, `.ocr-cache.json` inside `--input`) stores the recognized
+  text per crop, so later runs feed the translator the exact same text without re-running
+  OCR inference. `--no-ocr-cache` disables it.
+- `--torch-fp32` runs the Torch models — layout detection and inpainting — in fp32
+  instead of bfloat16. cuBLAS reduces bf16 matrix products through split-K
+  kernels whose accumulation order varies per launch on Ampere and newer GPUs, and this
+  PyTorch build offers no deterministic path for them; fp32 removes that drift, so the
+  detection boxes and inpainting masks (and therefore the OCR crops) come out identical
+  run to run. It does not affect the ggml-based OCR and translation models, which are
+  already bit-stable, nor CPU runs. The cost is roughly doubled VRAM and compute for those
+  stages; on a tight card, expect the VRAM guard to account for it and, if needed, pick a
+  smaller `--llm` quantization to make room.
+
+A fully reproducible chapter run is therefore:
+
+```bash
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
+```
+
+Residual caveat, measured on an RTX 3070: with `--torch-fp32`, cuBLASLt still picks its
+GEMM algorithm per shape from heuristics that can tie-break differently across processes
+(about one run in twelve differed somewhere in the vision stack during testing). That
+residual never changed a detection box or the decoded text across fifteen measured runs;
+pairing the flag with `--ocr-cache` makes the translator's input immune to it regardless.
 
 ### Volume mode
 

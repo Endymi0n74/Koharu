@@ -48,6 +48,17 @@ async fn main() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
     let arguments = Arguments::parse();
+    // Read by `koharu_ml::backend::set_precision` through `var_os`, i.e. by
+    // Rust itself — unlike torch's own `getenv` (whose CUBLAS_WORKSPACE_CONFIG
+    // must be inherited at process creation), so an in-process `set_var` here
+    // is honored by every model loader later in the run.
+    if arguments.torch_fp32 {
+        // Runs once, single-threaded, before any reader could observe it.
+        unsafe {
+            std::env::set_var("KOHARU_TORCH_NO_BF16", "1");
+        }
+        tracing::info!("--torch-fp32: KOHARU_TORCH_NO_BF16=1, Torch models will load in fp32");
+    }
     match run::run(arguments).await {
         // Both paths terminate directly: the native teardown of a GPU run
         // would replace this code with 0xC0000005.

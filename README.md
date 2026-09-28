@@ -70,7 +70,8 @@ Koharu introduit un workflow local-first pour la traduction de manga, en exploit
 > non traduits, prend en charge la reprise page par page (y compris les entrées reprises d'une
 > archive CBZ de sortie existante) et écrit un rapport HTML/Markdown de fin d'exécution avec des
 > aperçus avant/après des pages — plus un résumé `--json` lisible par les machines (`--retries`,
-> `--pages`, `--recursive`, `--quiet` complètent le contrôle de l'exécution). Voir
+> `--pages`, `--recursive`, `--quiet` complètent le contrôle de l'exécution ; `--deterministic`,
+> `--ocr-cache` et `--torch-fp32` rendent une session reproductible d'un run à l'autre). Voir
 > [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) pour la documentation complète.
 
 ```bash
@@ -91,6 +92,12 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr --json run.json
 
 # Text-only run: skip detection, OCR and inpainting
 koharu-batch --input ./chapter-14 --output ./chapter-14-fr --no-vision
+
+# Exécution reproductible : traduction greedy + étapes Torch en fp32 (détection, inpainting)
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
+
+# Reproducible run: greedy translation + fp32 Torch stages (detection, inpainting)
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
 
 # List local models with their VRAM estimates (measured peaks included)
 koharu-batch --list-models

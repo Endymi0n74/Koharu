@@ -68,7 +68,8 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 > untranslated, supports page-by-page resume (including carried-over pages of an existing output
 > CBZ), and writes an end-of-run HTML/Markdown report with before/after page previews — plus a
 > machine-readable `--json` summary for scripts (`--retries`, `--pages`, `--recursive`,
-> `--quiet` round out the run control). See
+> `--quiet` round out the run control; `--deterministic`, `--ocr-cache` and `--torch-fp32`
+> make a session reproducible across runs). See
 > [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) for the full documentation.
 
 ```bash
@@ -89,6 +90,9 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr --json run.json
 
 # Text-only run: skip detection, OCR and inpainting
 koharu-batch --input ./chapter-14 --output ./chapter-14-fr --no-vision
+
+# Reproducible run: greedy translation + fp32 Torch stages (detection, inpainting)
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
 
 # List local models with their VRAM estimates (measured peaks included)
 koharu-batch --list-models
