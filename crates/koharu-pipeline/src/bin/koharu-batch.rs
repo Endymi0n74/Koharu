@@ -48,24 +48,19 @@ async fn main() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
     let arguments = Arguments::parse();
-    // Read by `koharu_ml::backend::set_precision` through `var_os`, i.e. by
-    // Rust itself — unlike torch's own `getenv`, so an in-process `set_var`
-    // here is honored by every model loader later in the run.
+    // cuBLASLt only reads CUBLAS_WORKSPACE_CONFIG from the environment
+    // inherited at process creation, so with --torch-fp32 the binary
+    // transparently restarts itself with it when it was not inherited
+    // (no-op when the variable is already set, for planning-only runs, or
+    // after the first restart). KOHARU_TORCH_NO_BF16 needs no such dance:
+    // `koharu_ml::backend::set_precision` reads it through `var_os`, i.e. by
+    // Rust itself, so an in-process `set_var` is honored by every model
+    // loader later in the run.
+    relaunch_with_cublas_workspace(&arguments)?;
     if arguments.torch_fp32 {
         // Runs once, single-threaded, before any reader could observe it.
         unsafe {
             std::env::set_var("KOHARU_TORCH_NO_BF16", "1");
-        }
-        // cuBLASLt picks its per-shape GEMM algorithm from heuristics that can
-        // tie-break differently per process, which moves detection boxes by a
-        // pixel and turns OCR-cache hits into misses. Only a variable inherited
-        // at process creation is honored (an in-process `set_var`/`_putenv` is
-        // invisible to handle creation), so the batch must be started with it —
-        // warn loudly instead of silently degrading to a non-reproducible run.
-        if std::env::var_os("CUBLAS_WORKSPACE_CONFIG").is_none() {
-            tracing::warn!(
-                "--torch-fp32 is only bitwise-reproducible with CUBLAS_WORKSPACE_CONFIG=:4096:8 set before starting koharu-batch; detection boxes may drift by a pixel between runs otherwise"
-            );
         }
         tracing::info!("--torch-fp32: KOHARU_TORCH_NO_BF16=1, Torch models will load in fp32");
     }
@@ -78,4 +73,42 @@ async fn main() -> Result<()> {
             exit_with(1);
         }
     }
+}
+
+/// Guarantees `CUBLAS_WORKSPACE_CONFIG=:4096:8` exists for `--torch-fp32` by
+/// relaunching the binary with it when it was not inherited.
+///
+/// With fp32 weights that variable pins cuBLASLt's per-shape algorithm
+/// choice; without it the heuristics tie-break differently per process,
+/// moving detection boxes by a pixel and turning OCR-cache hits into misses
+/// (measured on a replayed chapter: 25/25 hits with the variable inherited,
+/// ~35% of misses without). cuBLASLt only honors a variable inherited at
+/// process creation — updating it from inside (`std::env::set_var`, UCRT
+/// `_putenv`) is invisible to handle creation — so spawning ourselves with
+/// it reproduces exactly that state. This mirrors the mechanism already
+/// proven in the `paddle_ocr_vl` dev binary. Runs before any model work,
+/// forwards stdout/stderr and the exit code, and is a no-op when the
+/// variable is already set, when `--torch-fp32` is off (fp32 is also
+/// implied by non-planning runs only), or after the first restart
+/// (`KOHARU_CUBLAS_RELAUNCHED` guard against an endless loop).
+///
+/// # Errors
+/// When spawning or waiting on the child process fails.
+fn relaunch_with_cublas_workspace(arguments: &Arguments) -> Result<()> {
+    if !arguments.torch_fp32
+        || std::env::var_os("CUBLAS_WORKSPACE_CONFIG").is_some()
+        || std::env::var_os("KOHARU_CUBLAS_RELAUNCHED").is_some()
+    {
+        return Ok(());
+    }
+    tracing::info!(
+        "--torch-fp32: restarting with CUBLAS_WORKSPACE_CONFIG=:4096:8 inherited (cuBLASLt only honors it at process creation)"
+    );
+    let exe = std::env::current_exe()?;
+    let mut command = std::process::Command::new(exe);
+    command.args(std::env::args_os().skip(1));
+    command.env("CUBLAS_WORKSPACE_CONFIG", ":4096:8");
+    command.env("KOHARU_CUBLAS_RELAUNCHED", "1");
+    let status = command.status()?;
+    exit_with(status.code().unwrap_or(1))
 }

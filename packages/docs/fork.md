@@ -312,17 +312,26 @@ pages — each removing one source of run-to-run drift:
   stages; on a tight card, expect the VRAM guard to account for it and, if needed, pick a
   smaller `--llm` quantization to make room.
 
+  fp32's own cuBLASLt GEMMs need `CUBLAS_WORKSPACE_CONFIG=:4096:8` to pick their
+  algorithms reproducibly, and cuBLASLt only honors that variable when inherited at
+  process creation — so the binary transparently restarts itself with it set (a one-line
+  log notes the restart); nothing to configure by hand. Measured on a replayed chapter:
+  detection then yields 25/25 OCR-cache hits run to run, versus ~35% of misses without
+  the variable.
+
 A fully reproducible chapter run is therefore:
 
 ```bash
 koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
 ```
 
-Residual caveat, measured on an RTX 3070: with `--torch-fp32`, cuBLASLt still picks its
-GEMM algorithm per shape from heuristics that can tie-break differently across processes
-(about one run in twelve differed somewhere in the vision stack during testing). That
-residual never changed a detection box or the decoded text across fifteen measured runs;
-pairing the flag with `--ocr-cache` makes the translator's input immune to it regardless.
+No other setup is needed. For a byte-identical PNG comparison across runs, also pin the
+model (`--llm gemma4-e4b-it --quantization Q4_K_XL`): the `auto` picker selects by free
+VRAM, so a different card state can land on a different model. The remaining page-level
+residue (~0.05-2% of pixels, confined to inpainted areas) comes from the raster/encode
+side, never from a detection box, the recognized text, or the translation — every
+inference stage was probed bit-stable on an RTX 3070 (detection, OCR, inpainting,
+translation).
 
 ### Volume mode
 
