@@ -49,13 +49,23 @@ async fn main() -> Result<()> {
         .init();
     let arguments = Arguments::parse();
     // Read by `koharu_ml::backend::set_precision` through `var_os`, i.e. by
-    // Rust itself — unlike torch's own `getenv` (whose CUBLAS_WORKSPACE_CONFIG
-    // must be inherited at process creation), so an in-process `set_var` here
-    // is honored by every model loader later in the run.
+    // Rust itself — unlike torch's own `getenv`, so an in-process `set_var`
+    // here is honored by every model loader later in the run.
     if arguments.torch_fp32 {
         // Runs once, single-threaded, before any reader could observe it.
         unsafe {
             std::env::set_var("KOHARU_TORCH_NO_BF16", "1");
+        }
+        // cuBLASLt picks its per-shape GEMM algorithm from heuristics that can
+        // tie-break differently per process, which moves detection boxes by a
+        // pixel and turns OCR-cache hits into misses. Only a variable inherited
+        // at process creation is honored (an in-process `set_var`/`_putenv` is
+        // invisible to handle creation), so the batch must be started with it —
+        // warn loudly instead of silently degrading to a non-reproducible run.
+        if std::env::var_os("CUBLAS_WORKSPACE_CONFIG").is_none() {
+            tracing::warn!(
+                "--torch-fp32 is only bitwise-reproducible with CUBLAS_WORKSPACE_CONFIG=:4096:8 set before starting koharu-batch; detection boxes may drift by a pixel between runs otherwise"
+            );
         }
         tracing::info!("--torch-fp32: KOHARU_TORCH_NO_BF16=1, Torch models will load in fp32");
     }
