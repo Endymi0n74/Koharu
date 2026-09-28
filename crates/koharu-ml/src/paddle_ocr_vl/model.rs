@@ -3,7 +3,11 @@
 //! Original implementation:
 //! https://github.com/huggingface/transformers/blob/63f32a8782cb70da3365acab16f2b67947737985/src/transformers/models/paddleocr_vl/modeling_paddleocr_vl.py
 
-use std::{collections::HashSet, path::Path};
+use std::{
+    collections::HashSet,
+    hash::{Hash as _, Hasher as _},
+    path::Path,
+};
 
 use anyhow::{Result, bail, ensure};
 use koharu_torch::{
@@ -82,6 +86,9 @@ impl Model {
 
         let image_features =
             self.get_image_features(&pixel_values.to_kind(self.vs.kind()), image_grid_thw);
+        if let Some(hash) = debug_tensor_hash(&image_features) {
+            eprintln!("OCRDBG enc {hash:016x}");
+        }
         let image_mask = ids
             .eq(self.config.image_token_id)
             .unsqueeze(-1)
@@ -99,23 +106,29 @@ impl Model {
 
         let (position_ids, rope_delta) =
             self.get_rope_index(input_ids, mm_token_type_ids, image_grid_thw, device)?;
-        if self.config.use_cache {
-            Ok(self.generate_cached(
+        let generated = if self.config.use_cache {
+            self.generate_cached(
                 inputs_embeds,
                 &position_ids,
                 rope_delta,
                 input_ids.len() as i64,
                 max_new_tokens,
-            ))
+            )
         } else {
-            Ok(self.generate_uncached(
+            self.generate_uncached(
                 inputs_embeds,
                 position_ids,
                 rope_delta,
                 input_ids.len() as i64,
                 max_new_tokens,
-            ))
+            )
+        };
+        if debug_enabled() {
+            let mut hasher = std::hash::DefaultHasher::new();
+            generated.hash(&mut hasher);
+            eprintln!("OCRDBG ids {:016x}", hasher.finish());
         }
+        Ok(generated)
     }
 
     fn generate_cached(
@@ -308,6 +321,39 @@ impl Model {
         .unsqueeze(1);
         Ok((position_ids, rope_delta))
     }
+}
+
+/// Returns `true` when `KOHARU_OCR_DEBUG` requests nondeterminism probes.
+fn debug_enabled() -> bool {
+    std::env::var_os("KOHARU_OCR_DEBUG").is_some()
+}
+
+/// Hashes a tensor's float bytes when `KOHARU_OCR_DEBUG` is set, else `None`.
+///
+/// Used to tell vision-encoder drift from decoder drift when hunting the
+/// per-call OCR jitter: identical `enc` hashes with differing `ids` hashes
+/// pin the nondeterminism on the language-model decode loop.
+fn debug_tensor_hash(tensor: &Tensor) -> Option<u64> {
+    if !debug_enabled() {
+        return None;
+    }
+    let cpu = tensor
+        .shallow_clone()
+        .to_device(Device::Cpu)
+        .to_kind(Kind::Float)
+        .contiguous();
+    let count = cpu.numel();
+    let mut buffer = vec![0f32; count];
+    cpu.copy_data(&mut buffer, count);
+    let bytes = unsafe {
+        std::slice::from_raw_parts(
+            buffer.as_ptr().cast::<u8>(),
+            count * std::mem::size_of::<f32>(),
+        )
+    };
+    let mut hasher = std::hash::DefaultHasher::new();
+    std::hash::Hash::hash(bytes, &mut hasher);
+    Some(hasher.finish())
 }
 
 fn greedy_token(logits: &Tensor, seen_ids: Option<&Tensor>) -> i64 {
