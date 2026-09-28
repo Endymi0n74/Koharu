@@ -147,6 +147,80 @@ les ordres (défaut 600 s).
   l'hors-étapes tombe à ~17 s par 50 pages et ne dépend plus de l'ordre » — pas « −15 s »,
   « −211 s » ni « −435 s » : ces écarts bruts ne se reproduisent pas.
 
+## Non-déterminisme batch — stratégie et état (2026-09-28, à reprendre)
+
+But : deux runs `koharu-batch` identiques doivent produire des PNG bit-à-bit identiques.
+Sonde en deux niveaux, dans le même log stderr :
+
+1. **`KOHARU_PATCH_HASH=1`** → ligne `PATCHHASH <hex> entries=N` par page × étage (hash
+   DefaultHasher de la scène commitée : géométrie, textes, blake3 des blobs ; ids exclus) —
+   `batch::run::log_patch_hash`, commité.
+2. **`DETHASH page=<id> <hex>`** quand la variable est posée : hash de la sortie **brute** du
+   détecteur RF-DETR (label/score/bbox/aire/masques) avant montage de scène —
+   `stages/detection.rs::log_detector_output_hash` (non commité au 2026-09-28). Distingue
+   inférence vs post-proc (`build_patch`).
+
+**Protocole** : 2 passes A/B `--overwrite` (`--deterministic --torch-fp32 --no-calibration`),
+stderr → `target/val-{a,b}.patchhash.log` ; mapper page × étage par ordre des lignes
+([1/3]=page1…) ; `md5sum` des PNG pour la mesure finale. Verdict type : stable à l'étage i,
+divergent à i+1 ⇒ l'opérateur entre les deux est en cause.
+
+**Trouvé (2026-09-28)** : divergence née dans l'inférence détection ; cause = engines de conv
+cuDNN split-K à atomiques choisis par heuristique **même avec benchmark=off et en fp32**. Fix =
+`setDeterministicCuDNN(true)` dans `koharu_ml::determinism::enforce()` (symbole privé
+`?setDeterministicCuDNN@Context@at@@QEAAX_N@Z`, présent dans torch_cpu.dll v2.13.0.7).
+Résultat : 3/3 DETHASH + 9/9 PATCHHASH vision (detection/ocr/inpainting) identiques sur 3
+passes ; PNG 2/3 identiques — le résidu est l'étage translation (2/12 PATCHHASH LLM).
+**Coût du fix : nul détectable** — banc croisé `bench-cross.ts` (1 page, 2 ordres, 2026-09-28)
+: détection 1,2–1,3 s dans les 4 runs (before `4c1cd689` vs after `f67193ed`), ocr/inpainting
+idem ; résidus moyens 5,1 s vs 5,1 s. Les engines déterministes ne coûtent rien ici.
+
+**Impasse à ne pas refaire** : forcer les backends SDP sur `math` (setSDPUseFlash/MemEfficient/
+CuDNN/FA3 = false) est déterministe mais matérialise la matrice d'attention pleine (DINO,
+9 216 tokens ⇒ plusieurs GiB retenus par le caching allocator) ⇒ le LLM gemma 3,9 GiB ne
+charge plus (« invalid vector subscript », 0 MiB free). Backends fusionnés laissés activés,
+justification dans le doc de `determinism.rs`.
+
+**Recette d'un runtime ggml déterministe (étude 2026-09-28)** : le package vient de
+`koharu-rs/llama` (workflow `release.yml` : checkout du **dernier** release llama.cpp incluant
+préreleases → `cmake -S cmake` avec `-DLLAMA_CPP_SOURCE_DIR=… -DLLAMA_BACKEND=cuda` — la
+recette vit dans le CMakeLists de ce dépôt fork, les options ggml passent par `-D…`).
+Upstream : le PR ggml-org/llama.cpp#16016 (`-DGGML_DETERMINISTIC=ON` + `--deterministic`)
+n'est **pas** fusionné ; la position mainteneur refuse les garanties bit-à-bit. Dans b10903,
+les options cmake pertinentes : `GGML_CUDA_FORCE_MMQ=ON` (remplace les GEMM cuBLAS par les
+kernels MMQ à ordre de réduction fixe — LE candidat pour notre flip de décodage),
+`GGML_CUDA_FORCE_CUBLAS=ON` (mutuellement exclusif, à éviter), `GGML_CUDA_GRAPHS=OFF`
+(défaut déjà OFF, notre log dit « CUDA graphs disabled »), `GGML_CUDA_NO_VMM=ON`
+(supprime la variance d'adressage VMM), `GGML_CUDA_FA_ALL_QUANTS` sans effet déterministe.
+Le build local est impossible ici (pas de toolchain MSVC/nvcc sur ce poste) — passer par un
+fork du dépôt `koharu-rs/llama` avec l'option ajoutée au CMakeLists, ou un build manuel
+suivant release.yml. Coût attendu : MMQ peut être légèrement plus lent que cuBLAS sur
+certains shapes ; à re-mesurer avec bench-cross.ts après pivot.
+
+**Périmètre des flags** : `--deterministic` (batch) = température LLM 0 uniquement ; le volet
+vision = la recette `koharu_ml::determinism` (fp32, CUBLAS_WORKSPACE_CONFIG hérité au restart,
+cuDNN benchmark off, TF32 off, désormais cuDNN déterministe).
+
+**Résidu translation (bissécté 2026-09-28, non corrigeable in-repo)** : sonde `KOHARU_LLM_DEBUG=1`
+dans `koharu_ml::llm::model` (mêmes pattern qu'OCRDBG) : `LLMDBG prompt/shape/history`
+(tokenisation), `first_token` (logits du prefill), `step=N tok=M` (chaque token décodé),
+`text` (sortie). Constats : prompts et prefill identiques entre process ; sampler déterministe
+(greedy sous `--deterministic`, sinon `dist(299_792_458)`) ; le décodage diverge à un **pas
+variable** (ex. step 84/250) par un near-tie greedy — signature d'une course d'atomiques dans
+les kernels CUDA ggml du runtime prébuildé (`packages/llama/b10903`, DLL dynamiques, pas de
+rebuild possible ici ; GGML_CUDA_FORCE_MMQ est un flag de compilation).
+**Quantification (10 runs consécutifs, corpus val-in, 40 appels, analyse
+`scripts/flip-study.py`)** : 109 paires comparables à prompt identique, **43 % des
+paires divergent en cours de décodage**, **1,65 flips/1 000 tokens générés** ; `first_token`
+identique 40/40 (prefill déterministe) ; l'appel court (15 tokens) stable 10/10 — le risque
+croît avec la longueur ; les pas de divergence tombent sur des hotspots récurrents (≈5, 58,
+83, 91, 122, 210, 242) où le modèle est en near-tie. Un appel de 150-250 tokens a ~40-60 %
+de chances de différer d'un run à l'autre. Deux pièges de mesure : `chapter_context` propage les traductions déjà dérivées
+dans les prompts des pages suivantes (contamination en cascade) ; et l'ordre d'exécution des
+pages par étage GPU peut varier entre runs (comparer par `entries=`/prompt hash, pas par
+position). Correctif à chercher côté upstream : rebuild du package llama avec kernels
+déterministes ou release ggml corrigeant l'op atomique en cause.
+
 ## Pièges
 
 - **Le fmt du Lint CI est propre depuis `4466b975`** (vérifié 2026-09-25 :
@@ -166,6 +240,9 @@ les ordres (défaut 600 s).
   worktree écrasent ceux de main — le worktree avec son propre `target/` est isolé.
   `koharu.exe` réclame `libcef.dll` à côté (exit 53 = STATUS_DLL_NOT_FOUND), pas
   `koharu-batch.exe`.
+- **cargo n'est pas sur le PATH du shell Codebuff** : le binaire vit dans
+  `~/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin/` — préfixer le PATH pour toute
+  commande cargo. CARGO_HOME reste le défaut `C:\Users\endymion\.cargo` (sans `bin/`).
 - **« Exit code 1 » PowerShell après `git push`** = artefact stderr (git écrit la progression sur
   stderr), pas un échec : la ligne `... main -> main` confirme la réussite.
 - **`koharu/` est son propre dépôt git** (le dépôt `D:\Codex` le voit comme non suivi) :
@@ -195,5 +272,11 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
 
 ## À faire plus tard (choix ouverts)
 
+- Résidu translation : correctif côté upstream uniquement (package llama prébuildé,
+  voir section Non-déterminisme batch) — ou accepted tant que l'OCR/la détection restent
+  stables.
+- Décider du sort des sondes `DETHASH` (`stages/detection.rs`) et `LLMDBG`
+  (`koharu_ml::llm::model`) : à committer avec le fix cuDNN ou à retirer une fois la
+  stabilité acquise.
 - Réactiver le job macOS si les secrets Apple sont configurés.
 - Mode dossier dans `koharu-app` (piloter un lot en GUI).
