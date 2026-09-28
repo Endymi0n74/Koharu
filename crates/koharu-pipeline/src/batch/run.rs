@@ -94,14 +94,17 @@ async fn log_patch_hash(
             translation.text.value.hash(&mut hasher);
             entries += 1;
         }
-        if let Ok(Some(asset)) = snapshot.asset(entity.id(), &source_role) {
-            if let Ok(bytes) = snapshot.read_blob(asset.blob).await {
-                "asset".hash(&mut hasher);
-                asset.media_type.hash(&mut hasher);
-                bytes.len().hash(&mut hasher);
-                blake3::hash(&bytes).hash(&mut hasher);
-                entries += 1;
-            }
+        let asset = snapshot.asset(entity.id(), &source_role).ok().flatten();
+        let bytes = match &asset {
+            Some(asset) => snapshot.read_blob(asset.blob).await.ok(),
+            None => None,
+        };
+        if let (Some(asset), Some(bytes)) = (asset, bytes) {
+            "asset".hash(&mut hasher);
+            asset.media_type.hash(&mut hasher);
+            bytes.len().hash(&mut hasher);
+            blake3::hash(&bytes).hash(&mut hasher);
+            entries += 1;
         }
     }
     tracing::info!(entries, "PATCHHASH {:016x}", hasher.finish());
@@ -1845,6 +1848,14 @@ pub async fn run(arguments: Arguments) -> Result<i32> {
     }
 
     bootstrap::initialize_with_retry().await;
+    // Same torch determinism recipe as the dev binaries (cuDNN benchmark
+    // off, TF32 off); the CUBLAS_WORKSPACE_CONFIG half is guaranteed by the
+    // binary relaunching itself before this point when --torch-fp32 was
+    // passed. This is what removes the cuBLASLt GEMM tie-break that used to
+    // drift detection boxes by a pixel between runs.
+    if let Err(error) = koharu_ml::determinism::enforce() {
+        tracing::warn!("torch determinism knobs unavailable: {error:#}");
+    }
     let pipeline = Pipeline::from_config(
         Config::memory(config),
         Config::memory(ProvidersConfig::default()),

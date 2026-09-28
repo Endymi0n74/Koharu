@@ -315,7 +315,11 @@ pages — each removing one source of run-to-run drift:
   fp32's own cuBLASLt GEMMs need `CUBLAS_WORKSPACE_CONFIG=:4096:8` to pick their
   algorithms reproducibly, and cuBLASLt only honors that variable when inherited at
   process creation — so the binary transparently restarts itself with it set (a one-line
-  log notes the restart); nothing to configure by hand. Measured on a replayed chapter:
+  log notes the restart); nothing to configure by hand. After the runtime initializes,
+  the batch also applies the same torch determinism knobs as the development binaries
+  (`at::globalContext()`: cuDNN benchmark autotuning off, TF32 for cuBLAS and cuDNN
+  off) — the two halves together remove the cuBLASLt GEMM tie-break that used to drift
+  detection boxes by a pixel between processes. Measured on a replayed chapter:
   detection then yields 25/25 OCR-cache hits run to run, versus ~35% of misses without
   the variable.
 
