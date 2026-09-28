@@ -328,6 +328,19 @@ fn debug_enabled() -> bool {
     std::env::var_os("KOHARU_OCR_DEBUG").is_some()
 }
 
+/// Prints a tag + float-bytes hash of `tensor` when `KOHARU_OCR_DEBUG` is set.
+///
+/// The per-stage tags let a failing run be bisected to the first divergent
+/// operator: `pix` → `conv` → `pos` → `emb` → `rope` → `L{i} attncore` /
+/// `attn` / `mlp` / `full` per encoder layer → `postln` → `enc` → `ids`.
+/// A stage that keeps hashing the same across runs while the next one starts
+/// to differ pins the nondeterminism on the operator in between.
+fn debug_dump_hash(tag: &str, tensor: &Tensor) {
+    if let Some(hash) = debug_tensor_hash(tensor) {
+        eprintln!("OCRDBG {tag} {hash:016x}");
+    }
+}
+
 /// Hashes a tensor's float bytes when `KOHARU_OCR_DEBUG` is set, else `None`.
 ///
 /// Used to tell vision-encoder drift from decoder drift when hunting the
@@ -451,9 +464,12 @@ impl PaddleOCRVisionModel {
     }
 
     fn forward(&self, pixel_values: &Tensor, grid_thw: [i64; 3]) -> Tensor {
+        debug_dump_hash("pix", pixel_values);
         let hidden_states = self.embeddings.forward(pixel_values, grid_thw);
-        self.post_layernorm
-            .forward(&self.encoder.forward(hidden_states, grid_thw))
+        let encoded = self.encoder.forward(hidden_states, grid_thw);
+        let normalized = self.post_layernorm.forward(&encoded);
+        debug_dump_hash("postln", &normalized);
+        normalized
     }
 }
 
@@ -497,7 +513,9 @@ impl PaddleOCRVisionEmbeddings {
             .flatten(2, 3)
             .squeeze_dim(-1)
             .reshape([-1, self.patch_embedding.ws.size()[0]]);
+        debug_dump_hash("conv", &embeddings);
         let position_embeddings = self.position_embeddings(grid_thw);
+        debug_dump_hash("pos", &position_embeddings);
         embeddings + position_embeddings
     }
 
@@ -541,8 +559,9 @@ impl PaddleOCRVisionEncoder {
             .repeat([1, 2]);
         let cos = rotary.cos();
         let sin = rotary.sin();
-        for layer in &self.layers {
-            hidden_states = layer.forward(hidden_states, &cos, &sin);
+        debug_dump_hash("rope", &cos);
+        for (index, layer) in self.layers.iter().enumerate() {
+            hidden_states = layer.forward(hidden_states, &cos, &sin, index);
         }
         hidden_states
     }
@@ -578,14 +597,27 @@ impl PaddleOCRVisionEncoderLayer {
         }
     }
 
-    fn forward(&self, hidden_states: Tensor, cos: &Tensor, sin: &Tensor) -> Tensor {
+    fn forward(&self, hidden_states: Tensor, cos: &Tensor, sin: &Tensor, index: usize) -> Tensor {
         let residual = hidden_states.shallow_clone();
-        let hidden_states = residual
-            + self
-                .self_attn
-                .forward(&self.layer_norm1.forward(&hidden_states), cos, sin);
+        let attended =
+            self.self_attn
+                .forward(&self.layer_norm1.forward(&hidden_states), cos, sin, index);
+        debug_dump_hash(&format!("L{index} attn"), &attended);
+        let hidden_states = residual + attended;
         let residual = hidden_states.shallow_clone();
-        residual + self.mlp.forward(&self.layer_norm2.forward(&hidden_states))
+        let normed = self.layer_norm2.forward(&hidden_states);
+        let fed = self.mlp.forward(
+            &normed,
+            if index == 1 && debug_enabled() {
+                "L1 mlp"
+            } else {
+                ""
+            },
+        );
+        debug_dump_hash(&format!("L{index} mlp"), &fed);
+        let output = residual + fed;
+        debug_dump_hash(&format!("L{index} full"), &output);
+        output
     }
 }
 
@@ -612,7 +644,7 @@ impl PaddleOCRVisionAttention {
         }
     }
 
-    fn forward(&self, hidden_states: &Tensor, cos: &Tensor, sin: &Tensor) -> Tensor {
+    fn forward(&self, hidden_states: &Tensor, cos: &Tensor, sin: &Tensor, index: usize) -> Tensor {
         let sequence_length = hidden_states.size()[0];
         let query = self.q_proj.forward(hidden_states).view([
             sequence_length,
@@ -640,6 +672,7 @@ impl PaddleOCRVisionAttention {
             .matmul(&value)
             .transpose(1, 2)
             .reshape([sequence_length, self.num_heads * self.head_dim]);
+        debug_dump_hash(&format!("L{index} attncore"), &output);
         self.out_proj.forward(&output)
     }
 }
@@ -668,9 +701,21 @@ impl PaddleOCRVisionMLP {
         }
     }
 
-    fn forward(&self, hidden_states: &Tensor) -> Tensor {
-        self.fc2
-            .forward(&self.fc1.forward(hidden_states).gelu("tanh"))
+    /// Computes `fc2(GELU(fc1(x)))`, hashing `fc1`'s output, its GELU, and
+    /// `fc2`'s result when `tag` is non-empty (used to bisect the residual
+    /// vision-encoder drift to a single GEMM under `KOHARU_OCR_DEBUG`).
+    fn forward(&self, hidden_states: &Tensor, tag: &str) -> Tensor {
+        let projected = self.fc1.forward(hidden_states);
+        let activated = projected.gelu("tanh");
+        if !tag.is_empty() {
+            debug_dump_hash(&format!("{tag} fc1"), &projected);
+            debug_dump_hash(&format!("{tag} act"), &activated);
+        }
+        let output = self.fc2.forward(&activated);
+        if !tag.is_empty() {
+            debug_dump_hash(&format!("{tag} fc2"), &output);
+        }
+        output
     }
 }
 
