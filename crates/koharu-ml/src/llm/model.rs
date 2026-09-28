@@ -39,6 +39,35 @@ use crate::Backend;
 const DEFAULT_MAX_UBATCH: u32 = 512;
 const CHAT_TEMPLATE_NAME: &str = "chat";
 
+/// Returns `true` when `KOHARU_LLM_DEBUG` requests nondeterminism probes.
+fn debug_enabled() -> bool {
+    std::env::var_os("KOHARU_LLM_DEBUG").is_some()
+}
+
+/// Prints a tag + hash when `KOHARU_LLM_DEBUG` is set, to bisect run-to-run
+/// generation drift the same way `paddle_ocr_vl`'s OCRDBG probes do:
+/// `history` (prompt tokenization) → `first_token` (prefill logits through the
+/// greedy/dist chain — differs ⇒ the ViT mmproj evaluation or the prompt
+/// prefill kernels drift) → `gen`/`text` (the decoded output — differs while
+/// `first_token` matches ⇒ the incremental decode loop drifts).
+fn debug_hash_tokens(tag: &str, tokens: &[LlamaToken]) {
+    use std::hash::{Hash, Hasher as _};
+
+    let mut hasher = std::hash::DefaultHasher::new();
+    for token in tokens {
+        token.0.hash(&mut hasher);
+    }
+    eprintln!("LLMDBG {tag} {:016x}", hasher.finish());
+}
+
+fn debug_hash_text(tag: &str, text: &str) {
+    use std::hash::{Hash, Hasher as _};
+
+    let mut hasher = std::hash::DefaultHasher::new();
+    text.hash(&mut hasher);
+    eprintln!("LLMDBG {tag} {:016x}", hasher.finish());
+}
+
 pub(super) struct Model {
     backend: &'static LlamaBackend,
     model: LlamaModel,
@@ -265,6 +294,17 @@ impl Model {
             )
         };
         let prepared = self.prepare_prompt(input, options.add_special, mtmd.as_deref())?;
+        if debug_enabled() {
+            debug_hash_text("prompt", input.prompt());
+            eprintln!(
+                "LLMDBG shape prompt_tokens={} prompt_positions={} batch_tokens={} non_causal={}",
+                prepared.prompt_tokens,
+                prepared.prompt_positions,
+                prepared.batch_tokens,
+                prepared.non_causal
+            );
+            debug_hash_tokens("history", &prepared.history_tokens);
+        }
         let context_config = context_config(&prepared, options)?;
         let mut context = self
             .model
@@ -280,6 +320,9 @@ impl Model {
             &mut sampler,
             context_config.n_batch,
         )?;
+        if debug_enabled() {
+            debug_hash_tokens("first_token", std::slice::from_ref(&next_token));
+        }
         let prompt_duration = prompt_start.elapsed();
         drop(mtmd);
 
@@ -293,6 +336,9 @@ impl Model {
             if self.should_stop(next_token) {
                 finish_reason = FinishReason::StopToken;
                 break;
+            }
+            if debug_enabled() {
+                eprintln!("LLMDBG step={generated_tokens} tok={}", next_token.0);
             }
 
             let piece = self
@@ -332,6 +378,10 @@ impl Model {
             next_token = sampler.sample(&context, -1);
         }
 
+        if debug_enabled() {
+            debug_hash_text("text", &text);
+            eprintln!("LLMDBG tokens generated={generated_tokens}");
+        }
         Ok(Generation {
             text,
             prompt_tokens: prepared.prompt_tokens,
