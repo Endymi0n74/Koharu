@@ -1,11 +1,21 @@
-//! Store pruning: identifies Hugging Face model artifacts whose repository is
-//! no longer referenced by any model in the code — the translator catalog,
-//! every `model_repository!` invocation in `koharu-ml`, and the pinned HF
-//! datasets — and deletes them on request.
+//! Store pruning: identifies store artifacts the code no longer references —
+//! Hugging Face model and dataset repositories, and runtime packages of
+//! releases other than the pinned one — and deletes them on request.
 
 use anyhow::{Context, Result};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+
+/// The runtime package families the code installs, with the release tag they
+/// resolve today. Any sibling release directory of the same family left by an
+/// older build is an orphan (models inside the HF tree are separate). CUDA
+/// wheels live under one flat directory per wheel and are versioned by the
+/// pinned `Cargo.toml`, so the whole `cuda` directory survives pruning.
+const RUNTIME_RELEASES: &[(&str, &str)] = &[
+    ("llama", "b10903"),
+    ("torch", "v2.13.0.7"),
+    ("diffusion", "master-920-2f88688"),
+];
 
 /// Every repository the code can resolve through the store, folded to the
 /// on-disk form (`owner/name` -> `owner-name`). Kept next to the pin lists
@@ -64,19 +74,31 @@ fn fold_repository(repository: &str) -> String {
     repository.replace(['/', '\\'], "--")
 }
 
-/// Lists the directories under `<store>/hugging-face/models` that no pinned
-/// file references: candidates for `prune_store` to delete.
+/// The Hugging Face dataset repository the renderer pins its fonts from,
+/// folded to the store's directory form.
+fn referenced_datasets() -> BTreeSet<String> {
+    BTreeSet::from(["mayocream--fonts".to_owned()])
+}
+
+/// Lists the directories under `<store>/hugging-face/<kind>` that no pinned
+/// file references: candidates for `prune_store` to delete. `kind` is
+/// `models` or `datasets`.
 ///
 /// # Errors
-/// When the models directory cannot be read.
-pub fn orphan_repositories(store: &Path) -> Result<Vec<(PathBuf, u64)>> {
-    let models_dir = store.join("hugging-face").join("models");
-    let referenced = referenced_repositories();
+/// When the directory cannot be read. A missing directory is not an error:
+/// it simply holds no orphans.
+fn orphan_hf_repositories(
+    store: &Path,
+    kind: &str,
+    referenced: &BTreeSet<String>,
+) -> Result<Vec<(PathBuf, u64)>> {
+    let hf_dir = store.join("hugging-face").join(kind);
+    let Ok(entries) = std::fs::read_dir(&hf_dir) else {
+        return Ok(Vec::new());
+    };
     let mut orphans = Vec::new();
-    let entries = std::fs::read_dir(&models_dir)
-        .with_context(|| format!("failed to read {}", models_dir.display()))?;
     for entry in entries {
-        let entry = entry.with_context(|| format!("failed to read {}", models_dir.display()))?;
+        let entry = entry.with_context(|| format!("failed to read {}", hf_dir.display()))?;
         let path = entry.path();
         if !path.is_dir() {
             continue;
@@ -89,6 +111,59 @@ pub fn orphan_repositories(store: &Path) -> Result<Vec<(PathBuf, u64)>> {
         }
         let bytes = directory_bytes(&path);
         orphans.push((path, bytes));
+    }
+    Ok(orphans)
+}
+
+/// Lists the model directories under `<store>/hugging-face/models` that no
+/// pinned file references: candidates for `prune_store` to delete.
+///
+/// # Errors
+/// When the models directory cannot be read.
+pub fn orphan_repositories(store: &Path) -> Result<Vec<(PathBuf, u64)>> {
+    orphan_hf_repositories(store, "models", &referenced_repositories())
+}
+
+/// Lists the dataset directories under `<store>/hugging-face/datasets` that
+/// no pinned file references.
+///
+/// # Errors
+/// When the datasets directory cannot be read.
+pub fn orphan_datasets(store: &Path) -> Result<Vec<(PathBuf, u64)>> {
+    orphan_hf_repositories(store, "datasets", &referenced_datasets())
+}
+
+/// Lists the runtime release directories of [`RUNTIME_RELEASES`]'s families
+/// whose release tag is not the pinned one — a `packages/llama/bNNNN` from an
+/// older build, a `packages/torch/vOLD`. Whole families absent from the list
+/// (the flat `cuda` wheel directory) are left alone.
+///
+/// # Errors
+/// When a runtime directory cannot be read. A missing directory is not an
+/// error: it simply holds no orphans.
+pub fn orphan_runtimes(store: &Path) -> Result<Vec<(PathBuf, u64)>> {
+    let mut orphans = Vec::new();
+    for (family, current) in RUNTIME_RELEASES {
+        let family_dir = store.join(family);
+        let Ok(entries) = std::fs::read_dir(&family_dir) else {
+            continue;
+        };
+        for entry in entries {
+            let entry =
+                entry.with_context(|| format!("failed to read {}", family_dir.display()))?;
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+            if name == *current {
+                continue;
+            }
+            let bytes = directory_bytes(&path);
+            orphans.push((path, bytes));
+        }
     }
     Ok(orphans)
 }
@@ -225,6 +300,59 @@ mod tests {
         .unwrap();
         assert_eq!(reclaimed, 1024);
         assert!(!orphan.exists());
-        assert!(models.join("unsloth--gemma-4-E4B-it-qat-GGUF").exists() || true);
+    }
+
+    #[test]
+    fn orphan_datasets_leave_the_pinned_font_repository() {
+        let store = tempfile::tempdir().unwrap();
+        let datasets = store.path().join("hugging-face").join("datasets");
+        std::fs::create_dir_all(datasets.join("mayocream--fonts")).unwrap();
+        std::fs::create_dir_all(datasets.join("someone--old-fonts")).unwrap();
+
+        let orphans = orphan_datasets(store.path()).unwrap();
+        let names = orphans
+            .iter()
+            .map(|(path, _)| path.file_name().unwrap().to_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        assert_eq!(names, ["someone--old-fonts"]);
+    }
+
+    #[test]
+    fn orphan_runtimes_keep_only_the_pinned_releases() {
+        let store = tempfile::tempdir().unwrap();
+        for (family, release) in [
+            ("llama", "b10902"),
+            ("llama", "b10903"),
+            ("torch", "v2.13.0.7"),
+            ("torch", "v2.12.0.0"),
+            ("diffusion", "master-920-2f88688"),
+            ("cuda", "nvidia-cublas--13.6.0.2"),
+        ] {
+            let dir = store.path().join(family).join(release);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("blob"), [0u8; 8]).unwrap();
+        }
+
+        let orphans = orphan_runtimes(store.path()).unwrap();
+        let names = orphans
+            .iter()
+            .map(|(path, _)| {
+                let relative = path.strip_prefix(store.path()).unwrap();
+                relative.to_string_lossy().replace('\\', "/")
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            names,
+            BTreeSet::from(["llama/b10902".to_owned(), "torch/v2.12.0.0".to_owned(),]),
+            "current releases stay, stale ones go, the cuda wheel tree is untouched"
+        );
+        assert_eq!(orphans.iter().map(|(_, bytes)| *bytes).sum::<u64>(), 16);
+    }
+
+    #[test]
+    fn a_missing_runtime_family_is_no_error() {
+        let store = tempfile::tempdir().unwrap();
+        assert_eq!(orphan_runtimes(store.path()).unwrap(), Vec::new());
+        assert_eq!(orphan_datasets(store.path()).unwrap(), Vec::new());
     }
 }

@@ -538,37 +538,45 @@ fn finish_chapter_report(
     announce_report(base);
     Ok(())
 }
-
-/// Lists or deletes the Hugging Face model directories of the store that no
-/// pinned model references. Listing is the default — deletion is explicit —
-/// because every deleted entry only re-downloads when a model needs it again.
+/// Lists or deletes the store entries that nothing in the code references
+/// anymore: Hugging Face models, datasets, and runtime releases other than
+/// the pinned one. Listing is the default — deletion is explicit — because
+/// every deleted entry only re-downloads when a model needs it again.
 fn prune_store(store: &Path, delete: bool) -> Result<i32> {
-    let orphans = prune::orphan_repositories(store)?;
-    if orphans.is_empty() {
-        println!("no orphaned models in {}", store.display());
+    let categories = [
+        ("model", prune::orphan_repositories(store)?),
+        ("dataset", prune::orphan_datasets(store)?),
+        ("runtime", prune::orphan_runtimes(store)?),
+    ];
+    if categories.iter().all(|(_, orphans)| orphans.is_empty()) {
+        println!("nothing orphaned in {}", store.display());
         return Ok(0);
     }
-    let total: u64 = orphans.iter().map(|(_, bytes)| *bytes).sum();
-    for (path, bytes) in &orphans {
-        println!("{:<55} {}", path.display(), prune::gib(*bytes));
+    for (label, orphans) in &categories {
+        if orphans.is_empty() {
+            continue;
+        }
+        println!("{} orphaned {} directories:", orphans.len(), label);
+        for (path, bytes) in orphans {
+            println!("  {:<70} {}", path.display(), prune::gib(*bytes));
+        }
     }
-    println!(
-        "{} orphaned model(s), {} total",
-        orphans.len(),
-        prune::gib(total)
-    );
     if !delete {
         println!("pass --prune-delete to remove them");
         return Ok(0);
     }
-    let paths = orphans
-        .iter()
-        .map(|(path, _)| path.clone())
-        .collect::<Vec<_>>();
-    let reclaimed = prune::delete_orphans(&paths)?;
+    let mut count = 0usize;
+    let mut reclaimed = 0u64;
+    for (_, orphans) in &categories {
+        let paths = orphans
+            .iter()
+            .map(|(path, _)| path.clone())
+            .collect::<Vec<_>>();
+        count += paths.len();
+        reclaimed += prune::delete_orphans(&paths)?;
+    }
     println!(
-        "deleted {} orphaned model(s), {} reclaimed",
-        paths.len(),
+        "deleted {count} orphaned entries, {} reclaimed",
         prune::gib(reclaimed)
     );
     Ok(0)
