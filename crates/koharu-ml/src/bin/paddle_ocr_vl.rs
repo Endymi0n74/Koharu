@@ -56,6 +56,11 @@ async fn main() -> Result<()> {
         .with_default_directive(tracing::Level::INFO.into())
         .from_env_lossy();
     tracing_subscriber::fmt().with_env_filter(filter).init();
+    // The workspace variable must be inherited at process creation for
+    // cuBLASLt to honor it, so this may transparently restart the binary
+    // before any model work happens; the FFI knobs run after `init()`
+    // because torch_cpu.dll is only loaded by the runtime itself.
+    relaunch_with_cublas_workspace()?;
     let cli = Cli::parse();
     let image = image::open(cli.input)?;
     koharu_ml::init().await?;
@@ -86,6 +91,37 @@ async fn main() -> Result<()> {
     }
     Ok(())
 }
+/// Guarantees `CUBLAS_WORKSPACE_CONFIG=:4096:8` exists for fp32 mode by
+/// relaunching the binary with it when it was not inherited.
+///
+/// With fp32 weights that variable pins cuBLASLt's per-shape algorithm
+/// choice: without it every fp32 run's vision-encoder hashes drift, with it
+/// 11 of 12 measured runs were bitwise-identical across all 118 probed
+/// stages. Updating the environment from inside the process — via both
+/// `std::env::set_var` (Win32 block) and UCRT's `_putenv` (`_environ` copy)
+/// — is NOT observed by cuBLASLt's handle creation on this stack, so the
+/// variable must be inherited at process creation; spawning ourselves with
+/// it reproduces exactly that state, forwarding output and the exit code.
+/// The rare residual run-to-run GEMM tie-break (~1 run in 12, starting at a
+/// `L{i} attncore` hash) never changed the decoded text.
+///
+/// # Errors
+/// When spawning or waiting on the child process fails.
+fn relaunch_with_cublas_workspace() -> Result<()> {
+    if std::env::var_os("KOHARU_TORCH_NO_BF16").is_none()
+        || std::env::var_os("CUBLAS_WORKSPACE_CONFIG").is_some()
+        || std::env::var_os("KOHARU_CUBLAS_RELAUNCHED").is_some()
+    {
+        return Ok(());
+    }
+    let exe = std::env::current_exe()?;
+    let mut command = std::process::Command::new(exe);
+    command.args(std::env::args_os().skip(1));
+    command.env("CUBLAS_WORKSPACE_CONFIG", ":4096:8");
+    command.env("KOHARU_CUBLAS_RELAUNCHED", "1");
+    let status = command.status()?;
+    std::process::exit(status.code().unwrap_or(1));
+}
 
 /// Pins down the resolvable variance sources of PyTorch's greedy decoding.
 ///
@@ -102,6 +138,9 @@ async fn main() -> Result<()> {
 ///
 /// - `setBenchmarkCuDNN(false)` stops cuDNN from autotuning between calls.
 /// - `setAllowTF32CuBLAS/CuDNN(false)` keep fp32 matmuls exact.
+///
+/// The `CUBLAS_WORKSPACE_CONFIG` half of the recipe lives in
+/// [`prepare_cublas_workspace`], which must run before torch is initialized.
 #[cfg(windows)]
 fn enforce_determinism() -> Result<()> {
     use libloading::os::windows::Library as OsLibrary;
