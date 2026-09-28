@@ -35,8 +35,76 @@ struct SessionCommitter<'a>(&'a mut Session);
 #[async_trait::async_trait]
 impl Committer for SessionCommitter<'_> {
     async fn commit(&mut self, output: StageOutput) -> Result<koharu_scene::Snapshot> {
-        Ok(self.0.commit(output.patch).await?.snapshot)
+        let snapshot = self.0.commit(output.patch).await?.snapshot;
+        if std::env::var_os("KOHARU_PATCH_HASH").is_some() {
+            log_patch_hash(&output.stage, &snapshot, output.page).await;
+        }
+        Ok(snapshot)
     }
+}
+
+/// Logs a per-stage content hash of the committed scene when
+/// `KOHARU_PATCH_HASH` is set, to bisect the batch pipeline's PNG residue:
+/// identical hashes across two runs prove the inference stages committed the
+/// same scene content and pin any output-image difference on the raster/
+/// encode side, while a hash that starts differing names the stage.
+///
+/// The digest covers, for the committed page subtree, the geometry points,
+/// source text, translation text, and — after inpainting — the blake3 hash
+/// of every attached asset blob (the inpainted cleanup layers), the payload
+/// that decides the rendered page. Entity ids are excluded (they are
+/// randomly generated per run); the page label keys each digest line.
+async fn log_patch_hash(
+    stage: &Stage,
+    snapshot: &koharu_scene::Snapshot,
+    page: koharu_scene::EntityId,
+) {
+    use koharu_scene::{AssetRole, Geometry, SourceText, Translation};
+    use std::hash::{Hash, Hasher as _};
+
+    let source_role = AssetRole::new("source").expect("built-in role is valid");
+
+    let mut hasher = std::hash::DefaultHasher::new();
+    format!("{stage:?}").hash(&mut hasher);
+    let Ok(page_ref) = snapshot.page(page) else {
+        tracing::warn!("PATCHHASH page {page} missing");
+        return;
+    };
+    if let Ok(page_component) = page_ref.page() {
+        page_component.label.hash(&mut hasher);
+    }
+    let mut entries = 0usize;
+    let Ok(entities) = snapshot.subtree(page) else {
+        tracing::warn!("PATCHHASH page {page} subtree unreadable");
+        return;
+    };
+    for entity in entities {
+        if let Ok(Some(geometry)) = entity.component::<Geometry>() {
+            "geometry".hash(&mut hasher);
+            format!("{:?}", geometry.points).hash(&mut hasher);
+            entries += 1;
+        }
+        if let Ok(Some(text)) = entity.component::<SourceText>() {
+            "source".hash(&mut hasher);
+            text.text.value.hash(&mut hasher);
+            entries += 1;
+        }
+        if let Ok(Some(translation)) = entity.component::<Translation>() {
+            "translation".hash(&mut hasher);
+            translation.text.value.hash(&mut hasher);
+            entries += 1;
+        }
+        if let Ok(Some(asset)) = snapshot.asset(entity.id(), &source_role) {
+            if let Ok(bytes) = snapshot.read_blob(asset.blob).await {
+                "asset".hash(&mut hasher);
+                asset.media_type.hash(&mut hasher);
+                bytes.len().hash(&mut hasher);
+                blake3::hash(&bytes).hash(&mut hasher);
+                entries += 1;
+            }
+        }
+    }
+    tracing::info!(entries, "PATCHHASH {:016x}", hasher.finish());
 }
 
 #[derive(Debug)]
