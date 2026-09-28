@@ -161,6 +161,7 @@ impl Model {
             .await?
             .ok_or_else(|| anyhow!("page {page} has no source image"))?;
         let output = self.detect(image.clone()).await?;
+        log_detector_output_hash(page, &output);
         build_patch(&input, &image, output, &generation(PRODUCER, MODEL_ID)?).await
     }
 
@@ -175,6 +176,41 @@ impl Model {
         })
         .await
     }
+}
+
+/// When `KOHARU_PATCH_HASH` is set, logs a content digest of the raw detector
+/// output before any scene assembly, to bisect the batch pipeline's PNG
+/// residue: an identical digest across two runs whose stage PATCHHASH lines
+/// differ exonerates the network and indicts `build_patch`, while a differing
+/// digest localizes the residue to the inference itself. The hasher setup
+/// mirrors `batch::run::log_patch_hash` so both lines stay comparable.
+fn log_detector_output_hash(page: EntityId, output: &KoharuLayoutDetections) {
+    if std::env::var_os("KOHARU_PATCH_HASH").is_none() {
+        return;
+    }
+    use std::hash::{Hash, Hasher as _};
+
+    let mut hasher = std::hash::DefaultHasher::new();
+    for detection in &output.detections {
+        detection.label.hash(&mut hasher);
+        detection.score.to_bits().hash(&mut hasher);
+        detection.bbox.map(f32::to_bits).hash(&mut hasher);
+        detection.area.hash(&mut hasher);
+        blake3::hash(&detection.mask.pixels).hash(&mut hasher);
+        (
+            detection.mask.x,
+            detection.mask.y,
+            detection.mask.width,
+            detection.mask.height,
+        )
+            .hash(&mut hasher);
+    }
+    (output.image_width, output.image_height).hash(&mut hasher);
+    tracing::info!(
+        detections = output.detections.len(),
+        "DETHASH page={page} {:016x}",
+        hasher.finish()
+    );
 }
 
 struct DetectedRegion<'a> {
