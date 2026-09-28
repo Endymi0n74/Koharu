@@ -6,6 +6,8 @@
 //! parameter count and quantization. Estimates trade precision for coverage:
 //! the goal is refusing models that cannot fit, not predicting exact peaks.
 
+use std::collections::BTreeSet;
+
 use super::catalog::LocalModelDescriptor;
 use super::catalog::MODELS;
 use crate::QuantizationDefinition;
@@ -344,6 +346,16 @@ pub fn budget_from_total(total_bytes: u64) -> u64 {
 #[must_use]
 pub fn descriptor_for(model: &str) -> Option<&'static LocalModelDescriptor> {
     MODELS.iter().find(|descriptor| descriptor.id == model)
+}
+
+/// The Hugging Face repository of every catalog model, deduplicated: lets the
+/// batch `--prune` keep exactly the directories the catalog can resolve.
+pub fn catalog_repositories() -> impl Iterator<Item = String> {
+    MODELS
+        .iter()
+        .map(|descriptor| descriptor.repository.replace(['/', '\\'], "--"))
+        .collect::<BTreeSet<String>>()
+        .into_iter()
 }
 
 /// Whether the model ships with a vision projector (page-image input).

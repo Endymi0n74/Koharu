@@ -137,6 +137,18 @@ pub struct Arguments {
     #[arg(long)]
     pub list_models: bool,
 
+    /// List Hugging Face models in the store that no pinned model references
+    /// (orphans left by removed catalog entries or probes) and exit. Add
+    /// `--prune-delete` to actually delete them: every entry re-downloads
+    /// automatically (size and SHA-256 verified) if a model needs it again.
+    #[arg(long, conflicts_with = "list_models")]
+    pub prune: bool,
+
+    /// With `--prune`, delete the orphaned model directories instead of
+    /// listing them.
+    #[arg(long, requires = "prune")]
+    pub prune_delete: bool,
+
     /// Re-translate pages whose output already exists.
     #[arg(long)]
     pub overwrite: bool,
