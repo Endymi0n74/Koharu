@@ -20,6 +20,16 @@ use anyhow::{Result, bail};
 ///
 /// - `setBenchmarkCuDNN(false)` stops cuDNN from autotuning between calls.
 /// - `setAllowTF32CuBLAS/CuDNN(false)` keep fp32 matmuls exact.
+/// - `setDeterministicCuDNN(true)` restricts convolution engine selection to
+///   deterministic engines: `benchmark=off` still leaves the heuristics free
+///   to pick split-K conv engines whose atomics reorder run-to-run, which is
+///   what drifted the RF-DETR detector output between batch runs despite
+///   everything else being pinned. The fused SDP attention backends are left
+///   enabled: routing scaled-dot-product attention through the math backend
+///   is deterministic too but materializes the full attention matrix — on
+///   the DINO backbone's 9k-token full-attention layers that is multiple GiB
+///   that the caching allocator keeps pinned afterwards, starving the
+///   llama.cpp translation model of VRAM on 8 GiB cards.
 ///
 /// `setDeterministicAlgorithms(true)` is intentionally NOT used: in bf16 it
 /// aborts on the first matmul (see the module documentation), and with fp32
@@ -36,6 +46,7 @@ pub fn enforce() -> Result<()> {
 
     const CONTEXT: &str = "?globalContext@at@@YAAEAVContext@1@XZ";
     const SET_BENCHMARK: &str = "?setBenchmarkCuDNN@Context@at@@QEAAX_N@Z";
+    const SET_DETERMINISTIC_CUDNN: &str = "?setDeterministicCuDNN@Context@at@@QEAAX_N@Z";
     const SET_TF32_CUBLAS: &str = "?setAllowTF32CuBLAS@Context@at@@QEAAX_N@Z";
     const SET_TF32_CUDNN: &str = "?setAllowTF32CuDNN@Context@at@@QEAAX_N@Z";
 
@@ -62,11 +73,15 @@ pub fn enforce() -> Result<()> {
     type Setter = unsafe extern "system" fn(*mut std::ffi::c_void, bool);
     let set_benchmark: Setter = symbol(SET_BENCHMARK)?;
     unsafe { set_benchmark(context, false) };
+    let set_deterministic_cudnn: Setter = symbol(SET_DETERMINISTIC_CUDNN)?;
+    unsafe { set_deterministic_cudnn(context, true) };
     let set_tf32_cublas: Setter = symbol(SET_TF32_CUBLAS)?;
     unsafe { set_tf32_cublas(context, false) };
     let set_tf32_cudnn: Setter = symbol(SET_TF32_CUDNN)?;
     unsafe { set_tf32_cudnn(context, false) };
-    tracing::debug!("torch determinism knobs applied (cuDNN benchmark off, TF32 off)");
+    tracing::debug!(
+        "torch determinism knobs applied (cuDNN benchmark off, cuDNN deterministic engines only, TF32 off)"
+    );
     Ok(())
 }
 
