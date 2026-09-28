@@ -109,6 +109,15 @@ pub struct Arguments {
     #[arg(long)]
     pub deterministic: bool,
 
+    /// Reproducible GPU session: run the Torch models — layout detection and
+    /// inpainting — in fp32 instead of bfloat16, removing the nondeterministic
+    /// bf16 split-K reductions that are the only drift known to change OCR
+    /// text. Roughly doubles the VRAM and compute of those two stages, and has
+    /// no effect on the ggml-based OCR and translation models, which are
+    /// already bit-stable, nor on CPU runs.
+    #[arg(long)]
+    pub torch_fp32: bool,
+
     /// Store OCR text at PATH and reuse it for identical crops on later runs,
     /// so the translation stage reads the same text every time (OCR inference
     /// is not bit-stable on the GPU). Defaults to `.ocr-cache.json` inside
@@ -539,6 +548,22 @@ mod tests {
                 .temperature,
             Some(0.0)
         );
+    }
+
+    #[test]
+    fn torch_fp32_is_opt_in() {
+        let plain = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
+        assert!(!plain.torch_fp32);
+
+        let forced = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--torch-fp32",
+        ]);
+        assert!(forced.torch_fp32);
     }
 
     #[test]
