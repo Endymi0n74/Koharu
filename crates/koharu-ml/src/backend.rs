@@ -47,17 +47,24 @@ impl TryIntoDevice<koharu_torch::Device> for Device {
 
 pub(crate) fn set_precision(var_store: &mut nn::VarStore) {
     let hardware = Hardware::discover();
-    let device_supports_bfloat16 = hardware
-        .device()
-        .is_some_and(|device| match &device.backend {
-            Backend::Cuda => device.compute_capability() >= 80,
-            Backend::Rocm => device.target().is_some_and(|target| {
-                matches!(target, "gfx908" | "gfx90a" | "gfx942" | "gfx950")
-                    || target.starts_with("gfx11")
-                    || target.starts_with("gfx12")
-            }),
-            Backend::Cpu | Backend::Vulkan | Backend::Metal | Backend::Other(_) => false,
-        });
+    // cuBLAS bf16 matmuls reduce through nondeterministic split-K kernels on
+    // Ampere+; this PyTorch build has no deterministic path for them (forcing
+    // `allow_splitk=False` aborts in `gemm_internal_cublas_bfloat16_helper`).
+    // `KOHARU_TORCH_NO_BF16=1` opts into fp32 weights, which cuBLAS reduces
+    // bitwise-reproducibly — at roughly double the VRAM and compute cost.
+    let force_fp32 = std::env::var_os("KOHARU_TORCH_NO_BF16").is_some();
+    let device_supports_bfloat16 = !force_fp32
+        && hardware
+            .device()
+            .is_some_and(|device| match &device.backend {
+                Backend::Cuda => device.compute_capability() >= 80,
+                Backend::Rocm => device.target().is_some_and(|target| {
+                    matches!(target, "gfx908" | "gfx90a" | "gfx942" | "gfx950")
+                        || target.starts_with("gfx11")
+                        || target.starts_with("gfx12")
+                }),
+                Backend::Cpu | Backend::Vulkan | Backend::Metal | Backend::Other(_) => false,
+            });
     let use_bfloat16 =
         matches!(var_store.device(), koharu_torch::Device::Cuda(_)) && device_supports_bfloat16;
 

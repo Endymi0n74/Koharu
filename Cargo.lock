@@ -4866,6 +4866,7 @@ dependencies = [
  "koharu-llama",
  "koharu-runtime",
  "koharu-torch",
+ "libloading 0.9.0",
  "llguidance",
  "minijinja",
  "minijinja-contrib",
