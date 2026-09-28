@@ -4,6 +4,7 @@ Document only durable, repository-specific constraints here. Do not record curre
 
 ## Change Policy
 
+- Never open a pull request, here or upstream: commits land on `origin/main` on explicit request only, and stay local otherwise.
 - Never add backward compatibility. When an API, schema, configuration, or ownership boundary changes, update every in-repository consumer and remove the replaced form.
 - Prefer a coherent ownership redesign over aliases, forwarding layers, compatibility parsers, or cosmetic renaming.
 - Keep responsibilities self-contained. Defaults and provider-specific behavior belong to the component that owns them rather than a central list of special cases.
