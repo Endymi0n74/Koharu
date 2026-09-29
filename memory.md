@@ -215,7 +215,106 @@ paires divergent en cours de décodage**, **1,65 flips/1 000 tokens générés**
 identique 40/40 (prefill déterministe) ; l'appel court (15 tokens) stable 10/10 — le risque
 croît avec la longueur ; les pas de divergence tombent sur des hotspots récurrents (≈5, 58,
 83, 91, 122, 210, 242) où le modèle est en near-tie. Un appel de 150-250 tokens a ~40-60 %
-de chances de différer d'un run à l'autre. Deux pièges de mesure : `chapter_context` propage les traductions déjà dérivées
+de chances de différer d'un run à l'autre.
+
+**Expérimentation MMQ (2026-09-29, fork buildé + A/B 10+10 runs) — hypothèse GEMM
+falsifiée** : la recette ci-dessus a été exécutée de bout en bout. Fork `Endymi0n74/llama`
+(branche `deterministic-mmq`, commit 600a5eb) : `GGML_CUDA_FORCE_MMQ=ON` +
+`GGML_CUDA_NO_VMM=ON` dans `cmake/CMakeLists.txt`, et `release.yml` étendu d'un input
+de dispatch `tag` pour épingler llama.cpp à `b10903` (sinon le workflow résout le dernier
+release upstream — un A/B propre impose le même tag). Build CI Windows CUDA (run
+`36474902343`, artifact téléchargé via `gh run download` sans attendre le job release),
+swap des DLL dans `packages/llama/b10903/windows-cuda` (le check `complete()` du store ne
+vérifie que la présence des fichiers, pas les hash — le swap en place passe ; baseline
+sauvegardée dans `target/llm-ab/baseline/`, build MMQ dans `target/llm-ab/mmq/`). A/B 10
+runs chacun, protocole LLMDBG identique, analyse `scripts/flip-study-ab.py` (groupement
+par prompt hash, all-pairs) : **A (cuBLAS, mesure du jour) 104 paires / 50 divergentes
+(48 %) / 3,65 flips/1000 tokens ; B (MMQ) 112 paires / 47 divergentes (42 %) / 3,25
+flips/1000 — aucun changement significatif**. `first_token` identique 40/40 dans les deux
+conditions (prefill stable, même hash entre les deux builds). Mêmes hotspots de
+divergence (242, 4, 19, 58, 83…). **Lecture : le split-K atomique des GEMM quantisés
+cuBLAS n'est pas le fautif** — MMQ + NO_VMM ne réduisent pas le flip rate ; le
+non-déterminisme du decode loop vit ailleurs (attention FA, softmax/RMSNorm, ou réduction
+dépendante du batch — exactement le périmètre du PR #16016 : RMSNorm/MatMul/Attention
+batch-invariants). Coût perf mesuré : B ~+30 % en médiane (≈70 s → ≈93 s par run 3 pages,
+queue jusqu'à 410 s sous charge GPU) — MMQ est plus lent pour zéro gain de déterminisme.
+Les DLL de base (md5 `d0932411…`/`1258f638…`) sont restaurées dans le store. Pistes
+suivantes, par ordre de coût : (1) build `-DGGML_CUDA_FA=OFF` pour isoler l'attention ;
+(2) patcher le fork avec le diff #16016 et builder `-DGGML_DETERMINISTIC=ON` ;
+(3) accepter le résidu et verrouiller la reproductibilité au niveau texte (post-proc).
+
+**Expérimentation FA=OFF (2026-09-29, fork branche `no-fa` + A/B 10+10 runs) — hypothèse
+attention falsifiée** : build CI avec `GGML_CUDA_FA=OFF` (commit `027d816`, branche `no-fa`
+dérivée de `8d7b898` + input `tag`, SANS FORCE_MMQ/NO_VMM pour rester sinon identique à la
+baseline ; run `36523026500`, ~1 h 35). Mécanique vérifiée dans b10903 : `GGML_CUDA_NO_FA`
+→ `get_best_fattn_kernel` renvoie NONE → `ggml_cuda_flash_attn_ext_supported()` = false →
+CUDA refuse FLASH_ATTN_EXT dans `supports_op`, le CPU l'accepte, et `resolve_fused_ops`
+désactive proprement `flash_attn` au premier batch (log : `layer 0 is assigned to device
+CUDA0 but Flash Attention is assigned to device CPU` → `Flash Attention not supported, set
+to disabled`) — fallback MUL_MAT, pas d'abort. Preuves en run : llama.dll 109 Mo vs 153 Mo
+baseline (~44 Mo de cubins FA en moins, md5 `658df07c…`/`a09ba877…`), et log warmup
+`WARNING: flash attention not supported by CUDA0`. Cache KV identique entre conditions
+(44/110 MiB, f16 K/V) → pas de cofonde quantization. Protocole identique aux runs MMQ,
+passe de contrôle A' le jour même : **A' (baseline) 103 paires / 55 divergentes (53,4 %) /
+3,94 flips/1000** (vs 3,65 la veille, reproductible) ; **B' (FA=OFF) 97 paires / 49 (50,5 %)
+/ 3,85 flips/1000 — aucun changement significatif** ; cross A'/B' 3,87, cross B'/A(hier)
+3,74 — le build FA=OFF décode au même niveau de variance que la baseline, la divergence est
+indépendante du chemin d'attention. `first_token` hash `c26b7faafaa72074` identique 40/40
+dans les deux conditions. Mêmes hotspots (91, 15, 19, 169, 242…). **Lecture : les kernels
+FlashAttention CUDA ne sont pas le fautif non plus** — après GEMM (MMQ falsifié) puis
+attention (FA falsifié), le non-déterminisme du decode loop se réduit aux suspects restants :
+softmax/RMSNorm batch-dépendants, ou courses d'atomiques transverses (réductions non-GEMM).
+Le périmètre exact du PR #16016 (RMSNorm/MatMul/Attention batch-invariants via
+`-DGGML_DETERMINISTIC=ON`) devient la piste principale. Coût perf FA=OFF négligeable en
+médiane (runs ~4 min sous charge GPU, ~70 s au calme, comparable à la baseline). DLL
+baseline restaurées dans le store (md5 vérifiés) ; build FA=OFF conservé dans
+`target/llm-ab/no-fa/`, logs `target/llm-ab/{a2,b2}/`. Piège du poste : les runs batch ne
+survivent pas au timeout de 600 s de l'outil terminal — lancer chaque série via
+`nohup bash <script> & disown` (script qui boucle les 10 runs avec log par run et
+`progress.txt`), puis sonder par cycles de sleep.
+
+**Cause racine identifiée (2026-09-29, bisection orchestration vs kernels) — la variance
+naît dans la détection layout, pas dans les kernels LLM** : après FA=OFF falsifié, le portage
+du PR #16016 a été écarté (PR orphelin : créé et abandonné le 2025-09-15, 9 commits jamais
+mergés ; ~250 commits de divergence entre sa base `b907255f` et `b10903`, dont des refontes
+majeures des fichiers FA — XOR swizzle, GGML_FA_QUANTS, sparse-fa ; diff sauvegardé dans
+`/tmp/pr16016.diff`). À la place, discriminateur orchestration vs kernels : (1) contrôle GPU
+au calme `target/llm-ab/a3/` — **3,75 flips/1000**, même niveau que sous charge → contention
+falsifiée aussi ; (2) série CPU (`--cpu`, kernels ggml-cpu déterministes) `target/llm-ab/cpu/`
+— **2,87 flips/1000, mêmes hotspots (15, 242)** → les kernels LLM ne sont pas la source ;
+(3) série CPU `--no-vision` `target/llm-ab/cpunv/` — **0,00 flip/1000** (36 paires
+intra+cross bit-identiques, cache OCR constant) → le pipeline texte est déterministe, le
+bruit vit dans la branche vision ; (4) runs GPU avec `KOHARU_PATCH_HASH=1` (hache les bytes
+blake3 de l'asset `source` après chaque étage) `target/llm-ab/gpuhash/` — la cascade est
+mesurée : **DETHASH (détection RFDetR-SEG) varie déjà run-to-run** (pages 2-3 : r01 ≠
+r02=r03 ; page 1 constante) → premier PATCHHASH post-détection divergent → image inpaintée
+LaMa divergente (PNG écrasant l'asset `source`, non caché, ni haché) → OCR cropé divergent →
+traductions différentes. Les paires de runs dans la même session (r02-r03) matchent
+exactement (0/6) — la variance est groupée par session GPU/driver (méme signature que le
+contrôle cuDNN du 2026-09-28). Lecture d'ensemble : les flips LLM sont l'aval de la
+détection layout ; les corrections candidates côté détection : seed des opérations Torch,
+NMS/anchors/resize non déterministes, batch des pages ; sondes DETHASH/PATCHHASH requièrent
+respectivement `KOHARU_PATCH_HASH` (les deux — DETHASH est émis depuis
+`log_detector_output_hash`, même var d'env). Le prompt LLM (`LLMDBG prompt` = texte) et
+`history` (tokens) restent stables entre runs — c'est l'image (ViT/mtmd + crops) qui porte
+la variance. **Le patch du runtime llama (#16016 ou équivalent) est inutile pour ce bug.**
+Prochaine action utile : instrumenter/figer la détection (seed, mode eval, algorithme NMS
+déterministe) — et vérifier si le fix cuDNN du 2026-09-28 s'applique au modèle RFDetR (le
+knob `setDeterministicCuDNN` pourrait réduire la variance session-to-session mais pas les
+hotspots intra-session).
+
+**⚠ Contrôle final 2026-09-28 soir : le fix cuDNN N'EST PAS inconditionnel.** Trois runs
+consécutifs (A/B/C, ~1 min d'intervalle) : les 3 détections de A et B diffèrent toutes
+(entries identiques, DETHASH vides dans l'extraction, divergence dès detection) ; la passe
+C rejouée 2 min plus tard retombe sur les hash de A pour 2 pages sur 3 et reste divergente
+pour la 3ᵉ. Le GPU était sous charge croissante d'autres processus (Steam webhelper,
+LGHUB, terminal — nvidia-smi liste des compute apps au moment du test, absents lors de la
+validation initiale de 15 h). Lecture : la sélection d'engine déterministe cuDNN tient en
+session GPU calme mais **sous contention, cuBLAS/cuDNN résident dans le driver changent de
+chemin** — l'atomique n'était pas seule en cause, ou le knob `setDeterministicCuDNN` ne
+serre pas le même axe. À réinstruire avec : la machine au calme (fenêtre 19:20 = session
+GPU chargée), un run long pour saturer, et la sonde DETHASH par run. Ne pas présenter le
+fix comme acquis tant que ce cas n'est pas compris. Deux pièges de mesure : `chapter_context` propage les traductions déjà dérivées
 dans les prompts des pages suivantes (contamination en cascade) ; et l'ordre d'exécution des
 pages par étage GPU peut varier entre runs (comparer par `entries=`/prompt hash, pas par
 position). Correctif à chercher côté upstream : rebuild du package llama avec kernels
@@ -272,9 +371,12 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
 
 ## À faire plus tard (choix ouverts)
 
-- Résidu translation : correctif côté upstream uniquement (package llama prébuildé,
-  voir section Non-déterminisme batch) — ou accepted tant que l'OCR/la détection restent
-  stables.
+- Résidu translation : **cause racine identifiée le 2026-09-29 — la variance naît dans la
+  détection layout RFDetR-SEG (Torch), pas dans les kernels llama** (cascade DETHASH →
+  PATCHHASH → OCR → traduction ; CPU `--no-vision` bit-stable). Correctif attendu côté
+  détection : seed/mode eval/NMS déterministe du modèle Torch, ou fix cuDNN étendu à RFDetR.
+  Le patch du runtime llama (#16016) est inutile ici (voir section Non-déterminisme batch :
+  MMQ et FA=OFF falsifiés, contention falsifiée, CPU aussi flippe avec vision).
 - Décider du sort des sondes `DETHASH` (`stages/detection.rs`) et `LLMDBG`
   (`koharu_ml::llm::model`) : à committer avec le fix cuDNN ou à retirer une fois la
   stabilité acquise.
