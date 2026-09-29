@@ -399,6 +399,62 @@ déroulant un corpus avec pages 1 et 2 de même résolution. En attendant, la pa
 ressemble à un hasard structurel du corpus (son contenu est plus facile à OCR, moins de
 near-ties), pas à un mécanisme d'épinglage.
 
+**Corpus permuté/rescalé (2026-09-29, `target/val-perm/`, 2 runs OCRTRACE,
+`target/llm-ab/permut/`) — la stabilité de la page 1 n'est NI la position NI la résolution
+NI le contenu** : corpus à 4 pages = ex-page2 en position 1 (1126x1600), ex-page3 en 2,
+ex-page1 rescalée en 1126x1600 en 3, ex-page1 originale (1261x1807) en 4. Résultat :
+**DETHASH diffère entre les 2 runs pour les 4 pages**, y compris la page en première
+position (ex-page2 : `8f95fd10` vs `301e182d`) et l'originale 1261x1807 en position 4
+(`5bb5e307` vs `d59144d6`). Les crops restent identiques intra-run (shapes/ordre).
+Conclusions : (1) l'ancienne stabilité de la page 1 n'était ni structurelle (première
+position, résolution, contenu) ni durable — c'était un échantillon favorables dans une
+variance de fond qui touche potentiellement toutes les pages, avec des fenêtres où
+certaines passent ; (2) le pattern « certaines pages stables, d'autres non » n'est pas
+prévisible par les propriétés de la page — il est dominé par l'état temporel de la machine
+au moment du forward, cohérent avec tout le reste (grouping par fenêtre, intermittence
+des sessions, entrées bit-identiques mais décodage différent). La variance touche le
+décode llama.cpp quel que soit le contenu : aucune propriété de la page ne protège.
+
+**Sonde `LLMDBG logits0` (2026-09-29, blake3 des logits complets du prefill, 4 runs
+`target/llm-ab/logits/`) — le PREFILL est déjà non déterministe, l'hypothèse « prefill
+stable » est RENVERSÉE** : jusqu'ici `first_token` identique 40/40 était interprété comme
+prefill déterministe — c'était un artefact d'argmax : les logits complets divergent à
+tout appel. Traductions : `logits0` distinct 4/4 runs pour les 4 pages (top-1 token
+identique `2717`, mais top logit qui varie en 4ᵉ-5ᵈ chiffre significatif :
+2.7666/2.7715/2.7677/2.7706e1 — jitter relatif ~1e-3) ; OCR : 18/25 appels avec `logits0`
+distinct (7 stables), 22 valeurs distinctes de `first_token` (des crops différents).
+Conclusions : (1) la divergence n'est PAS spécifique au décodage incrémental — le prefill
+ViT mtmd + GEMM batchés produit déjà des logits différents run-to-run ; le décodage ne
+fait qu'accumuler ce bruit jusqu'aux near-ties (hotspots) ; (2) `first_token` restait
+stable parce que l'écart top-1/top-2 est large devant le jitter — les flips de décodage
+apparaissent quand la cascade OCR→prompt rapproche les logits ; (3) le jitter est
+déterministe-par-process ? Non : 4 process distincts donnent 4 logits distincts, donc le
+bruit varie par process ET par appel (7 OCR stables = crops dont le jitter reste sous la
+résolution blake3 ? improbable — plutôt crops à logits plus robustes). Piste de fix
+devenue prioritaire : le prefill llama.cpp (batched GEMM cuBLAS dans ggml-cuda) est le
+point d'entrée du bruit — côté options : `GGML_CUDA_FORCE_MMQ` ne change rien (testé),
+le JIT cuBLASLt heuristique est suspecté ; instrumenter ggml côté splits/batch ou tester
+un runtime avec cuBLAS workspace épinglé côté ggml (GGML_CUDA_ALLOC/scratch) ; à défaut,
+la sonde OCRDBG/LLMDBG + post-vérification texte reste la protection pragmatique.
+
+**Post-vérification `--verify` livrée (2026-09-29)** : `koharu-batch --verify` rejoue
+le pipeline complet (détection, OCR sans cache, inpainting, traduction) sur une session
+fraîche chargée depuis les mêmes fichiers, redirigé vers `<output>.verify`, et compare
+les textes OCR (`SourceText`) et traductions (`Translation`) page par page par
+(chapitre, label de page) — rapport stderr `verify: N page(s) replayed, M with drift` +
+liste des pages instables, exit 0. Validé en réel : 3 pages rejouées, page1/page3
+translation=DIFFERS, page2 stable. Pièges résolus pendant l'implémentation : le replay
+réutilise la `resolved` de la première passe (un budget VRAM re-queryé voit ~0 car le
+LLM est résident) ; `pipeline.unload_models()` (nouveau, décharge tous les stages du
+runner courant via `Translator::unload` qui drop l'Arc) est appelé avant le replay sinon
+l'OCR rejoué meurt sur `0 MiB free` ; le cache OCR est désactivé côté replay (sinon il
+rejouerait les lectures de la passe 1 et masquerait le drift OCR) ; les pages sont
+collectées depuis `snapshot.pages()` et non `chapter.loaded` (drainé par translation) ;
+`prepare_chapters` du replay force `overwrite=true` (sinon un `.verify` préexistant
+donne « nothing to do »). La comparaison OCR ne détecte du drift que si le cache OCR est
+absent au premier passage — avec cache, la passe 1 rejoue les lectures stockées et seul
+le drift de traduction est visible (le cas production : cache actif).
+
 **⚠ Contrôle final 2026-09-28 soir : le fix cuDNN N'EST PAS inconditionnel.** Trois runs
 consécutifs (A/B/C, ~1 min d'intervalle) : les 3 détections de A et B diffèrent toutes
 (entries identiques, DETHASH vides dans l'extraction, divergence dès detection) ; la passe

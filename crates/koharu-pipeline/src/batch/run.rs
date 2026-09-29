@@ -1590,6 +1590,276 @@ impl Translation<'_> {
 }
 
 /// `(translated, skipped, failed, planned)` counts of a chapter.
+/// One page's run-to-run text drift, from a `--verify` replay.
+struct PageDrift {
+    prefix: String,
+    page: String,
+    ocr_diff: bool,
+    translation_diff: bool,
+}
+
+/// Output path of the `--verify` replay: the real output path with a
+/// `.verify` suffix (before the extension for an archive output, as a
+/// sibling folder for a folder output), so the replay never overwrites the
+/// pages the user-facing run wrote.
+fn verify_output_path(output: &Path) -> PathBuf {
+    if is_archive_path(output) {
+        let stem = output
+            .file_stem()
+            .map(|stem| stem.to_os_string())
+            .unwrap_or_default();
+        let extension = output.extension().map(|ext| ext.to_os_string());
+        let mut name = stem;
+        name.push(".verify");
+        if let Some(extension) = extension {
+            name.push(".");
+            name.push(extension);
+        }
+        output.with_file_name(name)
+    } else {
+        let mut name = output
+            .file_name()
+            .map(|name| name.to_os_string())
+            .unwrap_or_default();
+        name.push(".verify");
+        output.with_file_name(name)
+    }
+}
+
+/// Collects, for every page of the snapshot, the sorted `(source, translation)`
+/// text pairs the inference stages committed. Sorted because the reading order
+/// of entities is stable but their generation is not: identity by content, not
+/// by position, keeps the comparison meaningful.
+fn page_texts(
+    snapshot: &koharu_scene::Snapshot,
+    page: koharu_scene::EntityId,
+) -> Result<Vec<(String, String)>> {
+    use koharu_scene::{SourceText as SceneSourceText, Translation as SceneTranslation};
+    let mut pairs = Vec::new();
+    for entity in snapshot.subtree(page)? {
+        let id = entity.id();
+        let source = snapshot.component::<SceneSourceText>(id)?;
+        let translation = snapshot.component::<SceneTranslation>(id)?;
+        match (&source, &translation) {
+            // OCR-only entity: the source text is the reading itself.
+            (Some(text), None) => pairs.push((text.text.value.clone(), String::new())),
+            // Translated entity: the pair travels together.
+            (source, Some(translation)) => {
+                let source_text = source
+                    .as_ref()
+                    .map(|text| text.text.value.clone())
+                    .unwrap_or_default();
+                pairs.push((source_text, translation.text.value.clone()));
+            }
+            (None, None) => {}
+        }
+    }
+    pairs.sort();
+    Ok(pairs)
+}
+
+/// Replays the full inference pipeline on freshly loaded chapters (same input
+/// files, new sessions, new models) and diffs the committed texts against the
+/// first pass. Returns one `PageDrift` per page that both passes processed.
+async fn verify_replay(
+    arguments: &Arguments,
+    chapters: &[Chapter],
+    resolved: &cli::Resolved,
+) -> Result<Vec<PageDrift>> {
+    // First-pass texts, keyed by (chapter label, page label) — entity ids are
+    // randomly generated per run and cannot key the comparison.
+    let mut first_pass: BTreeMap<(String, String), Vec<(String, String)>> = BTreeMap::new();
+    for chapter in chapters {
+        let Some(session) = chapter.session.as_ref() else {
+            continue;
+        };
+        let snapshot = session.snapshot();
+        // Enumerate the snapshot's pages, not `chapter.loaded`: translation
+        // has already drained that vec by the time the replay runs.
+        for page_ref in snapshot.pages() {
+            let page_id = page_ref.id();
+            let label = snapshot
+                .page(page_id)
+                .and_then(|page| page.page())
+                .map(|page| page.label)
+                .unwrap_or_default();
+            let texts = page_texts(&snapshot, page_id).unwrap_or_default();
+            if !texts.is_empty() {
+                first_pass.insert((chapter.label.clone(), label), texts);
+            }
+        }
+    }
+
+    // Second pass: the same recipe as the main run, on fresh sessions. The
+    // OCR cache is disabled for the replay (it would replay the first pass's
+    // readings and hide the very drift this report measures), and the output
+    // is redirected beside the real one so the replay never touches the
+    // user-facing pages.
+    let input_path = arguments
+        .input
+        .as_deref()
+        .context("--verify requires --input")?
+        .to_path_buf();
+    let output = arguments
+        .output
+        .clone()
+        .context("--verify requires --output")?;
+    let mut replay_arguments = arguments.clone();
+    replay_arguments.no_ocr_cache = true;
+    replay_arguments.overwrite = true;
+    replay_arguments.output = Some(verify_output_path(&output));
+    let mut replay = prepare_chapters(
+        &replay_arguments,
+        &input_path,
+        &replay_arguments
+            .output
+            .as_deref()
+            .context("--verify requires --output")?,
+    )?;
+    let device = koharu_ml::device(arguments.cpu);
+    // The replay reuses the first pass's resolved model: at this point the
+    // GPU still holds it, so a fresh budget query would measure ~0 free VRAM
+    // and bail before the replay starts.
+    let config = cli::pipeline_config(&replay_arguments, resolved);
+    let pipeline = Pipeline::from_config(
+        Config::memory(config),
+        Config::memory(ProvidersConfig::default()),
+        device,
+    )?;
+    let renderer = Renderer::new()?;
+    let rasterizer = Rasterizer::new()?;
+    // The replay chapters need their metadata resolved like the main run's
+    // (the phases and translation read it for their report rows).
+    let replay_device_description = koharu_ml::device(replay_arguments.cpu).description;
+    let replay_started_at = report::timestamp_now();
+    for chapter in replay.iter_mut() {
+        chapter.metadata = Some(RunMetadata {
+            model: resolved.model.clone(),
+            quantization: resolved.quantization.clone(),
+            vram_estimate: resolved.estimate.display(),
+            language: replay_arguments.lang.tag().to_owned(),
+            input: chapter.source.display().to_string(),
+            output: chapter.output.display().to_string(),
+            device: replay_device_description.clone(),
+            started_at: replay_started_at.clone(),
+        });
+    }
+    let mut second_pass: BTreeMap<(String, String), Vec<(String, String)>> = BTreeMap::new();
+    for chapter in replay
+        .iter_mut()
+        .filter(|chapter| !chapter.pending.is_empty())
+    {
+        load_chapter(chapter).await?;
+        for stage in [Stage::Detection, Stage::Ocr, Stage::Inpainting] {
+            if chapter.loaded.is_empty() {
+                break;
+            }
+            let Some(session) = chapter.session.as_mut() else {
+                continue;
+            };
+            let mut phases = Phases {
+                session,
+                pipeline: &pipeline,
+                vram_sampler: None,
+                pages_report: &mut chapter.pages_report,
+                failures: &mut chapter.failures,
+                retries: arguments.retries,
+                quiet: true,
+                report_base: None,
+                previous_state: &chapter.previous_state,
+                metadata: chapter
+                    .metadata
+                    .as_ref()
+                    .expect("metadata is resolved before the run starts"),
+                started: Instant::now(),
+                prefix: chapter.prefix.clone(),
+            };
+            phases.run(stage, &mut chapter.loaded).await;
+        }
+        // Translation, one chapter at a time (its context needs every
+        // earlier page's text, exactly like the main run).
+        let mut translation = Translation {
+            pipeline: &pipeline,
+            renderer: &renderer,
+            rasterizer: &rasterizer,
+            vram_sampler: None,
+            format: arguments.format,
+            retries: arguments.retries,
+            quiet: true,
+            started: Instant::now(),
+            processed: 0,
+            total: 0,
+            translation_started: Instant::now(),
+        };
+        if let Err(error) = translation.run(chapter).await {
+            eprintln!(
+                "{}verify replay translation failed: {error:#}",
+                chapter.prefix
+            );
+        }
+        let Some(session) = chapter.session.as_ref() else {
+            continue;
+        };
+        let snapshot = session.snapshot();
+        for page_ref in snapshot.pages() {
+            let page_id = page_ref.id();
+            let label = snapshot
+                .page(page_id)
+                .and_then(|page| page.page())
+                .map(|page| page.label)
+                .unwrap_or_default();
+            let texts = page_texts(&snapshot, page_id).unwrap_or_default();
+            if !texts.is_empty() {
+                second_pass.insert((chapter.label.clone(), label), texts);
+            }
+        }
+    }
+
+    // Diff. A page present in only one pass is reported as drifted (its
+    // replay failed), because the corpus is not verifiable as-is.
+    let mut report = Vec::new();
+    for (key, first_texts) in &first_pass {
+        let (label, page) = key;
+        let prefix = if label.is_empty() {
+            String::new()
+        } else {
+            format!("[{label}] ")
+        };
+        let Some(second_texts) = second_pass.get(key) else {
+            report.push(PageDrift {
+                prefix,
+                page: page.clone(),
+                ocr_diff: true,
+                translation_diff: true,
+            });
+            continue;
+        };
+        let ocr_diff = first_texts
+            .iter()
+            .map(|(source, _)| source)
+            .collect::<std::collections::BTreeSet<_>>()
+            != second_texts
+                .iter()
+                .map(|(source, _)| source)
+                .collect::<std::collections::BTreeSet<_>>();
+        let translation_diff = first_texts
+            .iter()
+            .map(|(_, translation)| translation)
+            .collect::<std::collections::BTreeSet<_>>()
+            != second_texts
+                .iter()
+                .map(|(_, translation)| translation)
+                .collect::<std::collections::BTreeSet<_>>();
+        report.push(PageDrift {
+            prefix,
+            page: page.clone(),
+            ocr_diff,
+            translation_diff,
+        });
+    }
+    Ok(report)
+}
+
 fn tally(chapter: &Chapter, dry_run: bool) -> (usize, usize, usize, usize) {
     let mut translated = 0;
     let mut skipped = 0;
@@ -2016,6 +2286,43 @@ pub async fn run(arguments: Arguments) -> Result<i32> {
     }
 
     write_json_summary(&json_summary, &chapters)?;
+
+    // Post-verification (--verify): replay every inference stage on a fresh
+    // session loaded from the same inputs and report pages whose OCR text or
+    // translation differs between the two passes. The local models are not
+    // run-to-run bit-stable (cuBLASLt heuristic drift); the replay quantifies
+    // that drift page by page so an unstable corpus is known instead of
+    // suspected. Exit code stays 0 — the report is the signal, the run itself
+    // succeeded.
+    if arguments.verify {
+        // Free the first pass's models before building the replay's: on a
+        // small card the translation LLM still resident would leave the OCR
+        // model of the replay without VRAM.
+        pipeline.unload_models();
+        let report = verify_replay(&arguments, &chapters, &resolved).await?;
+        let drift: Vec<&PageDrift> = report
+            .iter()
+            .filter(|entry| entry.ocr_diff || entry.translation_diff)
+            .collect();
+        eprintln!(
+            "verify: {} page(s) replayed, {} with drift",
+            report.len(),
+            drift.len()
+        );
+        for entry in &drift {
+            eprintln!(
+                "  - {}{}: ocr={} translation={}",
+                entry.prefix,
+                entry.page,
+                if entry.ocr_diff { "DIFFERS" } else { "stable" },
+                if entry.translation_diff {
+                    "DIFFERS"
+                } else {
+                    "stable"
+                }
+            );
+        }
+    }
 
     let total_failures: usize = chapters.iter().map(|chapter| chapter.failures.len()).sum();
     if volume {

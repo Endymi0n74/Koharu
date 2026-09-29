@@ -67,6 +67,20 @@ impl Pipeline {
         })
     }
 
+    /// Unloads every stage's model from this pipeline's current runner.
+    ///
+    /// The stage processors hold their models behind shared handles, so the
+    /// freed VRAM is visible to any model loaded afterwards — including a
+    /// fresh pipeline built while this one is still alive. Used by the
+    /// `--verify` replay to make room for the second pass's models without
+    /// dropping the first pass's pipeline (its config watcher stays alive).
+    pub fn unload_models(&self) {
+        let runner = self.current.load_full();
+        for stage in crate::Stage::ALL {
+            runner.stages.unload(stage);
+        }
+    }
+
     pub fn subscribe_resources(&self) -> tokio::sync::watch::Receiver<ResourceSnapshot> {
         self.resources.start();
         self.resources.subscribe()

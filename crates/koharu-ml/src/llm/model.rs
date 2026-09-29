@@ -68,6 +68,35 @@ fn debug_hash_text(tag: &str, text: &str) {
     eprintln!("LLMDBG {tag} {:016x}", hasher.finish());
 }
 
+/// Hashes the full prefill logits row (one f32 per vocabulary token) so a run
+/// pair with identical inputs can bisect a flip into the prefill (vision
+/// encoder + batched GEMMs) versus the incremental decode loop: differing
+/// `logits0` blames the prefill, matching `logits0` with a later `step=N`
+/// divergence blames the per-token decode path.
+fn debug_hash_logits(tag: &str, context: &LlamaContext<'_>) {
+    let logits = context.get_logits();
+    let mut hasher = blake3::Hasher::new();
+    let mut bytes = Vec::with_capacity(logits.len() * 4);
+    for logit in logits {
+        bytes.extend_from_slice(&logit.to_bits().to_le_bytes());
+    }
+    hasher.update(&bytes);
+    let top = logits
+        .iter()
+        .enumerate()
+        .max_by(|a, b| a.1.total_cmp(b.1))
+        .map(|(token, logit)| (token, *logit))
+        .unwrap_or_default();
+    let hex = hasher.finalize().to_hex();
+    eprintln!(
+        "LLMDBG {tag} {} n={} top=({},{:e})",
+        &hex[..16],
+        logits.len(),
+        top.0,
+        top.1
+    );
+}
+
 pub(super) struct Model {
     backend: &'static LlamaBackend,
     model: LlamaModel,
@@ -508,6 +537,9 @@ impl Model {
                         .decode(&mut batch)
                         .context("failed to decode prompt batch")?;
                     let position = i32::try_from(tokens.len()).context("prompt is too long")?;
+                    if debug_enabled() {
+                        debug_hash_logits("logits0", context);
+                    }
                     Ok((sampler.sample(context, -1), position))
                 }
             }
@@ -526,6 +558,9 @@ impl Model {
                 if self.model.has_encoder() {
                     self.start_decoder(context, sampler)
                 } else {
+                    if debug_enabled() {
+                        debug_hash_logits("logits0", context);
+                    }
                     Ok((sampler.sample(context, -1), past))
                 }
             }
