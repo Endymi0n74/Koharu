@@ -6,6 +6,7 @@
 //! https://github.com/roboflow/rf-detr/tree/4ab7c18729de9d02ffd0495795d0831b5630f01b
 
 mod config;
+mod dettrace;
 mod model;
 mod processor;
 
@@ -48,6 +49,7 @@ impl KoharuLayoutRFDetrSeg2XL {
             .resolve()
             .await
             .context("failed to resolve KoharuLayout RF-DETR weights")?;
+        dettrace::init();
         let config = KoharuLayoutRFDetrSeg2XLConfig::from_file(&config_path)?;
         let processor = KoharuLayoutRFDetrImageProcessor::new(&config)?;
         let mut model = Model::new(device);
@@ -72,7 +74,11 @@ impl KoharuLayoutRFDetrSeg2XL {
     ) -> Result<KoharuLayoutDetections> {
         koharu_torch::no_grad(|| {
             let pixel_values = self.processor.preprocess(image, self.device)?;
+            dettrace::trace("preprocess", &pixel_values);
             let output = self.model.forward(&pixel_values);
+            dettrace::trace("pred_logits", &output.pred_logits);
+            dettrace::trace("pred_boxes", &output.pred_boxes);
+            dettrace::trace("pred_masks", &output.pred_masks);
             self.processor
                 .postprocess(&output, image.width(), image.height(), thresholds)
         })

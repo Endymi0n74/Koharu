@@ -107,6 +107,20 @@ impl Model {
         };
         let page = input.page;
         let mut targets = Vec::new();
+        if std::env::var_os("KOHARU_OCRTRACE").is_some() {
+            tracing::info!(
+                "OCRTRACE page={page} source={}",
+                input
+                    .images
+                    .get(&input.scene, page, "source")
+                    .await
+                    .ok()
+                    .flatten()
+                    .map(|image| (image.width(), image.height()))
+                    .map(|(w, h)| format!("{w}x{h}"))
+                    .unwrap_or_else(|| "?".to_owned()),
+            );
+        }
         let source = input
             .images
             .get(&input.scene, page, "source")
@@ -130,6 +144,14 @@ impl Model {
                 .ok_or_else(|| anyhow!("text region {region} has no geometry"))?;
             let crop = crop(&source, &geometry)
                 .with_context(|| format!("text region {region} is outside its source image"))?;
+            if std::env::var_os("KOHARU_OCRTRACE").is_some() {
+                tracing::info!(
+                    "OCRTRACE page={page} region={region} crop={}x{} area={}",
+                    crop.width(),
+                    crop.height(),
+                    crop.width() as u64 * crop.height() as u64,
+                );
+            }
             for relation in input.scene.relations_to_as::<RecognizedFrom>(region) {
                 let content = relation.value().source;
                 let previous = input.scene.component::<SourceText>(content)?;

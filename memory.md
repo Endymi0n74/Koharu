@@ -303,6 +303,102 @@ déterministe) — et vérifier si le fix cuDNN du 2026-09-28 s'applique au mod�
 knob `setDeterministicCuDNN` pourrait réduire la variance session-to-session mais pas les
 hotspots intra-session).
 
+**Instrumentation DETTRACE de RFDetR-SEG (2026-09-29, 4 sessions / 15 runs) — variance
+localisée aux GEMM cuBLAS du backbone DINO, intermittente par session** : nouvelle sonde
+`KOHARU_DETTRACE=1` (`crates/koharu-ml/src/koharu_layout_rfdetr_seg_2xl/dettrace.rs`,
+hachage blake3 bit-exact des tensors intermédiaires du forward — preprocess, embeddings,
+chaque couche DINO (norm1/attention/residual1/mlp/residual2), couches decoder, sorties).
+Résultats : (1) session dettrace (27 rec/forward) — pages 2-3 divergent entre runs dès les
+couches DINO 4-7, **toutes les entrées de la couche divergente identiques** (preprocess,
+embeddings, couches 0-6) ; (2) session dettrace2 (87 rec) — page 3 seule divergente,
+couche DINO 7, entre `dino_residual1` et `dino_mlp` (= norm2 → fc1 → GELU → fc2, GEMM
+cuBLAS F32, TF32 off, fp32 via `--torch-fp32`) ; (3) sessions dettrace3/dettrace4 (9 runs,
+135 rec avec sondes fc1/GELU/fc2) — **0 divergence**. Lecture : le postprocess (topk+seuil,
+pas de NMS), les embeddings, la SDPA et le decoder ne divergent jamais — seul le chemin
+GEMM du backbone est pris en flagrant délit, et les copies D2H par étage (sondes fines)
+font disparaître la variance : signature d'une sélection d'algorithme cuBLASLt dépendante
+du process/de l'état machine (workspace, heuristiques), pas d'une course dans un kernel.
+Les SHA de run divergents tombent toujours sur les mêmes pages (2-3, jamais la page 1 —
+premier forward du process) et se groupent par session comme DETHASH. Piste de fix :
+épingler l'algorithme cuBLASLt (workspace fixe, `CUBLASLT_WORKSPACE_SIZE`, ou contournement
+au niveau des shapes de batch) — mais l'intermittence impose de capturer une session
+divergente avec les sondes fines avant d'affirmer l'op exacte. Les modèles Torch partagés
+par le même process (OCR PaddleOCR-VL quantisé, LaMa) peuvent subir la même sélection —
+cohérent avec l'OCRDB/OCRDBG des sessions antérieures.
+
+**Session-grouping testé et RENVERSÉ (2026-09-29, 6 runs GPU process séparés + pauses
+90 s, `target/llm-ab/session/`)** : l'hypothèse d'une variance groupée par session GPU
+(suggérée par r02=r03 dans la passe gpuhash) ne tient pas. Résultats : **DETHASH
+identique 6/6** (la détection layout est parfaite cette session-là — 3 hash :
+`6f4eaffc… 782c4248… 0581d78b…`) ; mais **PATCHHASH diverge dès l'étage OCR** pour les
+pages 2-3 (idx 10 : 4 valeurs différentes en 6 runs, dont `8a468464…` ×2 ; idx 11 : 4
+valeurs ; idx 12 : 6/6 différentes — les traductions), et les **prompts texte LLM des
+pages 2-3 varient run-to-run** (`LLMDBG prompt` 8b510fdc/32ad58ec dans r01-r03 vs
+fca3e8ae/95dc3083 dans r04, aada9a64/b1ddb572 dans r05, 0ae16fbf/6279586d dans r06 —
+avec `history` (tokens) différents en conséquence, y compris `prompt_tokens` 1703 vs 1704
+! 1). `first_token` stable 4/4 dans les 6 runs malgré ces prompts différents (le prompt
+diffère mais l'argmax initial coïncide), et le flip-rate LLM reste 3,57/1000. Lecture
+révisée : (1) la variance n'est PAS groupée par session process — les runs se ressemblent
+par blocs contigus dans le temps (r01-r03 identiques entre eux, r04-r06 tous différents)
+mais 6 process séparés à 90 s d'intervalle divergent quand même → la « session » qui
+groupe est temporelle (état du driver/machine, proche du contrôle cuDNN du 2026-09-28),
+pas liée au process ; (2) **l'OCR (PaddleOCR-VL) est un deuxième producteur de variance,
+indépendant de la détection** — cette session-là la détection était stable mais l'OCR a
+varié sur les pages 2-3, changeant le texte (donc prompts/tokens LLM) ; la page 1 reste
+stable dans les deux étages, comme dans toutes les sessions — probablement car son crop
+d'image est différent (plus grand ?) ou son premier forward épinglé ; (3) le LLM reste un
+amplificateur fidèle d'entrées déjà variables, jamais l'initiateur. Le pattern « pages
+stables = page 1 uniquement » + variabilité OCR/détection intermittente par fenêtre
+temporelle reste cohérent avec un état GPU/driver qui dérive (température, pression
+mémoire, résidence cuBLAS/cuDNN) et affecte les algos GEMM des deux modèles Torch.
+
+**CUBLASLT_WORKSPACE_SIZE=4096 testé (2026-09-29, 6 runs GPU process séparés + pauses
+90 s, `target/llm-ab/ltws/`) — AUCUN effet observable** : l'env var (en KiB, fixant le workspace
+cuBLASLt que PyTorch alloue ; héritée par le process relancé — vérifié) ne stabilise ni
+la détection (DETHASH : pages 2-3 instables 2/6 runs, r02/r03 hors bloc — la session de
+référence sans la variable était 6/6 stable, mais l'intermittence par fenêtre temporelle
+rend la comparaison A/B sur sessions uniques non concluante en termes de dégradation) ni
+l'OCR (PATCHHASH : 6/6 groupes distincts, idx 10 : 5 valeurs ; traductions 6/6) ni les
+prompts (pages 2-3 tous différents run-to-run). Le flip-rate LLM reste du même ordre.
+Lecture : la taille du workspace ne contraint pas assez les heuristiques cuBLASLt —
+l'algorithme par shape reste choisi par heuristique à l'init du stream/handle et varie
+avec l'état machine (température/pressures), l'épinglage effectif exigerait d'intercepter
+`cublasLtMatmulAlgoGetHeuristic` ou de fixer l'algo par configuration C — hors de portée
+du knob env. Conclusion mise à jour : ni workspace ni CUBLAS_WORKSPACE_CONFIG ne suffisent
+; les correctifs réalistes restent (a) figer par processus (1 run = 1 groupe déjà
+observé), (b) post-vérifier au niveau texte (comparer sorties OCR/translation entre runs
+et rejouer les pages divergentes), ou (c) porter les modèles Torch sensibles vers des
+backends sans heuristique (DirectML/CPU pour l'OCR court, no-op pour la détection lourde).
+La variance par fenêtre temporelle (blocs r01-r03 stables puis rupture) reste le pattern
+dominant, indépendante du workspace.
+
+**Instrumentation OCRTRACE des crops (2026-09-29, `KOHARU_OCRTRACE=1`, 2 runs sans cache
+OCR, `target/llm-ab/ocrtrace/`) — les shapes ne sont PAS la cause ; la stabilité de la
+page 1 reste inexpliquée mais n'est pas structurelle** : nouvelle sonde dans `ocr.rs`
+(page UUID, taille source, et pour chaque crop : dims + aire) — les 25 crops (13/4/8 par
+page) ont des **shapes et un ordre strictement identiques entre les deux runs** (l'ordre
+des régions est déterministe), et les `LLMDBG shape` des appels OCR (llama.cpp/mtmd,
+le préprocesseur Torch de `paddle_ocr_vl` n'est PAS utilisé par le batch — la sonde
+`resize` y est restée muette) sont identiques 25/25, de même que les `first_token` OCR
+0/25 divergents et les prompts/history 0/25. Pourtant : **l'OCR de la page 3 diverge en
+cours de décodage** (texte différent en sortie, prompts de traduction des pages 2-3
+différents en conséquence — 2 des 4 LLMDBG shape de traduction diffèrent de 1-2 tokens),
+et c'est bien le même pattern que toutes les sessions : **les entrées des appels OCR sont
+bit-identiques, seul le décodage OCR flippe** — le flip OCR est donc un événement
+llama.cpp (mtmd ViT + décode), pas un artefact de crop/shape, et il s'additionne au flip
+llm de traduction comme consommateur indépendant du même non-déterminisme. Sur la page 1
+(13 crops) : shapes identiques ET texte stable — aucun trait structurel visible (ce n'est
+ni le premier forward du modèle OCR — des crops de la page 1 sont déjà les premiers appels
+partagés avec les pages suivantes — ni une shape particulière : les dims des crops de la
+page 1 couvrent la même gamme que les pages 2-3). L'hypothèse "page 1 = premier forward
+épinglé" est affaiblie : les appels OCR de la page 1 ne sont pas tous premiers du process
+(la détection et les warmups passent avant), et la page 1 reste stable même dans les
+sessions où la page 2 diverge dès son premier crop. Reste une piste : la page 1 est la
+seule avec une résolution source différente (1261x1807 vs 1126x1600) — à tester en
+déroulant un corpus avec pages 1 et 2 de même résolution. En attendant, la page 1 stable
+ressemble à un hasard structurel du corpus (son contenu est plus facile à OCR, moins de
+near-ties), pas à un mécanisme d'épinglage.
+
 **⚠ Contrôle final 2026-09-28 soir : le fix cuDNN N'EST PAS inconditionnel.** Trois runs
 consécutifs (A/B/C, ~1 min d'intervalle) : les 3 détections de A et B diffèrent toutes
 (entries identiques, DETHASH vides dans l'extraction, divergence dès detection) ; la passe

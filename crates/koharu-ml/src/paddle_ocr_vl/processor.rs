@@ -138,6 +138,14 @@ impl Processor {
             self.image_processor.min_pixels,
             max_pixels,
         )?;
+        if std::env::var_os("KOHARU_OCRTRACE").is_some() {
+            eprintln!(
+                "OCRTRACE resize in={}x{} out={width}x{height} tokens={}",
+                rgb.width(),
+                rgb.height(),
+                (height / 28) * (width / 28),
+            );
+        }
 
         let mut pixels = Tensor::from_slice(rgb.as_raw())
             .view([1, i64::from(rgb.height()), i64::from(rgb.width()), 3])

@@ -4855,6 +4855,7 @@ version = "0.83.6"
 dependencies = [
  "ab_glyph",
  "anyhow",
+ "blake3",
  "clap",
  "criterion",
  "encoding_rs",
