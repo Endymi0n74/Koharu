@@ -9344,7 +9344,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-log"
 version = "3.0.0-alpha.2"
-source = "git+https://github.com/tauri-apps/plugins-workspace?rev=44a2b9a4b1b8a82b9560c1f94267aefc47861c89#44a2b9a4b1b8a82b9560c1f94267aefc47861c89"
+source = "git+https://github.com/tauri-apps/plugins-workspace?rev=0163bbaca5d42de292e11cfbdd6464220be9051b#0163bbaca5d42de292e11cfbdd6464220be9051b"
 dependencies = [
  "android_logger",
  "fern",
@@ -9364,7 +9364,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-opener"
 version = "3.0.0-alpha.2"
-source = "git+https://github.com/tauri-apps/plugins-workspace?rev=44a2b9a4b1b8a82b9560c1f94267aefc47861c89#44a2b9a4b1b8a82b9560c1f94267aefc47861c89"
+source = "git+https://github.com/tauri-apps/plugins-workspace?rev=0163bbaca5d42de292e11cfbdd6464220be9051b#0163bbaca5d42de292e11cfbdd6464220be9051b"
 dependencies = [
  "dunce",
  "glob",
@@ -9385,7 +9385,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-process"
 version = "3.0.0-alpha.2"
-source = "git+https://github.com/tauri-apps/plugins-workspace?rev=44a2b9a4b1b8a82b9560c1f94267aefc47861c89#44a2b9a4b1b8a82b9560c1f94267aefc47861c89"
+source = "git+https://github.com/tauri-apps/plugins-workspace?rev=0163bbaca5d42de292e11cfbdd6464220be9051b#0163bbaca5d42de292e11cfbdd6464220be9051b"
 dependencies = [
  "tauri",
  "tauri-plugin",
@@ -9394,7 +9394,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-single-instance"
 version = "3.0.0-alpha.2"
-source = "git+https://github.com/tauri-apps/plugins-workspace?rev=44a2b9a4b1b8a82b9560c1f94267aefc47861c89#44a2b9a4b1b8a82b9560c1f94267aefc47861c89"
+source = "git+https://github.com/tauri-apps/plugins-workspace?rev=0163bbaca5d42de292e11cfbdd6464220be9051b#0163bbaca5d42de292e11cfbdd6464220be9051b"
 dependencies = [
  "serde",
  "serde_json",
@@ -9409,7 +9409,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-updater"
 version = "3.0.0-alpha.2"
-source = "git+https://github.com/mayocream/plugins-workspace?rev=348585ebb5e97804b9d4da18c0c6c3a15f867d07#348585ebb5e97804b9d4da18c0c6c3a15f867d07"
+source = "git+https://github.com/tauri-apps/plugins-workspace?rev=0163bbaca5d42de292e11cfbdd6464220be9051b#0163bbaca5d42de292e11cfbdd6464220be9051b"
 dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
@@ -9441,7 +9441,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-window-state"
 version = "3.0.0-alpha.2"
-source = "git+https://github.com/tauri-apps/plugins-workspace?rev=44a2b9a4b1b8a82b9560c1f94267aefc47861c89#44a2b9a4b1b8a82b9560c1f94267aefc47861c89"
+source = "git+https://github.com/tauri-apps/plugins-workspace?rev=0163bbaca5d42de292e11cfbdd6464220be9051b#0163bbaca5d42de292e11cfbdd6464220be9051b"
 dependencies = [
  "bitflags 2.13.1",
  "log",
