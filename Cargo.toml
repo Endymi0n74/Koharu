@@ -133,7 +133,7 @@ tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", re
 tauri-plugin-opener = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "44a2b9a4b1b8a82b9560c1f94267aefc47861c89" }
 tauri-plugin-process = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "44a2b9a4b1b8a82b9560c1f94267aefc47861c89" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "44a2b9a4b1b8a82b9560c1f94267aefc47861c89" }
-tauri-plugin-updater = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "44a2b9a4b1b8a82b9560c1f94267aefc47861c89" }
+tauri-plugin-updater = { git = "https://github.com/mayocream/plugins-workspace", rev = "348585ebb5e97804b9d4da18c0c6c3a15f867d07" }
 tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "44a2b9a4b1b8a82b9560c1f94267aefc47861c89" }
 tauri-specta = { git = "https://github.com/koharu-rs/tauri-specta", tag = "v2.0.0-rc.25-koharu.1", features = ["derive", "typescript"] }
 schemars = { version = "1.2.2", features = ["chrono04", "indexmap2", "uuid1"] }

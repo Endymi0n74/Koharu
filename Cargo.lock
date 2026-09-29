@@ -9409,7 +9409,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-updater"
 version = "3.0.0-alpha.2"
-source = "git+https://github.com/tauri-apps/plugins-workspace?rev=44a2b9a4b1b8a82b9560c1f94267aefc47861c89#44a2b9a4b1b8a82b9560c1f94267aefc47861c89"
+source = "git+https://github.com/mayocream/plugins-workspace?rev=348585ebb5e97804b9d4da18c0c6c3a15f867d07#348585ebb5e97804b9d4da18c0c6c3a15f867d07"
 dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
