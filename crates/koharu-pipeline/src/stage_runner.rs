@@ -15,7 +15,7 @@ use crate::{
 };
 
 pub(crate) struct StageRunner {
-    stages: Stages,
+    pub(crate) stages: Stages,
     accelerator: AcceleratorGate,
 }
 

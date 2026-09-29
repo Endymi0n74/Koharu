@@ -18,7 +18,7 @@ use crate::{
     PipelineConfig, QwenImageConfig, RoremMixedConfig, TranslationConfig, vram,
 };
 
-#[derive(Debug, Parser)]
+#[derive(Clone, Debug, Parser)]
 #[command(
     version,
     about = "Translate a chapter — or a whole volume — (folders of images or CBZ) with Koharu's local pipeline"
@@ -177,6 +177,14 @@ pub struct Arguments {
     /// Force CPU execution.
     #[arg(long)]
     pub cpu: bool,
+
+    /// Run the pipeline twice in the same process and report every page whose
+    /// OCR text or translation differs between the two passes: the run-to-run
+    /// drift the local models can produce, page by page (implies --overwrite
+    /// semantics for its own outputs; the report lists unstable pages and the
+    /// run exits 0 even when some drift — the signal is the report itself).
+    #[arg(long)]
+    pub verify: bool,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
