@@ -6,6 +6,7 @@
 
 use std::path::Path;
 
+use super::dettrace;
 use anyhow::Result;
 use koharu_torch::{
     Device, IndexOp, Kind, Tensor,
@@ -91,7 +92,11 @@ impl Model {
 
     pub fn forward(&self, pixel_values: &Tensor) -> Output {
         let pixel_values = pixel_values.to_kind(self.var_store.kind());
+        dettrace::trace("model_input", &pixel_values);
         let features = self.backbone.forward(&pixel_values);
+        for feature in features.iter() {
+            dettrace::trace("backbone_feature", feature);
+        }
         let position_embeddings = features
             .iter()
             .map(sine_position_embedding)
@@ -105,6 +110,8 @@ impl Model {
 
         let hs = transformer_output.hs;
         let reference = transformer_output.references;
+        dettrace::trace("transformer_hs", &hs);
+        dettrace::trace("transformer_ref", &reference);
         let delta = self.bbox_embed.forward(&hs);
         let pred_boxes = Tensor::cat(
             &[
@@ -168,10 +175,12 @@ impl DinoBackbone {
 
     fn forward(&self, pixel_values: &Tensor) -> Vec<Tensor> {
         let mut hidden_states = self.embeddings.forward(pixel_values);
+        dettrace::trace("dino_embeddings", &hidden_states);
         let mut outputs = Vec::with_capacity(4);
         for (index, layer) in self.layers.iter().enumerate() {
             let run_full_attention = matches!(index, 3 | 6 | 9 | 12);
             hidden_states = layer.forward(&hidden_states, run_full_attention);
+            dettrace::trace("dino_layer", &hidden_states);
             if matches!(index + 1, 3 | 6 | 9 | 12) {
                 outputs.push(self.feature_map(pixel_values, &hidden_states));
             }
@@ -320,9 +329,10 @@ impl DinoLayer {
         } else {
             hidden_states.shallow_clone()
         };
-        let mut attention = self
-            .attention
-            .forward(&self.norm1.forward(&attention_input));
+        let normed = self.norm1.forward(&attention_input);
+        dettrace::trace("dino_norm1", &normed);
+        let mut attention = self.attention.forward(&normed);
+        dettrace::trace("dino_attention", &attention);
         if run_full_attention {
             let size = attention.size();
             attention = attention.view([
@@ -332,8 +342,12 @@ impl DinoLayer {
             ]);
         }
         let hidden_states = shortcut + attention * &self.layer_scale1;
+        dettrace::trace("dino_residual1", &hidden_states);
         let layer_output = self.mlp.forward(&self.norm2.forward(&hidden_states));
-        hidden_states + layer_output * &self.layer_scale2
+        dettrace::trace("dino_mlp", &layer_output);
+        let out = hidden_states + layer_output * &self.layer_scale2;
+        dettrace::trace("dino_residual2", &out);
+        out
     }
 }
 
@@ -414,8 +428,14 @@ impl DinoMlp {
     }
 
     fn forward(&self, hidden_states: &Tensor) -> Tensor {
-        self.fc2
-            .forward(&self.fc1.forward(hidden_states).gelu("none"))
+        dettrace::trace("dino_mlp_in", hidden_states);
+        let hidden = self.fc1.forward(hidden_states);
+        dettrace::trace("dino_fc1", &hidden);
+        let hidden = hidden.gelu("none");
+        dettrace::trace("dino_gelu", &hidden);
+        let out = self.fc2.forward(&hidden);
+        dettrace::trace("dino_fc2", &out);
+        out
     }
 }
 
@@ -694,7 +714,7 @@ impl TransformerDecoder {
         let reference_points = references.unsqueeze(2);
         let mut output = target.shallow_clone();
         let mut intermediate = Vec::with_capacity(self.layers.len());
-        for layer in &self.layers {
+        for layer in self.layers.iter() {
             output = layer.forward(
                 &output,
                 memory,
@@ -703,7 +723,9 @@ impl TransformerDecoder {
                 &reference_points,
                 spatial_shape,
             );
-            intermediate.push(self.norm.forward(&output));
+            let output = self.norm.forward(&output);
+            dettrace::trace("decoder_layer", &output);
+            intermediate.push(output);
         }
         intermediate.pop();
         intermediate.push(self.norm.forward(&output));
