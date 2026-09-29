@@ -2,8 +2,8 @@ import { defaultTiers, defineConfig, tierPresets } from 'sponsorkit'
 
 const specialTier = {
   title: 'Special Sponsors',
-  // SponsorKit sorts by amount; -2 places service support below past sponsors (-1).
-  monthlyDollars: -2,
+  // Non-cash support sorts between backers (0) and past sponsors (-1).
+  monthlyDollars: -0.5,
   preset: tierPresets.large,
 }
 
