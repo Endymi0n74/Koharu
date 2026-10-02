@@ -90,7 +90,7 @@ The store can grow to tens of gigabytes. Deleting it forces every model and runt
 re-downloaded (several hours on a typical connection), so keep it intact when reinstalling.
 Entries no longer referenced by any model in the code — removed catalog entries, probe runs,
 experiments, runtime releases older than the pinned one — can be listed and removed with
-`koharu-batch --prune` (see *Batch mode* below).
+`koharu-batch prune` (see *Batch mode* below).
 
 ## Choosing a translation model for 8 GB of VRAM
 
@@ -137,8 +137,8 @@ with `--force`, or `--cpu`).
 
 Because `auto` can now select a model that is not in the store yet, the run prints what it
 picked together with the download it implies, and warns explicitly when the choice needs more
-than 8 GiB — the first page then waits for that one-time download. `--list-models` shows the
-same figure for every model and quantization, and `--llm <id> --quantization <id>` always
+than 8 GiB — the first page then waits for that one-time download. `koharu-batch models` shows
+the same figure for every model and quantization, and `--llm <id> --quantization <id>` always
 overrides the automatic pick.
 
 The selected model and quantization live in `~/.koharu/config.toml`:
@@ -160,9 +160,9 @@ Later runs, `--llm auto`, and the budget guard then prefer that measurement over
 reference table: a model that measured over the budget on *your* machine is refused (or
 stepped down by `auto`) even when the static estimate says it fits — and vice versa.
 
-`koharu-batch --list-models` shows the VRAM estimate, the download size, and what was measured
+`koharu-batch models` shows the VRAM estimate, the download size, and what was measured
 locally.
-`koharu-batch --reset-calibration` deletes the calibration file so later runs fall back
+`koharu-batch reset-calibration` deletes the calibration file so later runs fall back
 to the built-in reference estimates, and `--no-calibration` runs a translation without
 reading or writing it (reference estimates, nothing recorded).
 
@@ -228,10 +228,10 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr --dry-run
 koharu-batch --input ./series --output ./series-fr --dry-run --json plan.json
 
 # List local models with their VRAM estimates and exit
-koharu-batch --list-models
+koharu-batch models
 
 # List store model directories that no pinned model references anymore
-koharu-batch --prune
+koharu-batch prune
 ```
 
 ### Installing the binary outside the repository
@@ -271,13 +271,18 @@ translation, skips the vision projector), `--force`, `--vram-budget-mib`,
 (png/jpg/webp for folder outputs), `--store`, `--report <BASE|none>`, `--json <PATH>`,
 `--retries <N>` (extra attempts per stage, default `1`), `--pages <RANGE>` (translate only
 these pages, 1-based, `1-10,15`), `--recursive` (flatten subfolders into one chapter
-instead of the volume rule), `--quiet`, `--list-models`, `--reset-calibration`,
-`--no-calibration`, `--deterministic` (greedy translation), `--torch-fp32` (fp32 Torch
-models, see *Reproducible sessions*), `--ocr-cache <PATH>` / `--no-ocr-cache` (persist
-OCR text between runs, see *Reproducible sessions*), `--qwen-steps <N>` (Qwen Image
-inpainting sampling steps), `--overwrite`, `--dry-run`, `--cpu`, `--verify` /
-`--verify-passes <N>` (replay the pipeline and report run-to-run drift, see *Verifying
-run-to-run drift*), `--prune` / `--prune-delete` (store housekeeping, see below).
+instead of the volume rule), `--quiet`, `--no-calibration`, `--deterministic` (greedy
+translation), `--torch-fp32` (fp32 Torch models, see *Reproducible sessions*),
+`--ocr-cache <PATH>` / `--no-ocr-cache` (persist OCR text between runs, see *Reproducible
+sessions*), `--qwen-steps <N>` (Qwen Image inpainting sampling steps), `--overwrite`,
+`--dry-run`, `--cpu`, `--verify` / `--verify-passes <N>` (replay the pipeline and report
+run-to-run drift, see *Verifying run-to-run drift*).
+
+Housekeeping is not a run, so it lives in subcommands instead of flags:
+`koharu-batch models` (list the model catalog), `koharu-batch prune [--delete]` (store
+housekeeping, see below), and `koharu-batch reset-calibration`. They translate no page and
+take none of the run's flags — clap refuses the combination rather than silently ignoring
+one side — and their own options follow the name (`prune --store <dir>`).
 
 In a volume, `--pages` applies to **each** chapter (it must fit the smallest one), and
 `--recursive` opts out of the volume rule: the whole tree becomes one chapter with
@@ -299,8 +304,10 @@ downloading runtimes or processing pages.
 
 Exit codes: `0` when every page of every chapter succeeds, non-zero when the
 run cannot start (no pages found, VRAM guard tripped) or when at least one page failed.
+The housekeeping subcommands exit `0` when they complete and non-zero when the store or
+the calibration file cannot be handled; a rejected command line is clap's own usage error.
 
-### Store housekeeping (`--prune`)
+### Store housekeeping (`prune`)
 
 The store keeps one directory per Hugging Face repository under
 `<store>/hugging-face/models` and `.../datasets`, plus one directory per runtime release
@@ -310,10 +317,10 @@ after an update stay on disk with their multi-gigabyte contents.
 
 ```bash
 # List every entry nothing in the code references anymore, with its size
-koharu-batch --prune
+koharu-batch prune
 
 # Then delete them once the list looks right
-koharu-batch --prune --prune-delete
+koharu-batch prune --delete
 ```
 
 Three categories are covered:
@@ -330,10 +337,11 @@ Three categories are covered:
   llama.cpp left by last month's binary goes, the pinned `b10903` stays. The `cuda` wheel
   tree is left untouched.
 
-`--prune` alone never deletes anything; `--prune-delete` performs the deletion. Both exit
-`0` and accept `--store <dir>` like any run. Nothing is lost permanently: if a model later
-needs a deleted artifact, it re-downloads it once, verified against the repository's size
-and SHA-256 as usual.
+`prune` alone never deletes anything; `prune --delete` performs the deletion. Both exit
+`0` and take `--store <dir>` after the name — the run's flags and a subcommand never share
+a command line, so `--store <dir> prune` is refused instead of silently ignored. Nothing
+is lost permanently: if a model later needs a deleted artifact, it re-downloads it once,
+verified against the repository's size and SHA-256 as usual.
 
 ### Reproducible sessions
 
@@ -570,5 +578,5 @@ The translation stage translates a page as part of its chapter, not as an isolat
 Quality also depends on the model. The 8 GB default (`gemma4-e4b-uncensored`) is chosen for
 speed and footprint, not for French prose; on a card with more VRAM, select a larger model
 explicitly — `--llm gemma4-12b-it --quantization Q4_K_XL`, or one of the 26B/31B entries in
-`--list-models` — and pass `--translation-instructions` with any style or terminology rule the
+`koharu-batch models` — and pass `--translation-instructions` with any style or terminology rule the
 chapter needs.

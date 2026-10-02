@@ -95,7 +95,7 @@ koharu-batch --input ./chapter-14 --output ./chapter-14-fr --no-vision
 koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
 
 # List local models with their VRAM estimates (measured peaks included)
-koharu-batch --list-models
+koharu-batch models
 ```
 
 ## Hardware Acceleration
