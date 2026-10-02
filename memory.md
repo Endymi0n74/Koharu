@@ -565,6 +565,11 @@ sonde (voir Pièges).
 - **Le fmt du Lint CI est propre depuis `4466b975`** (vérifié 2026-09-25 :
   `cargo fmt --all -- --check` → 0 diff ; la vieille note « 42 diffs préexistants » est
   obsolète). Après édition Rust : `cargo fmt --all` (et pas seulement `-p` sur un crate).
+- **`cargo clippy --all-targets -- -D warnings` sort 2 erreurs préexistantes dans
+  `koharu-renderer`** (`items after a test module`, cible lib test — `frame.rs:620` et
+  `images.rs:94`, constaté 2026-10-02) : **hors gate**, `lint.yml` exécute `cargo clippy
+  -- -D warnings` sans `--all-targets` (rejeu complet du 2026-10-02 : ce clippy CI-parity
+  = 0). Ne pas confondre cet échec local avec une régression.
 - **Toujours tester avec `--no-calibration`** ; ne jamais toucher
   `C:\Users\endymion\.koharu\vram-calibration.toml`.
 - **`cargo test --workspace --tests` dépasse 10 min à froid** : le run tool timeout à 600 s —
