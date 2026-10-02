@@ -275,8 +275,9 @@ instead of the volume rule), `--quiet`, `--list-models`, `--reset-calibration`,
 `--no-calibration`, `--deterministic` (greedy translation), `--torch-fp32` (fp32 Torch
 models, see *Reproducible sessions*), `--ocr-cache <PATH>` / `--no-ocr-cache` (persist
 OCR text between runs, see *Reproducible sessions*), `--qwen-steps <N>` (Qwen Image
-inpainting sampling steps), `--overwrite`, `--dry-run`, `--cpu`, `--prune` /
-`--prune-delete` (store housekeeping, see below).
+inpainting sampling steps), `--overwrite`, `--dry-run`, `--cpu`, `--verify` /
+`--verify-passes <N>` (replay the pipeline and report run-to-run drift, see *Verifying
+run-to-run drift*), `--prune` / `--prune-delete` (store housekeeping, see below).
 
 In a volume, `--pages` applies to **each** chapter (it must fit the smallest one), and
 `--recursive` opts out of the volume rule: the whole tree becomes one chapter with
@@ -378,6 +379,35 @@ residue (~0.05-2% of pixels, confined to inpainted areas) comes from the raster/
 side, never from a detection box, the recognized text, or the translation — every
 inference stage was probed bit-stable on an RTX 3070 (detection, OCR, inpainting,
 translation).
+
+### Verifying run-to-run drift (`--verify`)
+
+The reproducibility flags remove the drift sources that are known and fixable; `--verify`
+*measures* whatever is left. It runs the whole pipeline a second time in the same process
+— detection, OCR without the cache, inpainting, translation — on a fresh session, writes
+those outputs to `<output>.verify`, and compares the OCR text and the translation page by
+page:
+
+```text
+verify: 3 page(s) voted over 3 passes, 1 stable, 2 with drift
+  - [Ch03] p1.png: ocr 1 distinct (3) translation 3 distinct (1, 1, 1) -> P(drift)~2/3
+```
+
+The run always exits 0: the report *is* the signal. `--verify-passes <N>` raises the
+number of passes (production included, 2 minimum, default 2). Each additional pass
+replays the pipeline and votes per page across all readings, so `N >= 3` turns a binary
+"drift / no drift" answer into a probability — a page read identically on every pass is
+stable, otherwise the report gives how often each distinct reading occurred and an
+estimate of that page's drift probability. Two passes can only produce frequencies of
+0, ½ or 1; three or more are the interpretable regime.
+
+```bash
+koharu-batch --input ./chapter-12 --output ./chapter-12-fr --verify --verify-passes 3
+```
+
+Replays keep the loaded stages resident between passes, so passes after the first add
+roughly a minute rather than a full reload. Outputs land in `<output>.verify`, leaving
+the production run untouched.
 
 ### Volume mode
 
