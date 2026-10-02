@@ -887,4 +887,24 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn the_removed_one_shot_flags_stay_removed() {
+        // No aliases, no backward compatibility (AGENTS.md): the migration is
+        // forced, not suggested, so every pre-subcommand spelling must keep
+        // failing instead of creeping back as a hidden shortcut.
+        for invocation in [
+            &["--list-models"][..],
+            &["--prune"][..],
+            &["--prune", "--prune-delete"][..],
+            &["--reset-calibration"][..],
+        ] {
+            let mut argv = vec!["koharu-batch"];
+            argv.extend_from_slice(invocation);
+            assert!(
+                Arguments::try_parse_from(&argv).is_err(),
+                "{invocation:?} must stay refused"
+            );
+        }
+    }
 }
