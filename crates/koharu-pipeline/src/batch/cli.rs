@@ -44,25 +44,25 @@ pub struct Arguments {
     pub llm: String,
 
     /// Local LLM quantization (defaults to the model's first entry).
-    #[arg(long)]
+    #[arg(long, help_heading = "Model & VRAM")]
     pub quantization: Option<String>,
 
     /// Translate text-only: never feed the page image to the LLM, skipping
     /// the vision projector's download and its VRAM.
-    #[arg(long)]
+    #[arg(long, help_heading = "Model & VRAM")]
     pub no_vision: bool,
 
     /// Skip the VRAM budget check (not recommended).
-    #[arg(long)]
+    #[arg(long, help_heading = "Model & VRAM")]
     pub force: bool,
 
     /// Assume this much VRAM in MiB instead of querying the GPU.
-    #[arg(long, value_name = "MIB")]
+    #[arg(long, value_name = "MIB", help_heading = "Model & VRAM")]
     pub vram_budget_mib: Option<u64>,
 
     /// Runtime store holding models and runtimes (defaults to the app
     /// install's `store` directory when the binary lives next to it).
-    #[arg(long, value_name = "DIR")]
+    #[arg(long, value_name = "DIR", help_heading = "Model & VRAM")]
     pub store: Option<PathBuf>,
 
     /// End-of-run report: writes `<BASE>.md` and `<BASE>.html`; pass `none`
@@ -75,38 +75,68 @@ pub struct Arguments {
     #[arg(long, value_name = "PATH")]
     pub json: Option<PathBuf>,
 
-    /// Delete the VRAM calibration file and exit; later runs fall back to the
-    /// built-in reference estimates until new measurements are recorded.
-    #[arg(long)]
-    pub reset_calibration: bool,
-
-    /// Run without reading or writing the calibration file: built-in
-    /// estimates only, nothing persisted.
-    #[arg(long)]
-    pub no_calibration: bool,
-
-    #[arg(long, value_enum, default_value = "koharu-layout-rfdetr-seg-2xl")]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "koharu-layout-rfdetr-seg-2xl",
+        help_heading = "Pipeline"
+    )]
     pub detection: DetectionChoice,
 
-    #[arg(long, value_enum, default_value = "paddleocr-vl-1.6")]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "paddleocr-vl-1.6",
+        help_heading = "Pipeline"
+    )]
     pub ocr: OcrChoice,
 
-    #[arg(long, value_enum, default_value = "lama")]
+    #[arg(long, value_enum, default_value = "lama", help_heading = "Pipeline")]
     pub inpainting: InpaintingChoice,
 
     /// Sampling steps requested from stable-diffusion.cpp for Qwen Image
     /// inpainting (14 samples 12 at the default strength). Only used with
     /// --inpainting qwen-image.
-    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    #[arg(
+        long,
+        value_name = "N",
+        value_parser = clap::value_parser!(u32).range(1..),
+        help_heading = "Pipeline"
+    )]
     pub qwen_steps: Option<u32>,
 
     /// Extra instructions passed to the translator.
-    #[arg(long)]
+    #[arg(long, help_heading = "Pipeline")]
     pub translation_instructions: Option<String>,
+
+    /// Re-translate pages whose output already exists.
+    #[arg(long, help_heading = "Run control")]
+    pub overwrite: bool,
+
+    /// Extra attempts granted to a page whose stage fails, before it is
+    /// dropped from the run (0 keeps the first failure).
+    #[arg(long, default_value_t = 1, help_heading = "Run control")]
+    pub retries: usize,
+
+    /// Plan the run (pages, model, VRAM) without executing it.
+    #[arg(long, help_heading = "Run control")]
+    pub dry_run: bool,
+
+    /// Report failures and the final summary only, without per-page progress.
+    #[arg(long, help_heading = "Run control")]
+    pub quiet: bool,
+
+    /// Translate only these pages, in 1-based reading order (`1-10,15`).
+    #[arg(long, value_name = "RANGE", help_heading = "Run control")]
+    pub pages: Option<String>,
+
+    /// Also take the pages held in subdirectories of the input folder.
+    #[arg(long, help_heading = "Run control")]
+    pub recursive: bool,
 
     /// Reproducible output: translate greedily (temperature 0) so rerunning
     /// the same chapter renders the same text on every run.
-    #[arg(long)]
+    #[arg(long, help_heading = "Reproducibility")]
     pub deterministic: bool,
 
     /// Reproducible GPU session: run the Torch models — layout detection and
@@ -115,67 +145,61 @@ pub struct Arguments {
     /// text. Roughly doubles the VRAM and compute of those two stages, and has
     /// no effect on the ggml-based OCR and translation models, which are
     /// already bit-stable, nor on CPU runs.
-    #[arg(long)]
+    #[arg(long, help_heading = "Reproducibility")]
     pub torch_fp32: bool,
 
     /// Store OCR text at PATH and reuse it for identical crops on later runs,
     /// so the translation stage reads the same text every time (OCR inference
     /// is not bit-stable on the GPU). Defaults to `.ocr-cache.json` inside
     /// --input, or beside it when --input is a .cbz/.zip archive.
-    #[arg(long, value_name = "PATH", conflicts_with = "no_ocr_cache")]
+    #[arg(
+        long,
+        value_name = "PATH",
+        conflicts_with = "no_ocr_cache",
+        help_heading = "Reproducibility"
+    )]
     pub ocr_cache: Option<PathBuf>,
 
     /// Re-run OCR on every page without reading or writing an OCR cache.
-    #[arg(long)]
+    #[arg(long, help_heading = "Reproducibility")]
     pub no_ocr_cache: bool,
 
     /// Output image format when writing a folder.
     #[arg(long, value_enum, default_value = "png")]
     pub format: FormatChoice,
 
+    /// Delete the VRAM calibration file and exit; later runs fall back to the
+    /// built-in reference estimates until new measurements are recorded.
+    #[arg(long, help_heading = "Store maintenance")]
+    pub reset_calibration: bool,
+
+    /// Run without reading or writing the calibration file: built-in
+    /// estimates only, nothing persisted.
+    #[arg(long, help_heading = "Store maintenance")]
+    pub no_calibration: bool,
+
     /// List local models with their VRAM estimates and exit.
-    #[arg(long)]
+    #[arg(long, help_heading = "Store maintenance")]
     pub list_models: bool,
 
     /// List Hugging Face models in the store that no pinned model references
     /// (orphans left by removed catalog entries or probes) and exit. Add
     /// `--prune-delete` to actually delete them: every entry re-downloads
     /// automatically (size and SHA-256 verified) if a model needs it again.
-    #[arg(long, conflicts_with = "list_models")]
+    #[arg(
+        long,
+        conflicts_with = "list_models",
+        help_heading = "Store maintenance"
+    )]
     pub prune: bool,
 
     /// With `--prune`, delete the orphaned model directories instead of
     /// listing them.
-    #[arg(long, requires = "prune")]
+    #[arg(long, requires = "prune", help_heading = "Store maintenance")]
     pub prune_delete: bool,
 
-    /// Re-translate pages whose output already exists.
-    #[arg(long)]
-    pub overwrite: bool,
-
-    /// Extra attempts granted to a page whose stage fails, before it is
-    /// dropped from the run (0 keeps the first failure).
-    #[arg(long, default_value_t = 1)]
-    pub retries: usize,
-
-    /// Plan the run (pages, model, VRAM) without executing it.
-    #[arg(long)]
-    pub dry_run: bool,
-
-    /// Report failures and the final summary only, without per-page progress.
-    #[arg(long)]
-    pub quiet: bool,
-
-    /// Translate only these pages, in 1-based reading order (`1-10,15`).
-    #[arg(long, value_name = "RANGE")]
-    pub pages: Option<String>,
-
-    /// Also take the pages held in subdirectories of the input folder.
-    #[arg(long)]
-    pub recursive: bool,
-
     /// Force CPU execution.
-    #[arg(long)]
+    #[arg(long, help_heading = "Model & VRAM")]
     pub cpu: bool,
 
     /// Run the pipeline again in the same process and report every page whose
@@ -183,7 +207,7 @@ pub struct Arguments {
     /// the local models can produce, page by page (implies --overwrite
     /// semantics for its own outputs; the report lists unstable pages and the
     /// run exits 0 even when some drift — the signal is the report itself).
-    #[arg(long)]
+    #[arg(long, help_heading = "Reproducibility")]
     pub verify: bool,
 
     /// Total number of passes `--verify` runs (production pass included).
@@ -192,7 +216,12 @@ pub struct Arguments {
     /// identical is stable, otherwise the report gives the frequency of each
     /// distinct reading as an estimate of that page's drift probability.
     /// Values below 2 are treated as 2.
-    #[arg(long, value_name = "N", default_value_t = 2)]
+    #[arg(
+        long,
+        value_name = "N",
+        default_value_t = 2,
+        help_heading = "Reproducibility"
+    )]
     pub verify_passes: usize,
 }
 
