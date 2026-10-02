@@ -551,6 +551,13 @@ déterministes ou release ggml corrigeant l'op atomique en cause.
 - **`koharu/` est son propre dépôt git** (le dépôt `D:\Codex` le voit comme non suivi) :
   committer depuis `koharu/`, pas à la racine. Ne jamais pousser sans demande (les workflows
   `lint`/`test` se déclenchent sur push `main`).
+- **TypeScript 7.0.2 est épinglé (`package.json`) et strict par défaut** :
+  `bunx tsc -p scripts/tsconfig.json` (étape CI *Typecheck scripts*) sort
+  TS7006/TS18048/TS2769 sur du code `any` toléré sous TS5 — corrigé le 2026-10-02 dans
+  `scripts/test-prune-step.ts` (document YAML typé, `step.run` défendu, `RUNNER_TEMP`/`TEMP`
+  gardé). Ce typecheck échoue aussi si on le lance depuis `D:\codex\…` en TS1149 (casse
+  `D:\codex` vs `D:\Codex` héritée des liens workspace) : artefact local, relancer depuis
+  `D:\Codex\…` — CI (Linux, chemin unique) ne le voit pas.
 - **Smoke test** (exit attendu 0) :
   ```powershell
   .\target\release\koharu-batch.exe --input "crates\koharu-ml\benches\fixtures\object_detection" `
