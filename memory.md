@@ -558,6 +558,17 @@ déterministes ou release ggml corrigeant l'op atomique en cause.
   gardé). Ce typecheck échoue aussi si on le lance depuis `D:\codex\…` en TS1149 (casse
   `D:\codex` vs `D:\Codex` héritée des liens workspace) : artefact local, relancer depuis
   `D:\Codex\…` — CI (Linux, chemin unique) ne le voit pas.
+- **`gh` pointe par défaut sur l'UPSTREAM `koharu-rs/koharu`** (config du poste) :
+  `gh run list` affiche alors les runs d'un AUTRE dépôt — ceux du fork n'y figurent
+  jamais, et `gh run view <id>` répond 404. Passer `-R Endymi0n74/Koharu` ou l'API
+  explicite `gh api repos/Endymi0n74/Koharu/actions/runs?head_sha=<sha>` (piège constaté
+  2026-10-02 : veilleur de CI aveugle pendant 55 min). Autre subtilité : l'option `--jq`
+  de `gh` perd les guillemets imbriqués sous PowerShell 5.1 — parser en PowerShell.
+- **Vert sous Windows ≠ vert au Lint CI (Ubuntu)** : un import utilisé uniquement dans du
+  code `#[cfg(windows)]` est « unused » sous Linux (cas `bail` dans
+  `koharu-ml/src/determinism.rs`, fix `e5624756`). Les branches `not(windows)` et les
+  `*.rs` de plateforme (`resources/linux.rs`) ne sont jamais lints en local : face à un
+  `unused import`/`dead_code` au Lint, chercher un cfg de plateforme d'abord.
 - **Smoke test** (exit attendu 0) :
   ```powershell
   .\target\release\koharu-batch.exe --input "crates\koharu-ml\benches\fixtures\object_detection" `
@@ -565,13 +576,13 @@ déterministes ou release ggml corrigeant l'op atomique en cause.
     --report "$env:TEMP\koharu-smoke\report" --overwrite --no-calibration
   ```
 
-## CI (état local vérifié 2026-09-25)
+## CI (état local vérifié 2026-09-25 ; passage vert complet 2026-10-02 sur `e5624756`)
 
 | Workflow | Déclencheur | État |
 |---|---|---|
-| `build.yml` / `test.yml` | push `main` | verts |
-| `koharu-batch.yml` | `main` + tag | vert (smoke dry-run + volume ; + smoke `bun scripts/bench-cross.ts --plan` ajouté — validé en local, à confirmer au push) |
-| `lint.yml` | push `main` | **vert localement** (fmt/check/clippy `-D warnings`/UI lint/typecheck tous OK) + guard `bun scripts/check-path-portability.ts` (bannit les littéraux `Path::new(r"C:\...")` — piège du fix `3cd290b9`) |
+| `build.yml` / `test.yml` | push `main` | verts (2026-10-02) |
+| `koharu-batch.yml` | `main` + tag | vert (2026-10-02) : smokes `models` + `prune --delete` sur les sous-commandes **validés en CI réel**, + smoke `bun scripts/bench-cross.ts --plan` |
+| `lint.yml` | push `main` | vert (2026-10-02) après deux fixes : typecheck scripts sous TypeScript 7 (`1158e6e3`) et clippy Linux `determinism.rs` (`e5624756`) + guard `bun scripts/check-path-portability.ts` (bannit les littéraux `Path::new(r"C:\...")` — piège du fix `3cd290b9`) |
 | `release.yml` | tag `v*` | Windows / Ubuntu / ARM ✅ ; macOS désactivé |
 
 **Release = tag `v*` déclenche `release.yml`.** Pousser sur `main` ne publie rien.
