@@ -40,8 +40,13 @@ const DEFAULT_MAX_UBATCH: u32 = 512;
 const CHAT_TEMPLATE_NAME: &str = "chat";
 
 /// Returns `true` when `KOHARU_LLM_DEBUG` requests nondeterminism probes.
+///
+/// The variable is sampled once per process: this runs on the per-token hot
+/// path (`step=N` below), where an `std::env` lookup for every decoded token
+/// would be wasted work while the probe is off.
 fn debug_enabled() -> bool {
-    std::env::var_os("KOHARU_LLM_DEBUG").is_some()
+    static DEBUG: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *DEBUG.get_or_init(|| std::env::var_os("KOHARU_LLM_DEBUG").is_some())
 }
 
 /// Prints a tag + hash when `KOHARU_LLM_DEBUG` is set, to bisect run-to-run
