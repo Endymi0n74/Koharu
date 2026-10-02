@@ -7,6 +7,7 @@ import { useState, type ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { AboutDialog } from '@/components/app/AboutDialog'
+import { BatchDialog } from '@/components/app/BatchDialog'
 import { useMacOS, WindowControls } from '@/components/app/WindowChrome'
 import { call } from '@/lib/backend'
 import { selectableLayer } from '@/lib/geometry'
@@ -40,6 +41,7 @@ import { cn } from '@koharu/ui/lib/utils'
 export function TitleBar() {
   const { t } = useTranslation()
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [batchOpen, setBatchOpen] = useState(false)
   const macOS = useMacOS()
   const project = useProject().data
   const pagesQuery = usePages(Boolean(project))
@@ -129,6 +131,10 @@ export function TitleBar() {
                   ))}
                 </MenubarSubContent>
               </MenubarSub>
+              <MenubarSeparator />
+              <MenubarItem onClick={() => setBatchOpen(true)}>
+                {t('menu.batch')}
+              </MenubarItem>
               <MenubarSeparator />
               <MenubarItem disabled={!project} onClick={closeProject}>
                 {t('menu.closeProject')}
@@ -282,6 +288,7 @@ export function TitleBar() {
         {!macOS && <WindowControls />}
       </header>
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      <BatchDialog open={batchOpen} onOpenChange={setBatchOpen} />
     </>
   )
 }
