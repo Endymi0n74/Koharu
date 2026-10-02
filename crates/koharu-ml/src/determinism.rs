@@ -14,7 +14,7 @@
 //! at process creation (cuBLASLt ignores later updates); binaries handle that
 //! by relaunching themselves before torch is initialized.
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 
 /// Pins down the resolvable variance sources after torch is initialized.
 ///
@@ -68,7 +68,7 @@ pub fn enforce() -> Result<()> {
     let global_context: unsafe extern "system" fn() -> *mut std::ffi::c_void = symbol(CONTEXT)?;
     let context = unsafe { global_context() };
     if context.is_null() {
-        bail!("at::globalContext() returned null");
+        anyhow::bail!("at::globalContext() returned null");
     }
     type Setter = unsafe extern "system" fn(*mut std::ffi::c_void, bool);
     let set_benchmark: Setter = symbol(SET_BENCHMARK)?;
