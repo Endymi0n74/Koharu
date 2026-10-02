@@ -93,10 +93,15 @@ fn hash_f32(values: &[f32]) -> String {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn disabled_by_default_without_env() {
-        // `init` is process-global; in the test harness the variable is unset.
-        std::env::remove_var("KOHARU_DETTRACE");
+    fn init_reflects_the_probe_variable() {
+        // `init` samples the environment once; asserting both directions
+        // against `var_os` keeps the test hermetic without mutating the
+        // process environment (unsafe in edition 2024, and racy against
+        // parallel tests that read it).
         super::init();
-        assert!(!super::enabled());
+        assert_eq!(
+            super::enabled(),
+            std::env::var_os("KOHARU_DETTRACE").is_some()
+        );
     }
 }
