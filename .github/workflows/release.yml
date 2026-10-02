@@ -22,8 +22,15 @@ jobs:
           # macOS disabled: the Apple Developer certificate secrets are not
           # configured in this repo, so this leg always failed at "Import
           # Apple Developer Certificate" and marked the whole run red. The
-          # macOS-only steps below are `if:`-guarded and stay inert. Re-enable
-          # once BUILD_CERTIFICATE_BASE64 / KEYCHAIN_PASSWORD are set.
+          # macOS-only steps below are `if:`-guarded and stay inert.
+          # To re-enable, create these Actions secrets first:
+          #   BUILD_CERTIFICATE_BASE64 - "Developer ID Application" .p12,
+          #     exported with `base64 -w0 certificate.p12` (empty password)
+          #   KEYCHAIN_PASSWORD        - any random password for the CI keychain
+          #   APPLE_ID                 - Apple Developer account email
+          #   APPLE_PASSWORD           - app-specific password (appleid.apple.com)
+          #   APPLE_TEAM               - Apple Developer Team ID
+          # then uncomment the matrix entry below.
           # - platform: 'macos-latest' # for Arm based macs (M1 and above).
           #   args: '--target aarch64-apple-darwin'
           - platform: 'ubuntu-latest'
