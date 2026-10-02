@@ -349,7 +349,7 @@ pub fn descriptor_for(model: &str) -> Option<&'static LocalModelDescriptor> {
 }
 
 /// The Hugging Face repository of every catalog model, deduplicated: lets the
-/// batch `--prune` keep exactly the directories the catalog can resolve.
+/// batch `prune` keep exactly the directories the catalog can resolve.
 pub fn catalog_repositories() -> impl Iterator<Item = String> {
     MODELS
         .iter()
@@ -492,7 +492,8 @@ pub fn check_budget_with(
     }))
 }
 
-/// One catalog entry with per-quantization VRAM estimates, for `--list-models`.
+/// One catalog entry with per-quantization VRAM estimates, for
+/// `koharu-batch models`.
 #[derive(Clone, Debug)]
 pub struct ModelVram {
     pub id: String,

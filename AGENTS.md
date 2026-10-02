@@ -46,6 +46,7 @@ Document only durable, repository-specific constraints here. Do not record curre
 ## Batch CLI Contract
 
 - `koharu-batch` exits 0 only when every page succeeded and non-zero otherwise. Keep the binary, `exit_with()`, and `packages/docs/en/fork.mdx` aligned when this contract changes.
+- Housekeeping is subcommands, not flags: `models`, `prune [--delete]`, `reset-calibration` (each exits 0 when it completes). The run's flags stay flat on the default flow and never share a command line with a subcommand — clap's `args_conflicts_with_subcommands` refuses the mix instead of ignoring one side — and the global `--store` goes after the name (`prune --store DIR`). The removed `--list-models` / `--prune` / `--prune-delete` / `--reset-calibration` stay removed: no aliases, no backward compatibility.
 - Benchmarks and smoke runs pass `--no-calibration`; never write or depend on the machine's `vram-calibration.toml`.
 
 ## Verification

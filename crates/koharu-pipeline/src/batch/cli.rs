@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 
 use anyhow::{Context as _, Result, bail};
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use koharu_ml::Device;
 use koharu_translator::preset::{self, MeasuredPeaks};
 use koharu_translator::{GenerationConfig, Language, ModelSelection, Provider, TypographyProfile};
@@ -21,9 +21,20 @@ use crate::{
 #[derive(Clone, Debug, Parser)]
 #[command(
     version,
-    about = "Translate a chapter — or a whole volume — (folders of images or CBZ) with Koharu's local pipeline"
+    about = "Translate a chapter — or a whole volume — (folders of images or CBZ) with Koharu's local pipeline",
+    // The default flow (no subcommand) translates; the subcommands below are
+    // standalone housekeeping. Mixing the two would silently drop one side —
+    // `--input in models` translating nothing, `prune --delete --overwrite`
+    // deleting anyway — so clap refuses the combination: a run's flags stand
+    // alone, a subcommand's own options follow its name (`prune --store DIR`).
+    args_conflicts_with_subcommands = true
 )]
 pub struct Arguments {
+    /// The standalone actions (`models`, `prune`, `reset-calibration`): they
+    /// translate no page and take none of the run's flags.
+    #[command(subcommand)]
+    pub command: Option<Command>,
+
     /// Folder of images or a .cbz file to translate.
     #[arg(short, long, value_name = "INPUT")]
     pub input: Option<PathBuf>,
@@ -62,7 +73,9 @@ pub struct Arguments {
 
     /// Runtime store holding models and runtimes (defaults to the app
     /// install's `store` directory when the binary lives next to it).
-    #[arg(long, value_name = "DIR", help_heading = "Model & VRAM")]
+    /// Global, so every subcommand that touches the store takes it too —
+    /// after the name: `koharu-batch prune --store DIR`.
+    #[arg(long, value_name = "DIR", global = true, help_heading = "Model & VRAM")]
     pub store: Option<PathBuf>,
 
     /// End-of-run report: writes `<BASE>.md` and `<BASE>.html`; pass `none`
@@ -174,35 +187,10 @@ pub struct Arguments {
     #[arg(long, value_enum, default_value = "png")]
     pub format: FormatChoice,
 
-    /// Delete the VRAM calibration file and exit; later runs fall back to the
-    /// built-in reference estimates until new measurements are recorded.
-    #[arg(long, help_heading = "Store maintenance")]
-    pub reset_calibration: bool,
-
     /// Run without reading or writing the calibration file: built-in
     /// estimates only, nothing persisted.
-    #[arg(long, help_heading = "Store maintenance")]
+    #[arg(long, help_heading = "Model & VRAM")]
     pub no_calibration: bool,
-
-    /// List local models with their VRAM estimates and exit.
-    #[arg(long, help_heading = "Store maintenance")]
-    pub list_models: bool,
-
-    /// List Hugging Face models in the store that no pinned model references
-    /// (orphans left by removed catalog entries or probes) and exit. Add
-    /// `--prune-delete` to actually delete them: every entry re-downloads
-    /// automatically (size and SHA-256 verified) if a model needs it again.
-    #[arg(
-        long,
-        conflicts_with = "list_models",
-        help_heading = "Store maintenance"
-    )]
-    pub prune: bool,
-
-    /// With `--prune`, delete the orphaned model directories instead of
-    /// listing them.
-    #[arg(long, requires = "prune", help_heading = "Store maintenance")]
-    pub prune_delete: bool,
 
     /// Force CPU execution.
     #[arg(long, help_heading = "Model & VRAM")]
@@ -229,6 +217,32 @@ pub struct Arguments {
         help_heading = "Reproducibility"
     )]
     pub verify_passes: usize,
+}
+
+/// The standalone actions: housekeeping on the store and on the calibration
+/// file. None of them translates a page — no `--input`, no `--output`, no
+/// model to resolve — which is why they are subcommands instead of flags on
+/// the run, and why clap refuses to mix them with a run's flags.
+#[derive(Clone, Debug, Subcommand)]
+pub enum Command {
+    /// List the local model catalog: VRAM estimates, download sizes, and what
+    /// previous runs measured on this machine.
+    Models,
+
+    /// List the store entries nothing in the code references anymore (models,
+    /// datasets and runtimes left behind by removed catalog entries, probes
+    /// or updates), each with its size. Nothing is deleted without `--delete`.
+    Prune {
+        /// Delete the listed entries instead of stopping at the listing.
+        /// Nothing is lost permanently: every entry re-downloads automatically
+        /// (size and SHA-256 verified) if a model needs it again.
+        #[arg(long)]
+        delete: bool,
+    },
+
+    /// Delete the VRAM calibration file; later runs fall back to the
+    /// built-in reference estimates until new measurements are recorded.
+    ResetCalibration,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -386,7 +400,7 @@ pub fn resolve_model(
 
     let Some(descriptor) = preset::descriptor_for(&arguments.llm) else {
         bail!(
-            "unknown local model '{}' (use --list-models to see the catalog)",
+            "unknown local model '{}' (use koharu-batch models to see the catalog)",
             arguments.llm
         );
     };
@@ -692,6 +706,10 @@ mod tests {
         assert_eq!(arguments.format.extension(), "png");
         assert!(!arguments.no_vision);
         assert!(!arguments.no_calibration);
+        assert!(
+            arguments.command.is_none(),
+            "no subcommand means the default flow: translate"
+        );
     }
 
     #[test]
@@ -817,5 +835,56 @@ mod tests {
             .is_err(),
             "the two cache flags must conflict"
         );
+    }
+
+    #[test]
+    fn the_one_shot_actions_are_subcommands() {
+        assert!(matches!(
+            Arguments::parse_from(["koharu-batch", "models"]).command,
+            Some(Command::Models)
+        ));
+
+        // `--store` is global: it follows the subcommand name, the CI way.
+        let listed = Arguments::parse_from(["koharu-batch", "prune", "--store", "somewhere"]);
+        assert!(matches!(
+            listed.command,
+            Some(Command::Prune { delete: false })
+        ));
+        assert_eq!(
+            listed.store.as_deref(),
+            Some(std::path::Path::new("somewhere"))
+        );
+
+        let deleted = Arguments::parse_from(["koharu-batch", "prune", "--delete"]);
+        assert!(matches!(
+            deleted.command,
+            Some(Command::Prune { delete: true })
+        ));
+
+        assert!(matches!(
+            Arguments::parse_from(["koharu-batch", "reset-calibration"]).command,
+            Some(Command::ResetCalibration)
+        ));
+    }
+
+    #[test]
+    fn a_run_and_an_action_never_share_a_command_line() {
+        // On either side of the name, a run's flag next to a subcommand would
+        // be silently ignored — or the action taken despite the run's flags —
+        // so clap must refuse every combination instead of guessing.
+        for invocation in [
+            &["--input", "in", "--output", "out", "models"][..],
+            &["--store", "somewhere", "prune"][..],
+            &["prune", "--delete", "--overwrite"][..],
+            &["models", "--no-calibration"][..],
+            &["reset-calibration", "--dry-run"][..],
+        ] {
+            let mut argv = vec!["koharu-batch"];
+            argv.extend_from_slice(invocation);
+            assert!(
+                Arguments::try_parse_from(&argv).is_err(),
+                "{invocation:?} must be refused"
+            );
+        }
     }
 }

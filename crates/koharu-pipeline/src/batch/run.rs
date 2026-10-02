@@ -24,7 +24,7 @@ use koharu_translator::preset::{MeasuredPeak, MeasuredPeaks};
 use koharu_translator::{ProvidersConfig, preset};
 use serde_json::{Value, json};
 
-use super::cli::{self, Arguments, FormatChoice, gib};
+use super::cli::{self, Arguments, Command, FormatChoice, gib};
 use super::report::{PageOutcome, PageReport, RunReport, Thumbnails};
 use super::{bootstrap, calibration, cbz, pages, prune, report};
 use crate::vram::VramSampler;
@@ -374,8 +374,8 @@ fn output_page_path(output: &Path, index: usize, format: &str) -> PathBuf {
     output.join(format!("page-{index:04}.{format}"))
 }
 
-/// Handles `--reset-calibration`: deletes the calibration file so later runs
-/// fall back to the built-in reference estimates.
+/// Handles the `reset-calibration` subcommand: deletes the calibration file
+/// so later runs fall back to the built-in reference estimates.
 fn reset_calibration(path: Option<&Path>) -> Result<()> {
     let Some(path) = path else {
         bail!("no calibration path could be resolved (no home directory?)");
@@ -540,8 +540,9 @@ fn finish_chapter_report(
 }
 /// Lists or deletes the store entries that nothing in the code references
 /// anymore: Hugging Face models, datasets, and runtime releases other than
-/// the pinned one. Listing is the default — deletion is explicit — because
-/// every deleted entry only re-downloads when a model needs it again.
+/// the pinned one. Listing is the default — deletion is explicit
+/// (`prune --delete`) — because every deleted entry only re-downloads when a
+/// model needs it again.
 fn prune_store(store: &Path, delete: bool) -> Result<i32> {
     let categories = [
         ("model", prune::orphan_repositories(store)?),
@@ -562,7 +563,7 @@ fn prune_store(store: &Path, delete: bool) -> Result<i32> {
         }
     }
     if !delete {
-        println!("pass --prune-delete to remove them");
+        println!("pass --delete to remove them");
         return Ok(0);
     }
     let mut count = 0usize;
@@ -2126,14 +2127,47 @@ fn write_json_summary(summary: &JsonSummary<'_>, chapters: &[Chapter]) -> Result
     Ok(())
 }
 
+/// Executes a subcommand — the store and calibration housekeeping, which
+/// needs no input, no output and no model — and returns its exit code: `0`
+/// when it completed, a failure otherwise (the binary turns that into `1`).
+fn run_subcommand(
+    command: Command,
+    arguments: &Arguments,
+    calibration_path: Option<&Path>,
+) -> Result<i32> {
+    match command {
+        Command::Models => {
+            list_models(&calibration_path.map(calibration::load).unwrap_or_default());
+            Ok(0)
+        }
+        Command::Prune { delete } => {
+            let store = arguments
+                .store
+                .clone()
+                .unwrap_or_else(cli::default_store_root);
+            koharu_runtime::Store::configure(&store).with_context(|| {
+                format!(
+                    "failed to configure the runtime store at {}",
+                    store.display()
+                )
+            })?;
+            prune_store(store.as_path(), delete)
+        }
+        Command::ResetCalibration => {
+            reset_calibration(calibration_path)?;
+            Ok(0)
+        }
+    }
+}
+
 /// Runs the whole batch command and returns the process exit code: `0` only
-/// when every page of every chapter succeeded, `1` otherwise. Terminating the
-/// process is the binary's job — see `exit_with` there.
-pub async fn run(arguments: Arguments) -> Result<i32> {
+/// when every page of every chapter succeeded — or when the housekeeping
+/// subcommand completed —, `1` otherwise. Terminating the process is the
+/// binary's job — see `exit_with` there.
+pub async fn run(mut arguments: Arguments) -> Result<i32> {
     let calibration_path = calibration::default_path();
-    if arguments.reset_calibration {
-        reset_calibration(calibration_path.as_deref())?;
-        return Ok(0);
+    if let Some(command) = arguments.command.take() {
+        return run_subcommand(command, &arguments, calibration_path.as_deref());
     }
     let measurements = if arguments.no_calibration {
         MeasuredPeaks::new()
@@ -2143,23 +2177,6 @@ pub async fn run(arguments: Arguments) -> Result<i32> {
             .map(calibration::load)
             .unwrap_or_default()
     };
-    if arguments.list_models {
-        list_models(&measurements);
-        return Ok(0);
-    }
-    if arguments.prune {
-        let store = arguments
-            .store
-            .clone()
-            .unwrap_or_else(cli::default_store_root);
-        koharu_runtime::Store::configure(&store).with_context(|| {
-            format!(
-                "failed to configure the runtime store at {}",
-                store.display()
-            )
-        })?;
-        return prune_store(store.as_path(), arguments.prune_delete);
-    }
     let run_started_at = report::timestamp_now();
     let Some(input_path) = arguments.input.as_deref() else {
         bail!("--input is required (folder of images or a .cbz archive)");
@@ -2212,7 +2229,7 @@ pub async fn run(arguments: Arguments) -> Result<i32> {
     );
     if arguments.llm == "auto" && resolved.download >= cli::LARGE_DOWNLOAD_BYTES {
         eprintln!(
-            "warning: --llm auto picked {} {} because this GPU fits it; the first real run downloads about {} into {} (one time). Pass --llm <id> to translate with a smaller model, or --list-models to compare sizes.",
+            "warning: --llm auto picked {} {} because this GPU fits it; the first real run downloads about {} into {} (one time). Pass --llm <id> to translate with a smaller model, or run koharu-batch models to compare sizes.",
             resolved.model,
             resolved.quantization,
             gib(resolved.download),

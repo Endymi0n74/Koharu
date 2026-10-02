@@ -20,7 +20,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   # Mirrors crates/koharu-runtime/src/runtime/packages/llama.rs RELEASE: the
-  # --prune smoke test keeps exactly this directory in the fake store.
+  # The prune smoke test keeps exactly this directory in the fake store.
   LLAMA_RELEASE: b10903
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
         run: cargo build --release --locked -p koharu-pipeline --bin koharu-batch
       - name: Smoke test
         run: |
-          ./target/release/koharu-batch.exe --list-models
+          ./target/release/koharu-batch.exe models
           ./target/release/koharu-batch.exe --input crates/koharu-ml/benches/fixtures/object_detection --output ${{ runner.temp }}/koharu-dry-run --dry-run --no-calibration --vram-budget-mib 8192
       - name: Smoke test (volume mode)
         run: |
@@ -65,7 +65,7 @@ jobs:
             --after target/release/koharu-batch.exe \
             --input crates/koharu-ml/benches/fixtures/object_detection \
             --plan -- --vram-budget-mib 8192
-      - name: Smoke test (--prune on a fake store)
+      - name: Smoke test (prune on a fake store)
         shell: pwsh
         run: |
           $store = "${{ runner.temp }}/koharu-prune-store"
@@ -83,13 +83,13 @@ jobs:
             Set-Content "$dir/blob.bin" (1..1024)
           }
           # Listing reports exactly the three orphans and never deletes.
-          $list = ./target/release/koharu-batch.exe --prune --store "$store"
+          $list = ./target/release/koharu-batch.exe prune --store "$store"
           $list | Out-Host
           foreach ($needle in @(
             'someone--removed-model', 'old--fonts', 'b-old'
           )) {
             if (-not ($list | Select-String -SimpleMatch $needle)) {
-              throw "--prune listing misses $needle"
+              throw "prune listing misses $needle"
             }
           }
           foreach ($kept in @(
@@ -98,14 +98,14 @@ jobs:
             'b10903'
           )) {
             if ($list | Select-String -SimpleMatch $kept) {
-              throw "--prune lists the referenced $kept"
+              throw "prune lists the referenced $kept"
             }
           }
           # Deletion removes the orphans and nothing else.
-          ./target/release/koharu-batch.exe --prune --prune-delete --store "$store" | Out-Host
-          if (Test-Path "$store/hugging-face/models/someone--removed-model") { throw "orphan model survived --prune-delete" }
-          if (Test-Path "$store/hugging-face/datasets/old--fonts") { throw "orphan dataset survived --prune-delete" }
-          if (Test-Path "$store/llama/b-old") { throw "stale runtime survived --prune-delete" }
+          ./target/release/koharu-batch.exe prune --delete --store "$store" | Out-Host
+          if (Test-Path "$store/hugging-face/models/someone--removed-model") { throw "orphan model survived prune --delete" }
+          if (Test-Path "$store/hugging-face/datasets/old--fonts") { throw "orphan dataset survived prune --delete" }
+          if (Test-Path "$store/llama/b-old") { throw "stale runtime survived prune --delete" }
           $keptPaths = @(
             "$store/hugging-face/models/unsloth--gemma-4-E4B-it-qat-GGUF",
             "$store/hugging-face/datasets/mayocream--fonts",

@@ -10,6 +10,20 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **CLI `koharu-batch` élaguée : rubriques d'aide puis sous-commandes** (rupture assumée, aucun
+  alias — AGENTS.md interdit la rétrocompatibilité) : `--help` passe de 35 drapeaux en vrac à 5
+  rubriques (Options / Model & VRAM / Pipeline / Run control / Reproducibility) + section
+  Commands, et les 4 drapeaux one-shot deviennent les sous-commandes **`models`**,
+  **`prune [--delete]`**, **`reset-calibration`** — le flux de traduction reste plat
+  (`koharu-batch --input …` n'a pas de mot-clé). `--store` est global (`prune --store DIR`, après
+  le nom) et `args_conflicts_with_subcommands` **refuse** tout mélange drapeau de run +
+  sous-commande au lieu de l'ignorer en silence (refus testé des deux côtés du nom). Migrés sans
+  exception : `koharu-batch.yml` (smoke `models`, étape renommée « prune »), `test-prune-step.ts`
+  (sélecteur `prune`), README/README.en, `docs/en/fork.mdx` (options, housekeeping, codes de
+  sortie), messages d'erreur (`koharu-batch models`). Contrat d'exit inchangé : 0 = tout a réussi,
+  1 = échec, **2** = ligne refusée par clap ; les anciens drapeaux → 2. Vérifié : fmt/clippy verts,
+  141 tests lib + 2 binaire, smokes rejoués (dry-run 0, `models` 0, prune liste puis supprime 0,
+  mélanges 2, sans arg 1, extraction `test-prune-step.ts` OK).
 - **Prompt enrichi** (`crates/koharu-translator/src/prompt.rs`) : `source_guidance` (JA/RU) +
   `target_style` (FR) — seul levier retenu pour la qualité JA/RU→FR (échantillonnage et pivot EN
   écartés). 81/81 tests translator.
