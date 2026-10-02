@@ -178,13 +178,22 @@ pub struct Arguments {
     #[arg(long)]
     pub cpu: bool,
 
-    /// Run the pipeline twice in the same process and report every page whose
-    /// OCR text or translation differs between the two passes: the run-to-run
-    /// drift the local models can produce, page by page (implies --overwrite
+    /// Run the pipeline again in the same process and report every page whose
+    /// OCR text or translation differs between passes: the run-to-run drift
+    /// the local models can produce, page by page (implies --overwrite
     /// semantics for its own outputs; the report lists unstable pages and the
     /// run exits 0 even when some drift — the signal is the report itself).
     #[arg(long)]
     pub verify: bool,
+
+    /// Total number of passes `--verify` runs (production pass included).
+    /// 2 diffs each replay against the production pass; N >= 3 replays the
+    /// pipeline N-1 times and votes per page: a page whose readings are all
+    /// identical is stable, otherwise the report gives the frequency of each
+    /// distinct reading as an estimate of that page's drift probability.
+    /// Values below 2 are treated as 2.
+    #[arg(long, value_name = "N", default_value_t = 2)]
+    pub verify_passes: usize,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
