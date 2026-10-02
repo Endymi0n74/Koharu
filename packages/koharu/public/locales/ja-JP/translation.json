@@ -55,6 +55,18 @@
     "title": "エージェント",
     "working": "作業中…"
   },
+  "batch": {
+    "choose": "選択…",
+    "description": "プロジェクトを作らず、koharu-batch でフォルダー内の全ページを翻訳します。進行状況はアクティビティセンターに表示されます。",
+    "deterministic": "決定的翻訳（温度 0）",
+    "output": "出力フォルダー",
+    "overwrite": "出力に既に存在するページを再翻訳",
+    "pick": "未選択",
+    "source": "翻訳するフォルダー",
+    "start": "開始",
+    "starting": "開始中…",
+    "title": "フォルダーを一括翻訳"
+  },
   "canvas": {
     "empty": "ページを選択して開始します。",
     "fit": "ウィンドウに合わせる",
@@ -245,6 +257,7 @@
   },
   "menu": {
     "about": "Koharuについて",
+    "batch": "フォルダーを一括翻訳…",
     "closeProject": "プロジェクトを閉じる",
     "delete": "選択項目を削除",
     "discord": "Discord",

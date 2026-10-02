@@ -99,14 +99,14 @@ fn retire_job(
 ///
 /// A leaked entry would keep `process` refusing every later run with "another
 /// process is already running" until the app restarts.
-struct JobGuard {
+pub(super) struct JobGuard {
     handle: AppHandle<CefRuntime>,
     id: JobId,
     outcome: Option<(JobState, Option<String>)>,
 }
 
 impl JobGuard {
-    fn new(handle: AppHandle<CefRuntime>, id: JobId) -> Self {
+    pub(super) fn new(handle: AppHandle<CefRuntime>, id: JobId) -> Self {
         Self {
             handle,
             id,
@@ -114,7 +114,7 @@ impl JobGuard {
         }
     }
 
-    fn finish(&mut self, stopped: bool, error: Option<String>) {
+    pub(super) fn finish(&mut self, stopped: bool, error: Option<String>) {
         self.outcome = Some((
             if stopped {
                 JobState::Stopped

@@ -55,6 +55,18 @@
     "title": "Agente",
     "working": "Trabajando…"
   },
+  "batch": {
+    "choose": "Elegir…",
+    "description": "Traduce todas las páginas de una carpeta con koharu-batch, sin proyecto. El progreso aparece en el centro de actividades.",
+    "deterministic": "Traducción determinista (temperatura 0)",
+    "output": "Carpeta de salida",
+    "overwrite": "Volver a traduir las páginas ya presentes en la salida",
+    "pick": "Ninguna carpeta seleccionada",
+    "source": "Carpeta a traducir",
+    "start": "Iniciar",
+    "starting": "Iniciando…",
+    "title": "Traducir una carpeta por lotes"
+  },
   "canvas": {
     "empty": "Selecciona una página para empezar.",
     "fit": "Ajustar a la ventana",
@@ -245,6 +257,7 @@
   },
   "menu": {
     "about": "Acerca de",
+    "batch": "Traducir carpeta por lotes…",
     "closeProject": "Cerrar proyecto",
     "delete": "Eliminar selección",
     "discord": "Discord",

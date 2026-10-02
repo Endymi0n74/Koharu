@@ -55,6 +55,18 @@
     "title": "代理",
     "working": "正在工作…"
   },
+  "batch": {
+    "choose": "選擇…",
+    "description": "不需要專案，直接以 koharu-batch 翻譯資料夾中的所有頁面。進度會顯示在活動中心。",
+    "deterministic": "確定性翻譯（溫度 0）",
+    "output": "輸出資料夾",
+    "overwrite": "重新翻譯輸出中已存在的頁面",
+    "pick": "未選擇資料夾",
+    "source": "要翻譯的資料夾",
+    "start": "開始",
+    "starting": "正在開始…",
+    "title": "批次翻譯資料夾"
+  },
   "canvas": {
     "empty": "請選擇頁面以開始。",
     "fit": "適應視窗",
@@ -245,6 +257,7 @@
   },
   "menu": {
     "about": "關於",
+    "batch": "批次翻譯資料夾…",
     "closeProject": "關閉專案",
     "delete": "刪除所選項目",
     "discord": "Discord",

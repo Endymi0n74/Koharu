@@ -55,6 +55,18 @@
     "title": "Agent",
     "working": "Working..."
   },
+  "batch": {
+    "choose": "Choose…",
+    "description": "Translate every page of a folder with koharu-batch, outside any project. The run appears in the activity center.",
+    "deterministic": "Deterministic translation (temperature 0)",
+    "output": "Output folder",
+    "overwrite": "Re-translate pages already present in the output",
+    "pick": "None selected",
+    "source": "Folder to translate",
+    "start": "Start",
+    "starting": "Starting…",
+    "title": "Batch translate a folder"
+  },
   "canvas": {
     "empty": "Select a page to begin.",
     "fit": "Fit Window",
@@ -245,6 +257,7 @@
   },
   "menu": {
     "about": "About",
+    "batch": "Batch Translate Folder…",
     "closeProject": "Close Project",
     "delete": "Delete Selected",
     "discord": "Discord",

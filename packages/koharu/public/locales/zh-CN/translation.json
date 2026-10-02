@@ -55,6 +55,18 @@
     "title": "智能体",
     "working": "正在工作…"
   },
+  "batch": {
+    "choose": "选择…",
+    "description": "无需项目，直接用 koharu-batch 翻译文件夹中的所有页面。进度会显示在活动中心。",
+    "deterministic": "确定性翻译（温度 0）",
+    "output": "输出文件夹",
+    "overwrite": "重新翻译输出中已存在的页面",
+    "pick": "未选择文件夹",
+    "source": "要翻译的文件夹",
+    "start": "开始",
+    "starting": "正在开始…",
+    "title": "批量翻译文件夹"
+  },
   "canvas": {
     "empty": "请选择页面以开始。",
     "fit": "适应窗口",
@@ -245,6 +257,7 @@
   },
   "menu": {
     "about": "关于",
+    "batch": "批量翻译文件夹…",
     "closeProject": "关闭项目",
     "delete": "删除所选项",
     "discord": "Discord",

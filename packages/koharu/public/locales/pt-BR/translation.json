@@ -55,6 +55,18 @@
     "title": "Agente",
     "working": "Trabalhando…"
   },
+  "batch": {
+    "choose": "Escolher…",
+    "description": "Traduz todas as páginas de uma pasta com o koharu-batch, sem projeto. O progresso aparece no centro de atividades.",
+    "deterministic": "Tradução determinística (temperatura 0)",
+    "output": "Pasta de saída",
+    "overwrite": "Traduzir novamente as páginas já presentes na saída",
+    "pick": "Nenhuma pasta selecionada",
+    "source": "Pasta a traduzir",
+    "start": "Iniciar",
+    "starting": "Iniciando…",
+    "title": "Traduzir pasta em lote"
+  },
   "canvas": {
     "empty": "Selecione uma página para começar.",
     "fit": "Ajustar à janela",
@@ -245,6 +257,7 @@
   },
   "menu": {
     "about": "Sobre",
+    "batch": "Traduzir pasta em lote…",
     "closeProject": "Fechar projeto",
     "delete": "Excluir seleção",
     "discord": "Discord",

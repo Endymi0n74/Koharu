@@ -1,4 +1,5 @@
 pub(crate) mod agent;
+pub(crate) mod batch;
 pub(crate) mod canvas;
 pub(crate) mod editing;
 pub(crate) mod fonts;
@@ -63,6 +64,8 @@ pub fn bindings() -> tauri_specta::Builder<tauri_runtime_cef::CefRuntime> {
             agent::save_agent_config,
             agent::run_agent,
             agent::cancel_agent,
+            batch::pick_batch_folder,
+            batch::start_batch,
             lifecycle::subscribe,
             lifecycle::get_project,
             lifecycle::get_pages,

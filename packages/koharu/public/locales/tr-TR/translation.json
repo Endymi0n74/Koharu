@@ -55,6 +55,18 @@
     "title": "Ajan",
     "working": "Çalışıyor…"
   },
+  "batch": {
+    "choose": "Seç…",
+    "description": "Proje olmadan bir klasörün tüm sayfalarını koharu-batch ile çevirir. İlerleme etkinlik merkezinde görünür.",
+    "deterministic": "Deterministik çeviri (sıcaklık 0)",
+    "output": "Çıkış klasörü",
+    "overwrite": "Çıkışta zaten var olan sayfaları yeniden çevir",
+    "pick": "Klasör seçilmedi",
+    "source": "Çevrilecek klasör",
+    "start": "Başlat",
+    "starting": "Başlatılıyor…",
+    "title": "Klasörü toplu çevir"
+  },
   "canvas": {
     "empty": "Başlamak için bir sayfa seçin.",
     "fit": "Pencereye Sığdır",
@@ -245,6 +257,7 @@
   },
   "menu": {
     "about": "Hakkında",
+    "batch": "Klasörü toplu çevir…",
     "closeProject": "Projeyi Kapat",
     "delete": "Seçilenleri Sil",
     "discord": "Discord",
