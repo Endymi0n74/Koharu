@@ -171,7 +171,8 @@ Sonde en deux niveaux, dans le même log stderr :
    `batch::run::log_patch_hash`, commité.
 2. **`DETHASH page=<id> <hex>`** quand la variable est posée : hash de la sortie **brute** du
    détecteur RF-DETR (label/score/bbox/aire/masques) avant montage de scène —
-   `stages/detection.rs::log_detector_output_hash` (non commité au 2026-09-28). Distingue
+   `stages/detection.rs::log_detector_output_hash` (commité — instrument permanent,
+   voir le sort des sondes en « À faire plus tard »). Distingue
    inférence vs post-proc (`build_patch`).
 
 **Protocole** : 2 passes A/B `--overwrite` (`--deterministic --torch-fp32 --no-calibration`),
@@ -599,8 +600,17 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
   détection : seed/mode eval/NMS déterministe du modèle Torch, ou fix cuDNN étendu à RFDetR.
   Le patch du runtime llama (#16016) est inutile ici (voir section Non-déterminisme batch :
   MMQ et FA=OFF falsifiés, contention falsifiée, CPU aussi flippe avec vision).
-- Décider du sort des sondes `DETHASH` (`stages/detection.rs`) et `LLMDBG`
-  (`koharu_ml::llm::model`) : à committer avec le fix cuDNN ou à retirer une fois la
-  stabilité acquise.
-- Réactiver le job macOS si les secrets Apple sont configurés.
+- Sort des sondes `DETHASH` (`stages/detection.rs`) et `LLMDBG`
+  (`koharu_ml::llm::model`) : **décidé le 2026-10-02 — GARDER**, jusqu'à ce que le correctif
+  détection soit prouvé inconditionnel (le contrôle du 2026-09-28 l'a montré non acquis sous
+  contention GPU) : elles restent les instruments du chantier déterminisme et des scripts
+  `scripts/flip-study*.py`. Retirer seulement une fois la stabilité acquise (critère : N runs
+  A/B `KOHARU_PATCH_HASH` sans divergence DETHASH), en purgeant aussi `flip-study*.py`.
+  Durci au passage : `debug_enabled()` de LLMDBG échantillonne `KOHARU_LLM_DEBUG` une seule
+  fois par process (fini une lecture env par token décodé).
+- Réactiver le job macOS : **préparé le 2026-10-02, bloqué sur les secrets Apple** — vérifié
+  par API : seuls `TAURI_SIGNING_PRIVATE_KEY{,_PASSWORD}` existent. Créer les 5 secrets
+  listés dans le commentaire de `.github/workflows/release.yml` (`BUILD_CERTIFICATE_BASE64`,
+  `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM`) puis décommenter l'entrée
+  `macos-latest` de la matrice ; les étapes macOS sont déjà écrites et `if:`-gardées.
 - Mode dossier dans `koharu-app` (piloter un lot en GUI).
