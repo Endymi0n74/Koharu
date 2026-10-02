@@ -455,6 +455,44 @@ donne « nothing to do »). La comparaison OCR ne détecte du drift que si le ca
 absent au premier passage — avec cache, la passe 1 rejoue les lectures stockées et seul
 le drift de traduction est visible (le cas production : cache actif).
 
+**`--verify-passes N` livré (2026-09-29)** : `--verify` vote désormais sur N passes
+(production incluse, N≥2 forcé ; défaut 2 = comportement précédent). Refactor :
+`replay_pass` (nouvelle fn run.rs) exécute un replay complet avec les mêmes pièges
+résolus (no_ocr_cache/overwrite/output `.verify`/metadata), appelée N-1 fois avec le
+MÊME pipeline/renderer/rasterizer construits une fois dans `verify_replay` — les stages
+restent résidents entre passes de replay (pas de rechargement modèle, re-préparation
+des chapters seulement ; passe 2+ ~1 min vs ~2 min). Collection : `pass_readings`
+empreinte par page (clé label chapitre+page, blake3 tronqué 16 hex des sets triés OCR et
+traduction — comparaison insensible à l'ordre des entities) ; une passe qui rate une
+page compte comme lecture distincte "absent" (drift). Vote : comptes par lecture
+distincte par axe ; rapport stderr : `N page(s) voted over P passes, S stable, M with
+drift` + par page instable `ocr D distinct (fréqs) translation D distinct (fréqs) ->
+P(drift)~K/P` où K = passes − min(lecture majoritaire OCR, traduction) (probabilité que
+la page diffère de sa lecture majoritaire sur l'un des deux axes, production incluse).
+Validé réel N=3 val-in : `3 page(s) voted over 3 passes, 1 stable, 2 with drift` ;
+page1/page3 : translation 3 distinct (1,1,1) → P(drift)~2/3 (page1 drift 3/3 passes,
+≠ 2/3 des runs 2-passes antérieurs, échantillon N=3 plus fin) ; page2 : ocr (3)
+translation (3) stable ; OCR set stable partout (cache actif en passe 1, attendu). Logs
+`target/llm-ab/verify/n03.log`, script `n03-run.sh`. Piège du build/test : ne jamais
+lancer nohup avec `& disown` direct au premier plan du tool (timeout tool kill le pipe
+mais nohup survit — utiliser `(nohup … &)`) ; le terminal tool timeout max 600 s (un sleep
+>600 dans un run réel de ~5 min typo-pas-problème). Usage : `--verify --verify-passes 3`
+(production+N replays). Les scripts de test sont dans `target/llm-ab/verify/` (`n02-run.sh`,
+`n03-run.sh`).
+
+Régression N=2 (chemin par défaut `--verify`) : `3 page(s) voted over 2 passes, 0 stable, 3 with
+drift` (log `target/llm-ab/verify/n02.log`, script `n02-run.sh`) — toutes les pages en
+translation `(1,1) → P(drift)~1/2`, OCR set stable partout `(2)` ; 3/3 pages instables vs `2
+with drift` du run N=2 précédent (le rapport 2 passes avec vote affiche désormais 0 stable car
+les 2 passes donées diffèrent, vs le format bool DEERS/stables précédent). Compatibilité : le
+chemin exact de `--verify` seul (N=2) donne un rapport 2 passes avec vote identique en
+signification au format Bool antérieur, une page instable = 2 lectures distinctes = `(1,1)`
+`P(drift)~1/2`. Différence clé vs run 2-passes précédent : N=2 sous-échantillonne — page2
+(stable sur N=3) est instable sur N=2, ce qui justifie le mode N passes pour estimer P(drift)
+plutôt que de conclure binairement. Note sur le vote 2 passes : P(drift)~1/2 est un
+estimateur biaisé (2 passes, la fréquence de lecture distincte ne peut valoir que 0,½ ou 1) ;
+le N≥3 est le régime interprétable.
+
 **⚠ Contrôle final 2026-09-28 soir : le fix cuDNN N'EST PAS inconditionnel.** Trois runs
 consécutifs (A/B/C, ~1 min d'intervalle) : les 3 détections de A et B diffèrent toutes
 (entries identiques, DETHASH vides dans l'extraction, divergence dès detection) ; la passe
