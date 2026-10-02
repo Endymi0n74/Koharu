@@ -10,6 +10,17 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **Mode dossier batch dans l'app desktop** (2026-10-02, `0c70fad0`) : commandes
+  `pick_batch_folder` + `start_batch` — `koharu-batch` tourne en process enfant (binaire résolu
+  via exe frère → `target/{release,debug}` → `KOHARU_BATCH_BIN`), ses lignes stderr
+  (`N pages (M to translate)`, `[n/m] stage`, `… done in`) sont millesimées sur les tables
+  `Job` existantes : le lot s'affiche donc dans l'ActivityCenter, se stoppe par `stop_job`
+  (le `StopToken` est pollé par la tache lectrice qui kill l'enfant) et se retire par
+  `JobGuard` — **aucun store ni canal nouveau**. Exit 0/1/2 → Finished/Failed (dernière ligne
+  d'erreur en détail). Frontend : dialog `BatchDialog` (menu Fichier ; source/sortie par rfd,
+  langue cible reprise des prefs, déterministe ON, `--overwrite` seulement si coché → sans
+  lui le CLI saute les pages déjà traduites), clés i18n dans les 10 locales. Vérifié : fmt/
+  clippy verts, 16 tests app (4 parseurs), typecheck (depuis `D:\Codex\…`), oxlint, 106 vitest.
 - **CLI `koharu-batch` élaguée : rubriques d'aide puis sous-commandes** (rupture assumée, aucun
   alias — AGENTS.md interdit la rétrocompatibilité) : `--help` passe de 35 drapeaux en vrac à 5
   rubriques (Options / Model & VRAM / Pipeline / Run control / Reproducibility) + section
@@ -55,8 +66,10 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   `--dry-run` **et mode volume** (dossier `ch1` + sous-dossier imbriqué `Vol/Ch2`, assertion sur
   les labels du JSON) dans `koharu-batch.yml`.
 - **Release** : `lto = "thin"` dans le profil release ; tag **`v0.83.5`** publié ; job **macOS
-  désactivé** dans `release.yml` (secrets Apple absents) — réactiver quand
-  `BUILD_CERTIFICATE_BASE64` / `KEYCHAIN_PASSWORD` seront configurés.
+  désactivé** dans `release.yml` (secrets Apple absents) — les 5 secrets requis
+  (`BUILD_CERTIFICATE_BASE64`, `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`,
+  `APPLE_TEAM`) sont listés dans le commentaire de la matrice (2026-10-02) ; vérifié par API
+  qu'aucun n'existe encore (seules les clés Tauri sont présentes).
 
 ## Décisions tranchées (ne pas rouvrir sans re-mesurer sur la cible)
 
@@ -525,6 +538,28 @@ pages par étage GPU peut varier entre runs (comparer par `entries=`/prompt hash
 position). Correctif à chercher côté upstream : rebuild du package llama avec kernels
 déterministes ou release ggml corrigeant l'op atomique en cause.
 
+**Contrôle 2026-10-02 — protocole repris, aucune variance reproduite.** Deux expériences sur
+`target/val-in`, recette `KOHARU_PATCH_HASH=1 --torch-fp32 --deterministic --no-calibration`,
+scripts `target/llm-ab/b1002-run.ps1` (baseline) et `b1003-run.ps1` (contention) :
+
+1. **Baseline au calme** — 6 runs consécutifs (38-86 s, GPU 3-6 %, 54-61 °C) : DETHASH
+   identique sur les 6 runs pour chaque page (3 valeurs distinctes — le hash exclut les UUID
+   de page, qui eux changent à chaque run), PATCHHASH **12/12 stables** (3 pages × 4 étages,
+   y compris traduction), 6/6 exit 0.
+2. **Contention** — 4 vagues × 2 runs concurrents (corpus identique, sorties séparées) : les
+   8 processus portent les **mêmes 3 DETHASH que la baseline** — la détection reste bit-stable
+   sous pression — mais **chaque run meurt en traduction** (« failed to load local », exit 1,
+   2-3 pages échouées : deux LLM de 4,3 GiB ne tiennent pas dans les 8 Go, PATCHHASH tombe à
+   9-10 parce que les commits de traduction manquent). Durées de vague 47 s → 3 min.
+
+Lecture : la variance des fenêtres 2026-09-28/29 n'est pas reproduite aujourd'hui ; le « run
+long pour saturer » du prescrit tombe en panne de VRAM avant d'atteindre le régime de
+traduction concurrent, donc l'axe traduction/OCR sous contention reste non testé. Artefacts :
+`target/llm-ab/b1002/` et `b1003/` (logs + progress.txt). Pièges de mesure rencontrés : les
+lignes de sonde tracing sont entourées de codes ANSI (`entries=` découpé — strip
+`\x1b[…m` avant regex) et l'ancienne exécution des scripts sous WSL bash a produit zéro
+sonde (voir Pièges).
+
 ## Pièges
 
 - **Le fmt du Lint CI est propre depuis `4466b975`** (vérifié 2026-09-25 :
@@ -558,7 +593,12 @@ déterministes ou release ggml corrigeant l'op atomique en cause.
   `scripts/test-prune-step.ts` (document YAML typé, `step.run` défendu, `RUNNER_TEMP`/`TEMP`
   gardé). Ce typecheck échoue aussi si on le lance depuis `D:\codex\…` en TS1149 (casse
   `D:\codex` vs `D:\Codex` héritée des liens workspace) : artefact local, relancer depuis
-  `D:\Codex\…` — CI (Linux, chemin unique) ne le voit pas.
+  `D:\Codex\…` — CI (Linux, chemin unique) ne le voit pas. Même piège pour
+  `bun run --filter @koharu/app typecheck` (supprimer
+  `packages/koharu/tsconfig.tsbuildinfo` si le cache rejoue les deux casses). Par ailleurs
+  `bun run check` (oxfmt) échoue sur tout le tree d'un worktree CRLF sous Windows (y
+  compris des fichiers intacts) : préexistant, non couvert par aucun workflow CI — ne pas
+  le prendre pour un gate.
 - **`gh` pointe par défaut sur l'UPSTREAM `koharu-rs/koharu`** (config du poste) :
   `gh run list` affiche alors les runs d'un AUTRE dépôt — ceux du fork n'y figurent
   jamais, et `gh run view <id>` répond 404. Passer `-R Endymi0n74/Koharu` ou l'API
@@ -570,6 +610,14 @@ déterministes ou release ggml corrigeant l'op atomique en cause.
   `koharu-ml/src/determinism.rs`, fix `e5624756`). Les branches `not(windows)` et les
   `*.rs` de plateforme (`resources/linux.rs`) ne sont jamais lints en local : face à un
   `unused import`/`dead_code` au Lint, chercher un cfg de plateforme d'abord.
+- **Les scripts d'expérience à variables d'env sont muets sous WSL bash**
+  (`C:\Windows\System32\bash.exe`, bash 5.3 `x86_64-pc-linux-gnu`) : l'interop WSL→Windows
+  ne transmet que l'environnement Windows hérité — `FOO=bar ./koharu-batch.exe` n'arrive
+  jamais au process (constaté 2026-10-02 : 6 runs sans UNE ligne DETHASH/PATCHHASH alors
+  que les sondes sont bien dans le binaire). Tourner ces scripts en PowerShell
+  (`$env:VAR='1'` + `cmd /c "… > log 2>&1"`) ou sous Git Bash (MSYS) — les anciens
+  `*-run.sh` en `/d/Codex/…` étaient Git Bash. Rappel mesure : les lignes de sonde
+  tracing sont entourées de codes ANSI (`entries=` découpé) — strip `\x1b[…m` avant regex.
 - **Smoke test** (exit attendu 0) :
   ```powershell
   .\target\release\koharu-batch.exe --input "crates\koharu-ml\benches\fixtures\object_detection" `
@@ -600,6 +648,10 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
   détection : seed/mode eval/NMS déterministe du modèle Torch, ou fix cuDNN étendu à RFDetR.
   Le patch du runtime llama (#16016) est inutile ici (voir section Non-déterminisme batch :
   MMQ et FA=OFF falsifiés, contention falsifiée, CPU aussi flippe avec vision).
+  **2026-10-02 : aucune variance reproduite** (6 runs au calme bit-stables + 8 processus
+  concurrents en détection stables ; la saturation concurrente meurt en VRAM avant la
+  traduction) — voir « Contrôle 2026-10-02 » : le correctif reste à cibler (épinglage
+  cublasLt) mais n'a pas de reproductible aujourd'hui.
 - Sort des sondes `DETHASH` (`stages/detection.rs`) et `LLMDBG`
   (`koharu_ml::llm::model`) : **décidé le 2026-10-02 — GARDER**, jusqu'à ce que le correctif
   détection soit prouvé inconditionnel (le contrôle du 2026-09-28 l'a montré non acquis sous
@@ -613,4 +665,3 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
   listés dans le commentaire de `.github/workflows/release.yml` (`BUILD_CERTIFICATE_BASE64`,
   `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM`) puis décommenter l'entrée
   `macos-latest` de la matrice ; les étapes macOS sont déjà écrites et `if:`-gardées.
-- Mode dossier dans `koharu-app` (piloter un lot en GUI).
