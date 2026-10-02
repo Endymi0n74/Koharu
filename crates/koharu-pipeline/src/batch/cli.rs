@@ -75,6 +75,8 @@ pub struct Arguments {
     #[arg(long, value_name = "PATH")]
     pub json: Option<PathBuf>,
 
+    /// Layout detection model: finds text regions, speech bubbles and
+    /// segmentation masks. One implementation ships today.
     #[arg(
         long,
         value_enum,
@@ -83,6 +85,8 @@ pub struct Arguments {
     )]
     pub detection: DetectionChoice,
 
+    /// OCR model reading the source text from the detected regions
+    /// (paddleocr-vl-1.6 is the default and handles mixed-script pages).
     #[arg(
         long,
         value_enum,
@@ -91,6 +95,8 @@ pub struct Arguments {
     )]
     pub ocr: OcrChoice,
 
+    /// Inpainting model rebuilding the image behind the source text before
+    /// the translation is rendered (lama is the fast default).
     #[arg(long, value_enum, default_value = "lama", help_heading = "Pipeline")]
     pub inpainting: InpaintingChoice,
 
