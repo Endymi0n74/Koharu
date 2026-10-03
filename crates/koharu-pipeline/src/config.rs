@@ -190,6 +190,7 @@ impl Default for PipelineConfig {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
+#[serde(default)]
 pub struct TranslationConfig {
     pub model: koharu_translator::ModelSelection,
     pub generation: GenerationConfig,
@@ -373,6 +374,15 @@ mod tests {
         let config = toml::from_str::<PipelineConfig>("").unwrap();
 
         assert_eq!(config, PipelineConfig::default());
+    }
+
+    #[test]
+    fn a_translation_section_written_before_recent_fields_still_parses() {
+        // `instructions` and `typography` arrived after the first releases;
+        // a `[translation]` block from that era keeps loading with defaults.
+        let config = toml::from_str::<PipelineConfig>("[translation]").unwrap();
+
+        assert_eq!(config.translation, TranslationConfig::default());
     }
 
     #[test]
