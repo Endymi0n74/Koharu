@@ -14,6 +14,10 @@ pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_XL";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SupportedLanguages {
     All,
+    /// Every catalog entry so far translates into every language, so this
+    /// variant currently has no constructor; it stays as the seam for a
+    /// future translation-specialized model.
+    #[expect(dead_code)]
     Limited(&'static [crate::Language]),
 }
 
@@ -49,89 +53,6 @@ pub struct LocalModelDescriptor {
 pub struct LocalConfig {}
 
 pub(super) static MODELS: &[LocalModelDescriptor] = &[
-    LocalModelDescriptor {
-        id: "lfm2.5-1.2b-instruct",
-        reasoning: false,
-        name: "LFM2.5 1.2B Instruct",
-        quantizations: &[
-            QuantizationDefinition::new("Q4_K_M", "Q4_K_M", "LFM2.5-1.2B-Instruct-Q4_K_M.gguf"),
-            QuantizationDefinition::new("BF16", "BF16", "LFM2.5-1.2B-Instruct-BF16.gguf"),
-            QuantizationDefinition::new("F16", "F16", "LFM2.5-1.2B-Instruct-F16.gguf"),
-            QuantizationDefinition::new("Q4_0", "Q4_0", "LFM2.5-1.2B-Instruct-Q4_0.gguf"),
-            QuantizationDefinition::new("Q5_K_M", "Q5_K_M", "LFM2.5-1.2B-Instruct-Q5_K_M.gguf"),
-            QuantizationDefinition::new("Q6_K", "Q6_K", "LFM2.5-1.2B-Instruct-Q6_K.gguf"),
-            QuantizationDefinition::new("Q8_0", "Q8_0", "LFM2.5-1.2B-Instruct-Q8_0.gguf"),
-        ],
-        generation: ModelGeneration {
-            temperature: Some(0.1),
-            top_k: Some(50),
-            top_p: Some(0.9),
-            min_p: Some(0.05),
-            max_tokens: Some(1000),
-            repeat_penalty: Some(1.2),
-            frequency_penalty: None,
-            presence_penalty: None,
-        },
-        repository: "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
-        revision: "afbd8eaeab5dd94ba0b079ebfb02517d19641e38",
-        projector: None,
-        target_languages: SupportedLanguages::Limited(&[
-            crate::Language::English,
-            crate::Language::Arabic,
-            crate::Language::ChineseSimplified,
-            crate::Language::French,
-            crate::Language::German,
-            crate::Language::Japanese,
-            crate::Language::Korean,
-            crate::Language::Portuguese,
-            crate::Language::Spanish,
-        ]),
-    },
-    LocalModelDescriptor {
-        id: "ministral-3-8b-instruct",
-        reasoning: false,
-        name: "Ministral 3 8B Instruct",
-        quantizations: &[
-            QuantizationDefinition::new(
-                "Q4_K_M",
-                "Q4_K M",
-                "Ministral-3-8B-Instruct-2512-Q4_K_M.gguf",
-            ),
-            QuantizationDefinition::new("BF16", "BF16", "Ministral-3-8B-Instruct-2512-BF16.gguf"),
-            QuantizationDefinition::new(
-                "Q5_K_M",
-                "Q5_K M",
-                "Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
-            ),
-            QuantizationDefinition::new("Q8_0", "Q8_0", "Ministral-3-8B-Instruct-2512-Q8_0.gguf"),
-        ],
-        generation: ModelGeneration {
-            temperature: Some(0.05),
-            top_k: Some(40),
-            top_p: Some(0.9),
-            min_p: Some(0.05),
-            max_tokens: Some(1000),
-            repeat_penalty: Some(1.2),
-            frequency_penalty: None,
-            presence_penalty: None,
-        },
-        repository: "mistralai/Ministral-3-8B-Instruct-2512-GGUF",
-        revision: "0102285ad796bd99af90f58de616092e5630e970",
-        projector: None,
-        target_languages: SupportedLanguages::Limited(&[
-            crate::Language::English,
-            crate::Language::Arabic,
-            crate::Language::ChineseSimplified,
-            crate::Language::French,
-            crate::Language::German,
-            crate::Language::Italian,
-            crate::Language::Japanese,
-            crate::Language::Korean,
-            crate::Language::Portuguese,
-            crate::Language::Spanish,
-            crate::Language::Dutch,
-        ]),
-    },
     LocalModelDescriptor {
         id: "gemma4-e2b-it",
         reasoning: true,
@@ -844,31 +765,6 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         target_languages: SupportedLanguages::All,
     },
     LocalModelDescriptor {
-        id: "qwen3.5-9b-abliterated",
-        reasoning: true,
-        name: "Qwen 3.5 9B Abliterated",
-        quantizations: &[
-            QuantizationDefinition::new("Q4_K_M", "Q4_K M", "Qwen3.5-9B-abliterated-Q4_K_M.gguf"),
-            QuantizationDefinition::new("F16", "F16", "Qwen3.5-9B-abliterated-F16.gguf"),
-        ],
-        generation: ModelGeneration {
-            temperature: Some(0.2),
-            top_k: Some(20),
-            top_p: Some(0.9),
-            min_p: Some(0.05),
-            max_tokens: Some(1000),
-            repeat_penalty: Some(1.2),
-            frequency_penalty: None,
-            presence_penalty: None,
-        },
-        repository: "lukey03/Qwen3.5-9B-abliterated-GGUF",
-        revision: "dac35c6385d79a6a9fe113d7a3b730348791d37f",
-        // lukey03 ships no mmproj (vision tensors are baked into the GGUF,
-        // which llama.cpp cannot load without one): text-only.
-        projector: None,
-        target_languages: SupportedLanguages::All,
-    },
-    LocalModelDescriptor {
         id: "qwen3.6-27b-uncensored",
         reasoning: true,
         name: "Qwen 3.6 27B Uncensored",
@@ -1133,7 +1029,7 @@ mod tests {
 
     #[test]
     fn local_catalog_has_unique_complete_entries() {
-        assert_eq!(MODELS.len(), 28);
+        assert_eq!(MODELS.len(), 25);
         for (index, model) in MODELS.iter().enumerate() {
             let id = model.id;
             assert!(!model.repository.is_empty());
@@ -1156,12 +1052,10 @@ mod tests {
 
     #[test]
     fn reasoning_matches_supported_chat_templates() {
+        // The two template-less non-reasoning entries (LFM2.5, Ministral) left
+        // the catalog; every remaining chat template supports reasoning.
         for model in MODELS {
-            if matches!(model.id, "lfm2.5-1.2b-instruct" | "ministral-3-8b-instruct") {
-                assert!(!model.reasoning, "{} should not expose reasoning", model.id);
-            } else {
-                assert!(model.reasoning, "{} should expose reasoning", model.id);
-            }
+            assert!(model.reasoning, "{} should expose reasoning", model.id);
         }
     }
 

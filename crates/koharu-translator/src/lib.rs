@@ -278,8 +278,10 @@ mod tests {
                 ..GenerationConfig::default()
             }
         ));
+        // The catalog no longer ships a projector-less model, so the
+        // "cannot see" refusal stays pinned through an unknown id.
         assert!(!Translator::supports_vision(
-            &local_selection("lfm2.5-1.2b-instruct"),
+            &local_selection("no-such-model"),
             &GenerationConfig {
                 vision: Some(true),
                 ..GenerationConfig::default()
