@@ -34,6 +34,9 @@ target/
 
 # model checkpoints
 /models
+
+# Model store relocated through KOHARU_STORE (21 Go of packages)
+/store/
 .env
 
 # Python

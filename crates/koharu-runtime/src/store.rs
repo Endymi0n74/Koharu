@@ -111,9 +111,18 @@ impl Store {
     }
 
     /// Returns the configured root, or the operating system cache by default.
+    ///
+    /// `KOHARU_STORE` (an absolute path) replaces the cache default; an
+    /// explicit [`Store::configure`] still wins because it runs before the
+    /// root is first read.
     #[must_use]
     pub fn root() -> &'static Path {
         ROOT.get_or_init(|| {
+            if let Some(directory) =
+                std::env::var_os("KOHARU_STORE").filter(|directory| !directory.is_empty())
+            {
+                return PathBuf::from(directory);
+            }
             dirs::cache_dir()
                 .unwrap_or_else(std::env::temp_dir)
                 .join("koharu")
