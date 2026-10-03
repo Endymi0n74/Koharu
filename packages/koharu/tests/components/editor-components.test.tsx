@@ -1878,7 +1878,7 @@ describe('greenfield editor', () => {
           total: 1,
           page: 'page',
           stage: 'translation',
-          model: 'ministral',
+          model: 'gemma4-e2b-uncensored',
           error: longError,
         },
       },

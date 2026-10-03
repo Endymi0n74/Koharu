@@ -34,7 +34,6 @@ const MEASURED_PEAKS: &[(&str, &str, u64)] = &[
     ("gemma4-e2b-it", "Q4_K_XL", 3100),
     ("gemma4-e4b-uncensored", "Q4_K_P", 5528),
     ("gemma4-e4b-it", "Q4_K_XL", 3446),
-    ("ministral-3-8b-instruct", "Q4_K_M", 6600),
     ("gemma4-12b-it", "Q4_K_XL", 7700),
 ];
 
@@ -282,8 +281,16 @@ pub struct AutoChoice {
 /// Preference order for `--llm auto`: the strongest model that fits the budget
 /// wins, so a large card is not held back by the 8 GB recommendation. Within
 /// one size the uncensored variant comes first (manga dialogue is the target
-/// workload), then the instruct 4B, the fastest dense 8B, and the small E2B as
-/// the fallbacks for an 8 GB card and below. Models not listed here stay
+/// workload), then the instruct build — the unsloth `-it` models are Google's
+/// official QAT releases, so the instruct entries already carry quantization-
+/// aware training — and the small E2B rounds out the vision fallbacks for an
+/// 8 GB card and below. The tail extends the same idea with leaner
+/// configurations so a busy 8 GB card (desktop, browser, the app itself on the
+/// GPU) still resolves a runnable vision model instead of refusing everything:
+/// the uncensored E2B first, then the small 0.8B generalist. Lighter
+/// quantizations of the 4B models stay out until a run records them in the
+/// calibration file — their formula estimate under-reports the real peak by
+/// roughly the context the measurements observed. Models not listed here stay
 /// reachable through an explicit `--llm <id> --quantization <id>`.
 const AUTO_PRIORITY: &[(&str, &str)] = &[
     ("gemma4-31b-uncensored", "Q4_K_M"),
@@ -291,8 +298,9 @@ const AUTO_PRIORITY: &[(&str, &str)] = &[
     ("gemma4-12b-uncensored", "Q4_K_M"),
     ("gemma4-e4b-uncensored", "Q4_K_P"),
     ("gemma4-e4b-it", "Q4_K_XL"),
-    ("ministral-3-8b-instruct", "Q4_K_M"),
     ("gemma4-e2b-it", "Q4_K_XL"),
+    ("gemma4-e2b-uncensored", "Q4_K_P"),
+    ("qwen3.5-0.8b", "Q4_K_XL"),
 ];
 
 /// Selects the best local model for `budget` (usable bytes, already margin-trimmed).
@@ -551,8 +559,10 @@ mod tests {
         assert_eq!(parameters_billion("gemma4-e2b-it"), Some(2.0));
         assert_eq!(parameters_billion("gemma4-26b-a4b-it"), Some(26.0));
         assert_eq!(parameters_billion("qwen3.5-2b"), Some(2.0));
-        assert_eq!(parameters_billion("ministral-3-8b-instruct"), Some(8.0));
-        assert_eq!(parameters_billion("lfm2.5-1.2b-instruct"), Some(1.2));
+        // A bare `…-3-…` marker (no `b` suffix) is ignored, and decimal
+        // markers keep their fraction.
+        assert_eq!(parameters_billion("demo-3-8b"), Some(8.0));
+        assert_eq!(parameters_billion("demo-1.2b"), Some(1.2));
         assert_eq!(parameters_billion("qwen3.6-35b-a3b"), Some(35.0));
     }
 
@@ -654,27 +664,56 @@ mod tests {
             resolve_auto(budget_from_total(5 * GIB), true).expect("5 GiB fits a vision model");
         assert_eq!(choice.model, "gemma4-e4b-it");
 
-        // The projector (+0.9 GiB) can push every vision model off a small
-        // card even though a text-only model would still fit.
-        assert!(resolve_auto(budget_from_total(4 * GIB), true).is_none());
-        let choice = resolve_auto(budget_from_total(4 * GIB), false).expect("text-only fits 4 GiB");
-        assert_eq!(choice.model, "gemma4-e4b-it");
+        // Beyond the 8 GB recommendation the same stepping continues with the
+        // lean tail, so a busy card resolves a runnable vision model instead
+        // of refusing everything: measured E2B instruct (≈3.9 GiB) first, the
+        // uncensored E2B (≈3.0 GiB) below it, the 0.8B generalist (≈2.4 GiB)
+        // as the last resort.
+        let choice =
+            resolve_auto(budget_from_total(4 * GIB), true).expect("4 GiB fits a lean vision model");
+        assert_eq!(choice.model, "gemma4-e2b-uncensored");
+        assert_eq!(choice.quantization, "Q4_K_P");
+        let choice = resolve_auto(budget_from_total(3 * GIB), true)
+            .expect("3 GiB fits the smallest vision model");
+        assert_eq!(choice.model, "qwen3.5-0.8b");
+        assert_eq!(choice.quantization, "Q4_K_XL");
 
         // Below the smallest footprint nothing fits at all.
         assert!(resolve_auto(budget_from_total(2 * GIB), true).is_none());
+
+        // Text-only still fits where vision cannot carry the projector.
+        let choice = resolve_auto(budget_from_total(4 * GIB), false).expect("text-only fits 4 GiB");
+        assert_eq!(choice.model, "gemma4-e4b-it");
     }
 
     #[test]
-    fn auto_skips_text_only_models_when_vision_is_required() {
-        for budget in [budget_from_total(8 * GIB), u64::MAX] {
-            let Some(choice) = resolve_auto(budget, true) else {
+    fn auto_vision_selections_always_carry_a_projector() {
+        // The catalog lost its last text-only entries (LFM2.5, Ministral,
+        // the 9B abliterated); the guard stays so a future projector-less
+        // model can never be auto-picked for a vision run.
+        for total in [2, 3, 4, 6, 8, 12, 16, 32] {
+            let Some(choice) = resolve_auto(budget_from_total(total * GIB), true) else {
                 continue;
             };
-            assert_ne!(
-                choice.model, "ministral-3-8b-instruct",
-                "a vision selection must not pick a model without a projector"
+            let model = MODELS
+                .iter()
+                .find(|descriptor| descriptor.id == choice.model)
+                .expect("auto choice is cataloged");
+            assert!(
+                model.projector.is_some(),
+                "a vision selection must not pick {} without a projector",
+                choice.model
             );
         }
+        let choice = resolve_auto(u64::MAX, true).expect("an unlimited budget picks a model");
+        assert!(
+            MODELS
+                .iter()
+                .find(|descriptor| descriptor.id == choice.model)
+                .expect("auto choice is cataloged")
+                .projector
+                .is_some()
+        );
     }
 
     #[test]

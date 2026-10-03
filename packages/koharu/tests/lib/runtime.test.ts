@@ -31,7 +31,7 @@ const preferences: Preferences = {
     translation: {
       model: {
         provider: 'local',
-        model: 'lfm2.5-1.2b-instruct',
+        model: 'gemma4-e2b-it',
         quantization: null,
         vision: false,
         reasoning: false,

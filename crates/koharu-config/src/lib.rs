@@ -667,7 +667,7 @@ mod tests {
         let mut base: toml::Value = toml::from_str(
             r#"
                 provider = "local"
-                model = "lfm2.5-1.2b-instruct"
+                model = "gemma4-e2b-it"
                 gpu_layers = 99
             "#,
         )
