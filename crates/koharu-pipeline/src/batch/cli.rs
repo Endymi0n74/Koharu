@@ -71,15 +71,17 @@ pub struct Arguments {
     #[arg(long, value_name = "MIB", help_heading = "Model & VRAM")]
     pub vram_budget_mib: Option<u64>,
 
-    /// Runtime store holding models and runtimes (defaults to the app
-    /// install's `store` directory when the binary lives next to it).
+    /// Runtime store holding models and runtimes (`--store` wins, else
+    /// `KOHARU_STORE`, else the app install's `store` directory when the
+    /// binary lives next to it, else the OS cache).
     /// Global, so every subcommand that touches the store takes it too —
     /// after the name: `koharu-batch prune --store DIR`.
     #[arg(long, value_name = "DIR", global = true, help_heading = "Model & VRAM")]
     pub store: Option<PathBuf>,
 
     /// End-of-run report: writes `<BASE>.md` and `<BASE>.html`; pass `none`
-    /// to disable. Defaults to `<OUTPUT-STEM>-report` next to the output.
+    /// to disable. Defaults next to the output, named after it — an output
+    /// `./out` yields `./out.md` and `./out.html`.
     #[arg(long, value_name = "BASE|none")]
     pub report: Option<String>,
 
@@ -327,11 +329,15 @@ fn download_bytes(model: &str, quantization: &str, vision: bool) -> Result<u64> 
     ))
 }
 
-/// Store root used when `--store` is not given: the `store` directory next to
-/// this executable when it exists (a Koharu app installation), otherwise the
-/// operating-system cache default.
+/// Store root used when `--store` is not given: `KOHARU_STORE` when set to an
+/// absolute path, else the `store` directory next to this executable when it
+/// exists (a Koharu app installation), otherwise the operating-system cache
+/// default.
 #[must_use]
 pub fn default_store_root() -> PathBuf {
+    if let Some(directory) = std::env::var_os("KOHARU_STORE").filter(|value| !value.is_empty()) {
+        return PathBuf::from(directory);
+    }
     if let Some(directory) = dirs::executable_dir() {
         let candidate = directory.join("store");
         if candidate.is_dir() {
