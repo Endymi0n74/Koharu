@@ -3,12 +3,51 @@
 Fork de [koharu-rs/koharu](https://github.com/koharu-rs/koharu) (traducteur de manga ML, Rust).
 Remotes : `origin` = https://github.com/Endymi0n74/Koharu (branche `main`), `upstream` = koharu-rs/koharu.
 
-Machine de référence : **RTX 3070 8 Go (sm_86)**. Store : `%LOCALAPPDATA%\koharu\packages`
-(`D:\koharu\store` pour les runs e2e réels : `--store D:/koharu/store`).
+Machine de référence : **RTX 3070 8 Go (sm_86)**. Store : **`D:\Codex\koharu\store`** via
+`KOHARU_STORE` (setx 2026-10-03, 25,2 Go déplacés depuis `%LOCALAPPDATA%\koharu\packages` —
+dossier source vidé) ; `--store` gagne sur la variable (`D:\koharu\store` pour les runs e2e
+réels : `--store D:/koharu/store`).
 
 Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions tranchées, pièges.
 
 ## Livré (sessions récentes)
+
+- **Smoke test du mode dossier GUI + lot de finition** (2026-10-03) : parcours complet validé
+  en réel — dialog → démarrage → job dans l'ActivityCenter (%, Stop ■) → Stop tue l'enfant →
+  relance avec reprise (15 pages ignorées, 5 traduites) → **20/20 pages**, process terminé,
+  VRAM libérée (5,3 Go libres) ; `auto` a choisi `gemma4-e2b-uncensored` (pic réel 3,1 GiB)
+  là où l'ancien chaînage refusait à 5,1 Go de budget. Rapports écrits à côté du dossier de
+  sortie : `<sortie>.md` / `.html` / `.report.state.json` (l'aide `--report` disait à tort
+  `<STEM>-report` → corrigée) ; pages **et** rapports posés dans la racine du dossier de
+  sortie (`D:\Documents\bd\Box Sync\`) — emplacement validé par l'utilisateur comme voulu. Correctifs GUI inclus : erreur de démarrage inline dans le
+  dialog, ActivityCenter remonté à la racine, fil `eprintln!` de `start_batch` retiré.
+- **Catalogue nettoyé : 25 entrées** (2026-10-03) : −3 retraits validés —
+  `lfm2.5-1.2b-instruct` (non-vision, 9 langues seulement), `ministral-3-8b-instruct`
+  (non-vision → inutilisable depuis la GUI qui force la vision, jamais pris par `auto`),
+  `qwen3.5-9b-abliterated` (jumeau du 9b-uncensored) — avec `MEASURED_PEAKS`/`AUTO_PRIORITY`
+  et les tests adaptés (compte 25, reasoning tous-true, parseur sur ids synthétiques, garde
+  projector reformulée, `local_selection` sur id inconnu, fixtures koharu-config + 2 tests TS).
+  **Ajouts QAT annulés après découverte** : les ids `gemma4-{e2b,e4b,12b}-it` pointent déjà
+  vers les dépôts officiels `unsloth/gemma-4-*-it-qat-GGUF` (mêmes revisions, mêmes fichiers)
+  — des ids `*-qat` seraient des doublons purs ; l'utilisateur a validé l'annulation
+  (catalogue −3 net). README FR/EN synchronisés (LFM/Ministral/abliterated retirés, « Gemma 4
+  (QAT) »). `SupportedLanguages::Limited` sans constructeur → `#[expect(dead_code)]` (le
+  garder comme couture pour un futur modèle spécialisé) ; test `auto_vision_selections_always_
+  carry_a_projector` remplace l'ancien test « skip text-only » devenu vide.
+- **Fix `TranslationConfig` `#[serde(default)]`** (2026-10-03, validé) : une section
+  `[translation]` écrite avant l'ajout de champs récents (`instructions`, `typography`)
+  reparsent avec les défauts ; test `a_translation_section_written_before_recent_fields_
+  still_parses`.
+- **Store déplacé sur `D:\Codex\koharu\store` via `KOHARU_STORE`** (2026-10-03) : variable
+  lue par `Store::root()` (GUI) et `default_store_root()` (CLI batch, precedent
+  `KOHARU_BATCH_BIN`), priorité `--store` > `KOHARU_STORE` > store à côté de l'exe > cache OS.
+  setx posé, 25,2 Go déplacés (robocopy /MOVE, 84 fichiers, 0 échec, source vidée), `.gitignore`
+  `/store/`, aide `--store` + `en/fork.mdx` documentent la variable. Preuve : `prune` sans
+  variable → `C:\…\packages` (défaut intact), avec → `D:\Codex\koharu\store`.
+- **Docs du mode dossier** (2026-10-03) : `guides/batch.mdx` en/ja/zh (menu Fichier → Batch
+  Translate Folder…, champs du dialog, auto+vision, reprise, volume, rapport `<sortie>.md`),
+  nav `docs.json` ×3 après `guides/export`, cross-link depuis `en/fork.mdx` (section Batch
+  mode + paragraphe store `KOHARU_STORE`).
 
 - **Mode dossier batch dans l'app desktop** (2026-10-02, `0c70fad0`) : commandes
   `pick_batch_folder` + `start_batch` — `koharu-batch` tourne en process enfant (binaire résolu
@@ -108,6 +147,19 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   ne pas créer de 2ᵉ interface.
 - **Exemple `crates/koharu-llama-sys/examples/flash_attn_default.rs`** : conservé (documente le
   défaut AUTO, aucun coût).
+- **Catalogue : 25 entrées, toutes vision, zéro doublon** (2026-10-03). Règles tranchées :
+  pas d'entrée non-vision (la GUI force `vision=true`), pas de doublon d'octets — les ids
+  `gemma4-{e2b,e4b,12b,26b-a4b,31b}-it` SONT les builds QAT Google (`unsloth/gemma-4-*-it-qat-
+  GGUF`, fichiers `*-it-qat-UD-Q4_K_XL.gguf` + `mmproj-F16.gguf`), donc **aucun id `*-qat`
+  séparé**. Chaîne `AUTO_PRIORITY` finale : `31b-unc → 26b-unc → 12b-unc → e4b-unc → e4b-it →
+  e2b-it → e2b-unc → qwen3.5-0.8b` (mesuré : e4b-it 3446, e2b-it 3100, 12b-it 7700 MiB ; les
+  Q2_K des E2B et toute quant plus légère sortent tant que la calibration ne les mesure pas).
+  `SupportedLanguages::Limited` sans constructeur → `#[expect(dead_code)]` (couture volontaire,
+  le supprimer ferait perdre la sémantique `contains()`/`UnsupportedLanguage`).
+- **`KOHARU_STORE` > store à côté de l'exe > cache OS ; `--store` gagne sur tout** (2026-10-03).
+  Lue dans `Store::root()` (GUI) et `default_store_root()` (batch). Ne pas recréer de store
+  sous `%LOCALAPPDATA%` : sur cette machine il est vide, tout est sur `D:\Codex\koharu\store`
+  (`/store/` gitignoré). `D:\koharu\store` reste le banc e2e (`--store` explicite).
 
 ## Mesures (2026-09-25, RTX 3070, `gemma4-e4b-it` Q4_K_XL, `--no-calibration`, warm)
 
@@ -623,6 +675,15 @@ sonde (voir Pièges).
   (`$env:VAR='1'` + `cmd /c "… > log 2>&1"`) ou sous Git Bash (MSYS) — les anciens
   `*-run.sh` en `/d/Codex/…` étaient Git Bash. Rappel mesure : les lignes de sonde
   tracing sont entourées de codes ANSI (`entries=` découpé) — strip `\x1b[…m` avant regex.
+- **`cargo clippy -p koharu-app` échoue avec `cef-dll-sys … Accès refusé (os error 5)` tant que
+  l'app dev tourne** (constaté 2026-10-03) : le build script du crate CEF touche au DLL verrouillé
+  par `koharu.exe`. Le watcher tauri rebuild Compile normalement ; pour un clippy final, stopper
+  le dev (arbre : powershell `bun run dev` → cargo-tauri → `koharu.exe`, plus les next/nodemon),
+  clippy, puis relancer. Tuer par arbre de processus, jamais `bun`/`node` globalement (le
+  process orchestrator d'OpenCode est aussi `bun.exe`).
+- **Console PowerShell 5.1 = ibm850** : les chemins cyrilliques/chinois passés en littéral dans
+  le tool shell sont mojibakés (`Test-Path` → faux négatif, constaté 2026-10-03 sur le dossier
+  source du smoke). Vérifier les chemins non-ASCII via une wildcard ou `Get-ChildItem` parent.
 - **Smoke test** (exit attendu 0) :
   ```powershell
   .\target\release\koharu-batch.exe --input "crates\koharu-ml\benches\fixtures\object_detection" `

@@ -173,6 +173,9 @@ reading or writing it (reference estimates, nothing recorded).
 inpainting, translation, rendering) as the desktop app, but runs unattended so it can be
 scripted or launched for a long reading session.
 
+The desktop app offers the same run under **File → Batch Translate Folder…**, tracked in
+the activity center — see [Batch translate a folder](/en/guides/batch).
+
 Key behaviors:
 
 - **Natural page ordering** — `page2.png` sorts before `page10.png`, padding is ignored
@@ -297,9 +300,12 @@ language's output quality matters more than the language itself.
 
 The runtime store resolves like the desktop app: when the binary sits next to a Koharu
 installation (a `store` directory alongside the executable), that store is used and every
-model already downloaded by the app is reused. Otherwise it falls back to the
-operating-system cache (`%LOCALAPPDATA%\koharu\packages` on Windows); `--store <dir>`
-points at any other store explicitly. `--dry-run` plans the run (pages, model, VRAM) without
+model already downloaded by the app is reused. The `KOHARU_STORE` environment variable —
+an absolute path — overrides both that install store and the cache default below (only an
+explicit `--store <dir>` beats it), which is how a store can live outside the system
+drive. Otherwise it falls back to the operating-system cache
+(`%LOCALAPPDATA%\koharu\packages` on Windows); `--store <dir>` points at any other store
+explicitly. `--dry-run` plans the run (pages, model, VRAM) without
 downloading runtimes or processing pages.
 
 Exit codes: `0` when every page of every chapter succeeds, non-zero when the

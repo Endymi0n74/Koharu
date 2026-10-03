@@ -1,0 +1,45 @@
+---
+title: 'Batch translate a folder'
+description: 'Translate every page of a folder — or a whole volume — in one background run, without opening a project.'
+icon: 'folder-tree'
+---
+
+**File → Batch Translate Folder…** opens a dialog that runs `koharu-batch` on a folder of scans: the pages are translated in the background, written as images to an output folder, and the run appears in the activity center while Koharu stays usable.
+
+<Steps>
+  <Step title='Choose the folders'>
+    **Folder to translate** is the input: a folder of page images — or a folder of chapters, see below. **Output folder** receives the translated pages as images named `page-0000.png`, `page-0001.png`, … Both are required.
+  </Step>
+  <Step title='Pick the target language'>
+    The language defaults to your current target language; every catalog model handles the usual pairs well (see the [models guide](/en/models/translation)).
+  </Step>
+  <Step title='Set the two options'>
+    - **Deterministic translation (temperature 0)** — on by default: runs are reproducible; turn it off for more varied wording.
+    - **Re-translate pages already present in the output** — off by default: existing pages are skipped, so a stopped run resumes where it left off. Turn it on to redo them.
+  </Step>
+  <Step title='Start'>
+    The dialog closes and the job appears in the activity center. Startup failures — a missing folder, another run already active — are shown inline in the dialog.
+  </Step>
+</Steps>
+
+## The model is chosen for your GPU
+
+The run translates with `auto`: the strongest catalog model that fits the available VRAM, always with vision, the page image accompanying the text. The first run downloads the model, up to several gigabytes, which can take a few minutes before the first page moves; later runs reuse it. For the mechanics behind the choice — estimates, measurements, `--llm`, `--quantization` — see the [batch CLI documentation](/en/fork#batch-mode-koharu-batch).
+
+## Follow progress, stop, resume
+
+The activity center shows the run as a job: stage, page progress, a percentage, and a stop button.
+
+- **Stop** ends the batch process. Pages already written to the output stay on disk; the page in flight is not written.
+- **Start the same folders again to resume**: pages already present in the output are skipped — unless **Re-translate** is on — and only the remaining pages are processed.
+- The run writes a Markdown and an HTML report next to the output folder, named after it (`<output>.md`, `<output>.html`), summarizing translated, skipped, and failed pages. When every page is done the job finishes and the GPU is released.
+
+<Note>
+  Only one background run at a time. Starting a second one reports that another process is already running; wait for the current run, or stop it, first.
+</Note>
+
+## Folder of chapters (volume mode)
+
+An input folder with no images at its top level but with subfolders and/or `.cbz` archives is treated as a **volume**: every subfolder and archive becomes one chapter, translated in natural order, and the results mirror the layout under the output folder. A folder that holds pages itself never descends into its subfolders. The [batch CLI documentation](/en/fork#batch-mode-koharu-batch) spells out the layout rules and the archive outputs.
+
+Continue with [page processing](/en/guides/processing) for the page-level workflow, or the [models guide](/en/models/translation) to pick a translation model by hand.

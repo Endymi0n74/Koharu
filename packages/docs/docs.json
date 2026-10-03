@@ -106,7 +106,8 @@
               "en/guides/canvas",
               "en/guides/cleanup",
               "en/guides/typesetting",
-              "en/guides/export"
+              "en/guides/export",
+              "en/guides/batch"
             ]
           },
           {
@@ -228,7 +229,8 @@
               "ja/guides/canvas",
               "ja/guides/cleanup",
               "ja/guides/typesetting",
-              "ja/guides/export"
+              "ja/guides/export",
+              "ja/guides/batch"
             ]
           },
           {
@@ -350,7 +352,8 @@
               "zh/guides/canvas",
               "zh/guides/cleanup",
               "zh/guides/typesetting",
-              "zh/guides/export"
+              "zh/guides/export",
+              "zh/guides/batch"
             ]
           },
           {
