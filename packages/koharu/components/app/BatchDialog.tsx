@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { call } from '@/lib/backend'
@@ -43,6 +43,12 @@ export function BatchDialog({
   const [deterministic, setDeterministic] = useState(true)
   const [overwrite, setOverwrite] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
+
+  // A fresh attempt starts from a clean slate, including after a reopen.
+  useEffect(() => {
+    if (open) setStartError(null)
+  }, [open])
 
   const languageChoices = useMemo(
     () => orderedLanguageChoices(preferences?.languages ?? []),
@@ -61,9 +67,12 @@ export function BatchDialog({
   const start = () => {
     if (!source || !output) return
     setBusy(true)
+    setStartError(null)
     void call(commands.startBatch, source, output, target, deterministic, overwrite)
       .then(() => onOpenChange(false))
-      .catch(() => undefined)
+      .catch((error: unknown) => {
+        setStartError(error instanceof Error ? error.message : String(error))
+      })
       .finally(() => setBusy(false))
   }
 
@@ -137,6 +146,12 @@ export function BatchDialog({
             </label>
           </div>
         </div>
+
+        {startError && (
+          <p role='alert' className='text-[11px] text-destructive'>
+            {startError}
+          </p>
+        )}
 
         <DialogFooter>
           <Button
