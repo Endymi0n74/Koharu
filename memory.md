@@ -743,6 +743,20 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
 `bun run --filter @koharu/app lint`, `bun run --filter '@koharu/*' typecheck`,
 `bun run --filter @koharu/app test` (106 tests).
 
+## Fermé (2026-10-04)
+
+- **Purge des caches CEF (~150 Mo)** : **clôturée — non faite, décision assumée** : le
+  profil utilisateur est gardé tel quel et les caches laissés en place ; coût non bloquant,
+  à reprendre seulement si l'espace manque un jour.
+- **Réactiver le job macOS** : **clôturée — macOS reste désactivé** (préparé le 2026-10-02,
+  bloqué sur les secrets Apple : vérifié par API, seuls `TAURI_SIGNING_PRIVATE_KEY{,_PASSWORD}`
+  existent). Les étapes macOS restent écrites et `if:`-gardées ; rouvrir seulement si les 5
+  secrets du commentaire de `.github/workflows/release.yml` (`BUILD_CERTIFICATE_BASE64`,
+  `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM`) sont créés puis que
+  `macos-latest` est décommenté dans la matrice.
+- **MTP drafters** : **clôturé — constat acté, pas de correctif** : +2 GiB de poids
+  supplémentaire et carte 8 Go saturée ; revoir seulement avec plus de VRAM.
+
 ## À faire plus tard (choix ouverts)
 
 - Résidu translation : **cause racine identifiée le 2026-09-29 — la variance naît dans la
@@ -763,8 +777,3 @@ Commandes CI = vérifier localement : `cargo fmt --all -- --check`, `cargo check
   A/B `KOHARU_PATCH_HASH` sans divergence DETHASH), en purgeant aussi `flip-study*.py`.
   Durci au passage : `debug_enabled()` de LLMDBG échantillonne `KOHARU_LLM_DEBUG` une seule
   fois par process (fini une lecture env par token décodé).
-- Réactiver le job macOS : **préparé le 2026-10-02, bloqué sur les secrets Apple** — vérifié
-  par API : seuls `TAURI_SIGNING_PRIVATE_KEY{,_PASSWORD}` existent. Créer les 5 secrets
-  listés dans le commentaire de `.github/workflows/release.yml` (`BUILD_CERTIFICATE_BASE64`,
-  `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM`) puis décommenter l'entrée
-  `macos-latest` de la matrice ; les étapes macOS sont déjà écrites et `if:`-gardées.
