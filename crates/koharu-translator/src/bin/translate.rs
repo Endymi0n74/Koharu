@@ -69,12 +69,7 @@ async fn main() -> Result<()> {
                 .expect("local translation has a default model")
         })
     });
-    if model.is_none()
-        && !matches!(
-            provider,
-            Provider::DeepL | Provider::GoogleCloudTranslation | Provider::Caiyun
-        )
-    {
+    if model.is_none() && provider.takes_model() {
         anyhow::bail!("--model is required for {provider}");
     }
     let translator =

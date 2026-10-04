@@ -56,9 +56,11 @@
     "working": "正在工作…"
   },
   "batch": {
+    "autoModel": "自動",
     "choose": "選擇…",
     "description": "不需要專案，直接以 koharu-batch 翻譯資料夾中的所有頁面。進度會顯示在活動中心。",
     "deterministic": "確定性翻譯（溫度 0）",
+    "model": "模型",
     "output": "輸出資料夾",
     "overwrite": "重新翻譯輸出中已存在的頁面",
     "pick": "未選擇資料夾",

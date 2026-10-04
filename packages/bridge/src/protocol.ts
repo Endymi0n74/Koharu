@@ -20,8 +20,16 @@ export const commands = {
 	/**
 	 *  Translates a folder (or chapter) with `koharu-batch` and reports it as a
 	 *  regular job: the child owns the run, this side only mirrors its stderr.
+	 *  `model` is the picker's choice; `None` translates like the CLI's own
+	 *  default — the local `auto` pick.
 	 */
-	startBatch: (input: string, output: string, lang: string, deterministic: boolean, overwrite: boolean) => __TAURI_INVOKE<JobId>("start_batch", { input, output, lang, deterministic, overwrite }),
+	startBatch: (input: string, output: string, lang: string, model: {
+	provider: Provider,
+	model?: string | null,
+	quantization?: string | null,
+	vision?: boolean,
+	reasoning?: boolean,
+} | null, deterministic: boolean, overwrite: boolean) => __TAURI_INVOKE<JobId>("start_batch", { input, output, lang, model, deterministic, overwrite }),
 	subscribe: (onCanvas: Channel<CanvasState>, onJob: Channel<Job>, onDownload: Channel<Download>, onResources: Channel<ModelResources>, onProject: Channel<{
 	name: string,
 	revision: Revision,

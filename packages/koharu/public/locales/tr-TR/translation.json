@@ -56,9 +56,11 @@
     "working": "Çalışıyor…"
   },
   "batch": {
+    "autoModel": "Otomatik",
     "choose": "Seç…",
     "description": "Proje olmadan bir klasörün tüm sayfalarını koharu-batch ile çevirir. İlerleme etkinlik merkezinde görünür.",
     "deterministic": "Deterministik çeviri (sıcaklık 0)",
+    "model": "Model",
     "output": "Çıkış klasörü",
     "overwrite": "Çıkışta zaten var olan sayfaları yeniden çevir",
     "pick": "Klasör seçilmedi",

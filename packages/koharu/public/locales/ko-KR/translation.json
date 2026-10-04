@@ -56,9 +56,11 @@
     "working": "작업 중…"
   },
   "batch": {
+    "autoModel": "자동",
     "choose": "선택…",
     "description": "프로젝트 없이 koharu-batch로 폴더의 모든 페이지를 번역합니다. 진행 상황은 활동 센터에 표시됩니다.",
     "deterministic": "결정적 번역(온도 0)",
+    "model": "모델",
     "output": "출력 폴더",
     "overwrite": "출력에 이미 있는 페이지 다시 번역",
     "pick": "선택되지 않음",

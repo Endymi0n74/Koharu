@@ -56,9 +56,11 @@
     "working": "Trabalhando…"
   },
   "batch": {
+    "autoModel": "Automático",
     "choose": "Escolher…",
     "description": "Traduz todas as páginas de uma pasta com o koharu-batch, sem projeto. O progresso aparece no centro de atividades.",
     "deterministic": "Tradução determinística (temperatura 0)",
+    "model": "Modelo",
     "output": "Pasta de saída",
     "overwrite": "Traduzir novamente as páginas já presentes na saída",
     "pick": "Nenhuma pasta selecionada",

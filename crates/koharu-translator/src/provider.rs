@@ -195,6 +195,20 @@ define_providers! {
     }
 }
 
+impl Provider {
+    /// Whether the backend expects a model id: a local run always names a
+    /// catalog model (or `auto`), and a hosted provider names its own —
+    /// except the services that translate as themselves, which the endpoint
+    /// owns end to end (DeepL, Google Cloud Translation, Caiyun).
+    #[must_use]
+    pub const fn takes_model(self) -> bool {
+        !matches!(
+            self,
+            Self::DeepL | Self::GoogleCloudTranslation | Self::Caiyun
+        )
+    }
+}
+
 impl ProvidersConfig {
     pub fn load() -> anyhow::Result<koharu_config::Config<Self>> {
         koharu_config::load("providers")

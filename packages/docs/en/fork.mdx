@@ -268,7 +268,11 @@ automatically (all the models the app downloaded are reused); anywhere else, pas
 `--store D:\koharu\store` once or let it fall back to `%LOCALAPPDATA%\koharu\packages`.
 
 Full options (from `koharu-batch --help`): `--input`, `--output`, `--lang` (default
-`fr-FR`), `--llm` (model id or `auto`), `--quantization`, `--no-vision` (text-only
+`fr-FR`), `--provider` (translation backend: `local`, the default, or a hosted provider id
+from the app's provider settings — detection/OCR/inpainting stay local and only the text is
+sent, with the key read from the app's keyring; an unknown id is a usage error), `--llm`
+(model id or `auto`; a hosted provider that needs a model requires its id, `auto` is for
+services without one), `--quantization`, `--no-vision` (text-only
 translation, skips the vision projector), `--force`, `--vram-budget-mib`,
 `--detection`, `--ocr`, `--inpainting`, `--translation-instructions`, `--format`
 (png/jpg/webp for folder outputs), `--store`, `--report <BASE|none>`, `--json <PATH>`,

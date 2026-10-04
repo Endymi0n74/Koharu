@@ -49,8 +49,19 @@ pub struct Arguments {
     #[arg(long, default_value = "fr-FR")]
     pub lang: Language,
 
-    /// Local LLM id, or `auto` to pick the strongest model that fits the
-    /// available VRAM (a big pick is downloaded on the first run).
+    /// Translation backend: `local` (the catalog, default) or a hosted
+    /// provider id from the app's provider settings (`openai`, `deepl`, …).
+    /// A hosted run keeps detection/OCR/inpainting on this machine and sends
+    /// only the translation over the network; the API key comes from the
+    /// app's keyring, the endpoint settings from its configuration file.
+    #[arg(long, default_value = "local", help_heading = "Model & VRAM")]
+    pub provider: Provider,
+
+    /// Translation model: with `--provider local`, a catalog id or `auto` —
+    /// the strongest model that fits the available VRAM (a big pick is
+    /// downloaded on the first run). With a hosted provider, its model id;
+    /// `auto` asks for the service without one, which only the model-less
+    /// providers (DeepL and friends) accept.
     #[arg(long, default_value = "auto")]
     pub llm: String,
 
@@ -298,10 +309,20 @@ impl FormatChoice {
     }
 }
 
-/// A concrete local model choice with its VRAM footprint.
+/// A concrete translation choice: the backend that translates, what that
+/// backend needs from the flags, and what the choice implies locally.
+#[derive(Debug)]
 pub struct Resolved {
-    pub model: String,
-    pub quantization: String,
+    /// The catalog (local) or the hosted provider doing the translation.
+    pub provider: Provider,
+    /// Local: the catalog id. Hosted: the model id, or `None` for the
+    /// services that take none.
+    pub model: Option<String>,
+    /// Local: the quantization id. Hosted: `None` — hosted weights are
+    /// never quantized on this card.
+    pub quantization: Option<String>,
+    /// Footprint on this card: the local model's estimate, `0` bytes for a
+    /// hosted model whose weights live on the provider's GPUs.
     pub estimate: preset::VramEstimate,
     /// Bytes the configuration needs in the store (weights and projector).
     pub download: u64,
@@ -310,6 +331,36 @@ pub struct Resolved {
     pub vision: bool,
     /// Whether the model emits reasoning traces the backend must strip.
     pub reasoning: bool,
+}
+
+impl Resolved {
+    /// Model name for reports and progress lines: the hosted service's own
+    /// name when it takes no model id (`DeepL`), the id otherwise — a local
+    /// run always has one.
+    #[must_use]
+    pub fn model_label(&self) -> String {
+        self.model
+            .clone()
+            .unwrap_or_else(|| self.provider.name().to_owned())
+    }
+
+    /// Variant shown beside the model name: the quantization locally, the
+    /// provider id for a hosted run, where the backend is the variant that
+    /// matters.
+    #[must_use]
+    pub fn variant_label(&self) -> String {
+        self.quantization.clone().unwrap_or_else(|| {
+            let id: &'static str = self.provider.into();
+            id.to_owned()
+        })
+    }
+
+    /// VRAM estimate for reports: `None` for a hosted run — only this run's
+    /// local vision stages touch the card, which the measured peak reports.
+    #[must_use]
+    pub fn estimate_label(&self) -> Option<String> {
+        (self.provider == Provider::Local).then(|| self.estimate.display())
+    }
 }
 
 /// Download size above which an automatic pick warns instead of starting a
@@ -373,14 +424,19 @@ pub fn detect_budget(arguments: &Arguments, device: &Device) -> Option<u64> {
     Some(budget.min(free))
 }
 
-/// Resolves the local LLM: `auto` scans the preference list, an explicit id is
-/// checked against the VRAM budget unless `--force` was passed. Both use the
-/// real measurements recorded by previous runs when available.
+/// Resolves the translation choice: a hosted provider as configured (no
+/// budget, no download — its weights live elsewhere), or the local LLM —
+/// `auto` scans the preference list, an explicit id is checked against the
+/// VRAM budget unless `--force` was passed. Both local paths use the real
+/// measurements recorded by previous runs when available.
 pub fn resolve_model(
     arguments: &Arguments,
     budget: Option<u64>,
     measurements: &MeasuredPeaks,
 ) -> Result<Resolved> {
+    if arguments.provider != Provider::Local {
+        return resolve_hosted(arguments);
+    }
     if arguments.llm == "auto" {
         let Some(budget) = budget else {
             bail!(
@@ -395,8 +451,9 @@ pub fn resolve_model(
             );
         };
         return Ok(Resolved {
-            model: choice.model.to_owned(),
-            quantization: choice.quantization.to_owned(),
+            provider: Provider::Local,
+            model: Some(choice.model.to_owned()),
+            quantization: Some(choice.quantization.to_owned()),
             estimate: choice.estimate,
             download: download_bytes(choice.model, choice.quantization, vision)?,
             vision,
@@ -443,12 +500,48 @@ pub fn resolve_model(
     };
     let download = download_bytes(&arguments.llm, &quantization, vision)?;
     Ok(Resolved {
-        model: arguments.llm.clone(),
-        quantization,
+        provider: Provider::Local,
+        model: Some(arguments.llm.clone()),
+        quantization: Some(quantization),
         estimate,
         download,
         vision,
         reasoning: preset::is_reasoning(descriptor),
+    })
+}
+
+/// Resolves a hosted choice: `--llm auto` means the service without a model
+/// id — which only the model-less providers accept — and the local-only
+/// flags that would silently do nothing are refused instead of ignored.
+fn resolve_hosted(arguments: &Arguments) -> Result<Resolved> {
+    if let Some(quantization) = &arguments.quantization {
+        bail!(
+            "--quantization {quantization} picks a local model's file format; {0} is hosted (drop it, or pass --provider local)",
+            arguments.provider
+        );
+    }
+    let model = match arguments.llm.as_str() {
+        "auto" if arguments.provider.takes_model() => bail!(
+            "--provider {0} requires --llm <model-id> (`auto` picks local models only)",
+            arguments.provider
+        ),
+        "auto" => None,
+        model => Some(model.to_owned()),
+    };
+    Ok(Resolved {
+        provider: arguments.provider,
+        model,
+        quantization: None,
+        estimate: preset::VramEstimate {
+            bytes: 0,
+            measured: false,
+        },
+        download: 0,
+        vision: !arguments.no_vision,
+        // No thinking configuration is ever sent to a hosted endpoint: its
+        // own default applies (a local model derives this from the catalog,
+        // where a wrong guess would be an API rejection).
+        reasoning: false,
     })
 }
 
@@ -505,9 +598,9 @@ pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineCo
         },
         translation: TranslationConfig {
             model: ModelSelection {
-                provider: Provider::Local,
-                model: Some(resolved.model.clone()),
-                quantization: Some(resolved.quantization.clone()),
+                provider: resolved.provider,
+                model: resolved.model.clone(),
+                quantization: resolved.quantization.clone(),
                 vision: resolved.vision,
                 reasoning: resolved.reasoning,
             },
@@ -597,8 +690,9 @@ mod tests {
     #[test]
     fn deterministic_translates_greedily() {
         let resolved = Resolved {
-            model: "gemma4-e2b-it".to_owned(),
-            quantization: "Q4_K_XL".to_owned(),
+            provider: Provider::Local,
+            model: Some("gemma4-e2b-it".to_owned()),
+            quantization: Some("Q4_K_XL".to_owned()),
             estimate: preset::VramEstimate {
                 bytes: 0,
                 measured: false,
@@ -631,6 +725,111 @@ mod tests {
                 .generation
                 .temperature,
             Some(0.0)
+        );
+    }
+
+    #[test]
+    fn a_hosted_provider_translates_without_local_budget() {
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--provider",
+            "openai",
+            "--llm",
+            "gpt-5.6-luna",
+            "--no-vision",
+        ]);
+        let resolved = resolve_model(&arguments, None, &MeasuredPeaks::new())
+            .expect("a hosted run needs no budget or download");
+
+        assert_eq!(resolved.provider, Provider::OpenAi);
+        assert_eq!(resolved.model.as_deref(), Some("gpt-5.6-luna"));
+        assert_eq!(resolved.quantization, None);
+        assert_eq!(resolved.download, 0);
+        assert_eq!(resolved.estimate.bytes, 0);
+        assert!(!resolved.vision, "--no-vision travels to the hosted pick");
+        assert_eq!(resolved.estimate_label(), None);
+        assert_eq!(resolved.variant_label(), "openai");
+
+        let config = pipeline_config(&arguments, &resolved);
+        assert_eq!(config.translation.model.provider, Provider::OpenAi);
+        assert_eq!(
+            config.translation.model.model.as_deref(),
+            Some("gpt-5.6-luna")
+        );
+        assert_eq!(config.translation.model.quantization, None);
+        assert!(!config.translation.model.vision);
+    }
+
+    #[test]
+    fn model_less_services_run_without_a_model_and_chat_providers_do_not() {
+        let deepl = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--provider",
+            "deepl",
+            // What the app sends for a service pick: its models are text-only.
+            "--no-vision",
+        ]);
+        let resolved = resolve_model(&deepl, None, &MeasuredPeaks::new())
+            .expect("DeepL translates as itself, no model id");
+        assert_eq!(resolved.provider, Provider::DeepL);
+        assert_eq!(resolved.model, None);
+        assert_eq!(resolved.model_label(), "DeepL");
+        assert!(!resolved.vision, "the service never sees the page image");
+
+        let openai = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--provider",
+            "openai",
+        ]);
+        let error = resolve_model(&openai, None, &MeasuredPeaks::new())
+            .expect_err("a chat provider cannot translate without a model");
+        assert!(error.to_string().contains("--llm <model-id>"), "{error:#}");
+    }
+
+    #[test]
+    fn hosted_runs_refuse_local_only_flags_and_unknown_providers() {
+        let quantized = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--provider",
+            "openai",
+            "--llm",
+            "gpt-5.6-luna",
+            "--quantization",
+            "Q4_K_XL",
+        ]);
+        assert!(
+            resolve_model(&quantized, None, &MeasuredPeaks::new()).is_err(),
+            "a local-only flag must fail instead of silently doing nothing"
+        );
+
+        assert!(
+            Arguments::try_parse_from([
+                "koharu-batch",
+                "--input",
+                "in",
+                "--output",
+                "out",
+                "--provider",
+                "not-a-provider",
+            ])
+            .is_err(),
+            "an unknown provider id is a usage error (exit code 2)"
         );
     }
 
@@ -707,6 +906,7 @@ mod tests {
     fn cli_defaults_target_french_without_calibration_or_vision() {
         let arguments = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
         assert_eq!(arguments.lang.tag(), "fr-FR");
+        assert_eq!(arguments.provider, Provider::Local);
         assert_eq!(arguments.llm, "auto");
         assert_eq!(arguments.retries, 1);
         assert_eq!(arguments.format.extension(), "png");

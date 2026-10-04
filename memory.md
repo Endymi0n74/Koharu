@@ -12,6 +12,41 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **Sélecteur de modèle + provider distant dans le mode dossier** (2026-10-04) : la chaîne
+  `BatchDialog → start_batch → koharu-batch` porte maintenant le choix de traduction. CLI :
+  `--provider <id>` (défaut `local`, id inconnu = exit 2 via clap ; hébergé = aucun budget /
+  calibration / téléchargement local, `--llm auto` accepté seulement pour les services sans
+  modèle, `--quantization` refusé, vision = `!no-vision`, aucun flag reasoning envoyé) ;
+  `Resolved` gagne `provider` / `model` / `quantization` + helpers de rapport (variante = id
+  provider hébergé, `vram_estimate` `None` → rapport au pic seul). App : `start_batch(model:
+  Option<ModelSelection>)` + `model_arguments()` qui n'émet que
+  `--provider/--llm/--quantization/--no-vision` (auto local = aucun flag = défaut CLI).
+  GUI : ligne modèle dans `BatchDialog` (badge provider + nom + quantization), popover
+  `ModelPicker` avec entrée synthétique **Auto** en tête (défaut `{provider: 'local',
+  model: null, quantization: null, vision: true, reasoning: false}`),
+  `refreshTranslationModels()` non forcé à l'ouverture,
+  `startBatch(input, output, lang, selection, deterministic, overwrite)` ; clés
+  `batch.model` + `batch.autoModel` ×10 locales (valeurs « auto » identiques au reste de
+  l'UI). Docs : `guides/batch.mdx` en/ja/zh (étape « Pick the model » + section modèle) et
+  `en/fork.mdx` (`--provider` dans les options complètes ; les fork ja/zh restent partiels
+  et ne listent pas les options). Gate vert : fmt, clippy (workspace +
+  `--all-targets` sur les crates touchés), `cargo test --workspace --tests` sans échec,
+  vitest 106/106, lint, typecheck.
+- **`TranslationConfig` : tolérance TOML déplacée hors des attributs specta** (2026-10-04) :
+  le `#[serde(default)]` de `ba8321ec` n'avait pas été suivi d'une régénération de
+  `protocol.ts` — au premier passage du bin `generate`, specta exporte chaque champ en
+  optionnel et les mappers *lossless floats* générés derefèrent `translation.generation`
+  devenu `T | undefined` (erreurs TS18048 **internes au fichier généré**, interdites à
+  l'édition manuelle) et cassent `InferenceControl` + `TranslationPreferences`. Fix : la
+  tolérance vit dans une shadow `TranslationSection` (`#[serde(default)]` conteneur,
+  `Default` délégué à `TranslationConfig::default()`) avec une impl `Deserialize` manuelle
+  pour `TranslationConfig` — specta ne voit plus aucun attribut serde conteneur, les champs
+  restent requis côté IPC (l'app échange toujours des configs complètes), le test
+  `a_translation_section_written_before_recent_fields_still_parses` reste vert et le diff
+  de `protocol.ts` ne contient plus que `startBatch`. **Règle durable : régénérer
+  `protocol.ts` (bin `generate`) après tout changement de signature de commande ou de forme
+  serde exportée** — c'est justement son absence après `ba8321ec` qui a rendu la régénération
+  de cette session cassée.
 - **Smoke test du mode dossier GUI + lot de finition** (2026-10-03) : parcours complet validé
   en réel — dialog → démarrage → job dans l'ActivityCenter (%, Stop ■) → Stop tue l'enfant →
   relance avec reprise (15 pages ignorées, 5 traduites) → **20/20 pages**, process terminé,
@@ -37,7 +72,9 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 - **Fix `TranslationConfig` `#[serde(default)]`** (2026-10-03, validé) : une section
   `[translation]` écrite avant l'ajout de champs récents (`instructions`, `typography`)
   reparsent avec les défauts ; test `a_translation_section_written_before_recent_fields_
-  still_parses`.
+  still_parses`. **2026-10-04 : réimplémenté via la shadow `TranslationSection`** (voir
+  l'entrée ci-dessus) — l'attribut sur la struct faisait passer tous les champs TS en
+  optionnel à l'export specta.
 - **Store déplacé sur `D:\Codex\koharu\store` via `KOHARU_STORE`** (2026-10-03) : variable
   lue par `Store::root()` (GUI) et `default_store_root()` (CLI batch, precedent
   `KOHARU_BATCH_BIN`), priorité `--store` > `KOHARU_STORE` > store à côté de l'exe > cache OS.
