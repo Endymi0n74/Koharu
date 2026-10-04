@@ -281,6 +281,8 @@ export type InpaintingModel = { model: "lama" } | { model: "aot-inpainting" } | 
 } & Flux2KleinConfig | {
 	model: "qwen-image",
 } & QwenImageConfig | {
+	model: "qwen-image-uncensored",
+} & QwenImageConfig | {
 	model: "rorem-mixed",
 } & RoremMixedConfig;
 
@@ -429,6 +431,7 @@ export type ProcessorConfig = {
 	"koharu-layout-rfdetr-seg-2xl"?: KoharuLayoutRFDetrSeg2XLConfig | null,
 	"flux2-klein"?: Flux2KleinConfig | null,
 	"qwen-image"?: QwenImageConfig | null,
+	"qwen-image-uncensored"?: QwenImageConfig | null,
 	"rorem-mixed"?: RoremMixedConfig | null,
 };
 

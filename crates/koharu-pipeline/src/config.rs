@@ -79,6 +79,7 @@ impl Serialize for PipelineConfig {
             InpaintingModel::AotInpainting {} => "aot-inpainting",
             InpaintingModel::Flux2Klein(_) => "flux2-klein",
             InpaintingModel::QwenImage(_) => "qwen-image",
+            InpaintingModel::QwenImageUncensored(_) => "qwen-image-uncensored",
             InpaintingModel::RoremMixed(_) => "rorem-mixed",
         };
         let mut processor = self.processor.clone();
@@ -92,6 +93,11 @@ impl Serialize for PipelineConfig {
             }
             InpaintingModel::QwenImage(config) => {
                 processor.qwen_image.get_or_insert_with(|| config.clone());
+            }
+            InpaintingModel::QwenImageUncensored(config) => {
+                processor
+                    .qwen_image_uncensored
+                    .get_or_insert_with(|| config.clone());
             }
             InpaintingModel::RoremMixed(config) => {
                 processor.rorem_mixed.get_or_insert_with(|| config.clone());
@@ -154,6 +160,12 @@ impl<'de> Deserialize<'de> for PipelineConfig {
             "qwen-image" => {
                 InpaintingModel::QwenImage(file.processor.qwen_image.clone().unwrap_or_default())
             }
+            "qwen-image-uncensored" => InpaintingModel::QwenImageUncensored(
+                file.processor
+                    .qwen_image_uncensored
+                    .clone()
+                    .unwrap_or_default(),
+            ),
             "rorem-mixed" => {
                 InpaintingModel::RoremMixed(file.processor.rorem_mixed.clone().unwrap_or_default())
             }
@@ -291,6 +303,14 @@ impl PipelineConfig {
                     .clone()
                     .unwrap_or_else(|| config.clone()),
             )),
+            InpaintingModel::QwenImageUncensored(config) => {
+                Ok(InpaintingModel::QwenImageUncensored(
+                    self.processor
+                        .qwen_image_uncensored
+                        .clone()
+                        .unwrap_or_else(|| config.clone()),
+                ))
+            }
             InpaintingModel::RoremMixed(config) => Ok(InpaintingModel::RoremMixed(
                 self.processor
                     .rorem_mixed
@@ -325,6 +345,8 @@ pub struct ProcessorConfig {
     pub flux2_klein: Option<Flux2KleinConfig>,
     #[serde(rename = "qwen-image")]
     pub qwen_image: Option<QwenImageConfig>,
+    #[serde(rename = "qwen-image-uncensored")]
+    pub qwen_image_uncensored: Option<QwenImageConfig>,
     #[serde(rename = "rorem-mixed")]
     pub rorem_mixed: Option<RoremMixedConfig>,
 }
@@ -360,6 +382,8 @@ pub enum InpaintingModel {
     Flux2Klein(Flux2KleinConfig),
     #[serde(rename = "qwen-image")]
     QwenImage(QwenImageConfig),
+    #[serde(rename = "qwen-image-uncensored")]
+    QwenImageUncensored(QwenImageConfig),
     #[serde(rename = "rorem-mixed")]
     RoremMixed(RoremMixedConfig),
 }
@@ -613,6 +637,37 @@ mod tests {
         assert!(matches!(
             restored.inpainting().unwrap(),
             InpaintingModel::QwenImage(config) if config.num_inference_steps == Some(18)
+        ));
+    }
+
+    #[test]
+    fn parses_the_uncensored_qwen_inpainting_model() {
+        let config = toml::from_str::<PipelineConfig>(
+            r#"
+                [inpainting]
+                model = "qwen-image-uncensored"
+
+                [processor."qwen-image-uncensored"]
+                prompt = "Erase the lettering."
+                num_inference_steps = 16
+            "#,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            config.inpainting().unwrap(),
+            InpaintingModel::QwenImageUncensored(config)
+                if config.prompt == "Erase the lettering."
+                    && config.num_inference_steps == Some(16)
+                    && config.reference_neighbor
+        ));
+
+        let document = toml::to_string(&config).unwrap();
+        assert!(document.contains("[processor.qwen-image-uncensored]"));
+        let restored = toml::from_str::<PipelineConfig>(&document).unwrap();
+        assert!(matches!(
+            restored.inpainting().unwrap(),
+            InpaintingModel::QwenImageUncensored(_)
         ));
     }
 }

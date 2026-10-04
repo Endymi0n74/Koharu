@@ -20,6 +20,12 @@ pub use self::processor::{QwenImageInpaintOptions, QwenImageOptions};
 crate::model_repository!("leejet/Qwen-Image-2.1-GGUF" @ "cc11433936a06e9765f7c0c0b1f0436cfd2b9856" {
     DIFFUSION_WEIGHTS = "qwen_image_2.1-Q4_K.gguf"
 });
+// The uncensored checkpoint carries the same architecture, converted with
+// stable-diffusion.cpp upstream: only the diffusion weights swap, while the
+// Heretic text encoder and the shared VAE stay.
+crate::model_repository!("abenzerps/Qwen-Image-2.1-Uncensored-GGUF" @ "6b34e59458d3eb7ba6a6f86a116aed5253dc02c3" {
+    UNCENSORED_DIFFUSION_WEIGHTS = "qwen-image-2.1-UC-Q4_K_M.gguf"
+});
 crate::model_repository!("pottokao/Qwen-Image-2.1-Text-Encoder-Heretic-GGUF" @ "23813717f7f9282b372c23c7207468a7a168fa68" {
     TEXT_ENCODER_WEIGHTS = "qwen3vl_8b_heretic-Q4_K_M.gguf",
     TEXT_ENCODER_VISION_WEIGHTS = "mmproj-qwen3vl_8b_heretic-f16.gguf"
@@ -130,10 +136,26 @@ pub struct QwenImageInpaint {
 }
 
 impl QwenImageInpaint {
+    /// Loads the upstream checkpoint (`leejet/Qwen-Image-2.1-GGUF`).
     pub async fn load(device: crate::Device) -> Result<Self> {
+        Self::load_diffusion(device, DIFFUSION_WEIGHTS).await
+    }
+
+    /// Loads the uncensored checkpoint
+    /// (`abenzerps/Qwen-Image-2.1-Uncensored-GGUF`): the diffusion weights
+    /// drop the base model's content refusals, while the Heretic text encoder
+    /// and the shared VAE stay.
+    pub async fn load_uncensored(device: crate::Device) -> Result<Self> {
+        Self::load_diffusion(device, UNCENSORED_DIFFUSION_WEIGHTS).await
+    }
+
+    async fn load_diffusion(
+        device: crate::Device,
+        diffusion_weights: koharu_runtime::HuggingFaceFile<'static>,
+    ) -> Result<Self> {
         let started = std::time::Instant::now();
         let (diffusion_model, text_encoder, text_encoder_vision, vae) = tokio::try_join!(
-            DIFFUSION_WEIGHTS.resolve(),
+            diffusion_weights.resolve(),
             TEXT_ENCODER_WEIGHTS.resolve(),
             TEXT_ENCODER_VISION_WEIGHTS.resolve(),
             VAE_WEIGHTS.resolve(),

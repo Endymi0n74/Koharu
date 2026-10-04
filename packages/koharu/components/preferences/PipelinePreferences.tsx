@@ -149,6 +149,7 @@ function ModelOptions({
         />
       )
     case 'qwen-image':
+    case 'qwen-image-uncensored':
       return (
         <div className='grid gap-3'>
           <TextField

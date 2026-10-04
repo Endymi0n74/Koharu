@@ -138,6 +138,7 @@ Inpainting reconstructs the image behind source text before the translation is r
 
 - [FLUX.2 Klein](https://huggingface.co/unsloth/FLUX.2-klein-4B-GGUF)
 - [Qwen Image 2.1](https://huggingface.co/leejet/Qwen-Image-2.1-GGUF)
+- [Qwen Image 2.1 Uncensored](https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-GGUF)
 - [RORem mixed](https://huggingface.co/mayocream/RORem-mixed-GGUF)
 - [LaMa](https://huggingface.co/mayocream/lama-manga)
 - [AOT GAN](https://huggingface.co/mayocream/aot-inpainting)

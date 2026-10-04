@@ -199,6 +199,9 @@ fn remember_pipeline_profiles(config: &mut PipelineConfig) {
     if let koharu_pipeline::InpaintingModel::QwenImage(settings) = &config.inpainting {
         config.processor.qwen_image = Some(settings.clone());
     }
+    if let koharu_pipeline::InpaintingModel::QwenImageUncensored(settings) = &config.inpainting {
+        config.processor.qwen_image_uncensored = Some(settings.clone());
+    }
     if let koharu_pipeline::InpaintingModel::RoremMixed(settings) = &config.inpainting {
         config.processor.rorem_mixed = Some(settings.clone());
     }
