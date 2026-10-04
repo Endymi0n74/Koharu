@@ -59,7 +59,8 @@ pub struct Arguments {
 
     /// Translation model: with `--provider local`, a catalog id or `auto` —
     /// the strongest model that fits the available VRAM (a big pick is
-    /// downloaded on the first run). With a hosted provider, its model id;
+    /// downloaded on the first run; a pick below the 2B quality floor
+    /// refuses unless `--force`). With a hosted provider, its model id;
     /// `auto` asks for the service without one, which only the model-less
     /// providers (DeepL and friends) accept.
     #[arg(long, default_value = "auto")]
@@ -74,7 +75,7 @@ pub struct Arguments {
     #[arg(long, help_heading = "Model & VRAM")]
     pub no_vision: bool,
 
-    /// Skip the VRAM budget check (not recommended).
+    /// Skip the VRAM budget check and `auto`'s quality floor (not recommended).
     #[arg(long, help_heading = "Model & VRAM")]
     pub force: bool,
 
@@ -426,8 +427,9 @@ pub fn detect_budget(arguments: &Arguments, device: &Device) -> Option<u64> {
 
 /// Resolves the translation choice: a hosted provider as configured (no
 /// budget, no download — its weights live elsewhere), or the local LLM —
-/// `auto` scans the preference list, an explicit id is checked against the
-/// VRAM budget unless `--force` was passed. Both local paths use the real
+/// `auto` scans the preference list and refuses a pick below the quality
+/// floor unless `--force`, an explicit id is checked against the VRAM
+/// budget unless `--force` was passed. Both local paths use the real
 /// measurements recorded by previous runs when available.
 pub fn resolve_model(
     arguments: &Arguments,
@@ -450,6 +452,27 @@ pub fn resolve_model(
                 gib(budget)
             );
         };
+        if let Some(parameters) = preset::parameters_billion(choice.model)
+            && parameters < preset::AUTO_QUALITY_FLOOR_B
+        {
+            if !arguments.force {
+                bail!(
+                    "the strongest model fitting the VRAM budget {} is {} {} ({parameters}B), \
+                     below the {}B quality floor for usable translations: free VRAM, pass an \
+                     explicit --llm <id> (--force skips its budget check), translate on CPU \
+                     (--cpu with --llm), or --force to accept the small automatic pick",
+                    gib(budget),
+                    choice.model,
+                    choice.quantization,
+                    preset::AUTO_QUALITY_FLOOR_B,
+                );
+            }
+            eprintln!(
+                "warning: --force accepts the small automatic pick {} {} ({parameters}B); \
+                 expect repetitive translations until the GPU fits a larger model",
+                choice.model, choice.quantization,
+            );
+        }
         return Ok(Resolved {
             provider: Provider::Local,
             model: Some(choice.model.to_owned()),
@@ -831,6 +854,40 @@ mod tests {
             .is_err(),
             "an unknown provider id is a usage error (exit code 2)"
         );
+    }
+
+    #[test]
+    fn auto_refuses_a_pick_below_the_quality_floor_unless_forced() {
+        let arguments = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
+        // 2.5 GiB sits above the 0.8B tail pick (≈2.3 GiB) and below every
+        // 2B configuration (≈3.0 GiB), so only the sub-floor model fits.
+        let crowded = 2 * 1024 * 1024 * 1024 + 512 * 1024 * 1024;
+        let error = resolve_model(&arguments, Some(crowded), &MeasuredPeaks::new())
+            .expect_err("an automatic pick below the floor refuses without --force");
+        let message = error.to_string();
+        assert!(message.contains("quality floor"), "{message}");
+        assert!(message.contains("qwen3.5-0.8b"), "{message}");
+        assert!(message.contains("--force"), "{message}");
+
+        let forced = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--force",
+        ]);
+        let resolved = resolve_model(&forced, Some(crowded), &MeasuredPeaks::new())
+            .expect("--force accepts the small automatic pick");
+        assert_eq!(resolved.model.as_deref(), Some("qwen3.5-0.8b"));
+
+        let resolved = resolve_model(
+            &arguments,
+            Some(6 * 1024 * 1024 * 1024),
+            &MeasuredPeaks::new(),
+        )
+        .expect("6 GiB fits a model above the floor");
+        assert_eq!(resolved.model.as_deref(), Some("gemma4-e4b-it"));
     }
 
     #[test]

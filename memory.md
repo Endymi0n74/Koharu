@@ -12,6 +12,25 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **Plancher de qualité pour `--llm auto` + modèle du lot en direct dans l'activité**
+  (2026-10-04) : motivé par un run réel où `auto`, faute de VRAM (budget ~5,2 GiB sous
+  l'app CEF, tous les vrais modèles calibrés ≥ 5,25 GiB), défilait jusqu'à
+  `qwen3.5-0.8b` et traduisait un chapitre RU→FR en bulles répétées (0.8 B = filler, la
+  température 0 transforme les similarités en doublons stricts ; OCR et pipeline sains).
+  Fix : `AUTO_QUALITY_FLOOR_B = 2.0` dans `local/preset.rs` (`parameters_billion` passé
+  pub) — une borne `auto` sous 2B est refusée dans `resolve_model` avec un message
+  actionnable (VRAM libre, `--llm` explicite, `--cpu`, ou `--force` qui accepte avec un
+  warning) ; `--force` documenté comme contournant budget ET plancher. Le parcours auto,
+  la calibration et les estimations sont inchangés, un choix explicite ne passe jamais par
+  le plancher (mêmes clauses d'issue que le refus « pas de modèle vision » documenté).
+  Activité live : `BatchProgress` capte la ligne `translation model: …` du child
+  (`parse_model` : coupe la parenthèse chiffrée côté local, garde `(provider)` côté
+  hébergé) et `job.model` passe de « koharu-batch » au modèle réel — `ActivityCenter`
+  l'affichait déjà. Sur CPU, `auto` refusait déjà (budget `None`) : le plancher ne change
+  rien, il n'ajoute que `--cpu` aux issues du message. Docs : `batch.mdx` en/ja/zh +
+  `en/fork.mdx` (paragraphe auto réécrit, mention « dense 8B » périmée corrigée — aucun
+  8B dans le catalogue). Tests : refus + `--force` + pick 6 GiB (cli.rs), parseur ×6 +
+  republish (app batch.rs).
 - **Sélecteur de modèle + provider distant dans le mode dossier** (2026-10-04) : la chaîne
   `BatchDialog → start_batch → koharu-batch` porte maintenant le choix de traduction. CLI :
   `--provider <id>` (défaut `local`, id inconnu = exit 2 via clap ; hébergé = aucun budget /

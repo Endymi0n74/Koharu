@@ -84,12 +84,22 @@ struct BatchProgress {
     completed: usize,
     total: usize,
     stage: Option<Stage>,
+    /// Label announced once the run resolves its model, e.g.
+    /// `gemma4-e2b-it Q4_K_XL` or `gpt-5.6-luna (openai)`.
+    model: Option<String>,
 }
 
 impl BatchProgress {
     /// Folds one stderr line into the counters; returns whether the job
     /// changed and so needs republishing.
     fn observe(&mut self, line: &str) -> bool {
+        if let Some(model) = parse_model(line) {
+            if self.model.as_deref() == Some(model) {
+                return false;
+            }
+            self.model = Some(model.to_owned());
+            return true;
+        }
         if let Some(pending) = parse_pending(line) {
             self.total += pending;
             return true;
@@ -114,6 +124,25 @@ fn parse_pending(line: &str) -> Option<usize> {
     let (count, rest) = line[start + 2..].split_once(' ')?;
     let pending: usize = count.parse().ok()?;
     rest.starts_with("to translate)").then_some(pending)
+}
+
+/// `translation model: <id> <quantization> (…estimate…)` for a local run,
+/// `translation model: <id> (<provider>) — hosted; …` for a hosted one —
+/// the label the activity row shows while the run lasts.
+fn parse_model(line: &str) -> Option<&str> {
+    let rest = line.strip_prefix("translation model: ")?;
+    let head = rest.split(" — ").next().unwrap_or(rest);
+    // A local line carries the VRAM parenthesis, which opens with its figure
+    // (`(2.3 GiB, within 5.0 GiB, …`); a hosted one keeps `(provider)` — the
+    // backend is part of the label there.
+    match head.find(" (") {
+        Some(index)
+            if head[index + 2..].starts_with(|character: char| character.is_ascii_digit()) =>
+        {
+            Some(head[..index].trim())
+        }
+        _ => Some(head.trim()),
+    }
 }
 
 /// `[page.png] done in 12.31s …` — a page that finished every phase.
@@ -321,10 +350,14 @@ pub(crate) async fn start_batch(
                             let completed = progress.completed;
                             let total = progress.total;
                             let stage = progress.stage;
+                            let model = progress.model.clone();
                             update_job(&task_handle, id, |job| {
                                 job.completed = completed;
                                 job.total = total;
                                 job.stage = stage;
+                                if let Some(model) = model {
+                                    job.model = Some(model);
+                                }
                             });
                         }
                     }
@@ -471,5 +504,44 @@ mod tests {
         assert!(progress.observe("  [page 01.png] done in 9.00s"));
         assert_eq!((progress.completed, progress.total), (1, 3));
         assert!(!progress.observe("warning: calibration not saved"));
+    }
+
+    #[test]
+    fn the_model_announcement_becomes_the_job_label() {
+        assert_eq!(
+            parse_model(
+                "translation model: qwen3.5-0.8b Q4_K_XL (2.3 GiB, within 5.0 GiB, 0.6 GiB if not already stored)"
+            ),
+            Some("qwen3.5-0.8b Q4_K_XL")
+        );
+        assert_eq!(
+            parse_model(
+                "translation model: gemma4-e2b-it Q4_K_XL (4.7 GiB (measured), budget unknown, 1 GiB if not already stored)"
+            ),
+            Some("gemma4-e2b-it Q4_K_XL")
+        );
+        assert_eq!(
+            parse_model(
+                "translation model: gpt-5.6-luna (openai) — hosted; no local budget, download or calibration"
+            ),
+            Some("gpt-5.6-luna (openai)")
+        );
+        assert_eq!(
+            parse_model(
+                "translation model: DeepL (deepl) — hosted; no local budget, download or calibration"
+            ),
+            Some("DeepL (deepl)")
+        );
+        assert_eq!(parse_model("  [1/3] detection · 1.00s"), None);
+        assert_eq!(parse_model("4 pages (3 to translate) -> out"), None);
+    }
+
+    #[test]
+    fn the_announced_model_reaches_the_job_once() {
+        let mut progress = BatchProgress::default();
+        let line = "translation model: gemma4-e2b-it Q4_K_XL (4.0 GiB, within 5.6 GiB, 3.3 GiB if not already stored)";
+        assert!(progress.observe(line), "the first announcement republishes");
+        assert_eq!(progress.model.as_deref(), Some("gemma4-e2b-it Q4_K_XL"));
+        assert!(!progress.observe(line), "the same label does not republish");
     }
 }

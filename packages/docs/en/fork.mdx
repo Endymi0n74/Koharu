@@ -131,9 +131,12 @@ figures and let `--dry-run` confirm the plan.
 | 20 GiB | gemma4-26b-a4b-uncensored | Q4_K_M | ≈14.7 GiB | 15.7 GiB (estimated) |
 | 24 GiB and up | gemma4-31b-uncensored | Q4_K_M | ≈17.4 GiB | 18.4 GiB (estimated) |
 
-Below 8 GiB the list steps down to the instruct 4B, the dense 8B, and the small 2B, and a card
-too small for any vision model makes `auto` refuse instead of guessing (pass `--llm` explicitly
-with `--force`, or `--cpu`).
+Below 8 GiB the list steps down to the instruct 4B, the small 2B, and finally a 0.8B generalist,
+and a card too small for any vision model makes `auto` refuse instead of guessing (pass `--llm`
+explicitly with `--force`, or `--cpu`). An unforced pick is refused as well while it stays below
+the 2B quality floor: a sub-2B model fits a busy card, yet it renders dialogue into repetitive
+filler, so the run stops with the ways out spelled out (free VRAM, an explicit `--llm`, `--cpu`,
+or `--force` accepting the small pick).
 
 Because `auto` can now select a model that is not in the store yet, the run prints what it
 picked together with the download it implies, and warns explicitly when the choice needs more
@@ -206,7 +209,8 @@ Key behaviors:
 - **VRAM budget guard** — the binary queries the GPU (NVML on Windows), caps the budget at
   the VRAM actually free at startup, and refuses to start if the selected model/quantization
   cannot fit; `--llm auto` picks the strongest model that
-  fits (and warns before a large first download), and `--force` overrides the check.
+  fits (and warns before a large first download), and `--force` overrides the check and the 2B
+  quality floor.
 - **French typography by default** — output text goes through the `fr-FR` profile:
   guillemets « », curly apostrophes ’, and narrow no-break spaces before `; : ! ?` and inside
   guillemets (see the typography notes below).
