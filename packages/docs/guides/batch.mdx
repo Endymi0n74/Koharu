@@ -13,6 +13,9 @@ icon: 'folder-tree'
   <Step title='Pick the target language'>
     The language defaults to your current target language; every catalog model handles the usual pairs well (see the [models guide](/en/models/translation)).
   </Step>
+  <Step title='Pick the model'>
+    The **Model** row defaults to **Auto** — the strongest catalog model that fits the available VRAM. Open the picker to pin a catalog model (quantization included) or a hosted provider (`openai`, `deepl`, …): detection, OCR and inpainting still run on this machine, and only the translation text travels over the network, authenticated with the key in the app's provider settings.
+  </Step>
   <Step title='Set the two options'>
     - **Deterministic translation (temperature 0)** — on by default: runs are reproducible; turn it off for more varied wording.
     - **Re-translate pages already present in the output** — off by default: existing pages are skipped, so a stopped run resumes where it left off. Turn it on to redo them.
@@ -24,7 +27,9 @@ icon: 'folder-tree'
 
 ## The model is chosen for your GPU
 
-The run translates with `auto`: the strongest catalog model that fits the available VRAM, always with vision, the page image accompanying the text. The first run downloads the model, up to several gigabytes, which can take a few minutes before the first page moves; later runs reuse it. For the mechanics behind the choice — estimates, measurements, `--llm`, `--quantization` — see the [batch CLI documentation](/en/fork#batch-mode-koharu-batch).
+Left on **Auto**, the run translates with `auto`: the strongest catalog model that fits the available VRAM, always with vision, the page image accompanying the text. The first run downloads the model, up to several gigabytes, which can take a few minutes before the first page moves; later runs reuse it. For the mechanics behind the choice — estimates, measurements, `--llm`, `--quantization` — see the [batch CLI documentation](/en/fork#batch-mode-koharu-batch).
+
+Picking a model in the dialog overrides that automatic choice, and a hosted provider drops the local VRAM budget altogether: the translation text is sent to the service (`--provider`) while every other stage still runs on this machine.
 
 ## Follow progress, stop, resume
 

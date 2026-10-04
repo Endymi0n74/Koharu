@@ -21,7 +21,7 @@ use koharu_rasterizer::{RasterOptions, Rasterizer};
 use koharu_renderer::Renderer;
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, EntityId, PageDraft, Session};
 use koharu_translator::preset::{MeasuredPeak, MeasuredPeaks};
-use koharu_translator::{ProvidersConfig, preset};
+use koharu_translator::{Provider, ProvidersConfig, preset};
 use serde_json::{Value, json};
 
 use super::cli::{self, Arguments, Command, FormatChoice, gib};
@@ -411,9 +411,14 @@ fn thumbnail_data_uri(image: &image::DynamicImage) -> Result<String> {
 
 /// Run-level facts shared by every page row of the report.
 struct RunMetadata {
+    /// Model label: the catalog id locally, the hosted model id — or the
+    /// service's own name when it takes none.
     model: String,
+    /// Variant label: the quantization locally, the provider id when hosted.
     quantization: String,
-    vram_estimate: String,
+    /// Local model's VRAM estimate; `None` for a hosted run, whose weights
+    /// are never on this card.
+    vram_estimate: Option<String>,
     language: String,
     input: String,
     output: String,
@@ -455,7 +460,7 @@ fn write_run_report(
         total_elapsed,
         model: metadata.model.clone(),
         quantization: metadata.quantization.clone(),
-        vram_estimate: Some(metadata.vram_estimate.clone()),
+        vram_estimate: metadata.vram_estimate.clone(),
         vram_peak: vram_peak_line(vram_sampler),
         language: metadata.language.clone(),
         input: metadata.input.clone(),
@@ -1724,7 +1729,9 @@ async fn verify_replay(
     let config = cli::pipeline_config(&replay_arguments, resolved);
     let pipeline = Pipeline::from_config(
         Config::memory(config),
-        Config::memory(ProvidersConfig::default()),
+        // The replay must translate exactly like the first pass: a hosted
+        // run reads the same provider configuration (endpoint, key) there.
+        ProvidersConfig::load()?,
         device,
     )?;
     let renderer = Renderer::new()?;
@@ -1781,9 +1788,9 @@ async fn replay_pass(
     let started_at = report::timestamp_now();
     for chapter in replay.iter_mut() {
         chapter.metadata = Some(RunMetadata {
-            model: resolved.model.clone(),
-            quantization: resolved.quantization.clone(),
-            vram_estimate: resolved.estimate.display(),
+            model: resolved.model_label(),
+            quantization: resolved.variant_label(),
+            vram_estimate: resolved.estimate_label(),
             language: replay_arguments.lang.tag().to_owned(),
             input: chapter.source.display().to_string(),
             output: chapter.output.display().to_string(),
@@ -2206,34 +2213,42 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     let vram_sampler = VramSampler::start_default(&device);
     let budget = cli::detect_budget(&arguments, &device);
     let resolved = cli::resolve_model(&arguments, budget, &measurements)?;
-    if arguments.no_calibration {
-        eprintln!("(--no-calibration: reference estimates, nothing recorded)");
-    } else if measurements.is_empty() {
-        eprintln!("(no calibration file yet; estimates come from the reference table)");
+    if resolved.provider == Provider::Local {
+        if arguments.no_calibration {
+            eprintln!("(--no-calibration: reference estimates, nothing recorded)");
+        } else if measurements.is_empty() {
+            eprintln!("(no calibration file yet; estimates come from the reference table)");
+        } else {
+            eprintln!(
+                "(calibrated on {} configuration(s) from previous runs)",
+                measurements.len()
+            );
+        }
+        eprintln!(
+            "translation model: {} {} ({}{}, {} if not already stored)",
+            resolved.model_label(),
+            resolved.variant_label(),
+            resolved.estimate.display(),
+            budget.map_or_else(
+                || ", budget unknown".to_owned(),
+                |budget| format!(" within {}", gib(budget))
+            ),
+            gib(resolved.download)
+        );
+        if arguments.llm == "auto" && resolved.download >= cli::LARGE_DOWNLOAD_BYTES {
+            eprintln!(
+                "warning: --llm auto picked {} {} because this GPU fits it; the first real run downloads about {} into {} (one time). Pass --llm <id> to translate with a smaller model, or run koharu-batch models to compare sizes.",
+                resolved.model_label(),
+                resolved.variant_label(),
+                gib(resolved.download),
+                store.display()
+            );
+        }
     } else {
         eprintln!(
-            "(calibrated on {} configuration(s) from previous runs)",
-            measurements.len()
-        );
-    }
-    eprintln!(
-        "translation model: {} {} ({}{}, {} if not already stored)",
-        resolved.model,
-        resolved.quantization,
-        resolved.estimate.display(),
-        budget.map_or_else(
-            || ", budget unknown".to_owned(),
-            |budget| format!(" within {}", gib(budget))
-        ),
-        gib(resolved.download)
-    );
-    if arguments.llm == "auto" && resolved.download >= cli::LARGE_DOWNLOAD_BYTES {
-        eprintln!(
-            "warning: --llm auto picked {} {} because this GPU fits it; the first real run downloads about {} into {} (one time). Pass --llm <id> to translate with a smaller model, or run koharu-batch models to compare sizes.",
-            resolved.model,
-            resolved.quantization,
-            gib(resolved.download),
-            store.display()
+            "translation model: {} ({}) — hosted; no local budget, download or calibration",
+            resolved.model_label(),
+            resolved.variant_label()
         );
     }
 
@@ -2241,9 +2256,9 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     // The run-level metadata feeds the `--json` summary; every chapter gets
     // its own copy with its own input/output paths for its report.
     let run_metadata = RunMetadata {
-        model: resolved.model.clone(),
-        quantization: resolved.quantization.clone(),
-        vram_estimate: resolved.estimate.display(),
+        model: resolved.model_label(),
+        quantization: resolved.variant_label(),
+        vram_estimate: resolved.estimate_label(),
         language: arguments.lang.tag().to_owned(),
         input: input_path.display().to_string(),
         output: output.display().to_string(),
@@ -2252,9 +2267,9 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     };
     for chapter in &mut chapters {
         chapter.metadata = Some(RunMetadata {
-            model: resolved.model.clone(),
-            quantization: resolved.quantization.clone(),
-            vram_estimate: resolved.estimate.display(),
+            model: resolved.model_label(),
+            quantization: resolved.variant_label(),
+            vram_estimate: resolved.estimate_label(),
             language: arguments.lang.tag().to_owned(),
             input: chapter.source.display().to_string(),
             output: chapter.output.display().to_string(),
@@ -2309,7 +2324,9 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     }
     let pipeline = Pipeline::from_config(
         Config::memory(config),
-        Config::memory(ProvidersConfig::default()),
+        // The app's provider configuration (endpoints, base URLs): hosted
+        // runs read the same file the app wrote; keys come from the keyring.
+        ProvidersConfig::load()?,
         device,
     )?;
     let renderer = Renderer::new()?;
@@ -2393,14 +2410,17 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     }
 
     // Persist the measured footprint of this run so future runs and budget
-    // checks stay calibrated on this machine.
-    if !arguments.no_calibration
+    // checks stay calibrated on this machine. A hosted run records nothing:
+    // its translation model has no local footprint, and its id would never be
+    // looked up — only local catalog ids key the budget guard.
+    if resolved.provider == Provider::Local
+        && !arguments.no_calibration
         && let (Some(path), Some(sampler)) = (&calibration_path, &vram_sampler)
         && let Some(bytes) = sampler.peak_bytes()
     {
         let peak = MeasuredPeak {
-            model: resolved.model.clone(),
-            quantization: resolved.quantization.clone(),
+            model: resolved.model_label(),
+            quantization: resolved.variant_label(),
             vision: resolved.vision,
             bytes,
         };
@@ -2879,7 +2899,7 @@ mod tests {
         RunMetadata {
             model: "gemma4-e4b-it".to_owned(),
             quantization: "Q4_K_P".to_owned(),
-            vram_estimate: "5.6 GiB".to_owned(),
+            vram_estimate: Some("5.6 GiB".to_owned()),
             language: "fr-FR".to_owned(),
             input: "volume".to_owned(),
             output: "out".to_owned(),

@@ -56,9 +56,11 @@
     "working": "Working..."
   },
   "batch": {
+    "autoModel": "Auto",
     "choose": "Choose…",
     "description": "Translate every page of a folder with koharu-batch, outside any project. The run appears in the activity center.",
     "deterministic": "Deterministic translation (temperature 0)",
+    "model": "Model",
     "output": "Output folder",
     "overwrite": "Re-translate pages already present in the output",
     "pick": "None selected",

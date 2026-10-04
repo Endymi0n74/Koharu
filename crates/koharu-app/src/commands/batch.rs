@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use koharu_pipeline::{Stage, StopToken};
+use koharu_translator::{ModelSelection, Provider};
 use tauri::{AppHandle, Manager as _, State, WebviewWindow};
 use tauri_runtime_cef::CefRuntime;
 use tokio::io::{AsyncBufReadExt as _, BufReader};
@@ -182,8 +183,36 @@ enum Outcome {
     Failed(String),
 }
 
+/// The child's flags for a picked model: a hosted provider is named
+/// explicitly, a local pick falls back to the CLI's `auto` default when the
+/// picker chose none, and `--no-vision` carries a pick that cannot take the
+/// page image. Reasoning stays out of the flags: the catalog derives it for
+/// a local model, and a hosted endpoint keeps its own default.
+fn model_arguments(selection: &ModelSelection) -> Vec<std::ffi::OsString> {
+    let mut arguments: Vec<std::ffi::OsString> = Vec::new();
+    if selection.provider != Provider::Local {
+        let provider: &'static str = selection.provider.into();
+        arguments.push("--provider".into());
+        arguments.push(provider.into());
+    }
+    if let Some(model) = &selection.model {
+        arguments.push("--llm".into());
+        arguments.push(model.as_str().into());
+    }
+    if let Some(quantization) = &selection.quantization {
+        arguments.push("--quantization".into());
+        arguments.push(quantization.as_str().into());
+    }
+    if !selection.vision {
+        arguments.push("--no-vision".into());
+    }
+    arguments
+}
+
 /// Translates a folder (or chapter) with `koharu-batch` and reports it as a
 /// regular job: the child owns the run, this side only mirrors its stderr.
+/// `model` is the picker's choice; `None` translates like the CLI's own
+/// default — the local `auto` pick.
 #[tauri::command]
 #[specta::specta]
 #[allow(clippy::too_many_arguments)]
@@ -192,6 +221,7 @@ pub(crate) async fn start_batch(
     input: PathBuf,
     output: PathBuf,
     lang: String,
+    model: Option<ModelSelection>,
     deterministic: bool,
     overwrite: bool,
     processing: State<'_, Processing>,
@@ -214,6 +244,9 @@ pub(crate) async fn start_batch(
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
+    if let Some(selection) = &model {
+        command.args(model_arguments(selection));
+    }
     if deterministic {
         command.arg("--deterministic");
     }
@@ -340,6 +373,58 @@ pub(crate) async fn start_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn flags_of(selection: &ModelSelection) -> Vec<String> {
+        model_arguments(selection)
+            .iter()
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    fn selection(
+        provider: Provider,
+        model: Option<&str>,
+        quantization: Option<&str>,
+        vision: bool,
+    ) -> ModelSelection {
+        ModelSelection {
+            provider,
+            model: model.map(str::to_owned),
+            quantization: quantization.map(str::to_owned),
+            vision,
+            reasoning: false,
+        }
+    }
+
+    #[test]
+    fn picked_models_map_onto_the_child_flags() {
+        assert_eq!(
+            flags_of(&selection(
+                Provider::OpenAi,
+                Some("gpt-5.6-luna"),
+                None,
+                true
+            )),
+            ["--provider", "openai", "--llm", "gpt-5.6-luna"]
+        );
+        assert_eq!(
+            flags_of(&selection(Provider::DeepL, None, None, false)),
+            ["--provider", "deepl", "--no-vision"]
+        );
+        assert_eq!(
+            flags_of(&selection(
+                Provider::Local,
+                Some("gemma4-e4b-it"),
+                Some("Q4_K_XL"),
+                true
+            )),
+            ["--llm", "gemma4-e4b-it", "--quantization", "Q4_K_XL"]
+        );
+        assert!(
+            model_arguments(&selection(Provider::Local, None, None, true)).is_empty(),
+            "no flags is the CLI's own auto pick"
+        );
+    }
 
     #[test]
     fn stage_lines_survive_the_chapter_prefix() {

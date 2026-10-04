@@ -56,9 +56,11 @@
     "working": "作業中…"
   },
   "batch": {
+    "autoModel": "自動",
     "choose": "選択…",
     "description": "プロジェクトを作らず、koharu-batch でフォルダー内の全ページを翻訳します。進行状況はアクティビティセンターに表示されます。",
     "deterministic": "決定的翻訳（温度 0）",
+    "model": "モデル",
     "output": "出力フォルダー",
     "overwrite": "出力に既に存在するページを再翻訳",
     "pick": "未選択",

@@ -56,9 +56,11 @@
     "working": "Trabajando…"
   },
   "batch": {
+    "autoModel": "Automático",
     "choose": "Elegir…",
     "description": "Traduce todas las páginas de una carpeta con koharu-batch, sin proyecto. El progreso aparece en el centro de actividades.",
     "deterministic": "Traducción determinista (temperatura 0)",
+    "model": "Modelo",
     "output": "Carpeta de salida",
     "overwrite": "Volver a traduir las páginas ya presentes en la salida",
     "pick": "Ninguna carpeta seleccionada",
