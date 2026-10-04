@@ -27,7 +27,7 @@ icon: 'folder-tree'
 
 ## The model is chosen for your GPU
 
-Left on **Auto**, the run translates with `auto`: the strongest catalog model that fits the available VRAM, always with vision, the page image accompanying the text. The first run downloads the model, up to several gigabytes, which can take a few minutes before the first page moves; later runs reuse it. For the mechanics behind the choice — estimates, measurements, `--llm`, `--quantization` — see the [batch CLI documentation](/en/fork#batch-mode-koharu-batch).
+Left on **Auto**, the run translates with `auto`: the strongest catalog model that fits the available VRAM, always with vision, the page image accompanying the text. The first run downloads the model, up to several gigabytes, which can take a few minutes before the first page moves; later runs reuse it. If the strongest model that fits sits below the 2B quality floor, the run refuses instead of translating into repetitive filler: free VRAM, pin a model in the picker, or accept the small automatic pick from the CLI with `--force`. While the run lasts, the activity row shows the model and quantization the run resolved. For the mechanics behind the choice — estimates, measurements, `--llm`, `--quantization` — see the [batch CLI documentation](/en/fork#batch-mode-koharu-batch).
 
 Picking a model in the dialog overrides that automatic choice, and a hosted provider drops the local VRAM budget altogether: the translation text is sent to the service (`--provider`) while every other stage still runs on this machine.
 

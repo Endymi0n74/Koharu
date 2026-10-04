@@ -59,7 +59,8 @@ fn bytes_per_parameter(quantization: &str) -> f64 {
 
 /// Extracts the largest `…b` parameter marker from a model id
 /// (`gemma4-e2b-it` → 2, `qwen3.5-2b` → 2, `gemma4-26b-a4b-it` → 26).
-fn parameters_billion(id: &str) -> Option<f64> {
+#[must_use]
+pub fn parameters_billion(id: &str) -> Option<f64> {
     id.split(['-', '_', '/'])
         .filter_map(|segment| {
             let marker: String = segment
@@ -292,6 +293,9 @@ pub struct AutoChoice {
 /// calibration file — their formula estimate under-reports the real peak by
 /// roughly the context the measurements observed. Models not listed here stay
 /// reachable through an explicit `--llm <id> --quantization <id>`.
+///
+/// The 0.8B tail entry only answers an explicit `--force`: an unforced pick
+/// below [`AUTO_QUALITY_FLOOR_B`] refuses instead of running.
 const AUTO_PRIORITY: &[(&str, &str)] = &[
     ("gemma4-31b-uncensored", "Q4_K_M"),
     ("gemma4-26b-a4b-uncensored", "Q4_K_M"),
@@ -302,6 +306,14 @@ const AUTO_PRIORITY: &[(&str, &str)] = &[
     ("gemma4-e2b-uncensored", "Q4_K_P"),
     ("qwen3.5-0.8b", "Q4_K_XL"),
 ];
+
+/// Parameter count below which an unforced `auto` refuses to translate: a
+/// sub-2B pick fits a busy 8 GB card, but it turns manga dialogue into
+/// repetitive filler — a run that silently produces garbage is worse than an
+/// error naming the ways out (free VRAM, an explicit `--llm`, `--cpu`, or
+/// `--force` accepting the small pick). Ids the parameter parser cannot size
+/// stay usable, so an unknown id never trips the floor.
+pub const AUTO_QUALITY_FLOOR_B: f64 = 2.0;
 
 /// Selects the best local model for `budget` (usable bytes, already margin-trimmed).
 ///
