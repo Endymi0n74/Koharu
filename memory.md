@@ -778,6 +778,11 @@ sonde (voir Pièges).
     --report "$env:TEMP\koharu-smoke\report" --overwrite --no-calibration
   ```
 
+- **`gh` sans `-R` peut résoudre le mauvais remote** (constaté 2026-10-04 : depuis
+  `D:\Codex\koharu`, `gh repo view` et `gh run list` retournaient `koharu-rs/koharu` — les
+  runs de l'amont lus par erreur, résultats vides pour nos SHA) : toujours
+  `gh run list -R Endymi0n74/Koharu` (idem pour les autres commandes `gh` ciblant le fork).
+
 ## CI (état local vérifié 2026-09-25 ; passage vert complet 2026-10-02 sur `e5624756`)
 
 | Workflow | Déclencheur | État |
