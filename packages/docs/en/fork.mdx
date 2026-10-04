@@ -131,9 +131,11 @@ figures and let `--dry-run` confirm the plan.
 | 20 GiB | gemma4-26b-a4b-uncensored | Q4_K_M | ≈14.7 GiB | 15.7 GiB (estimated) |
 | 24 GiB and up | gemma4-31b-uncensored | Q4_K_M | ≈17.4 GiB | 18.4 GiB (estimated) |
 
-Below 8 GiB the list steps down to the instruct 4B, the small 2B, and finally a 0.8B generalist,
-and a card too small for any vision model makes `auto` refuse instead of guessing (pass `--llm`
-explicitly with `--force`, or `--cpu`). An unforced pick is refused as well while it stays below
+Below 8 GiB the list steps down to the instruct 4B, then to the 2B tier — the gemma E2B first,
+and on a card whose measured E2B no longer fits the budget, the Qwen 2B pair (`qwen3.5-2b-uncensored`,
+then `qwen3.5-2b`, picked from their static estimate until the first run calibrates them) — and
+finally a 0.8B generalist, and a card too small for any vision model makes `auto` refuse instead of
+guessing (pass `--llm` explicitly with `--force`, or `--cpu`). An unforced pick is refused as well while it stays below
 the 2B quality floor: a sub-2B model fits a busy card, yet it renders dialogue into repetitive
 filler, so the run stops with the ways out spelled out (free VRAM, an explicit `--llm`, `--cpu`,
 or `--force` accepting the small pick).

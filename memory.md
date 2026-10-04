@@ -31,6 +31,12 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   `en/fork.mdx` (paragraphe auto réécrit, mention « dense 8B » périmée corrigée — aucun
   8B dans le catalogue). Tests : refus + `--force` + pick 6 GiB (cli.rs), parseur ×6 +
   republish (app batch.rs).
+  Suite (même jour, sur demande) : `AUTO_PRIORITY` insère `qwen3.5-2b-uncensored`
+  (Q4_K_M) puis `qwen3.5-2b` (Q4_K_XL) entre l'e2b-uncensored et le 0.8 B — estimation
+  statique identique à l'e2b (2,96 GiB), donc le duo n'intervient qu'une fois la
+  calibration a poussé les gemmas au-dessus du budget (mesures réelles : e2b 5,25 GiB) :
+  le refus / le 0.8 B devient un vrai 2 B. Test
+  `a_calibrated_e2b_over_budget_falls_back_to_the_qwen_2b` + doc `en/fork.mdx`.
 - **Sélecteur de modèle + provider distant dans le mode dossier** (2026-10-04) : la chaîne
   `BatchDialog → start_batch → koharu-batch` porte maintenant le choix de traduction. CLI :
   `--provider <id>` (défaut `local`, id inconnu = exit 2 via clap ; hébergé = aucun budget /
