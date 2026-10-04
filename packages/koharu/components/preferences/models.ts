@@ -13,7 +13,14 @@ export type ModelName = PipelineModel['model']
 export const modelOptions = {
   detection: ['koharu-layout-rfdetr-seg-2xl'],
   ocr: ['paddleocr-vl-1.6', 'manga-ocr', 'baberu-ocr', 'hayai-ocr'],
-  inpainting: ['lama', 'aot-inpainting', 'flux2-klein', 'qwen-image', 'rorem-mixed'],
+  inpainting: [
+    'lama',
+    'aot-inpainting',
+    'flux2-klein',
+    'qwen-image',
+    'qwen-image-uncensored',
+    'rorem-mixed',
+  ],
 } satisfies Record<ModelStage, ModelName[]>
 
 export const modelNames: Record<ModelName, string> = {
@@ -26,6 +33,7 @@ export const modelNames: Record<ModelName, string> = {
   'aot-inpainting': 'AOT Inpainting',
   'flux2-klein': 'FLUX.2 Klein',
   'qwen-image': 'Qwen Image 2.1',
+  'qwen-image-uncensored': 'Qwen Image 2.1 Uncensored',
   'rorem-mixed': 'RORem Mixed',
 }
 
@@ -43,6 +51,7 @@ export function defaultModel(model: ModelName): PipelineModel {
     case 'flux2-klein':
       return { model, prompt: 'Remove the text and reconstruct the background.' }
     case 'qwen-image':
+    case 'qwen-image-uncensored':
       return { model, prompt: 'Remove the text and reconstruct the background.' }
     case 'rorem-mixed':
       return { model }
@@ -95,6 +104,14 @@ export function replaceStage(
           ...(model.model === 'qwen-image'
             ? {
                 'qwen-image': {
+                  prompt: model.prompt ?? undefined,
+                  reference_neighbor: model.reference_neighbor ?? undefined,
+                },
+              }
+            : {}),
+          ...(model.model === 'qwen-image-uncensored'
+            ? {
+                'qwen-image-uncensored': {
                   prompt: model.prompt ?? undefined,
                   reference_neighbor: model.reference_neighbor ?? undefined,
                 },

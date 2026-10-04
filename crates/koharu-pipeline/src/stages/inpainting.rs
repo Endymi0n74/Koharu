@@ -98,7 +98,8 @@ impl Processor {
                     "FLUX.2 prompt contains NUL"
                 );
             }
-            InpaintingModel::QwenImage(settings) => {
+            InpaintingModel::QwenImage(settings)
+            | InpaintingModel::QwenImageUncensored(settings) => {
                 ensure!(
                     !settings.prompt.contains('\0'),
                     "Qwen Image 2.1 prompt contains NUL"
@@ -128,6 +129,7 @@ impl StageProcessor for Processor {
             InpaintingModel::AotInpainting {} => "aot-inpainting",
             InpaintingModel::Flux2Klein(_) => "flux2-klein",
             InpaintingModel::QwenImage(_) => "qwen-image",
+            InpaintingModel::QwenImageUncensored(_) => "qwen-image-uncensored",
             InpaintingModel::RoremMixed(_) => "rorem-mixed",
         }
     }
@@ -181,6 +183,9 @@ enum Model {
     Qwen {
         model: Arc<Mutex<QwenImageInpaint>>,
         config: QwenImageConfig,
+        /// The selector the config came from, reported with the stage output
+        /// so the two checkpoints stay distinguishable.
+        name: &'static str,
     },
     Rorem {
         model: Arc<Mutex<RoremMixed>>,
@@ -204,6 +209,12 @@ impl Model {
             InpaintingModel::QwenImage(config) => Ok(Self::Qwen {
                 model: Arc::new(Mutex::new(QwenImageInpaint::load(device).await?)),
                 config: config.clone(),
+                name: "qwen-image",
+            }),
+            InpaintingModel::QwenImageUncensored(config) => Ok(Self::Qwen {
+                model: Arc::new(Mutex::new(QwenImageInpaint::load_uncensored(device).await?)),
+                config: config.clone(),
+                name: "qwen-image-uncensored",
             }),
             InpaintingModel::RoremMixed(config) => Ok(Self::Rorem {
                 model: Arc::new(Mutex::new(RoremMixed::load(device).await?)),
@@ -302,11 +313,16 @@ impl Model {
                     .await?,
                 )
             }
-            Self::Qwen { model, config } => {
+            Self::Qwen {
+                model,
+                config,
+                name,
+            } => {
                 let model = model.clone();
                 let config = config.clone();
+                let name = *name;
                 (
-                    "qwen-image",
+                    name,
                     tokio_rayon::spawn(move || -> Result<DynamicImage> {
                         let model = model
                             .lock()
@@ -1168,6 +1184,28 @@ mod tests {
         assert!(
             Processor::new(
                 InpaintingModel::QwenImage(QwenImageConfig::default()),
+                koharu_ml::Device::cpu()
+            )
+            .is_ok()
+        );
+        let uncensored_error = Processor::new(
+            InpaintingModel::QwenImageUncensored(QwenImageConfig {
+                prompt: "erase\0the text".to_owned(),
+                ..QwenImageConfig::default()
+            }),
+            koharu_ml::Device::cpu(),
+        )
+        .err()
+        .expect("the uncensored checkpoint must refuse a NUL prompt too");
+        assert!(
+            uncensored_error
+                .to_string()
+                .contains("Qwen Image 2.1 prompt contains NUL"),
+            "the guard must name the refused prompt: {uncensored_error}"
+        );
+        assert!(
+            Processor::new(
+                InpaintingModel::QwenImageUncensored(QwenImageConfig::default()),
                 koharu_ml::Device::cpu()
             )
             .is_ok()

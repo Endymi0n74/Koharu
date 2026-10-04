@@ -129,7 +129,7 @@ pub struct Arguments {
 
     /// Sampling steps requested from stable-diffusion.cpp for Qwen Image
     /// inpainting (14 samples 12 at the default strength). Only used with
-    /// --inpainting qwen-image.
+    /// --inpainting qwen-image or --inpainting qwen-image-uncensored.
     #[arg(
         long,
         value_name = "N",
@@ -285,6 +285,8 @@ pub enum InpaintingChoice {
     Flux2Klein,
     #[value(name = "qwen-image")]
     QwenImage,
+    #[value(name = "qwen-image-uncensored")]
+    QwenImageUncensored,
     #[value(name = "rorem-mixed")]
     RoremMixed,
 }
@@ -648,6 +650,12 @@ pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineCo
                 num_inference_steps: arguments.qwen_steps,
                 ..QwenImageConfig::default()
             }),
+            InpaintingChoice::QwenImageUncensored => {
+                InpaintingModel::QwenImageUncensored(QwenImageConfig {
+                    num_inference_steps: arguments.qwen_steps,
+                    ..QwenImageConfig::default()
+                })
+            }
             InpaintingChoice::RoremMixed => {
                 InpaintingModel::RoremMixed(RoremMixedConfig::default())
             }
@@ -936,6 +944,27 @@ mod tests {
             ])
             .is_err()
         );
+    }
+
+    #[test]
+    fn qwen_image_uncensored_is_selectable_and_takes_the_step_override() {
+        let uncensored = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--inpainting",
+            "qwen-image-uncensored",
+            "--qwen-steps",
+            "16",
+        ]);
+
+        assert!(matches!(
+            uncensored.inpainting,
+            InpaintingChoice::QwenImageUncensored
+        ));
+        assert_eq!(uncensored.qwen_steps, Some(16));
     }
 
     #[test]

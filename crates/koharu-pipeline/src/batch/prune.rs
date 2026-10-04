@@ -47,6 +47,7 @@ fn referenced_repositories() -> BTreeSet<String> {
         "PaddlePaddle/PP-OCRv6_medium_det_safetensors",
         "PaddlePaddle/PP-OCRv6_medium_rec_safetensors",
         "leejet/Qwen-Image-2.1-GGUF",
+        "abenzerps/Qwen-Image-2.1-Uncensored-GGUF",
         "pottokao/Qwen-Image-2.1-Text-Encoder-Heretic-GGUF",
         "Comfy-Org/Qwen-Image-2.1",
         "mayocream/RORem-mixed-GGUF",

@@ -84,6 +84,8 @@ enum InpaintingChoice {
     Flux2Klein,
     #[value(name = "qwen-image")]
     QwenImage,
+    #[value(name = "qwen-image-uncensored")]
+    QwenImageUncensored,
     #[value(name = "rorem-mixed")]
     RoremMixed,
 }
@@ -125,6 +127,9 @@ impl Arguments {
                 }
                 InpaintingChoice::QwenImage => {
                     InpaintingModel::QwenImage(QwenImageConfig::default())
+                }
+                InpaintingChoice::QwenImageUncensored => {
+                    InpaintingModel::QwenImageUncensored(QwenImageConfig::default())
                 }
                 InpaintingChoice::RoremMixed => {
                     InpaintingModel::RoremMixed(RoremMixedConfig::default())
@@ -268,6 +273,25 @@ mod tests {
         assert!(matches!(
             arguments.pipeline_config().inpainting,
             InpaintingModel::QwenImage(_)
+        ));
+    }
+
+    #[test]
+    fn qwen_image_uncensored_is_selectable_for_inpainting() {
+        let arguments = Arguments::try_parse_from([
+            "run",
+            "--input",
+            "input.png",
+            "--output",
+            "output.png",
+            "--inpainting",
+            "qwen-image-uncensored",
+        ])
+        .unwrap();
+
+        assert!(matches!(
+            arguments.pipeline_config().inpainting,
+            InpaintingModel::QwenImageUncensored(_)
         ));
     }
 }

@@ -12,6 +12,31 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **Qwen Image 2.1 Uncensored : variante d'inpainting `qwen-image-uncensored`**
+  (2026-10-04, nouveau dépôt HF repéré à la sortie) : `abenzerps/Qwen-Image-2.1-Uncensored-GGUF`
+  pinné au SHA `6b34e59458d3eb7ba6a6f86a116aed5253dc02c3`, fichier
+  `qwen-image-2.1-UC-Q4_K_M.gguf` (4,6 Go) — **conversion faite par stable-diffusion.cpp
+  lui-même** (mention « Conversion: » du README du dépôt) donc format natif sd.cpp compatible
+  avec le loader porté, malgré les tags `comfyui-gguf`. Seul le checkpoint de diffusion change :
+  text encoder Heretic (déjà uncensored) et VAE Comfy-Org restent partagés —
+  `QwenImageInpaint::load` / `load_uncensored` délèguent à `load_diffusion(device, poids)`
+  (les TE/VAE embarqués du dépôt sont inutilisables : BF16 safetensors, chargeur TE = GGUF
+  llama.cpp). Variante complète `InpaintingModel::QwenImageUncensored` : noms sérialisés +
+  table `[processor."qwen-image-uncensored"]` (config.rs + test roundtrip TOML), `Model::Qwen`
+  porte `name` (le sélecteur réel remonte dans le rapport d'étape), validation NUL partagée
+  par or-pattern, `--inpainting qwen-image-uncensored` dans `run` et `koharu-batch`
+  (`--qwen-steps` commun aux deux variantes), keep-list `prune` (repo ajouté — le test
+  `referenced_repositories_covers_the_pin_lists` échoue sinon), picker UI
+  (`modelOptions`/`modelNames`/`defaultModel`/`replaceStage`) et `PipelinePreferences` en
+  fall-through partagé avec `qwen-image` → **aucune clé i18n nouvelle**. `protocol.ts`
+  régénéré (+2 lignes). Docs : README FR/EN (liste inpainting) + `en/fork.mdx`. Gate vert :
+  fmt, clippy, `cargo test --workspace --tests`, vitest 106, lint, typecheck, portability,
+  scripts. **Piège — `bun run check` / `bun run format` (oxfmt) ne sont PAS un gate du projet**
+  (absents de `lint.yml` ; l'arbre n'est pas oxfmt-conforme : guillemets simples/doubles
+  hétérogènes selon les packages) : un `bun run format` lancé au cas par a réécrit ~50 fichiers
+  jamais touchés (guillemets, tables md, emphasis `*x*`→`_x_`) — restaurés par
+  `git checkout --`, éditions ré-appliquées à la main. Ne jamais ajouter oxfmt au gate ni
+  lancer `bun run format`.
 - **Plancher de qualité pour `--llm auto` + modèle du lot en direct dans l'activité**
   (2026-10-04) : motivé par un run réel où `auto`, faute de VRAM (budget ~5,2 GiB sous
   l'app CEF, tous les vrais modèles calibrés ≥ 5,25 GiB), défilait jusqu'à
