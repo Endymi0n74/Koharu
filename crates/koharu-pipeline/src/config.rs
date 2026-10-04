@@ -189,8 +189,7 @@ impl Default for PipelineConfig {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
-#[serde(default)]
+#[derive(Clone, Debug, PartialEq, Serialize, Type)]
 pub struct TranslationConfig {
     pub model: koharu_translator::ModelSelection,
     pub generation: GenerationConfig,
@@ -210,6 +209,51 @@ impl Default for TranslationConfig {
             instructions: None,
             typography: TypographyProfile::default(),
         }
+    }
+}
+
+/// The `[translation]` section as it appears on disk: fields written before
+/// `instructions` and `typography` existed default instead of failing.
+#[derive(Deserialize)]
+#[serde(default)]
+struct TranslationSection {
+    model: koharu_translator::ModelSelection,
+    generation: GenerationConfig,
+    target_language: Language,
+    instructions: Option<String>,
+    typography: TypographyProfile,
+}
+
+impl Default for TranslationSection {
+    fn default() -> Self {
+        let config = TranslationConfig::default();
+        Self {
+            model: config.model,
+            generation: config.generation,
+            target_language: config.target_language,
+            instructions: config.instructions,
+            typography: config.typography,
+        }
+    }
+}
+
+// Missing fields default here rather than through `#[serde(default)]` on the
+// struct itself: specta maps that attribute to optional TypeScript fields,
+// while the app's protocol always carries complete configs (this side fills
+// every field before writing).
+impl<'de> Deserialize<'de> for TranslationConfig {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let section = TranslationSection::deserialize(deserializer)?;
+        Ok(Self {
+            model: section.model,
+            generation: section.generation,
+            target_language: section.target_language,
+            instructions: section.instructions,
+            typography: section.typography,
+        })
     }
 }
 
