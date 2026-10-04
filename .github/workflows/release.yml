@@ -130,13 +130,6 @@ jobs:
             ${{ matrix.args }}
             --config '{"build":{"beforeBundleCommand":"bash .github/sentry.sh"}}'
 
-  winget:
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: vedantmgoyal9/winget-releaser@main
-        with:
-          identifier: mayocream.koharu
-          version: ${{ github.ref_name }}
-          installers-regex: '(-setup\.exe|\.msi)$'
-          token: ${{ secrets.WINGET_TOKEN }}
+# Winget publishing is intentionally not maintained on this fork (the
+# mayocream.koharu package belongs to upstream); the old job template is
+# kept in git history.
