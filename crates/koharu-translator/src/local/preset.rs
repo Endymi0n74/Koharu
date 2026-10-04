@@ -288,7 +288,9 @@ pub struct AutoChoice {
 /// 8 GB card and below. The tail extends the same idea with leaner
 /// configurations so a busy 8 GB card (desktop, browser, the app itself on the
 /// GPU) still resolves a runnable vision model instead of refusing everything:
-/// the uncensored E2B first, then the small 0.8B generalist. Lighter
+/// the uncensored E2B first, then the Qwen 2B pair — static estimates that
+/// calibrate on the first run, so a card whose measured E2B no longer fits
+/// still translates with a real 2B — and finally the 0.8B generalist. Lighter
 /// quantizations of the 4B models stay out until a run records them in the
 /// calibration file — their formula estimate under-reports the real peak by
 /// roughly the context the measurements observed. Models not listed here stay
@@ -304,6 +306,8 @@ const AUTO_PRIORITY: &[(&str, &str)] = &[
     ("gemma4-e4b-it", "Q4_K_XL"),
     ("gemma4-e2b-it", "Q4_K_XL"),
     ("gemma4-e2b-uncensored", "Q4_K_P"),
+    ("qwen3.5-2b-uncensored", "Q4_K_M"),
+    ("qwen3.5-2b", "Q4_K_XL"),
     ("qwen3.5-0.8b", "Q4_K_XL"),
 ];
 
@@ -841,6 +845,26 @@ mod tests {
         assert_ne!(
             choice.model, "gemma4-e4b-uncensored",
             "auto must skip a model that measured over budget"
+        );
+    }
+
+    #[test]
+    fn a_calibrated_e2b_over_budget_falls_back_to_the_qwen_2b() {
+        let mut measurements = MeasuredPeaks::new();
+        // The busy 8 GB card: the E2B measured over the squeezed budget, so
+        // the Qwen 2B pair answers before the sub-floor 0.8B ever comes up.
+        measurements.record(sample_peak(
+            "gemma4-e2b-uncensored",
+            true,
+            (5.25f64 * GIB as f64) as u64,
+        ));
+        let choice = resolve_auto_with(budget_from_total(4 * GIB), true, &measurements)
+            .expect("the Qwen 2B fits the busy budget");
+        assert_eq!(choice.model, "qwen3.5-2b-uncensored");
+        assert!(
+            parameters_billion(choice.model)
+                .is_some_and(|parameters| parameters >= AUTO_QUALITY_FLOOR_B),
+            "the fallback must stay above the quality floor"
         );
     }
 
