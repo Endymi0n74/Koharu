@@ -1,24 +1,15 @@
 <h1 align="center">Koharu</h1>
 
-> [!NOTE]
-> **Fork Endymi0n74** — nettoyage UI : `41` composants `packages/ui/src/components/*.tsx` jamais importés purgés + 1 hook `use-mobile.ts` + 6 deps lourdes retirées (`cmdk` `date-fns` `embla-carousel-react` `input-otp` `react-day-picker` `recharts`), `typecheck @koharu/ui` vert. Voir `packages/ui/package.json`.
-
 <p align="center">Traducteur de manga propulsé par le ML, écrit en <b>Rust</b>.</p>
 
 <p align="center">
-<a href="https://github.com/koharu-rs/koharu/releases/latest" target="_blank"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/koharu-rs/koharu/total?style=for-the-badge&link=https%3A%2F%2Fgithub.com%2Fkoharu-rs%2Fkoharu%2Freleases%2Flatest"></a>
+<a href="https://github.com/Endymi0n74/Koharu/releases/latest" target="_blank"><img alt="Dernière release" src="https://img.shields.io/github/v/release/Endymi0n74/Koharu?style=for-the-badge"></a>
+<a href="https://github.com/Endymi0n74/Koharu/releases" target="_blank"><img alt="Téléchargements GitHub (toutes releases)" src="https://img.shields.io/github/downloads/Endymi0n74/Koharu/total?style=for-the-badge"></a>
+<a href="https://github.com/Endymi0n74/Koharu/actions/workflows/koharu-batch.yml" target="_blank"><img alt="CI koharu-batch" src="https://github.com/Endymi0n74/Koharu/actions/workflows/koharu-batch.yml/badge.svg"></a>
 </p>
 
 <p align="center">
-<a href="https://github.com/Endymi0n74/Koharu/actions/workflows/koharu-batch.yml" target="_blank"><img alt="koharu-batch CI" src="https://github.com/Endymi0n74/Koharu/actions/workflows/koharu-batch.yml/badge.svg"></a>
-</p>
-
-<p align="center">
-<a href="https://trendshift.io/repositories/20649" target="_blank"><img src="https://trendshift.io/api/badge/repositories/20649" alt="koharu-rs%2Fkoharu | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
-
-<p align="center">
-<a href="https://koharu.rs/en/installation" target="_blank">Getting Started</a> · <a href="https://koharu.rs/" target="_blank">Docs</a> · <a href="https://github.com/koharu-rs/koharu/issues" target="_blank">Bug reports</a> · <a href="https://discord.gg/mHvHkxGnUY" target="_blank">Discord</a>
+<a href="https://github.com/Endymi0n74/Koharu/releases" target="_blank">Releases</a> · <a href="https://koharu.rs/" target="_blank">Docs</a> · <a href="packages/docs/en/fork.mdx" target="_blank">Guide de la CLI par lot</a> · <a href="https://github.com/Endymi0n74/Koharu/issues" target="_blank">Rapports de bug</a> · <a href="https://discord.gg/mHvHkxGnUY" target="_blank">Discord</a>
 </p>
 
 <p align="center">
@@ -34,10 +25,7 @@ Koharu introduit un workflow local-first pour la traduction de manga, en exploit
 
 ---
 
-![screenshot](packages/docs/screenshot.png)
-
-> [!NOTE]
-> Rejoignez notre [serveur Discord](https://discord.gg/mHvHkxGnUY) pour obtenir de l'aide et échanger.
+![capture d'écran de l'interface Koharu](packages/docs/screenshot.png)
 
 ## Fonctionnalités
 
@@ -53,55 +41,45 @@ Koharu introduit un workflow local-first pour la traduction de manga, en exploit
 - [Export PSD en calques](https://koharu.rs/en/guides/export) pour une livraison aplatie et une édition en calques
 - [Workflow basé sur des agents](https://koharu.rs/en/agent/projects) pour l'inspection et l'édition des projets, ainsi que le contrôle du pipeline
 
-> [!TIP]
-> **CLI par lot — `koharu-batch`.** Cette branche ajoute une CLI headless qui traduit des chapitres
-> entiers depuis le terminal avec le même pipeline local : un dossier de scans ou une archive CBZ en
-> entrée, des pages françaises en sortie (`--lang` pour changer la cible) — ou un **volume entier** :
-> pointez-la vers un dossier de sous-dossiers/archives et chacun devient son propre chapitre — les
-> dossiers de regroupement descendent, ainsi `Vol/Ch1/p.png` vaut le chapitre `Vol/Ch1` — en sortie
-> en miroir sous `--output` avec un rapport par chapitre. Les pages s'exécutent en mode
-> **phase-major** — une étape à la fois sur toutes les pages (de tout le volume), si bien que les
-> modèles sont chargés une seule fois au lieu d'une fois par page — le budget VRAM est plafonné par
-> la mémoire réellement disponible, `--no-vision` saute la détection, l'OCR et l'inpainting pour les
-> exécutions uniquement textuelles, et le processus ne renvoie le code 0 que si toutes les pages de
-> tous les chapitres ont réussi (prêt pour la CI). Il choisit le modèle le plus performant qui tient
-> dans le budget de votre GPU (avertissement avant un premier téléchargement important), traduit
-> chaque page avec le contexte des pages précédentes, réessaie les segments qu'une réponse a laissés
-> non traduits, prend en charge la reprise page par page (y compris les entrées reprises d'une
-> archive CBZ de sortie existante) et écrit un rapport HTML/Markdown de fin d'exécution avec des
-> aperçus avant/après des pages — plus un résumé `--json` lisible par les machines (`--retries`,
-> `--pages`, `--recursive`, `--quiet` complètent le contrôle de l'exécution ; `--deterministic`,
-> `--ocr-cache` et `--torch-fp32` rendent une session reproductible d'un run à l'autre). Voir
-> [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) pour la documentation complète.
+## Ce que cette branche ajoute
+
+Ce dépôt est un fork de [koharu-rs/koharu](https://github.com/koharu-rs/koharu) : l'application d'origine reste intacte et gagne l'outillage autour d'elle.
+
+- **La CLI par lot `koharu-batch`** — traduit des chapitres entiers depuis le terminal : un dossier de scans ou une archive CBZ en entrée, des pages traduites en sortie (`--lang` pour la cible), ou un **volume entier** où chaque sous-dossier ou `.cbz` devient son propre chapitre. Exécution **phase-major** (les modèles se chargent une seule fois au lieu d'une fois par page), reprise page par page y compris depuis une archive CBZ de sortie existante, `--no-vision` pour les exécutions en texte seul, rapport HTML/Markdown de fin d'exécution avec aperçus avant/après, résumé `--json` lisible par les machines, et code de sortie 0 seulement si toutes les pages ont réussi (prêt pour la CI).
+- **Un choix automatique de modèle calibré** — le modèle le plus performant qui tient dans le budget de VRAM réellement disponible, avec calibration mesurée (`~/.koharu/vram-calibration.toml` enregistre les pics réels), **plancher de qualité 2 B** (refus actionnable sous le plancher, `--force` pour le contourner), **secours Qwen 2 B** quand les gemmas calibrés débordent du budget, et avertissement avant un premier gros téléchargement. `koharu-batch models` liste le catalogue avec les estimations de VRAM.
+- **La reproductibilité** — `--deterministic` et `--torch-fp32` pour des sessions identiques d'un run à l'autre, `--ocr-cache` pour figer les lectures d'OCR, `--verify` pour contrôler les sorties, `--retries` pour relancer les segments qu'une réponse a laissés non traduits.
+- **Le mode dossier dans l'application** — l'interface lance `koharu-batch` avec un sélecteur de modèle et de fournisseur hébergé, affiche le modèle en cours dans le centre d'activité, et remonte les erreurs en ligne.
+- **Les fournisseurs hébergés dans le lot** — `--provider openai_compatible`, `lm_studio`, et les points d'accès compatibles OpenAI.
+- **La maintenance du store** — `koharu-batch prune` repère les modèles orphelins, les datasets et les runtimes (ajoutez `--delete` pour les retirer) ; `KOHARU_STORE` déplace le store hors du disque système.
+- **Un catalogue étendu** — les variantes non censurées Gemma 4 et Qwen (HauhauCS) en plus des modèles amont.
 
 ```bash
-# Preview what would run (pages, model, VRAM) without executing anything
+# Prévisualiser ce qui serait exécuté (pages, modèle, VRAM) sans rien lancer
 koharu-batch --input ./chapter-12 --output ./chapter-12-fr --dry-run
 
-# A folder of scans → a folder of translated pages
+# Un dossier de scans → un dossier de pages traduites
 koharu-batch --input ./chapter-12 --output ./chapter-12-fr
 
-# A CBZ archive → a CBZ archive, letting the tool pick the model for your GPU
+# Une archive CBZ → une archive CBZ, avec le modèle choisi pour votre GPU
 koharu-batch --input ./chapter-13.cbz --output ./chapter-13-fr.cbz
 
-# A whole volume: every subfolder and .cbz of ./series becomes one chapter (grouping folders descend)
+# Un volume entier : chaque sous-dossier et .cbz de ./series devient un chapitre
 koharu-batch --input ./series --output ./series-fr
 
-# Machine-readable summary of the run (works with --dry-run too)
+# Résumé lisible par les machines (fonctionne aussi avec --dry-run)
 koharu-batch --input ./chapter-12 --output ./chapter-12-fr --json run.json
 
-# Text-only run: skip detection, OCR and inpainting
+# Exécution texte seul : saute détection, OCR et inpainting
 koharu-batch --input ./chapter-14 --output ./chapter-14-fr --no-vision
 
 # Exécution reproductible : traduction greedy + étapes Torch en fp32 (détection, inpainting)
 koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
 
-# Reproducible run: greedy translation + fp32 Torch stages (detection, inpainting)
-koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --torch-fp32
-
-# List local models with their VRAM estimates (measured peaks included)
+# Lister les modèles locaux avec leurs estimations de VRAM (pics mesurés compris)
 koharu-batch models
 ```
+
+Voir [packages/docs/en/fork.mdx](packages/docs/en/fork.mdx) pour la documentation complète de la CLI.
 
 ## Accélération matérielle
 
@@ -196,25 +174,15 @@ Les points d'accès compatibles OpenAI sont également pris en charge.
 
 ## Installation
 
-Téléchargez les builds de version depuis la [page des releases](https://github.com/koharu-rs/koharu/releases/latest). [Les prérequis d'installation et le premier lancement](https://koharu.rs/en/installation) varient selon le système d'exploitation.
+Téléchargez les builds depuis la [page des releases de ce dépôt](https://github.com/Endymi0n74/Koharu/releases/latest) :
 
-Des builds sont disponibles pour Windows, macOS et Linux.
+- **Windows** — `koharu_*_x64-setup.exe` (installateur) ou `koharu_*_x64_en-US.msi`, plus `koharu-batch.exe` en binaire autonome ;
+- **Linux** — AppImage, paquets `.deb` et `.rpm` (amd64 et arm64).
 
-### WinGet
+Chaque binaire est accompagné de sa signature `.sig` ; `latest.json` référence la version pour l'updater intégré. [Les prérequis d'installation et le premier lancement](https://koharu.rs/en/installation) varient selon le système d'exploitation.
 
-Installation sur Windows avec [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) :
-
-```bash
-winget install koharu
-```
-
-### Homebrew
-
-Installation sur macOS avec [Homebrew](https://brew.sh/) :
-
-```bash
-brew install --cask koharu
-```
+> [!NOTE]
+> Cette branche publie ses builds pour **Windows et Linux**. Sur macOS, construisez depuis les sources (voir **Développement** plus bas) : la jambe macOS de la CI est désactivée, mais Metal reste pris en charge.
 
 ## Dépannage
 
@@ -243,19 +211,33 @@ Les dépendances de plateforme et les commandes de validation pour les builds lo
 bun install
 ```
 
-### Développement
+### Lancer en développement
 
 ```bash
 bun dev
 ```
 
-### Compilation
+### Compiler
 
 ```bash
 bun run build
 ```
 
 L'exécutable est écrit dans `target/release`.
+
+### Validation
+
+Commandes de validation du dépôt :
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --workspace -- -D warnings
+cargo test --workspace --tests
+bun run lint
+bun run test
+bun run --filter '@koharu/*' typecheck
+bun scripts/check-path-portability.ts
+```
 
 ## Sponsoring
 
@@ -270,8 +252,8 @@ Si Koharu est utile dans votre flux de travail, envisagez de soutenir le projet.
 
 Merci à toutes les personnes qui ont aidé à rendre Koharu meilleur !
 
-<a href="https://github.com/koharu-rs/koharu/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=koharu-rs/koharu" />
+<a href="https://github.com/Endymi0n74/Koharu/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Endymi0n74/Koharu" />
 </a>
 
 ## Licence
