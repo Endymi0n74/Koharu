@@ -723,6 +723,21 @@ sonde (voir Pièges).
   worktree écrasent ceux de main — le worktree avec son propre `target/` est isolé.
   `koharu.exe` réclame `libcef.dll` à côté (exit 53 = STATUS_DLL_NOT_FOUND), pas
   `koharu-batch.exe`.
+- **Rebuild du binaire desktop** : la recette locale est `bun run build` (=
+  `cargo tauri build --no-bundle`, script racine) — un `cargo build --release -p koharu` nu
+  compile sans erreur mais sort un binaire qui charge le `devUrl` ("localhost refused to
+  connect", constaté 2026-10-05) au lieu des assets `out/` embarqués : passer par le CLI
+  Tauri. Reconstruire aussi le frontend (bridge puis app) avant le binaire, sinon un `out/`
+  périmé est embarqué.
+- **Updater Windows (2026-10-05)** : le dialogue "Update available" apparaît, téléchargement
+  et signature passent, mais **rien ne s'installe** : le plugin lance `msiexec /i … /quiet`
+  sans élévation (ShellExecuteW verbe `open`) puis `process::exit(0)` — le MSI perMachine
+  tombe en **erreur 1925 privilèges insuffisants → 1603** en moins d'une seconde, sans invite
+  UAC (piste : événement MsiInstaller 11925 du journal Application). Correctif tranché :
+  `bundle.targets` sans `msi` (l'updater passe par le setup.exe NSIS per-user, zéro admin
+  requis) + `plugins.updater.windows.installMode` en `passive`. Un binaire dev
+  (`target\release`, marqueur `__TAURI_BUNDLE_TYPE_VAR_UNK` → `bundle_type() = None`) prend
+  l'entrée générique `windows-x86_64` : d'où l'importance de retirer le MSI des cibles.
 - **cargo n'est pas sur le PATH du shell Codebuff** : le binaire vit dans
   `~/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin/` — préfixer le PATH pour toute
   commande cargo. CARGO_HOME reste le défaut `C:\Users\endymion\.cargo` (sans `bin/`).
