@@ -177,7 +177,7 @@ OpenAI-compatible endpoints are also supported.
 
 Download builds from this repository's [releases page](https://github.com/Endymi0n74/Koharu/releases/latest):
 
-- **Windows** — `koharu_*_x64-setup.exe` (installer) or `koharu_*_x64_en-US.msi`, plus the standalone `koharu-batch.exe`;
+- **Windows** — `koharu_*_x64-setup.exe` (installer), plus the standalone `koharu-batch.exe`;
 - **Linux** — AppImage, `.deb`, and `.rpm` packages (amd64 and arm64).
 
 Every binary ships with its `.sig` signature, and `latest.json` references the version for the built-in updater. [Installation requirements and first launch](https://koharu.rs/en/installation) vary by operating system.
