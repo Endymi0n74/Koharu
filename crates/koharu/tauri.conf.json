@@ -30,7 +30,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "appimage", "deb", "rpm"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -47,7 +47,7 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERDMUIwNTYwMDNFMTExRjAKUldUd0VlRURZQVViM0k3aTRHR1ZZUXNvYTJMQ00wSkZHWHZwZ2RRaENQaDdBaDBOMkJPTGpTYTcK",
       "endpoints": ["https://github.com/Endymi0n74/Koharu/releases/latest/download/latest.json"],
       "windows": {
-        "installMode": "quiet"
+        "installMode": "passive"
       }
     }
   }
