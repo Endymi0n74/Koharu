@@ -154,18 +154,6 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
-# Winget disabled: the WINGET_TOKEN secret is not configured in this repo,
-# so this job has failed on every Release run since v0.66.10 (empty
-# GITHUB_TOKEN -> "GitHub token is invalid") while the three build legs and
-# the publication succeed. To re-enable, create the Actions secret
-# WINGET_TOKEN (classic PAT with the repo scope) and uncomment below.
-#   winget:
-#     needs: release
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: vedantmgoyal9/winget-releaser@main
-#         with:
-#           identifier: mayocream.koharu
-#           version: ${{ github.ref_name }}
-#           installers-regex: '(-setup\.exe|\.msi)$'
-#           token: ${{ secrets.WINGET_TOKEN }}
+# Winget publishing is intentionally not maintained on this fork (the
+# mayocream.koharu package belongs to upstream); the old job template is
+# kept in git history.
