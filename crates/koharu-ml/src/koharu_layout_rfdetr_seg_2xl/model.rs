@@ -1,12 +1,11 @@
 //! Inference-only RF-DETR Seg 2XL port for the KoharuLayout checkpoint.
 //!
-//! The module tree and forward order follow RF-DETR upstream:
-//! https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/lwdetr.py
-//! https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/transformer.py
+//! The module tree and forward order follow RF-DETR 1.7.0 exactly:
+//! https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/lwdetr.py
+//! https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/transformer.py
 
 use std::path::Path;
 
-use super::dettrace;
 use anyhow::Result;
 use koharu_torch::{
     Device, IndexOp, Kind, Tensor,
@@ -92,11 +91,7 @@ impl Model {
 
     pub fn forward(&self, pixel_values: &Tensor) -> Output {
         let pixel_values = pixel_values.to_kind(self.var_store.kind());
-        dettrace::trace("model_input", &pixel_values);
         let features = self.backbone.forward(&pixel_values);
-        for feature in features.iter() {
-            dettrace::trace("backbone_feature", feature);
-        }
         let position_embeddings = features
             .iter()
             .map(sine_position_embedding)
@@ -110,8 +105,6 @@ impl Model {
 
         let hs = transformer_output.hs;
         let reference = transformer_output.references;
-        dettrace::trace("transformer_hs", &hs);
-        dettrace::trace("transformer_ref", &reference);
         let delta = self.bbox_embed.forward(&hs);
         let pred_boxes = Tensor::cat(
             &[
@@ -134,7 +127,7 @@ impl Model {
     }
 }
 
-// https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/backbone/backbone.py
+// https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/backbone/backbone.py
 #[derive(Debug)]
 struct Backbone {
     encoder: DinoBackbone,
@@ -154,7 +147,7 @@ impl Backbone {
     }
 }
 
-// https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/backbone/dinov2_with_windowed_attn.py
+// https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/backbone/dinov2_with_windowed_attn.py
 #[derive(Debug)]
 struct DinoBackbone {
     embeddings: DinoEmbeddings,
@@ -175,12 +168,10 @@ impl DinoBackbone {
 
     fn forward(&self, pixel_values: &Tensor) -> Vec<Tensor> {
         let mut hidden_states = self.embeddings.forward(pixel_values);
-        dettrace::trace("dino_embeddings", &hidden_states);
         let mut outputs = Vec::with_capacity(4);
         for (index, layer) in self.layers.iter().enumerate() {
             let run_full_attention = matches!(index, 3 | 6 | 9 | 12);
             hidden_states = layer.forward(&hidden_states, run_full_attention);
-            dettrace::trace("dino_layer", &hidden_states);
             if matches!(index + 1, 3 | 6 | 9 | 12) {
                 outputs.push(self.feature_map(pixel_values, &hidden_states));
             }
@@ -329,10 +320,9 @@ impl DinoLayer {
         } else {
             hidden_states.shallow_clone()
         };
-        let normed = self.norm1.forward(&attention_input);
-        dettrace::trace("dino_norm1", &normed);
-        let mut attention = self.attention.forward(&normed);
-        dettrace::trace("dino_attention", &attention);
+        let mut attention = self
+            .attention
+            .forward(&self.norm1.forward(&attention_input));
         if run_full_attention {
             let size = attention.size();
             attention = attention.view([
@@ -342,12 +332,8 @@ impl DinoLayer {
             ]);
         }
         let hidden_states = shortcut + attention * &self.layer_scale1;
-        dettrace::trace("dino_residual1", &hidden_states);
         let layer_output = self.mlp.forward(&self.norm2.forward(&hidden_states));
-        dettrace::trace("dino_mlp", &layer_output);
-        let out = hidden_states + layer_output * &self.layer_scale2;
-        dettrace::trace("dino_residual2", &out);
-        out
+        hidden_states + layer_output * &self.layer_scale2
     }
 }
 
@@ -428,18 +414,12 @@ impl DinoMlp {
     }
 
     fn forward(&self, hidden_states: &Tensor) -> Tensor {
-        dettrace::trace("dino_mlp_in", hidden_states);
-        let hidden = self.fc1.forward(hidden_states);
-        dettrace::trace("dino_fc1", &hidden);
-        let hidden = hidden.gelu("none");
-        dettrace::trace("dino_gelu", &hidden);
-        let out = self.fc2.forward(&hidden);
-        dettrace::trace("dino_fc2", &out);
-        out
+        self.fc2
+            .forward(&self.fc1.forward(hidden_states).gelu("none"))
     }
 }
 
-// https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/backbone/projector.py
+// https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/backbone/projector.py
 #[derive(Debug)]
 struct MultiScaleProjector {
     stage: C2f,
@@ -559,7 +539,7 @@ impl ChannelLayerNorm {
     }
 }
 
-// https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/transformer.py
+// https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/transformer.py
 #[derive(Debug)]
 struct Transformer {
     decoder: TransformerDecoder,
@@ -602,25 +582,22 @@ impl Transformer {
             .output_norm
             .forward(&encoder.output.forward(&output_memory));
         let encoder_class = encoder.class_embed.forward(&encoded_memory);
+        let delta = encoder.bbox_embed.forward(&encoded_memory);
+        let encoder_boxes = Tensor::cat(
+            &[
+                delta.i((.., .., 0..2)) * output_proposals.i((.., .., 2..4))
+                    + output_proposals.i((.., .., 0..2)),
+                delta.i((.., .., 2..4)).exp() * output_proposals.i((.., .., 2..4)),
+            ],
+            -1,
+        );
         let topk = encoder_class
             .max_dim(-1, false)
             .0
             .topk(NUM_QUERIES, 1, true, true)
             .1
             .i(0);
-        let selected_memory = encoded_memory.i(0).index_select(0, &topk).unsqueeze(0);
-        let selected_proposals = output_proposals.i(0).index_select(0, &topk).unsqueeze(0);
-        // The encoder box MLP is token-pointwise. Latest upstream gathers ranked
-        // tokens first instead of evaluating and discarding every unselected box.
-        let delta = encoder.bbox_embed.forward(&selected_memory);
-        let topk_boxes = Tensor::cat(
-            &[
-                delta.i((.., .., 0..2)) * selected_proposals.i((.., .., 2..4))
-                    + selected_proposals.i((.., .., 0..2)),
-                delta.i((.., .., 2..4)).exp() * selected_proposals.i((.., .., 2..4)),
-            ],
-            -1,
-        );
+        let topk_boxes = encoder_boxes.i(0).index_select(0, &topk).unsqueeze(0);
 
         let learned_refpoints = refpoint_embed.unsqueeze(0);
         let references = Tensor::cat(
@@ -714,7 +691,7 @@ impl TransformerDecoder {
         let reference_points = references.unsqueeze(2);
         let mut output = target.shallow_clone();
         let mut intermediate = Vec::with_capacity(self.layers.len());
-        for layer in self.layers.iter() {
+        for layer in &self.layers {
             output = layer.forward(
                 &output,
                 memory,
@@ -723,9 +700,7 @@ impl TransformerDecoder {
                 &reference_points,
                 spatial_shape,
             );
-            let output = self.norm.forward(&output);
-            dettrace::trace("decoder_layer", &output);
-            intermediate.push(output);
+            intermediate.push(self.norm.forward(&output));
         }
         intermediate.pop();
         intermediate.push(self.norm.forward(&output));
@@ -833,7 +808,7 @@ impl MultiheadAttention {
     }
 }
 
-// https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/ops/modules/ms_deform_attn.py
+// https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/ops/modules/ms_deform_attn.py
 #[derive(Debug)]
 struct MultiscaleDeformableAttention {
     sampling_offsets: nn::Linear,
@@ -1016,7 +991,7 @@ fn sine_position_embedding(feature: &Tensor) -> Tensor {
         .to_kind(feature.kind())
 }
 
-// https://github.com/roboflow/rf-detr/blob/4ab7c18729de9d02ffd0495795d0831b5630f01b/src/rfdetr/models/heads/segmentation.py
+// https://github.com/roboflow/rf-detr/blob/e77de6698d69d09cd9abf2597e2e9a576169a119/src/rfdetr/models/heads/segmentation.py
 #[derive(Debug)]
 struct SegmentationHead {
     blocks: Vec<DepthwiseConvBlock>,
