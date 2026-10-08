@@ -12,6 +12,58 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **Premier run réel `--llm hy-mt2-1.8b` de bout en bout** (2026-10-08) : banc e2e
+  `D:/Codex/e2e-in/chapter-test.cbz` (3 pages) → `D:/Codex/e2e-out/hymt2-test-fr.cbz`
+  (`--store D:/Codex/koharu/store --json …`, sans `--deterministic` pour garder le
+  sampling vendeur 0.7/0.6/20 ; dry-run d'abord, exit 0). Résultat : JSON
+  `"ok": true`, **3/3 traduites, 0 échec**, aucun avertissement « segments restés en
+  langue source » (donc ni retry ni `is_untranslated` déclenché) ; mur 9,8 s —
+  détection 1,0 s (froid) puis ~0,15 s, OCR ~0,3 s, **traduction 1,7 s puis 0,4 s/page**
+  (chargement CUDA : KV 112 MiB, ctx 1792, Flash Attention) ; pic LLM 4,2 GiB, pic
+  pipeline entier 6,6 GiB — sous les 5,5 GiB de budget (calibration
+  `hy-mt2-1.8b/Q4_K_M/false` = 4,71 GiB, inchangée : `record` garde le max). Rapport
+  md/html + JSON + state écrits, CBZ valide (3 pages). Artefacts :
+  `e2e-out/hymt2-test-fr.{cbz,md,html,json}`. Point non résolu : le GGUF pinné était
+  déjà au store avant la run (téléchargé 08:16-08:17 avec une 1ʳᵉ mesure — run non
+  tracée dans les logs du dev, probablement lancée de l'extérieur ; sorties introuvables).
+  **Reste** : qualité sur corpus `val-in` (JA→FR / RU→FR vs `gemma4-e4b-it`) — ce run
+  ne valide que l'intégration pipeline, pas la fidélité traductive.
+
+- **`hy-mt2-1.8b` : premier modèle texte seul du catalogue, couture `SupportedLanguages::Limited` activée**
+  (2026-10-08) : entrée `tencent/Hy-MT2-1.8B-GGUF` pinnée `a0c709d9fac510f2c807aa3af52872340dc37a4a`,
+  quants `Q4_K_M`/`Q6_K`/`Q8_0` (fichiers `Hy-MT2-1.8B-*.gguf`, types standards uniquement —
+  chargement sur le DLL `b10903` CPU+GPU et sortie JSON contrainte 3/3 segments déjà prouvés
+  en session précédente), `projector: None`, `reasoning: false` (template « fast-thinking »
+  sans blocs de réflexion), sampling vendeur 0.7 / 0.6 / 20, repeat 1.05, `min_p: None` (la
+  carte n'en prescrit pas), `max_tokens` 1000 comme le reste du catalogue (la borne
+  `output_budget` de `LocalTranslator::translate` couvre les pages denses). Cibles : `Limited`
+  = 38 langues = `Language::ALL` (42) − {pt-BR (la carte ne liste qu'un `pt`), bulgare,
+  biélorusse, hongrois} — suivre la **table** « Supported Languages » du README HF (38 lignes,
+  inclut `zh-Hant` et `yue`), pas le front-matter YAML (36 tags, qui les omet) ; hors liste →
+  `Error::UnsupportedLanguage`. `#[expect(dead_code)]` retiré : premier constructeur du seam.
+  **Chaîne vision vérifiée de bout en bout** : `models()` expose `vision: projector.is_some()`
+  donc `modelSelection()` (GUI) pose `vision:false` → `Translator::supports_vision` éteint
+  l'image (`remove_image`) ; le contrôle capacités de `LocalTranslator::load` reste
+  faux==faux même avec `selection.vision=true` (les imports `vision: true` de `run.rs` /
+  `translate.rs` restent donc sûrs) ; `koharu-batch` reçoit `--no-vision` via
+  `model_arguments` et, à défaut, `supports_vision` le force à `false` côté CLI. `auto`
+  inchangé : `AUTO_PRIORITY` non touchée, 1.8 B < plancher `AUTO_QUALITY_FLOOR_B` 2.0 —
+  seul l'explicite `--llm hy-mt2-1.8b` y accède (le plancher ne s'applique jamais à un choix
+  explicite). `parameters_billion("hy-mt2-1.8b") = 1.8` (le parseur lit « 1.8b », ignore
+  « mt2 ») → ~2,1 GiB estimés Q4. Keep-list `prune` couverte sans ajout
+  (`catalog_repositories()` est dérivée du catalogue statique).
+  Tests : `MODELS.len()` 25→26 ; `reasoning_matches_supported_chat_templates` admet le seul
+  cas non-reasoning `hy-mt2-1.8b` ; nouveau `the_text_only_entry_declares_exactly_its_trained_languages`
+  (38 cibles, 4 exclusions, projector/reasoning) ; `local_vision_requires_capability_and_generation_setting`
+  épinglé sur le vrai id texte seul (le pin sur id inconnu conservé) ; commentaire du garde-fou
+  `auto_vision_selections_always_carry_a_projector` reformulé. Docs : README FR/EN (nouvelle
+  section « moteur de traduction spécialisé (texte seul) ») + `fork.mdx` en/ja/zh — la puce
+  « Fast text-only: `ministral-3-8b-instruct` » était périmée (Ministral parti du catalogue),
+  remplacée par Hy-MT2. Gate : `cargo fmt --check`, `cargo clippy -- -D warnings` (0 erreur),
+  `bun scripts/check-path-portability.ts`, `cargo test -p koharu-translator --tests` (83) et
+  `-p koharu-pipeline --tests` (149+3) verts. **Reste** : bench qualité/débit face à gemma
+  avant toute idée d'entrer dans `AUTO_PRIORITY`.
+
 - **Qwen Image 2.1 Uncensored : variante d'inpainting `qwen-image-uncensored`**
   (2026-10-04, nouveau dépôt HF repéré à la sortie) : `abenzerps/Qwen-Image-2.1-Uncensored-GGUF`
   pinné au SHA `6b34e59458d3eb7ba6a6f86a116aed5253dc02c3`, fichier
@@ -234,15 +286,18 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   ne pas créer de 2ᵉ interface.
 - **Exemple `crates/koharu-llama-sys/examples/flash_attn_default.rs`** : conservé (documente le
   défaut AUTO, aucun coût).
-- **Catalogue : 25 entrées, toutes vision, zéro doublon** (2026-10-03). Règles tranchées :
-  pas d'entrée non-vision (la GUI force `vision=true`), pas de doublon d'octets — les ids
-  `gemma4-{e2b,e4b,12b,26b-a4b,31b}-it` SONT les builds QAT Google (`unsloth/gemma-4-*-it-qat-
+- **Catalogue : 26 entrées, une seule non-vision, zéro doublon** (2026-10-03 ; porté à 26 et
+  la règle « toutes vision » levée le 2026-10-08). Règles tranchées : pas de doublon d'octets —
+  les ids `gemma4-{e2b,e4b,12b,26b-a4b,31b}-it` SONT les builds QAT Google (`unsloth/gemma-4-*-it-qat-
   GGUF`, fichiers `*-it-qat-UD-Q4_K_XL.gguf` + `mmproj-F16.gguf`), donc **aucun id `*-qat`
   séparé**. Chaîne `AUTO_PRIORITY` finale : `31b-unc → 26b-unc → 12b-unc → e4b-unc → e4b-it →
   e2b-it → e2b-unc → qwen3.5-0.8b` (mesuré : e4b-it 3446, e2b-it 3100, 12b-it 7700 MiB ; les
   Q2_K des E2B et toute quant plus légère sortent tant que la calibration ne les mesure pas).
-  `SupportedLanguages::Limited` sans constructeur → `#[expect(dead_code)]` (couture volontaire,
-  le supprimer ferait perdre la sémantique `contains()`/`UnsupportedLanguage`).
+  La seule entrée non-vision est `hy-mt2-1.8b` (2026-10-08) : la prémisse « la GUI force
+  `vision=true` » n'a plus cours (`modelSelection()` pose `vision: model.vision`,
+  `supports_vision` éteint l'image) et le modèle reste hors `AUTO_PRIORITY` (sous le plancher
+  2 B). `SupportedLanguages::Limited` a son premier constructeur (idem, 38 cibles) :
+  `#[expect(dead_code)]` retiré, sémantique `contains()`/`UnsupportedLanguage` inchangée.
 - **`KOHARU_STORE` > store à côté de l'exe > cache OS ; `--store` gagne sur tout** (2026-10-03).
   Lue dans `Store::root()` (GUI) et `default_store_root()` (batch). Ne pas recréer de store
   sous `%LOCALAPPDATA%` : sur cette machine il est vide, tout est sur `D:\Codex\koharu\store`
@@ -699,8 +754,109 @@ lignes de sonde tracing sont entourées de codes ANSI (`entries=` découpé — 
 `\x1b[…m` avant regex) et l'ancienne exécution des scripts sous WSL bash a produit zéro
 sonde (voir Pièges).
 
+## Bench qualité hy-mt2-1.8b vs gemma4-e4b-it (2026-10-08, JA/EN/RU→FR)
+
+Harnais : OCR `paddle_ocr_vl` des 3 pages `target/val-in` → segments réels, CLI
+`koharu-translator translate --deterministic` (temp. 0, mêmes deux bras pour les deux
+modèles), 6 runs. Artefacts : `D:/Codex/bench-hymt2/` (seg-*.json, sortie des 2 modèles,
+compare.txt). RU→FR = segments représentatifs **pas** de val-in (corpus = JA+EN uniquement).
+
+Résultat (arbitrage segment par segment) : **GM 11 — HY 10 — égal 16 / 37** → égalité statistique, au point près. Par bras : JA 5-5, EN GM 3-1, RU HY 4-3. Vitesses : GM ~1,7× plus
+lent (murs JA 64 s vs 39 s à froid ; 9 s vs 5 s à chaud).
+
+Erreurs caractéristiques : **HY** — « j'ai mouru » (faute, EN), « Gehôôt/Gehotts » (mots
+inventés pour ゲホッ/ゲホツ), « Sampai » (RU), « premier train » pour 第1便 ; littéral mais
+parfois saccadé. **GM** — glissements de sens lisibles mais naturels (ГОГОГО→HAHAHA,
+売り出し→« Produits variés », RU [05] aspect), une sortie hors-sujet sur 悪いし ; français
+plus idiomatique (« Hic! Hac! », « Senpai », « bouge pas d'un pouce »).
+
+Verdict retenu à ce stade : défaut **gemma4-e4b-it** pour JA/EN→FR (moins d'erreurs
+choquantes, stylo plus naturel), **hy-mt2** conserve l'avantage RU/fidélité + vitesse.
+**Arbitré ensuite sur un vrai chapitre 33 pages → verdict hy-mt2** (voir « Banc chapitre
+réel » ci-dessous). `\n` finale émise par HY : cosmétique (trim par `is_untranslated` +
+layout).
+
+### Banc chapitre réel 33 pages (2026-10-08, db-ch001, FR→FR, les deux modèles)
+
+Les deux tournent **33/33, 0 échec, exit 0** dans des conditions identiques (`--llm` seul de
+différent, `--no-calibration --deterministic --overwrite --quiet`, séquentiels, même
+`PYTORCH_NO_CUDA_MEMORY_CACHING=1`, chapitre `D:/Codex/e2e-in/db-ch001.cbz` → sorties
+`db-ch001-{hy,gem}.cbz`, rapports `.md`/`.html`, comparaison OCR par page
+`e2e-out/compare-db.txt`). **hy-mt2 = 400 s, pic GPU 4,9 GiB ; gemma4 = 1175 s (2,9× plus
+lent), pic 7,6 GiB.** Fidélité source↔sortie (difflib) : hy 0,453 vs gem 0,438 — égalité
+dans les marges (12 pages gagnées par hy, 11 par gem). Doublons : **0 strict des deux côtés**,
+1 répétition approchée chacun (hy p23, gem p15) → le bug de duplication est bien réglé par
+le fix trio. Pages hors normes (longueur) : hy 4/33, gem 9/33. Défauts observés : **HY
+tronque** (p26/27 perdent 2 bulles, p16 altère le sens « QUEUE »→« POITRINE », fusion de
+bulles en p23) ; **GM divague** (p27 ajoute du texte inventé « PENTE AUSSI RAIDE », p21
+double une formulation, p23 perd les notes éditoriales) — GM plus complet sur p16 mais plus
+capricieux au total.
+
+**Verdict banc : hy-mt2 comme défaut du catalogue** (fidélité équivalente, 2,9× plus rapide,
+2,7 GiB de pic en moins, moitié moins de pages hors normes) ; gemma4-e4b-it reste le choix
+crête qualité quand VRAM et temps ne comptent pas. Contradicte partiellement le verdict du
+banc à 37 segments (défaut gemma4) — l'échantillon réel penche pour hy sur la stabilité.
+
+### Comparaison des deux CBZ (2026-10-08) — et régression détection
+
+`chapter-test-fr.cbz` (2026-09-17) = **gemma4-e4b-uncensored Q4_K_P**, pas le QAT du bench ;
+input identique et inchangé (mtime 2026-09-17). Score visuel : **GM 3 — HY 0** : GM correct
+sur les 3 pages (vanille, « on fera un saut », portefeuille bien orthographié) ; HY écrit
+« DU BAILEUX » (pour vanille), « PORTEFELILLE » (typo), « C'EST MAL » pour まずい (= zut).
+
+**Régression confirmée puis bisectée et corrigée (2026-10-08)** : sous le code du 08/10,
+les bulles des pages 001/002 sont rendues **deux fois** (2 segments sur même bulle,
+2 traductions côte à côte) — reproductible avec les deux modèles, **absent** de la sortie du
+2026-09-17 à input identique → le doublon vient du pipeline, pas du modèle ; page 010 propre.
+Coupable : le **merge 68cd57b3** (refonte `koharu-ml`, dans la fenêtre 17/09→08/10) qui a
+réécrit `stages/detection.rs` (928 lignes) et **supprimé le NMS de contenance**
+(`NMS_CONTAINMENT_THRESHOLD`), avec `processor.rs`/`model.rs` et le probe bin (les masks
+sont redevenus full-page sans `x/y`, le probe doit zipper). Fix = restaurer le **trio de
+d90750c3** :
+`git checkout d90750c3 -- crates/koharu-pipeline/src/stages/detection.rs crates/koharu-ml/src/koharu_layout_rfdetr_seg_2xl/{model,processor}.rs`
++ adaptation du probe. Preuve : worktree c35b4676 + trio → **3/3 pages propres** (001
+réparé, PORTEFEUILLE correct, zéro doublon) vs HEAD sans fix qui double ; gates à 0
+(fmt, clippy racine + `--all-targets` sur les 2 crates, test workspace 56 suites) ; le
+binaire GOOD termine le chapitre 33 pages (1148 s, 0 échec). Artefacts bisect :
+`e2e-out/cmp/` (panels légendés), `rerun-hy.cbz`/`rerun-gm.cbz`, logs `db-*.log`.
+
 ## Pièges
 
+- **La VRAM tombe à 0 en phase OCR et « failed to load paddleocr-vl-1.6 » n'est PAS un
+  problème de modèle** (2026-10-08) : en exécution **phase-major** (33 détections d'affilée
+  puis l'OCR), le **caching allocator Torch monopolise ~6,8 GiB** (paliers de +2 GiB par
+  lot de pages, jamais rendus) et il ne reste **0,1→0,2 GiB** au chargement du GGUF paddle
+  (892 MiB) → llama.cpp rate sa cudaMalloc et remonte « invalid vector subscript » (le
+  même symptôme que le quirk vocab « empty token at index 96148 » — en réalité une
+  pénurie, le quirk seul ne fait qu'un WARN). `is_out_of_memory()` ne matche pas ce
+  message → la branche `recover()` (unload des autres modèles) **ne se déclenche jamais**
+  → cascade 33/33 échouées, exit 1. Reproduction : run sur 33 pages fraîches, sans
+  `--torch-fp32` ni `--deterministic` particuliers. **Contournement validé :
+  `PYTORCH_NO_CUDA_MEMORY_CACHING=1`** (caching allocator désactivé → cudaFree directs →
+  VRAM rendue entre les phases) : le même run passe alors avec ~4,5 GiB libres au moment
+  du paddle, 0 échec, pics de report redescendus à 6,0-6,3 GiB (vs 7,6). Le mode
+  **page-major** (exécution `Operation::Full` à l'ancienne, avant f0a1e5a0 du 09-25) allait
+  déjà mieux car les phases alternent et forcent l'équilibre — le binaire GOOD du worktree
+  (c35b4676) termine le chapitre sans ce contournement. Complémentaire : le desktop
+  (launchers/navigateurs) tenait 1,4-2,0 GiB de VRAM — sur une 8 Go chaque GiB compte
+  (mesure `nvidia-smi` avant/après). Un fix propre reste ouvert : classifier l'échec ggml
+  comme OOM + vider le cache Torch au changement de phase (FFI `empty_cache` absent du shim
+  `koharu-torch`).
+
+- **Vérifier la GUI à distance : CDP interdit, UIA officiel** (2026-10-08) : la politique
+  système bloque le débogage WebView2 (« DevTools remote debugging is disallowed by the
+  system admin » → `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222`
+  n'ouvre rien) ; un échec de création du webview se traduit par le message trompeur
+  « Could not find the webview runtime » (survenu tant que l'instance release tenait le
+  dossier de données WebView2, non reproductible après sa fermeture). Recette qui marche :
+  `cargo tauri dev` avec `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--force-renderer-accessibility`,
+  puis pilotage via PowerShell `System.Windows.Automation` (menubar → item → dialog →
+  bouton → lecture des `aria-label`). L'UI tourne en **fr-FR** : matcher les libellés
+  français, motifs ASCII uniquement (`Mod?le` pour `Modèle`, `*` pour l'ellipse) — PS 5.1
+  lit un `.ps1` sans BOM en ANSI. Le plugin `single-instance` empêche le dev de démarrer
+  tant que l'instance release tourne (fermer l'app d'abord). Le symptôme « Hy-MT2 absent
+  du picker » venait d'un `target/release/koharu.exe` bâti le 5 octobre, avant l'entrée
+  catalogue — toujours comparer la date du binaire à celle des sources.
 - **Le fmt du Lint CI est propre depuis `4466b975`** (vérifié 2026-09-25 :
   `cargo fmt --all -- --check` → 0 diff ; la vieille note « 42 diffs préexistants » est
   obsolète). Après édition Rust : `cargo fmt --all` (et pas seulement `-p` sur un crate).
