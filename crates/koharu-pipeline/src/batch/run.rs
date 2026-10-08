@@ -1829,6 +1829,9 @@ async fn replay_pass(
             };
             phases.run(stage, &mut chapter.loaded).await;
         }
+        // The vision phases are over for this chapter: evict their models
+        // and the allocator cache before its translation pass claims VRAM.
+        pipeline.unload_models();
         // Translation, one chapter at a time (its context needs every
         // earlier page's text, exactly like the main run).
         let mut translation = Translation {
@@ -2374,6 +2377,11 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
             };
             phases.run(stage, &mut chapter.loaded).await;
         }
+        // Phase over: evict its model and the allocator's cached blocks now,
+        // so the next stage's model loads against a free pool instead of
+        // fighting the previous phase for VRAM — on an 8 GiB card the two
+        // cannot coexist, and OOM recovery only fires after a failed load.
+        pipeline.unload_models();
     }
 
     // Translation runs last (the chapter context needs every earlier page's

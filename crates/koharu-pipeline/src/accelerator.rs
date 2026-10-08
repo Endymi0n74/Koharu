@@ -42,6 +42,11 @@ impl AcceleratorGate {
             return permit;
         }
         if unload_other_models(stage, stages) {
+            // The dropped tensors went back to Torch's caching allocator, not
+            // to the driver: without this release the retried load would find
+            // the same exhausted VRAM it just failed on (ggml allocates
+            // outside the pool and cannot see it).
+            koharu_ml::torch_cache::empty();
             let mut changed = self.resources.subscribe();
             let _ = tokio::time::timeout(Duration::from_millis(600), changed.changed()).await;
         }
