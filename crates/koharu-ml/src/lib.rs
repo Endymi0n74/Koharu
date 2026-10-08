@@ -28,6 +28,7 @@ pub mod qwen_image;
 pub mod rorem_mixed;
 pub mod speech_bubble_yolo11n;
 pub mod speech_bubble_yolov8m;
+pub mod torch_cache;
 
 pub use koharu_diffusion as diffusion;
 pub use koharu_llama as llama;

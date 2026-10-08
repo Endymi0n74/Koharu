@@ -161,6 +161,14 @@ fn is_out_of_memory(error: &anyhow::Error) -> bool {
         message.contains("out of memory")
             || message.contains("cuda_error_out_of_memory")
             || message.contains("not enough memory")
+            // A llama.cpp GGUF load starved of VRAM dies inside the vocab
+            // merge instead of reporting an allocation error: the load fails
+            // with the empty-token quirk's symptom and only succeeds once
+            // the other models' cached blocks are released (see memory.md,
+            // piège « VRAM à 0 en phase OCR »). Classifying it as memory
+            // pressure is what lets `recover` evict them and retry.
+            || message.contains("invalid vector subscript")
+            || message.contains("empty token at index")
     })
 }
 
@@ -199,4 +207,36 @@ pub(crate) struct StageCompletion {
     pub(crate) model: String,
     pub(crate) elapsed: Duration,
     pub(crate) outcome: std::result::Result<StageOutcome, PipelineError>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ggml_load_starved_of_vram_is_recoverable() {
+        // The real chain a batch run produced at 0 MiB free: the context
+        // carries the captured llama.cpp logs, the cause reads like a vocab
+        // defect rather than an allocation failure.
+        let error = anyhow::anyhow!("null result from llama cpp").context(
+            "failed to load GGUF model store/PaddleOCR-VL-1.6-GGUF.gguf\n\
+             llama.cpp logs:\n\
+             load: empty token at index 96148\n\
+             llama_model_load: error loading model: invalid vector subscript",
+        );
+        assert!(is_out_of_memory(&error));
+    }
+
+    #[test]
+    fn genuine_model_defect_is_not_recoverable() {
+        let error = anyhow::anyhow!("unsupported architecture Q8_9")
+            .context("failed to load GGUF model store/broken.gguf");
+        assert!(!is_out_of_memory(&error));
+    }
+
+    #[test]
+    fn classic_cuda_out_of_memory_is_recoverable() {
+        let error = anyhow::anyhow!("CUDA error: out of memory");
+        assert!(is_out_of_memory(&error));
+    }
 }

@@ -822,26 +822,28 @@ binaire GOOD termine le chapitre 33 pages (1148 s, 0 échec). Artefacts bisect :
 
 ## Pièges
 
-- **La VRAM tombe à 0 en phase OCR et « failed to load paddleocr-vl-1.6 » n'est PAS un
-  problème de modèle** (2026-10-08) : en exécution **phase-major** (33 détections d'affilée
-  puis l'OCR), le **caching allocator Torch monopolise ~6,8 GiB** (paliers de +2 GiB par
-  lot de pages, jamais rendus) et il ne reste **0,1→0,2 GiB** au chargement du GGUF paddle
-  (892 MiB) → llama.cpp rate sa cudaMalloc et remonte « invalid vector subscript » (le
-  même symptôme que le quirk vocab « empty token at index 96148 » — en réalité une
-  pénurie, le quirk seul ne fait qu'un WARN). `is_out_of_memory()` ne matche pas ce
-  message → la branche `recover()` (unload des autres modèles) **ne se déclenche jamais**
-  → cascade 33/33 échouées, exit 1. Reproduction : run sur 33 pages fraîches, sans
-  `--torch-fp32` ni `--deterministic` particuliers. **Contournement validé :
-  `PYTORCH_NO_CUDA_MEMORY_CACHING=1`** (caching allocator désactivé → cudaFree directs →
-  VRAM rendue entre les phases) : le même run passe alors avec ~4,5 GiB libres au moment
-  du paddle, 0 échec, pics de report redescendus à 6,0-6,3 GiB (vs 7,6). Le mode
-  **page-major** (exécution `Operation::Full` à l'ancienne, avant f0a1e5a0 du 09-25) allait
-  déjà mieux car les phases alternent et forcent l'équilibre — le binaire GOOD du worktree
-  (c35b4676) termine le chapitre sans ce contournement. Complémentaire : le desktop
-  (launchers/navigateurs) tenait 1,4-2,0 GiB de VRAM — sur une 8 Go chaque GiB compte
-  (mesure `nvidia-smi` avant/après). Un fix propre reste ouvert : classifier l'échec ggml
-  comme OOM + vider le cache Torch au changement de phase (FFI `empty_cache` absent du shim
-  `koharu-torch`).
+- **La VRAM tombait à 0 en phase OCR et « failed to load paddleocr-vl-1.6 » n'était PAS un
+  problème de modèle** (constaté puis **corrigé en code le 2026-10-08**) : en exécution
+  **phase-major** (33 détections d'affilée puis l'OCR), le **caching allocator Torch
+  monopolisait ~6,8 GiB** (paliers de +2 GiB par lot de pages, jamais rendus) et il restait
+  **0,1→0,2 GiB** au chargement du GGUF paddle (892 MiB) → llama.cpp rate sa cudaMalloc et
+  remonte « invalid vector subscript » (le même symptôme que le quirk vocab « empty token at
+  index 96148 » — en réalité une pénurie, le quirk seul ne fait qu'un WARN).
+  `is_out_of_memory()` ne matchait pas ce message → la branche `recover()` (unload des
+  autres modèles) **ne se déclenchait jamais** → cascade 33/33 échouées, exit 1.
+  **Fix (6 fichiers, vérifications locales vertes ; release à confirmer après publication)** : (1) `stage_runner::is_out_of_memory` classe aussi
+  « invalid vector subscript » / « empty token at index » comme pression mémoire (filet si
+  une frontière est manquée) ; (2) nouveau `koharu_ml::torch_cache::empty()` — résout
+  `?emptyCache@accelerator@at@@YAXXZ` (exporté par `torch_cpu.dll` des deux runtimes
+  2.12.1/2.13.0.7, pattern de `determinism.rs`), no-op hors Windows / sans DLL CUDA chargée
+  ; (3) appelé dans `AcceleratorGate::recover` après l'unload, dans
+  `Pipeline::unload_models`, et **aux frontières de phases du batch** (après chaque étape
+  vision, avant la translation du replay). Vérifications locales : `cargo fmt --check`,
+  `cargo check --workspace`, clippy des deux crates touchées et `cargo test -p koharu-pipeline
+  --lib` (149 tests). **Épreuve e2e** : le run hy précédemment en échec passe désormais
+  33/33, exit 0 en 406 s sans `PYTORCH_NO_CUDA_MEMORY_CACHING=1` (paddle chargé au premier
+  essai ; logs et CSV dans `e2e-out/`). Fermer le desktop gourmand reste utile : chaque GiB
+  compte sur une 8 Go.
 
 - **Vérifier la GUI à distance : CDP interdit, UIA officiel** (2026-10-08) : la politique
   système bloque le débogage WebView2 (« DevTools remote debugging is disallowed by the
