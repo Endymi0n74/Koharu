@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use koharu_runtime::HuggingFaceFile;
 
-use crate::{ModelGeneration, ModelSelection, QuantizationDefinition};
+use crate::{Language, ModelGeneration, ModelSelection, QuantizationDefinition};
 
 pub(crate) const DEFAULT_MODEL: &str = "gemma4-12b-it";
 pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_XL";
@@ -14,10 +14,11 @@ pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_XL";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SupportedLanguages {
     All,
-    /// Every catalog entry so far translates into every language, so this
-    /// variant currently has no constructor; it stays as the seam for a
-    /// future translation-specialized model.
-    #[expect(dead_code)]
+    /// A model trained for a documented subset of the catalog languages:
+    /// `hy-mt2-1.8b` names the 38 languages Hy-MT2 translates into (its card
+    /// leaves out Brazilian Portuguese, Bulgarian, Belarusian, and
+    /// Hungarian), so a target outside the list is refused with
+    /// `Error::UnsupportedLanguage` instead of being silently mistranslated.
     Limited(&'static [crate::Language]),
 }
 
@@ -972,6 +973,76 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         projector: Some("mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf"),
         target_languages: SupportedLanguages::All,
     },
+    // The catalog's first text-only entry: Tencent's translation-specialized
+    // Hy-MT2 (Apache-2.0) — no projector (vision stages fall back to OCR), no
+    // thinking mode (its "fast-thinking" template has none), and the vendor's
+    // own sampling recipe for the 1.8B (0.7 / 0.6 / 20, repetition 1.05, no
+    // min_p — the card specifies none). `Limited` carries its 38 documented
+    // target languages; `--llm auto` never reaches it (below the 2 B quality
+    // floor), so it is an explicit `--llm hy-mt2-1.8b` choice.
+    LocalModelDescriptor {
+        id: "hy-mt2-1.8b",
+        reasoning: false,
+        name: "Hy-MT2 1.8B",
+        quantizations: &[
+            QuantizationDefinition::new("Q4_K_M", "Q4_K M", "Hy-MT2-1.8B-Q4_K_M.gguf"),
+            QuantizationDefinition::new("Q6_K", "Q6_K", "Hy-MT2-1.8B-Q6_K.gguf"),
+            QuantizationDefinition::new("Q8_0", "Q8_0", "Hy-MT2-1.8B-Q8_0.gguf"),
+        ],
+        generation: ModelGeneration {
+            temperature: Some(0.7),
+            top_k: Some(20),
+            top_p: Some(0.6),
+            min_p: None,
+            max_tokens: Some(1000),
+            repeat_penalty: Some(1.05),
+            frequency_penalty: None,
+            presence_penalty: None,
+        },
+        repository: "tencent/Hy-MT2-1.8B-GGUF",
+        revision: "a0c709d9fac510f2c807aa3af52872340dc37a4a",
+        projector: None,
+        target_languages: SupportedLanguages::Limited(&[
+            Language::ChineseSimplified,
+            Language::English,
+            Language::French,
+            Language::Portuguese,
+            Language::Spanish,
+            Language::Japanese,
+            Language::Turkish,
+            Language::Russian,
+            Language::Arabic,
+            Language::Korean,
+            Language::Thai,
+            Language::Italian,
+            Language::German,
+            Language::Vietnamese,
+            Language::Malay,
+            Language::Indonesian,
+            Language::Filipino,
+            Language::Hindi,
+            Language::ChineseTraditional,
+            Language::Polish,
+            Language::Czech,
+            Language::Dutch,
+            Language::Khmer,
+            Language::Burmese,
+            Language::Persian,
+            Language::Gujarati,
+            Language::Urdu,
+            Language::Telugu,
+            Language::Marathi,
+            Language::Hebrew,
+            Language::Bengali,
+            Language::Tamil,
+            Language::Ukrainian,
+            Language::Tibetan,
+            Language::Kazakh,
+            Language::Mongolian,
+            Language::Uyghur,
+            Language::Cantonese,
+        ]),
+    },
 ];
 
 pub(crate) struct ResolvedLocalModel {
@@ -1029,7 +1100,7 @@ mod tests {
 
     #[test]
     fn local_catalog_has_unique_complete_entries() {
-        assert_eq!(MODELS.len(), 25);
+        assert_eq!(MODELS.len(), 26);
         for (index, model) in MODELS.iter().enumerate() {
             let id = model.id;
             assert!(!model.repository.is_empty());
@@ -1052,10 +1123,16 @@ mod tests {
 
     #[test]
     fn reasoning_matches_supported_chat_templates() {
-        // The two template-less non-reasoning entries (LFM2.5, Ministral) left
-        // the catalog; every remaining chat template supports reasoning.
+        // Every gemma/qwen chat template supports reasoning; Hy-MT2 is
+        // "fast-thinking" by design, with no thinking blocks to enable or
+        // strip, so it is the catalog's one non-reasoning entry.
         for model in MODELS {
-            assert!(model.reasoning, "{} should expose reasoning", model.id);
+            assert_eq!(
+                model.reasoning,
+                model.id != "hy-mt2-1.8b",
+                "{} should expose reasoning matching its chat template",
+                model.id
+            );
         }
     }
 
@@ -1071,5 +1148,48 @@ mod tests {
                 .expect("quantization is valid"),
             "Qwen3.5-2B-UD-Q8_K_XL.gguf"
         );
+    }
+
+    #[test]
+    fn the_text_only_entry_declares_exactly_its_trained_languages() {
+        let descriptor = MODELS
+            .iter()
+            .find(|descriptor| descriptor.id == "hy-mt2-1.8b")
+            .expect("Hy-MT2 is cataloged");
+        assert!(descriptor.projector.is_none(), "Hy-MT2 is text-only");
+        assert!(
+            !descriptor.reasoning,
+            "Hy-MT2's fast-thinking template has no thinking mode"
+        );
+        let SupportedLanguages::Limited(languages) = descriptor.target_languages else {
+            panic!("the translation-specialized model must limit its targets");
+        };
+        // Hy-MT2 documents 38 target languages: the catalog's 42 minus the
+        // four its training leaves out (pt-BR shares the card's single `pt`,
+        // and Bulgarian, Belarusian, and Hungarian are absent entirely).
+        assert_eq!(languages.len(), 38);
+        for supported in [
+            Language::French,
+            Language::Japanese,
+            Language::Russian,
+            Language::ChineseTraditional,
+            Language::Cantonese,
+        ] {
+            assert!(
+                descriptor.target_languages.contains(supported),
+                "{supported} is documented by Hy-MT2"
+            );
+        }
+        for unsupported in [
+            Language::BrazilianPortuguese,
+            Language::Bulgarian,
+            Language::Belarusian,
+            Language::Hungarian,
+        ] {
+            assert!(
+                !descriptor.target_languages.contains(unsupported),
+                "{unsupported} is outside Hy-MT2's training"
+            );
+        }
     }
 }

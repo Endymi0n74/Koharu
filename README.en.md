@@ -161,6 +161,10 @@ Translation can use a local language model or a remote API.
 - Qwen 3.6 uncensored: [qwen3.6-27b-uncensored](https://huggingface.co/HauhauCS/Qwen3.6-27B-Uncensored-HauhauCS-Balanced), [qwen3.6-35b-a3b-uncensored](https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive)
 - Qwen 3.8 uncensored: [qwen3.8-27b-uncensored](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF)
 
+#### Specialized Translation Engine (Text-Only)
+
+- Hy-MT2: [hy-mt2-1.8b](https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF) — Tencent's translation model (1.8B parameters, Apache-2.0): no vision (no projector) and no reasoning mode, targets limited to the 38 languages it was trained for (no pt-BR, Bulgarian, Belarusian, or Hungarian). Explicit `--llm hy-mt2-1.8b` only — `--llm auto` never picks it (below the 2 B quality floor).
+
 #### Cloud Providers
 
 Hosted LLM providers: [OpenAI](https://platform.openai.com/), [Gemini](https://ai.google.dev/), [Claude](https://www.anthropic.com/api), [Grok](https://docs.x.ai/developers), [MiniMax](https://platform.minimax.io/), [DeepSeek](https://platform.deepseek.com/), and [OpenRouter](https://openrouter.ai/).

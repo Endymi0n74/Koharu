@@ -161,6 +161,10 @@ La traduction peut utiliser un modèle de langage local ou une API distante.
 - Qwen 3.6 non censuré : [qwen3.6-27b-uncensored](https://huggingface.co/HauhauCS/Qwen3.6-27B-Uncensored-HauhauCS-Balanced), [qwen3.6-35b-a3b-uncensored](https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive)
 - Qwen 3.8 non censuré : [qwen3.8-27b-uncensored](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF)
 
+#### Moteur de traduction spécialisé (texte seul)
+
+- Hy-MT2 : [hy-mt2-1.8b](https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF) — modèle de traduction de Tencent (1,8 Md de paramètres, Apache-2.0) : ni vision (pas de projector) ni mode reasoning, cibles limitées aux 38 langues de son entraînement (pas de pt-BR, de bulgare, de biélorusse ni de hongrois). Choix explicite `--llm hy-mt2-1.8b` — `--llm auto` ne le prend jamais (sous le plancher de qualité 2 B).
+
 #### Fournisseurs cloud
 
 Fournisseurs LLM hébergés : [OpenAI](https://platform.openai.com/), [Gemini](https://ai.google.dev/), [Claude](https://www.anthropic.com/api), [Grok](https://docs.x.ai/developers), [MiniMax](https://platform.minimax.io/), [DeepSeek](https://platform.deepseek.com/) et [OpenRouter](https://openrouter.ai/).
