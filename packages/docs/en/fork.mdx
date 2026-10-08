@@ -111,7 +111,10 @@ Recommendation for an 8 GB card:
 - **Default: `gemma4-e4b-uncensored` (Q4_K_P)** — uncensored, vision-capable (the projector
   adds ~0.9 GiB, for a 6.3 GiB peak against the ~7.2 GiB an 8 GB card can spare), and roughly
   4× faster than the 12B model.
-- **Fast text-only:** `ministral-3-8b-instruct` — fastest dense option, but no vision.
+- **Fast text-only:** `hy-mt2-1.8b` (Hy-MT2) — translation-specialized 1.8B with no vision
+  projector; an explicit `--llm hy-mt2-1.8b` only (`auto` never picks it, it sits below the
+  2B quality floor), with targets limited to the 38 languages it was trained for (no pt-BR,
+  Bulgarian, Belarusian, or Hungarian).
 - **Very fast with vision:** `gemma4-e2b-it` — low VRAM, lower translation quality.
 - **Avoid `gemma4-12b-it` on 8 GB** — it peaks at ~7.7 GB *without* the vision projector and
   becomes the slowest option.

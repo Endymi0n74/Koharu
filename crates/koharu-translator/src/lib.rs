@@ -278,8 +278,15 @@ mod tests {
                 ..GenerationConfig::default()
             }
         ));
-        // The catalog no longer ships a projector-less model, so the
-        // "cannot see" refusal stays pinned through an unknown id.
+        // The catalog's own projector-less entry (the text-only Hy-MT2) and
+        // an unknown id both refuse vision.
+        assert!(!Translator::supports_vision(
+            &local_selection("hy-mt2-1.8b"),
+            &GenerationConfig {
+                vision: Some(true),
+                ..GenerationConfig::default()
+            }
+        ));
         assert!(!Translator::supports_vision(
             &local_selection("no-such-model"),
             &GenerationConfig {

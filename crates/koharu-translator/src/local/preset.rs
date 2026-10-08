@@ -704,9 +704,9 @@ mod tests {
 
     #[test]
     fn auto_vision_selections_always_carry_a_projector() {
-        // The catalog lost its last text-only entries (LFM2.5, Ministral,
-        // the 9B abliterated); the guard stays so a future projector-less
-        // model can never be auto-picked for a vision run.
+        // The catalog ships a text-only entry again (hy-mt2-1.8b); the
+        // guard keeps it — and any future projector-less model — out of
+        // every vision auto pick.
         for total in [2, 3, 4, 6, 8, 12, 16, 32] {
             let Some(choice) = resolve_auto(budget_from_total(total * GIB), true) else {
                 continue;
