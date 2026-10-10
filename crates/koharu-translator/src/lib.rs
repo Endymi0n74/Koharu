@@ -238,6 +238,7 @@ mod tests {
             quantization: None,
             vision: true,
             reasoning: true,
+            gpu_layers: None,
         }
     }
 

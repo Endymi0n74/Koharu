@@ -334,6 +334,9 @@ pub struct Resolved {
     pub vision: bool,
     /// Whether the model emits reasoning traces the backend must strip.
     pub reasoning: bool,
+    /// How a configuration over the budget is split between the accelerator
+    /// and the CPU. `None` when the whole model fits the card.
+    pub offload: Option<preset::OffloadPlan>,
 }
 
 impl Resolved {
@@ -363,6 +366,13 @@ impl Resolved {
     #[must_use]
     pub fn estimate_label(&self) -> Option<String> {
         (self.provider == Provider::Local).then(|| self.estimate.display())
+    }
+
+    /// Partial-offload split for the progress line and the report, `None` when
+    /// every block stays on the accelerator.
+    #[must_use]
+    pub fn offload_label(&self) -> Option<String> {
+        self.offload.as_ref().map(preset::OffloadPlan::to_string)
     }
 }
 
@@ -430,9 +440,11 @@ pub fn detect_budget(arguments: &Arguments, device: &Device) -> Option<u64> {
 /// Resolves the translation choice: a hosted provider as configured (no
 /// budget, no download — its weights live elsewhere), or the local LLM —
 /// `auto` scans the preference list and refuses a pick below the quality
-/// floor unless `--force`, an explicit id is checked against the VRAM
-/// budget unless `--force` was passed. Both local paths use the real
-/// measurements recorded by previous runs when available.
+/// floor unless `--force`, an explicit id over the VRAM budget is split
+/// between the card and the CPU when at least half its blocks remain on the
+/// GPU. A more CPU-heavy split refuses unless `--force` loads it whole.
+/// Both local paths use the real measurements recorded by previous runs when
+/// available.
 pub fn resolve_model(
     arguments: &Arguments,
     budget: Option<u64>,
@@ -483,6 +495,9 @@ pub fn resolve_model(
             download: download_bytes(choice.model, choice.quantization, vision)?,
             vision,
             reasoning: preset::descriptor_for(choice.model).is_some_and(preset::is_reasoning),
+            // `auto` picks a model that fits whole, so it never spills: the
+            // preference list exists to keep a slow split off the default run.
+            offload: None,
         });
     }
 
@@ -503,7 +518,7 @@ pub fn resolve_model(
             arguments.llm
         );
     }
-    let estimate = match budget {
+    let (estimate, offload) = match budget {
         Some(budget) => match preset::check_budget_with(
             budget,
             &arguments.llm,
@@ -511,17 +526,54 @@ pub fn resolve_model(
             vision,
             measurements,
         ) {
-            Ok(estimate) => estimate,
+            Ok(estimate) => (estimate, None),
             Err(preset::BudgetCheck::UnknownModel) => {
                 bail!("unknown local model '{}'", arguments.llm)
             }
             Err(preset::BudgetCheck::Exceeded(exceeded)) if arguments.force => {
                 eprintln!("warning: --force overrides the VRAM budget ({exceeded})");
-                exceeded.estimate
+                (exceeded.estimate, None)
             }
-            Err(preset::BudgetCheck::Exceeded(exceeded)) => bail!("{exceeded}"),
+            // A viable partial offload keeps the explicit model the user
+            // asked for. Refuse when the planned split leaves most blocks on
+            // the CPU: that run is too slow to start without an explicit
+            // `--force` opt-in.
+            Err(preset::BudgetCheck::Exceeded(exceeded)) => {
+                let Some(plan) = preset::offload_plan(
+                    descriptor,
+                    Some(&quantization),
+                    exceeded.estimate,
+                    budget,
+                ) else {
+                    bail!(
+                        "{exceeded}; a partial offload cannot pay that much — the excess is \
+                         larger than the model's own weights — so use --cpu, a smaller model, \
+                         or --force to load it whole anyway"
+                    );
+                };
+                if plan.leaves_majority_on_cpu() {
+                    bail!(
+                        "{exceeded}; partial offload would leave {}/{} blocks on the CPU, \
+                         so most of the model would run from host memory and translation can \
+                         take minutes per page. Choose a smaller model or use --force to try \
+                         loading this model whole anyway",
+                        plan.layers - plan.gpu_layers,
+                        plan.layers,
+                    );
+                }
+                eprintln!(
+                    "warning: estimated {} exceeds the VRAM budget {}; running a partial offload \
+                     — {plan} — expect slower pages",
+                    exceeded.estimate.display(),
+                    gib(budget),
+                );
+                (exceeded.estimate, Some(plan))
+            }
         },
-        None => preset::estimate_vram_with(descriptor, Some(&quantization), vision, measurements),
+        None => (
+            preset::estimate_vram_with(descriptor, Some(&quantization), vision, measurements),
+            None,
+        ),
     };
     let download = download_bytes(&arguments.llm, &quantization, vision)?;
     Ok(Resolved {
@@ -532,6 +584,7 @@ pub fn resolve_model(
         download,
         vision,
         reasoning: preset::is_reasoning(descriptor),
+        offload,
     })
 }
 
@@ -567,6 +620,8 @@ fn resolve_hosted(arguments: &Arguments) -> Result<Resolved> {
         // own default applies (a local model derives this from the catalog,
         // where a wrong guess would be an API rejection).
         reasoning: false,
+        // Nothing is loaded here: a hosted model's weights live elsewhere.
+        offload: None,
     })
 }
 
@@ -628,6 +683,7 @@ pub fn pipeline_config(arguments: &Arguments, resolved: &Resolved) -> PipelineCo
                 quantization: resolved.quantization.clone(),
                 vision: resolved.vision,
                 reasoning: resolved.reasoning,
+                gpu_layers: resolved.offload.map(|plan| plan.gpu_layers),
             },
             // `vision` on the generation gates the image both in the stage
             // (attaching the page crop) and in the translator itself.
@@ -731,6 +787,7 @@ mod tests {
             download: 0,
             vision: true,
             reasoning: false,
+            offload: None,
         };
 
         let plain = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
@@ -896,6 +953,160 @@ mod tests {
         )
         .expect("6 GiB fits a model above the floor");
         assert_eq!(resolved.model.as_deref(), Some("gemma4-e4b-it"));
+    }
+
+    #[test]
+    fn an_explicit_model_over_budget_offloads_part_of_itself_instead_of_refusing() {
+        // On a 16 GB card the 31B split still keeps a majority of its blocks
+        // on the GPU, so the requested model remains a viable partial offload.
+        let budget = preset::budget_from_total(16 * 1024 * 1024 * 1024);
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--llm",
+            "gemma4-31b-uncensored",
+            "--quantization",
+            "Q4_K_M",
+        ]);
+        let resolved = resolve_model(&arguments, Some(budget), &MeasuredPeaks::new())
+            .expect("an over-budget model is split, not refused");
+        let plan = resolved
+            .offload
+            .expect("the split travels with the resolution");
+        assert_eq!(plan.layers, 60);
+        assert!(plan.gpu_layers >= 1 && plan.gpu_layers < plan.layers);
+        assert!(
+            !plan.leaves_majority_on_cpu(),
+            "this split must be accepted"
+        );
+        assert!(resolved.offload_label().is_some());
+        assert_eq!(
+            pipeline_config(&arguments, &resolved)
+                .translation
+                .model
+                .gpu_layers,
+            Some(plan.gpu_layers),
+            "the split reaches the translator's model selection"
+        );
+
+        // `--force` still means "load it whole": nothing moves to the CPU.
+        let forced = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--llm",
+            "gemma4-31b-uncensored",
+            "--quantization",
+            "Q4_K_M",
+            "--force",
+        ]);
+        let resolved = resolve_model(&forced, Some(budget), &MeasuredPeaks::new())
+            .expect("--force loads the model whole");
+        assert_eq!(resolved.offload, None);
+        assert_eq!(
+            pipeline_config(&forced, &resolved)
+                .translation
+                .model
+                .gpu_layers,
+            None
+        );
+    }
+
+    #[test]
+    fn an_explicit_model_that_would_leave_the_majority_on_cpu_refuses() {
+        // Even with an 8 GB card, the 31B split leaves 41 of 60 blocks in
+        // host memory. Refuse before loading a run likely to take minutes per
+        // page; --force remains an explicit opt-in.
+        let budget = preset::budget_from_total(8 * 1024 * 1024 * 1024);
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--llm",
+            "gemma4-31b-uncensored",
+            "--quantization",
+            "Q4_K_M",
+        ]);
+        let error = resolve_model(&arguments, Some(budget), &MeasuredPeaks::new())
+            .expect_err("a split with most blocks on the CPU must refuse");
+        let message = error.to_string();
+        assert!(message.contains("partial offload would leave"), "{message}");
+        assert!(message.contains("41/60 blocks on the CPU"), "{message}");
+        assert!(message.contains("minutes per page"), "{message}");
+        assert!(message.contains("smaller model"), "{message}");
+        assert!(message.contains("--force"), "{message}");
+
+        let forced = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--llm",
+            "gemma4-31b-uncensored",
+            "--quantization",
+            "Q4_K_M",
+            "--force",
+        ]);
+        let resolved = resolve_model(&forced, Some(budget), &MeasuredPeaks::new())
+            .expect("--force is an explicit opt-in to attempt the model anyway");
+        assert_eq!(resolved.offload, None, "--force loads the full model");
+    }
+
+    #[test]
+    fn a_model_far_over_budget_still_refuses_with_the_ways_out() {
+        // Even the weights cannot pay this excess, so no split helps: the run
+        // must still refuse, naming the routes that do work.
+        let budget = preset::budget_from_total(1024 * 1024 * 1024);
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--llm",
+            "gemma4-31b-uncensored",
+            "--quantization",
+            "Q4_K_M",
+        ]);
+        let error = resolve_model(&arguments, Some(budget), &MeasuredPeaks::new())
+            .expect_err("a configuration this far over budget cannot be split");
+        let message = error.to_string();
+        assert!(message.contains("partial offload"), "{message}");
+        assert!(message.contains("--cpu"), "{message}");
+        assert!(message.contains("--force"), "{message}");
+    }
+
+    #[test]
+    fn a_model_within_budget_keeps_every_block_on_the_card() {
+        let budget = preset::budget_from_total(8 * 1024 * 1024 * 1024);
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--llm",
+            "gemma4-e4b-it",
+        ]);
+        let resolved = resolve_model(&arguments, Some(budget), &MeasuredPeaks::new())
+            .expect("the instruct 4B fits 8 GiB");
+        assert_eq!(resolved.offload, None);
+        assert_eq!(resolved.offload_label(), None);
+        assert_eq!(
+            pipeline_config(&arguments, &resolved)
+                .translation
+                .model
+                .gpu_layers,
+            None
+        );
     }
 
     #[test]

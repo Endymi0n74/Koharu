@@ -39,6 +39,7 @@ async fn stop_after_a_page_keeps_completed_progress() {
             quantization: None,
             vision: true,
             reasoning: true,
+            gpu_layers: None,
         },
         ..Default::default()
     };

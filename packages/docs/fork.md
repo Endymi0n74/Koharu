@@ -145,6 +145,11 @@ the 2B quality floor: a sub-2B model fits a busy card, yet it renders dialogue i
 filler, so the run stops with the ways out spelled out (free VRAM, an explicit `--llm`, `--cpu`,
 or `--force` accepting the small pick).
 
+The automatic pick never spills: it walks the list until a model fits the card *whole*, because
+the stepping above is tuned for speed. Asking for a model that does not fit is a different
+intent, and `--llm <id>` answers it by splitting the model when at least half its blocks stay on
+the GPU — see *Partial offload* below.
+
 Because `auto` can now select a model that is not in the store yet, the run prints what it
 picked together with the download it implies, and warns explicitly when the choice needs more
 than 8 GiB — the first page then waits for that one-time download. `koharu-batch models` shows
@@ -175,6 +180,70 @@ locally.
 `koharu-batch reset-calibration` deletes the calibration file so later runs fall back
 to the built-in reference estimates, and `--no-calibration` runs a translation without
 reading or writing it (reference estimates, nothing recorded).
+
+### Partial offload
+
+An explicit model that does not fit the budget is split between the card and the CPU when the
+plan keeps **at least half its transformer blocks on the GPU**. If the plan would leave most of
+the model in host memory, `koharu-batch` refuses before loading the weights: CPU-resident blocks
+make decoding so slow that pages can take minutes. Pick a smaller model instead. `--force`
+explicitly bypasses the budget check and tries to load the model **whole** on the GPU; it can fail
+if there is not enough VRAM. For a split that stays above the threshold, the warning and model
+line report the planned split.
+
+```bash
+# On a 16 GB card (14.4 GiB budget), the 31B split keeps most blocks on the GPU.
+koharu-batch --input ./chapter-14.cbz --output ./chapter-14-fr.cbz \
+  --llm gemma4-31b-uncensored --quantization Q4_K_M \
+  --vram-budget-mib 16384 --dry-run
+# warning: estimated 18.4 GiB exceeds the VRAM budget 14.4 GiB; running a partial offload
+#   — 45/60 blocks on the GPU, 4.1 GiB in host memory — expect slower pages
+# translation model: gemma4-31b-uncensored Q4_K_M (18.4 GiB within 14.4 GiB;
+#   45/60 blocks on the GPU, 4.1 GiB in host memory, 17.4 GiB if not already stored)
+
+# On an 8 GB card, this model would put most of its blocks on the CPU and is refused.
+koharu-batch --input ./chapter-14.cbz --output ./chapter-14-fr.cbz \
+  --llm gemma4-31b-uncensored --quantization Q4_K_M --dry-run
+# error: partial offload would leave 41/60 blocks on the CPU ... translation can take minutes per page
+#        Choose a smaller model or use --force to try loading this model whole anyway.
+```
+
+The split also lands in the run report (a *Déport partiel* row) and in the `--json` summary
+(an `offload` field beside `vram_estimate`). Three things to keep in mind:
+
+- **It is proportional, and it is a planning figure.** The estimator has no per-block sizes,
+  llama.cpp moves whole blocks, and it keeps the output tensor on the accelerator whatever the
+  count — the same caveat as every estimate in the table above. The refusal threshold uses the
+  planned *block count*, not bytes: exactly half on the CPU is still allowed; more than half is
+  refused.
+- **Why refuse at that point?** Even the measured 26B MoE, with 23/30 blocks in host memory,
+  took about 5.7 s/page after its first page; a dense model with most blocks on CPU can take
+  minutes per page. The check prevents an explicit pick from quietly starting an impractically
+  slow run. Use a smaller model or `--force` to try loading the requested model whole.
+- **Expect slower pages — the bill tracks what is left behind, page by page.** Measured on an
+  occupied 8 GB card: leaving 2 of the E4B's 42 blocks in host memory (0.2 GiB) takes the
+  steady-state page from 0.88 s to 1.33 s (×1.5), and 11 blocks with vision (1.2 GiB) from
+  1.12 s to 1.89 s (×1.7); the first page, which pays for loading the weights, does not move.
+  Leaving 70 % of the weights there (`26B-A4B`, 10.6 GiB) lands at 4.9 s per page, five times
+  the model that fits whole. The trade is always a stronger model, never a faster run — keep the
+  model that fits whole when speed matters.
+- **A split can beat an over-committed full offload.** The budget is what the card can spare,
+  not what it has free *right now*: an explicit `--vram-budget-mib 8192` on a desktop already
+  holding part of the card makes the **load** itself thrash — the E4B with vision spent 95 s on
+  its first page that way against 5.9 s for the same model split at 31/42, while its later pages
+  stayed fast (1.1 s). That is a 10× difference on a three-page run, and the two even out around
+  a hundred pages; the split is the steadier of the two meanwhile (round-to-round spread ×1.3
+  against ×17). Left on its default, the CLI caps the budget at the VRAM actually free, which
+  resolves the same 31/42 on this machine.
+- **Host memory now matters.** The spilled weights live in RAM (the default load mode maps them,
+  so they stay in the page cache rather than being pinned), which the run needs on top of its
+  store.
+
+A configuration whose excess is larger than the model's own weights has no useful split — the
+context, the vision projector, and the other pipeline stages keep their own accelerator
+footprint — and that one still refuses, naming `--cpu`, a smaller model, and `--force` (which
+loads the model whole with the budget ignored, at the risk of a failed load). `--llm auto`
+never splits: it walks the preference list until a model fits the card whole.
 
 ## Batch mode (`koharu-batch`)
 
@@ -213,11 +282,15 @@ Key behaviors:
   coexist). Fault isolation and the per-page report are unchanged, and each output page is
   written as soon as its own translation finishes — encoding, writing, and thumbnails run on a
   worker thread so they overlap the next page's translation.
-- **VRAM budget guard** — the binary queries the GPU (NVML on Windows), caps the budget at
-  the VRAM actually free at startup, and refuses to start if the selected model/quantization
-  cannot fit; `--llm auto` picks the strongest model that
-  fits (and warns before a large first download), and `--force` overrides the check and the 2B
-  quality floor.
+- **VRAM budget guard** — the binary queries the GPU (NVML on Windows) and caps the budget at
+  the VRAM actually free at startup. An explicit model that does not fit can be split between
+  GPU and host memory, but only while at least half of its blocks stay on the GPU; a larger
+  CPU-side majority refuses before model load with a minutes-per-page explanation and recommends
+  a smaller model. `--force` bypasses that guard and the 2B quality floor, trying to load the
+  model whole (which can fail on allocation). An excess larger than the model's weights also
+  refuses. `--llm auto` prefers a model that fits whole (and warns before a large first download).
+  An explicit `--vram-budget-mib` is trusted as the budget rather than capped to currently free
+  VRAM, so it can still oversubscribe a busy GPU.
 - **French typography by default** — output text goes through the `fr-FR` profile:
   guillemets « », curly apostrophes ’, and narrow no-break spaces before `; : ! ?` and inside
   guillemets (see the typography notes below).
