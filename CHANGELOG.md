@@ -1,3 +1,9 @@
+## [0.84.0](https://github.com/Endymi0n74/Koharu/compare/v0.83.9..v0.84.0) - 2026-10-10
+
+### ⛰️  Features
+
+- *(batch)* Partially offload explicit translation models within VRAM budget - ([d8d86ff](https://github.com/Endymi0n74/Koharu/commit/d8d86ff6e473eb1d3ae8b5513f0eba4e6961cfe4))
+
 ## [0.83.4](https://github.com/koharu-rs/koharu/compare/0.83.3..0.83.4) - 2026-09-17
 
 ### 🐛 Bug Fixes
