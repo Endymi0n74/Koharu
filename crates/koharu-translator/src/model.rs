@@ -61,6 +61,12 @@ pub struct ModelSelection {
     pub vision: bool,
     #[serde(default)]
     pub reasoning: bool,
+    /// Blocks to keep on the accelerator: `None` loads every block there, a
+    /// lower count spills the tail to the CPU, which is how a configuration
+    /// whose full footprint exceeds the VRAM budget still runs (the batch CLI
+    /// plans that split; the app leaves it empty).
+    #[serde(default)]
+    pub gpu_layers: Option<u32>,
 }
 
 impl Default for ModelSelection {
@@ -71,6 +77,7 @@ impl Default for ModelSelection {
             quantization: Some(crate::local::DEFAULT_QUANTIZATION.to_owned()),
             vision: true,
             reasoning: true,
+            gpu_layers: None,
         }
     }
 }
@@ -190,6 +197,7 @@ mod tests {
             quantization: None,
             vision,
             reasoning,
+            gpu_layers: None,
         }
     }
 

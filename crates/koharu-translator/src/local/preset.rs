@@ -516,6 +516,76 @@ pub fn check_budget_with(
     }))
 }
 
+/// How a configuration that exceeds the budget is split between the
+/// accelerator and the CPU: llama.cpp keeps `gpu_layers` blocks in VRAM and
+/// runs the rest from host memory.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OffloadPlan {
+    /// Transformer blocks kept on the accelerator. Never `layers` — a plan
+    /// only exists when something has to leave the card.
+    pub gpu_layers: u32,
+    /// Blocks the model holds in total.
+    pub layers: u32,
+    /// Weights bytes the plan leaves in host memory.
+    pub spill_bytes: u64,
+}
+
+impl OffloadPlan {
+    /// Whether more than half of the model's blocks would run from host memory.
+    #[must_use]
+    pub fn leaves_majority_on_cpu(&self) -> bool {
+        self.layers.saturating_sub(self.gpu_layers) > self.layers / 2
+    }
+}
+
+impl std::fmt::Display for OffloadPlan {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "{}/{} blocks on the GPU, {} in host memory",
+            self.gpu_layers,
+            self.layers,
+            bytes_as_gib(self.spill_bytes),
+        )
+    }
+}
+
+/// Splits a configuration whose estimated peak exceeds `budget`: the excess is
+/// paid by keeping the tail of the model's blocks in host memory, so the
+/// accelerator holds the rest and the run still starts.
+///
+/// The share is proportional — the estimator has no per-block sizes, llama.cpp
+/// moves whole blocks, and it keeps the output tensor on the accelerator
+/// whatever the count — so the split is a planning figure like every estimate
+/// here, rounded up so the spilled part never falls short of the excess.
+///
+/// Returns `None` when nothing has to move, and when the weights alone cannot
+/// pay the excess: the context, the vision projector, and the other pipeline
+/// stages keep their own accelerator footprint, so a configuration that far
+/// over budget has no useful split — `--cpu` or a smaller model is the honest
+/// answer there.
+#[must_use]
+pub fn offload_plan(
+    descriptor: &LocalModelDescriptor,
+    quantization: Option<&str>,
+    estimate: VramEstimate,
+    budget: u64,
+) -> Option<OffloadPlan> {
+    let excess = estimate.bytes.saturating_sub(budget);
+    let weights = weights_bytes(descriptor, quantization);
+    if excess == 0 || weights == 0 || excess >= weights || descriptor.layers < 2 {
+        return None;
+    }
+    let layers = descriptor.layers;
+    let spilled = ((f64::from(layers) * (excess as f64 / weights as f64)).ceil()) as u32;
+    let spilled = spilled.clamp(1, layers - 1);
+    Some(OffloadPlan {
+        gpu_layers: layers - spilled,
+        layers,
+        spill_bytes: (weights as f64 * f64::from(spilled) / f64::from(layers)) as u64,
+    })
+}
+
 /// One catalog entry with per-quantization VRAM estimates, for
 /// `koharu-batch models`.
 #[derive(Clone, Debug)]
@@ -752,6 +822,99 @@ mod tests {
         let estimate = check_budget(budget, "gemma4-e4b-uncensored", Some("Q4_K_P"), true)
             .expect("the recommended model fits 8 GiB");
         assert!(estimate.measured);
+    }
+
+    #[test]
+    fn every_catalog_entry_declares_its_blocks() {
+        // The split counts blocks, so a missing or absurd `block_count` would
+        // silently mis-offload every run of that model.
+        for descriptor in MODELS {
+            assert!(
+                descriptor.layers >= 2,
+                "{} must declare its transformer blocks",
+                descriptor.id
+            );
+        }
+    }
+
+    #[test]
+    fn an_over_budget_model_keeps_only_the_blocks_that_fit() {
+        let descriptor = descriptor("gemma4-31b-uncensored");
+        let quantization = "Q4_K_M";
+        let budget = budget_from_total(8 * GIB);
+        let estimate = estimate_vram(descriptor, Some(quantization), true);
+        assert!(
+            estimate.bytes > budget,
+            "the 31B must stay over an 8 GiB budget"
+        );
+
+        let plan = offload_plan(descriptor, Some(quantization), estimate, budget)
+            .expect("the weights can pay an 8 GiB budget");
+        assert_eq!(plan.layers, 60);
+        assert!(plan.gpu_layers >= 1 && plan.gpu_layers < plan.layers);
+        assert!(
+            estimate.bytes - plan.spill_bytes <= budget + 1,
+            "the plan must bring the estimate back within the budget"
+        );
+        assert!(
+            plan.spill_bytes < estimate_vram(descriptor, Some(quantization), true).bytes,
+            "only the weights can move to the CPU"
+        );
+        assert!(plan.to_string().contains("blocks on the GPU"), "{plan}");
+    }
+
+    #[test]
+    fn a_small_excess_moves_a_single_block() {
+        let descriptor = descriptor("gemma4-e4b-uncensored");
+        let estimate = estimate_vram(descriptor, Some("Q4_K_P"), true);
+        // One byte under the estimate: rounding up must still move a whole
+        // block rather than spilling nothing.
+        let plan = offload_plan(descriptor, Some("Q4_K_P"), estimate, estimate.bytes - 1)
+            .expect("a one-byte excess is payable");
+        assert_eq!(plan.gpu_layers, plan.layers - 1);
+        assert!(plan.spill_bytes > 0);
+    }
+
+    #[test]
+    fn offload_plan_majority_check_uses_a_strict_half_threshold() {
+        let exactly_half = OffloadPlan {
+            gpu_layers: 15,
+            layers: 30,
+            spill_bytes: 1,
+        };
+        assert!(!exactly_half.leaves_majority_on_cpu());
+
+        let more_than_half = OffloadPlan {
+            gpu_layers: 14,
+            layers: 30,
+            spill_bytes: 1,
+        };
+        assert!(more_than_half.leaves_majority_on_cpu());
+    }
+
+    #[test]
+    fn a_configuration_that_fits_has_no_plan() {
+        let descriptor = descriptor("gemma4-e4b-it");
+        let budget = budget_from_total(8 * GIB);
+        let estimate = estimate_vram(descriptor, Some("Q4_K_XL"), true);
+        assert!(estimate.bytes <= budget);
+        assert_eq!(
+            offload_plan(descriptor, Some("Q4_K_XL"), estimate, budget),
+            None
+        );
+    }
+
+    #[test]
+    fn a_model_far_over_budget_has_no_useful_plan() {
+        let descriptor = descriptor("gemma4-31b-uncensored");
+        let budget = budget_from_total(GIB);
+        let estimate = estimate_vram(descriptor, Some("Q4_K_M"), true);
+        // The excess is larger than the weights, so no split can pay it: the
+        // context, the projector, and the other stages keep their footprint.
+        assert_eq!(
+            offload_plan(descriptor, Some("Q4_K_M"), estimate, budget),
+            None
+        );
     }
 
     #[test]

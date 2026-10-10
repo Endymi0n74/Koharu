@@ -80,6 +80,7 @@ async fn main() -> Result<()> {
         quantization: None,
         vision: true,
         reasoning: true,
+        gpu_layers: None,
     };
     let mut request = TranslationRequest::new(args.segments, args.target);
     if let Some(instructions) = args.instructions {

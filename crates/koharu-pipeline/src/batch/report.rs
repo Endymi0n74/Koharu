@@ -187,6 +187,9 @@ pub struct RunReport {
     pub quantization: String,
     /// VRAM estimate for the model/quantization pair.
     pub vram_estimate: Option<String>,
+    /// Accelerator/CPU split when the model did not fit the VRAM budget
+    /// whole; `None` when every block of it stayed on the accelerator.
+    pub offload: Option<String>,
     /// Peak GPU memory actually in use during the run (formatted).
     pub vram_peak: Option<String>,
     /// Target language tag (for example `fr-FR`).
@@ -278,9 +281,13 @@ pub fn to_markdown(report: &RunReport) -> String {
         (None, None) => String::new(),
     };
     document.push_str(&format!(
-        "| Modèle | `{}` (`{}`) |\n{}| Périphérique | {} |\n",
-        report.model, report.quantization, vram_row, report.device
+        "| Modèle | `{}` (`{}`) |\n{}",
+        report.model, report.quantization, vram_row
     ));
+    if let Some(offload) = &report.offload {
+        document.push_str(&format!("| Déport partiel | {} |\n", offload));
+    }
+    document.push_str(&format!("| Périphérique | {} |\n", report.device));
     document.push_str(&format!(
         "| Démarré | {} |\n| Durée totale | {:.1}s |\n| Pages | {} |\n\n",
         report.started_at,
@@ -533,6 +540,12 @@ pub fn to_html(report: &RunReport) -> String {
         (None, Some(peak)) => format!("pic réel {peak}"),
         (None, None) => "inconnue".to_owned(),
     };
+    let offload_row = report.offload.as_ref().map_or_else(String::new, |offload| {
+        format!(
+            "<tr><td>Déport partiel</td><td>{}</td></tr>\n",
+            html_escape(offload)
+        )
+    });
     format!(
         "<!doctype html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"utf-8\">\n\
 <title>Koharu batch — {input}</title>\n\
@@ -544,7 +557,7 @@ pub fn to_html(report: &RunReport) -> String {
 <tr><td>Sortie</td><td><code>{output}</code></td></tr>\n\
 <tr><td>Langue cible</td><td>{language}</td></tr>\n\
 <tr><td>Modèle</td><td><code>{model}</code> (<code>{quantization}</code>)</td></tr>\n\
-<tr><td>VRAM</td><td>{vram}</td></tr>\n\
+<tr><td>VRAM</td><td>{vram}</td></tr>\n{offload_row}\
 <tr><td>Périphérique</td><td>{device}</td></tr>\n\
 <tr><td>Démarré</td><td>{started}</td></tr>\n\
 <tr><td>Durée totale</td><td>{total:.1}s</td></tr>\n\
@@ -562,6 +575,7 @@ pub fn to_html(report: &RunReport) -> String {
         model = html_escape(&report.model),
         quantization = html_escape(&report.quantization),
         vram = html_escape(&vram),
+        offload_row = offload_row,
         device = html_escape(&report.device),
         started = html_escape(&report.started_at),
         total = report.total_seconds(),
@@ -650,6 +664,7 @@ mod tests {
             model: "gemma4-e4b-uncensored".to_owned(),
             quantization: "Q4_K_P".to_owned(),
             vram_estimate: Some("5.6 GiB (measured)".to_owned()),
+            offload: None,
             vram_peak: Some("6.2 GiB".to_owned()),
             language: "fr-FR".to_owned(),
             input: "chapter-test.cbz".to_owned(),
@@ -682,6 +697,25 @@ mod tests {
         let html = to_html(&sample());
         assert!(html.contains("5.6 GiB (measured) / pic réel 6.2 GiB"));
         assert!(html.contains("Pic VRAM"));
+    }
+
+    #[test]
+    fn a_partial_offload_shows_its_own_row() {
+        // A run that split its model between the card and the CPU says so, in
+        // both documents; a run that fit whole stays silent about it.
+        let report = RunReport {
+            offload: Some("19/60 blocks on the GPU, 11.2 GiB in host memory".to_owned()),
+            ..sample()
+        };
+        let markdown = to_markdown(&report);
+        assert!(
+            markdown
+                .contains("| Déport partiel | 19/60 blocks on the GPU, 11.2 GiB in host memory |"),
+            "{markdown}"
+        );
+        assert!(to_html(&report).contains("<tr><td>Déport partiel</td><td>19/60 blocks on the GPU, 11.2 GiB in host memory</td></tr>"));
+        assert!(!to_markdown(&sample()).contains("Déport partiel"));
+        assert!(!to_html(&sample()).contains("Déport partiel"));
     }
 
     #[test]

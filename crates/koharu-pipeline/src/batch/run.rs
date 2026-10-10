@@ -419,6 +419,9 @@ struct RunMetadata {
     /// Local model's VRAM estimate; `None` for a hosted run, whose weights
     /// are never on this card.
     vram_estimate: Option<String>,
+    /// Accelerator/CPU split of a model over the budget, `None` when the whole
+    /// model fits the card.
+    offload: Option<String>,
     language: String,
     input: String,
     output: String,
@@ -461,6 +464,7 @@ fn write_run_report(
         model: metadata.model.clone(),
         quantization: metadata.quantization.clone(),
         vram_estimate: metadata.vram_estimate.clone(),
+        offload: metadata.offload.clone(),
         vram_peak: vram_peak_line(vram_sampler),
         language: metadata.language.clone(),
         input: metadata.input.clone(),
@@ -1791,6 +1795,7 @@ async fn replay_pass(
             model: resolved.model_label(),
             quantization: resolved.variant_label(),
             vram_estimate: resolved.estimate_label(),
+            offload: resolved.offload_label(),
             language: replay_arguments.lang.tag().to_owned(),
             input: chapter.source.display().to_string(),
             output: chapter.output.display().to_string(),
@@ -2117,6 +2122,7 @@ fn write_json_summary(summary: &JsonSummary<'_>, chapters: &[Chapter]) -> Result
             "id": summary.metadata.model,
             "quantization": summary.metadata.quantization,
             "vram_estimate": summary.metadata.vram_estimate,
+            "offload": summary.metadata.offload,
             "device": summary.metadata.device,
         },
         "counts": counts_value(totals),
@@ -2228,7 +2234,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
             );
         }
         eprintln!(
-            "translation model: {} {} ({}{}, {} if not already stored)",
+            "translation model: {} {} ({}{}{}, {} if not already stored)",
             resolved.model_label(),
             resolved.variant_label(),
             resolved.estimate.display(),
@@ -2236,6 +2242,9 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
                 || ", budget unknown".to_owned(),
                 |budget| format!(" within {}", gib(budget))
             ),
+            resolved
+                .offload_label()
+                .map_or_else(String::new, |split| format!("; {split}")),
             gib(resolved.download)
         );
         if arguments.llm == "auto" && resolved.download >= cli::LARGE_DOWNLOAD_BYTES {
@@ -2262,6 +2271,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
         model: resolved.model_label(),
         quantization: resolved.variant_label(),
         vram_estimate: resolved.estimate_label(),
+        offload: resolved.offload_label(),
         language: arguments.lang.tag().to_owned(),
         input: input_path.display().to_string(),
         output: output.display().to_string(),
@@ -2273,6 +2283,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
             model: resolved.model_label(),
             quantization: resolved.variant_label(),
             vram_estimate: resolved.estimate_label(),
+            offload: resolved.offload_label(),
             language: arguments.lang.tag().to_owned(),
             input: chapter.source.display().to_string(),
             output: chapter.output.display().to_string(),
@@ -2908,6 +2919,7 @@ mod tests {
             model: "gemma4-e4b-it".to_owned(),
             quantization: "Q4_K_P".to_owned(),
             vram_estimate: Some("5.6 GiB".to_owned()),
+            offload: None,
             language: "fr-FR".to_owned(),
             input: "volume".to_owned(),
             output: "out".to_owned(),

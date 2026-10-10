@@ -29,6 +29,13 @@ export const commands = {
 	quantization?: string | null,
 	vision?: boolean,
 	reasoning?: boolean,
+	/**
+	 *  Blocks to keep on the accelerator: `None` loads every block there, a
+	 *  lower count spills the tail to the CPU, which is how a configuration
+	 *  whose full footprint exceeds the VRAM budget still runs (the batch CLI
+	 *  plans that split; the app leaves it empty).
+	 */
+	gpu_layers?: number | null,
 } | null, deterministic: boolean, overwrite: boolean) => __TAURI_INVOKE<JobId>("start_batch", { input, output, lang, model, deterministic, overwrite }),
 	subscribe: (onCanvas: Channel<CanvasState>, onJob: Channel<Job>, onDownload: Channel<Download>, onResources: Channel<ModelResources>, onProject: Channel<{
 	name: string,
@@ -356,6 +363,13 @@ export type ModelSelection = {
 	quantization?: string | null,
 	vision?: boolean,
 	reasoning?: boolean,
+	/**
+	 *  Blocks to keep on the accelerator: `None` loads every block there, a
+	 *  lower count spills the tail to the CPU, which is how a configuration
+	 *  whose full footprint exceeds the VRAM budget still runs (the batch CLI
+	 *  plans that split; the app leaves it empty).
+	 */
+	gpu_layers?: number | null,
 };
 
 export type OcrModel = { model: "paddleocr-vl-1.6" } | { model: "manga-ocr" } | { model: "baberu-ocr" } | { model: "hayai-ocr" };

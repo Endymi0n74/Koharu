@@ -113,6 +113,7 @@ impl Arguments {
                     quantization: None,
                     vision: true,
                     reasoning: true,
+                    gpu_layers: None,
                 },
                 generation: GenerationConfig::default(),
                 target_language: self.target_language,

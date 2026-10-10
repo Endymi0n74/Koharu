@@ -41,6 +41,10 @@ pub struct LocalModelDescriptor {
     pub(crate) id: &'static str,
     pub(crate) reasoning: bool,
     pub(crate) name: &'static str,
+    /// Transformer blocks in the pinned GGUF, read from the file's own
+    /// `block_count` metadata: [`super::preset`] counts the same blocks when
+    /// it splits a model between the accelerator and the CPU.
+    pub(crate) layers: u32,
     pub(crate) quantizations: &'static [QuantizationDefinition],
     pub(crate) generation: ModelGeneration,
     pub(crate) repository: &'static str,
@@ -58,6 +62,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-e2b-it",
         reasoning: true,
         name: "Gemma 4 E2B Instruct",
+        layers: 35,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("Q2_K_XL", "Q2_K XL", "gemma-4-E2B-it-qat-UD-Q2_K_XL.gguf"),
@@ -81,6 +86,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-e4b-it",
         reasoning: true,
         name: "Gemma 4 E4B Instruct",
+        layers: 42,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("Q2_K_XL", "Q2_K XL", "gemma-4-E4B-it-qat-UD-Q2_K_XL.gguf"),
@@ -104,6 +110,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-12b-it",
         reasoning: true,
         name: "Gemma 4 12B Instruct",
+        layers: 48,
         quantizations: &[QuantizationDefinition::new(
             "Q4_K_XL",
             "Q4_K XL",
@@ -128,6 +135,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-26b-a4b-it",
         reasoning: true,
         name: "Gemma 4 26B A4B Instruct",
+        layers: 30,
         quantizations: &[QuantizationDefinition::new(
             "Q4_K_XL",
             "Q4_K XL",
@@ -152,6 +160,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-31b-it",
         reasoning: true,
         name: "Gemma 4 31B Instruct",
+        layers: 60,
         quantizations: &[QuantizationDefinition::new(
             "Q4_K_XL",
             "Q4_K XL",
@@ -176,6 +185,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-e2b-uncensored",
         reasoning: true,
         name: "Gemma 4 E2B Uncensored",
+        layers: 35,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_P",
@@ -232,6 +242,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-e4b-uncensored",
         reasoning: true,
         name: "Gemma 4 E4B Uncensored",
+        layers: 42,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_P",
@@ -293,6 +304,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-12b-uncensored",
         reasoning: true,
         name: "Gemma 4 12B Uncensored",
+        layers: 48,
         quantizations: &[QuantizationDefinition::new(
             "Q4_K_M",
             "Q4_K M",
@@ -317,6 +329,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-26b-a4b-uncensored",
         reasoning: true,
         name: "Gemma 4 26B A4B Uncensored",
+        layers: 30,
         quantizations: &[QuantizationDefinition::new(
             "Q4_K_M",
             "Q4_K M",
@@ -341,6 +354,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "gemma4-31b-uncensored",
         reasoning: true,
         name: "Gemma 4 31B Uncensored",
+        layers: 60,
         quantizations: &[QuantizationDefinition::new(
             "Q4_K_M",
             "Q4_K M",
@@ -365,6 +379,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-0.8b",
         reasoning: true,
         name: "Qwen 3.5 0.8B",
+        layers: 24,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.5-0.8B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.5-0.8B-UD-IQ2_M.gguf"),
@@ -395,6 +410,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-2b",
         reasoning: true,
         name: "Qwen 3.5 2B",
+        layers: 24,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.5-2B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.5-2B-UD-IQ2_M.gguf"),
@@ -425,6 +441,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-4b",
         reasoning: true,
         name: "Qwen 3.5 4B",
+        layers: 32,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.5-4B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.5-4B-UD-IQ2_M.gguf"),
@@ -455,6 +472,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-9b",
         reasoning: true,
         name: "Qwen 3.5 9B",
+        layers: 32,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.5-9B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.5-9B-UD-IQ2_M.gguf"),
@@ -485,6 +503,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-27b",
         reasoning: true,
         name: "Qwen 3.5 27B",
+        layers: 64,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.5-27B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.5-27B-UD-IQ2_M.gguf"),
@@ -515,6 +534,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-35b-a3b",
         reasoning: true,
         name: "Qwen 3.5 35B A3B",
+        layers: 40,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.5-35B-A3B-UD-IQ2_M.gguf"),
@@ -545,6 +565,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.6-27b",
         reasoning: true,
         name: "Qwen 3.6 27B",
+        layers: 64,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.6-27B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.6-27B-UD-IQ2_M.gguf"),
@@ -575,6 +596,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.6-35b-a3b",
         reasoning: true,
         name: "Qwen 3.6 35B A3B",
+        layers: 40,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ1_M", "IQ1 M", "Qwen3.6-35B-A3B-UD-IQ1_M.gguf"),
@@ -616,6 +638,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.8-27b",
         reasoning: true,
         name: "Qwen 3.8 27B",
+        layers: 65,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.8-27B-UD-Q4_K_XL.gguf"),
             QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.8-27B-UD-IQ2_M.gguf"),
@@ -646,6 +669,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-2b-uncensored",
         reasoning: true,
         name: "Qwen 3.5 2B Uncensored",
+        layers: 24,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_M",
@@ -687,6 +711,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-4b-uncensored",
         reasoning: true,
         name: "Qwen 3.5 4B Uncensored",
+        layers: 32,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_M",
@@ -728,6 +753,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.5-9b-uncensored",
         reasoning: true,
         name: "Qwen 3.5 9B Uncensored",
+        layers: 32,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_M",
@@ -769,6 +795,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.6-27b-uncensored",
         reasoning: true,
         name: "Qwen 3.6 27B Uncensored",
+        layers: 64,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_P",
@@ -840,6 +867,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.6-35b-a3b-uncensored",
         reasoning: true,
         name: "Qwen 3.6 35B A3B Uncensored",
+        layers: 40,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_P",
@@ -906,6 +934,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "qwen3.8-27b-uncensored",
         reasoning: true,
         name: "Qwen 3.8 27B Uncensored",
+        layers: 65,
         quantizations: &[
             QuantizationDefinition::new(
                 "Q4_K_P",
@@ -984,6 +1013,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         id: "hy-mt2-1.8b",
         reasoning: false,
         name: "Hy-MT2 1.8B",
+        layers: 32,
         quantizations: &[
             QuantizationDefinition::new("Q4_K_M", "Q4_K M", "Hy-MT2-1.8B-Q4_K_M.gguf"),
             QuantizationDefinition::new("Q6_K", "Q6_K", "Hy-MT2-1.8B-Q6_K.gguf"),

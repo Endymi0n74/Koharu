@@ -37,6 +37,12 @@ impl LocalTranslator {
         let resolved = descriptor.resolve(selection).await?;
         let options = LoadOptions {
             mtmd: resolved.projector.map(MtmdOptions::new),
+            // A selection below the default keeps part of the model in host
+            // memory: the batch CLI plans that split when the estimate exceeds
+            // the card's budget, and the app leaves every block on the GPU.
+            gpu_layers: selection
+                .gpu_layers
+                .unwrap_or(koharu_ml::llm::DEFAULT_GPU_LAYERS),
             ..LoadOptions::default()
         };
         let llm = Llm::load_with_options(device, resolved.model, options)

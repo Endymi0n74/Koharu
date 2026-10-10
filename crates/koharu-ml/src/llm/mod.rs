@@ -13,7 +13,11 @@ use self::model::Model;
 
 pub use koharu_llama::model::params::LlamaLoadMode;
 
-const DEFAULT_GPU_LAYERS: u32 = 1000;
+/// Blocks offloaded to the accelerator by default: an order of magnitude above
+/// any catalog model's block count, so "every block" and "one layer more than
+/// the model has" mean the same thing to llama.cpp. Callers lower it to spill
+/// part of a model that does not fit the VRAM budget.
+pub const DEFAULT_GPU_LAYERS: u32 = 1000;
 const DEFAULT_MAX_TOKENS: usize = 512;
 const DEFAULT_SEED: u32 = 299_792_458;
 

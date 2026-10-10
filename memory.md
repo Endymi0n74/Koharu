@@ -12,6 +12,66 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **Offload partiel des couches à la place du refus de budget VRAM** (2026-10-10) : un `--llm`
+  explicite dont l'empreinte estimée dépasse le budget n'est plus refusé — `koharu-batch` garde
+  sur le GPU autant de blocs que le budget en tient et exécute le reste depuis la RAM hôte
+  (`n_gpu_layers`), la ligne modèle et les rapports le disent. Plan : `preset::offload_plan`
+  (`excès = estimate − budget`, part des poids `excès / poids`, `spilled = ceil(blocs × part)` —
+  arrondi vers le haut pour ne jamais sous-déborder, borné à `[1, blocs − 1]`, `gpu_layers =
+  blocs − spilled`). `block_count` épinglé par entrée du catalogue (`layers`), **lu dans
+  l'en-tête GGUF des fichiers pinnés** (E2B 35, E4B 42, 12B 48, 26B-A4B 30, 31B 60, Qwen 0.8B/2B
+  24, 4B/9B 32, 27B 64 et 3.8 65, 35B-A3B 40, hy-mt2-1.8b 32) : champ obligatoire du
+  descripteur, donc une entrée ajoutée sans valeur ne compile pas (relevé par requêtes HTTP
+  `Range` sur les en-têtes des GGUF épinglés — aucune pondération téléchargée).
+  Refus conservé quand l'excès dépasse les poids eux-mêmes (contexte + projecteur + autres
+  étages gardent leur empreinte) : message enrichi (`--cpu`, modèle plus petit, `--force`).
+  Chemin : `Resolved::offload` → `pipeline_config` → `ModelSelection::gpu_layers` →
+  `LocalTranslator::load` → `LoadOptions.gpu_layers` (défaut `DEFAULT_GPU_LAYERS`, passé `pub`,
+  inchangé = toutes les couches ; l'app laisse le champ vide). `protocol.ts` régénéré (+1 champ
+  optionnel, donc TS inchangé) ; rapport `.md`/`.html` : ligne « Déport partiel » ; `--json` :
+  champ `offload` dans `model`. Docs : `en/fork.mdx` (section *Partial offload*) et
+  `en/guides/batch.mdx`. Vérifié : fmt, `clippy -D warnings` (translator/ml/pipeline en
+  `--all-targets`), tests lib translator 88 et pipeline 153, typecheck, oxlint, vitest 106 ;
+  **run réel `--dry-run`** (8 GiB simulés : `--vram-budget-mib 8192 --llm
+  gemma4-31b-uncensored --quantization Q4_K_M`) → exit 0, « 19/60 blocks on the GPU, 11.2 GiB in
+  host memory », et refus propre à 1 GiB (exit 1).
+  **Banc réel mesuré** (2026-10-10, `../bench-offload`, RTX 3070 8 GiB **occupée**, 3 pages du
+  fixture e2e, médianes de 3-5 rounds) — à lire **par page**, pas en total : c'est le régime
+  établi (pages 2-3) qui porte le verdict, la page 1 payant le chargement des poids.
+  Découpage marginal E4B texte à 40/42 blocs (0,2 GiB en RAM) : **0,88 → 1,33 s/page (×1,51**, de
+  ×1,21 à ×1,51 selon la campagne), page 1 inchangée (5,5 s). E4B vision à 31/42 (1,2 GiB) :
+  **1,12 → 1,89 s/page (×1,69)**, page 1 5,9 s. Le E4B **plein** en vision, lui, garde un débit
+  intact (1,12 s/page, aussi rapide que le texte) mais paie **95,5 s sur sa première page** dans
+  deux rounds sur trois (5,3 s quand la carte se trouve libre) : c'est `--vram-budget-mib 8192`,
+  qui déclare 7,2 GiB utilisables là où ~5,2 GiB sont libres — `detect_budget` ne plafonne au
+  VRAM réellement libre que **sans** budget explicite, donc le chargement lui-même pagine. Aucun
+  débit perdu, ~90 s de démarrage : le total 9,7 s (découpé) contre 97,9 s (plein) sur 3 pages
+  est donc un écart de **coût fixe**, égalité vers **~117 pages** (95,5 + 1,12 n contre
+  5,9 + 1,89 n). Le découpage reste plus régulier (étendue ×1,24-1,31 contre ×6,5-16,8). MoE
+  26B-A4B à 70 % des poids en RAM : 4,86 s/page en texte (×5,5 le E4B plein) et 5,68 s/page en
+  vision (×5,1), page 1 13,7 s / 50,9 s — chemin « gros modèle sur petite carte » réel, jamais
+  un gain de vitesse. Qualité, 8 segments réels JA→FR : **7/8 sorties identiques au caractère
+  près** entre E4B plein et E4B découpé (l'écart restant est une paraphrase valide) ; le 26B
+  diffère sur 7/8, jamais de français cassé.
+  **Banc réel de débit/qualité** dans `../bench-offload` (`run_bench.py`, `recheck.py`,
+  `results.py` → `results.md`, verdict `README.md`) : RTX 3070 8 GiB occupée, 3 pages, 8 segments
+  JA→FR ; E4B plein vs 40/42 et 26B-A4B à 7/30 en vision. Régime établi : 0,88 → 1,33 s/page
+  (+51 %) pour E4B texte à 40/42, 1,12 → 1,89 s/page (+69 %) pour E4B vision à 31/42.
+  26B-A4B à 70 % des poids CPU : 5,68 s/page en vision. Qualité : 7/8 sorties E4B identiques,
+  l'écart restant est une paraphrase valide ; 26B différent sur 7/8. Limites : fixture de 3 pages,
+  pas de vraie évaluation qualité ; pas de référence 26B tout-GPU. Le banc a nécessité deux flags
+  au binaire de dev `crates/koharu-translator/src/bin/translate.rs` (`--no-vision`, `--gpu-layers`).
+  **Garde-fou livré ensuite** : `resolve_model` refuse un split qui laisse strictement plus de la
+  moitié des blocs sur CPU ; exactement la moitié reste autorisée. Sur le cas 31B/8 GiB, l'erreur
+  indique « 41/60 blocks on the CPU », prévient que cela peut durer des minutes par page et
+  recommande un modèle plus petit. `--force` reste l'opt-in pour essayer de charger le modèle
+  entier. À 16 GiB, le split 45/60 GPU est encore accepté. Tests du seuil (15/30 vs 16/30), du
+  message CLI et du contournement `--force` passés ; `cargo fmt --all -- --check`, tests ciblés,
+  `cargo clippy -p koharu-pipeline --lib -- -D warnings`, `git diff --check` verts. Dry-runs
+  du binaire reconstruit : budget 8 GiB → refus exit 1 ; budget 16 GiB → accepté exit 0. Docs
+  mises à jour dans `en/fork.mdx` et `en/guides/batch.mdx`. Le budget VRAM explicite reste pris
+  à sa valeur déclarée (peut excéder le VRAM libre).
+
 - **Premier run réel `--llm hy-mt2-1.8b` de bout en bout** (2026-10-08) : banc e2e
   `D:/Codex/e2e-in/chapter-test.cbz` (3 pages) → `D:/Codex/e2e-out/hymt2-test-fr.cbz`
   (`--store D:/Codex/koharu/store --json …`, sans `--deterministic` pour garder le
@@ -250,6 +310,15 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   qu'aucun n'existe encore (seules les clés Tauri sont présentes).
 
 ## Décisions tranchées (ne pas rouvrir sans re-mesurer sur la cible)
+
+- **Offload partiel (2026-10-10)** : `auto` **ne découpe jamais** — il continue de descendre
+  `AUTO_PRIORITY` jusqu'à un modèle qui tient entier (liste et plancher 2 B réglés pour la
+  vitesse ; découper `auto` reviendrait à toujours prendre le 31 B lent) ; un `--llm` explicite
+  sur budget est découpé sans le lui demander ; `--force` = modèle entier, budget ignoré ;
+  `--cpu` = tout sur le CPU. Le partage est **proportionnel** (pas de taille par bloc, llama.cpp
+  déplace des blocs entiers et garde le tenseur de sortie sur l'accélérateur) : chiffres de
+  planification, comme les estimations de VRAM. Les `layers` du catalogue sont des `block_count`
+  lus dans les GGUF épinglés, pas des estimations à recalibrer.
 
 - **Règle du mode volume** : ≥1 image au premier niveau ⇒ un chapitre (sous-dossiers ignorés) ;
   `--recursive` ⇒ arbre entier aplati en un chapitre ; sinon sous-dossiers + .cbz = volume ;
