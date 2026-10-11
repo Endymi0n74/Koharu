@@ -12,6 +12,21 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Livré (sessions récentes)
 
+- **Déport partiel étendu à `--llm auto`** (2026-10-11) : `auto` n'attend plus un modèle qui
+  tient entier — `resolve_auto_with` prend le premier candidat d'`AUTO_PRIORITY` que le budget
+  peut *exécuter*, entier ou déporté (plan viable gardant ≥ la moitié des blocs sur le GPU) ;
+  un split majoritairement CPU fait sauter le candidat et la liste continue. `AutoChoice`
+  porte maintenant `offload: Option<OffloadPlan>` ; le warning « expect slower pages »
+  s'affiche côté CLI et le split voyage jusqu'au rapport/JSON par le chemin déjà en place.
+  Décision utilisateur (question posée) : préférer le plus fort déporté au plus petit entier
+  (12 GiB → 31 B 32/60, 8 GiB → repli 12 B 39/48, 2 GiB → refus). Message de refus `auto`
+  réécrit (« runs within the VRAM budget … nothing fits whole and every split would leave
+  most blocks on the CPU »). Docs `en/fork.mdx` (table auto + *Partial offload*) et
+  `en/guides/batch.mdx` ; tests preset réalignés (split vs entier par palier) + nouveau test
+  cli `auto_refuses_a_pick_below_the_quality_floor_unless_forced` (crowded 2,25 GiB).
+  Vérifié : fmt, tests translator (preset 23) et pipeline cli (25), clippy `-D warnings`,
+  dry-runs réels : 12288 MiB → 31 B déporté 32/60 + JSON `offload`, 8192 MiB → repli
+  12 B 39/48, 2048 MiB → refus nommant `--cpu`.
 - **Offload partiel des couches à la place du refus de budget VRAM** (2026-10-10) : un `--llm`
   explicite dont l'empreinte estimée dépasse le budget n'est plus refusé — `koharu-batch` garde
   sur le GPU autant de blocs que le budget en tient et exécute le reste depuis la RAM hôte
@@ -311,11 +326,16 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 
 ## Décisions tranchées (ne pas rouvrir sans re-mesurer sur la cible)
 
-- **Offload partiel (2026-10-10)** : `auto` **ne découpe jamais** — il continue de descendre
-  `AUTO_PRIORITY` jusqu'à un modèle qui tient entier (liste et plancher 2 B réglés pour la
-  vitesse ; découper `auto` reviendrait à toujours prendre le 31 B lent) ; un `--llm` explicite
-  sur budget est découpé sans le lui demander ; `--force` = modèle entier, budget ignoré ;
-  `--cpu` = tout sur le CPU. Le partage est **proportionnel** (pas de taille par bloc, llama.cpp
+- **Offload partiel (2026-10-10, extension `auto` 2026-10-11)** : `auto` préfère le modèle
+  **plus fort déporté** au modèle plus petit entier — `resolve_auto_with` prend le premier
+  candidat d'`AUTO_PRIORITY` que le budget peut *exécuter* (entier, ou déport viable gardant
+  ≥ la moitié des blocs sur le GPU) ; un split qui laisserait la majorité sur le CPU fait
+  **sauter** le candidat (la liste continue, `auto` ne démarre jamais un run minutes/page).
+  Décision explicite de l'utilisateur (2026-10-11, remplace « auto ne découpe jamais ») :
+  12 GiB → 31 B déporté 32/60, 8 GiB → repli 12 B déporté 39/48 ; le warning
+  « expect slower pages » s'affiche, `--llm <id>` reste la voie pour un modèle entier.
+  Un `--llm` explicite sur budget est découpé sans le lui demander ; `--force` = modèle
+  entier, budget ignoré ; `--cpu` = tout sur le CPU. Le partage est **proportionnel** (pas de taille par bloc, llama.cpp
   déplace des blocs entiers et garde le tenseur de sortie sur l'accélérateur) : chiffres de
   planification, comme les estimations de VRAM. Les `layers` du catalogue sont des `block_count`
   lus dans les GGUF épinglés, pas des estimations à recalibrer.

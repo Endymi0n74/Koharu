@@ -58,8 +58,9 @@ pub struct Arguments {
     pub provider: Provider,
 
     /// Translation model: with `--provider local`, a catalog id or `auto` —
-    /// the strongest model that fits the available VRAM (a big pick is
-    /// downloaded on the first run; a pick below the 2B quality floor
+    /// the strongest model the VRAM budget can run, fitting whole or through
+    /// a partial offload that keeps a majority of blocks on the GPU (a big
+    /// pick is downloaded on the first run; a pick below the 2B quality floor
     /// refuses unless `--force`). With a hosted provider, its model id;
     /// `auto` asks for the service without one, which only the model-less
     /// providers (DeepL and friends) accept.
@@ -439,10 +440,11 @@ pub fn detect_budget(arguments: &Arguments, device: &Device) -> Option<u64> {
 
 /// Resolves the translation choice: a hosted provider as configured (no
 /// budget, no download — its weights live elsewhere), or the local LLM —
-/// `auto` scans the preference list and refuses a pick below the quality
-/// floor unless `--force`, an explicit id over the VRAM budget is split
-/// between the card and the CPU when at least half its blocks remain on the
-/// GPU. A more CPU-heavy split refuses unless `--force` loads it whole.
+/// `auto` scans the preference list for the strongest model the budget can
+/// run, taking a partial offload when the split keeps at least half its
+/// blocks on the GPU, and refusing a pick below the quality floor unless
+/// `--force`. An explicit id over the VRAM budget is split the same way; a
+/// more CPU-heavy split refuses unless `--force` loads it whole.
 /// Both local paths use the real measurements recorded by previous runs when
 /// available.
 pub fn resolve_model(
@@ -462,7 +464,9 @@ pub fn resolve_model(
         let vision = !arguments.no_vision;
         let Some(choice) = preset::resolve_auto_with(budget, vision, measurements) else {
             bail!(
-                "no local translation model fits the VRAM budget {}",
+                "no local translation model runs within the VRAM budget {} — nothing fits \
+                 whole and every split would leave most blocks on the CPU; free VRAM or use \
+                 --cpu with an explicit --llm",
                 gib(budget)
             );
         };
@@ -471,13 +475,14 @@ pub fn resolve_model(
         {
             if !arguments.force {
                 bail!(
-                    "the strongest model fitting the VRAM budget {} is {} {} ({parameters}B), \
-                     below the {}B quality floor for usable translations: free VRAM, pass an \
+                    "the strongest model running within the VRAM budget {0} is {1} {2} ({3}B), \
+                     below the {4}B quality floor for usable translations: free VRAM, pass an \
                      explicit --llm <id> (--force skips its budget check), translate on CPU \
                      (--cpu with --llm), or --force to accept the small automatic pick",
                     gib(budget),
                     choice.model,
                     choice.quantization,
+                    parameters,
                     preset::AUTO_QUALITY_FLOOR_B,
                 );
             }
@@ -485,6 +490,16 @@ pub fn resolve_model(
                 "warning: --force accepts the small automatic pick {} {} ({parameters}B); \
                  expect repetitive translations until the GPU fits a larger model",
                 choice.model, choice.quantization,
+            );
+        }
+        // A split automatic pick is announced like an explicit one: the run
+        // is about to be slower than the model's estimate suggests.
+        if let Some(plan) = choice.offload {
+            eprintln!(
+                "warning: estimated {} exceeds the VRAM budget {}; running a partial offload \
+                 — {plan} — expect slower pages",
+                choice.estimate.display(),
+                gib(budget),
             );
         }
         return Ok(Resolved {
@@ -495,9 +510,7 @@ pub fn resolve_model(
             download: download_bytes(choice.model, choice.quantization, vision)?,
             vision,
             reasoning: preset::descriptor_for(choice.model).is_some_and(preset::is_reasoning),
-            // `auto` picks a model that fits whole, so it never spills: the
-            // preference list exists to keep a slow split off the default run.
-            offload: None,
+            offload: choice.offload,
         });
     }
 
@@ -924,9 +937,10 @@ mod tests {
     #[test]
     fn auto_refuses_a_pick_below_the_quality_floor_unless_forced() {
         let arguments = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
-        // 2.5 GiB sits above the 0.8B tail pick (≈2.3 GiB) and below every
-        // 2B configuration (≈3.0 GiB), so only the sub-floor model fits.
-        let crowded = 2 * 1024 * 1024 * 1024 + 512 * 1024 * 1024;
+        // 2.25 GiB sits below every 2B configuration's viable split (the
+        // 2B pair needs ≈2.43 GiB for a majority-on-GPU plan) and above the
+        // 0.8B tail pick, so only the sub-floor model can run.
+        let crowded = 2 * 1024 * 1024 * 1024 + 256 * 1024 * 1024;
         let error = resolve_model(&arguments, Some(crowded), &MeasuredPeaks::new())
             .expect_err("an automatic pick below the floor refuses without --force");
         let message = error.to_string();
@@ -951,8 +965,12 @@ mod tests {
             Some(6 * 1024 * 1024 * 1024),
             &MeasuredPeaks::new(),
         )
-        .expect("6 GiB fits a model above the floor");
-        assert_eq!(resolved.model.as_deref(), Some("gemma4-e4b-it"));
+        .expect("6 GiB runs a model above the floor");
+        assert_eq!(resolved.model.as_deref(), Some("gemma4-12b-uncensored"));
+        assert!(
+            resolved.offload.is_some(),
+            "the 12B exceeds 6 GiB and carries its split"
+        );
     }
 
     #[test]
