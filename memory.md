@@ -318,11 +318,22 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
 - **CI** : step *Typecheck UI* dans `lint.yml` + `typecheck` dans `@koharu/app`, smoke tests
   `--dry-run` **et mode volume** (dossier `ch1` + sous-dossier imbriqué `Vol/Ch2`, assertion sur
   les labels du JSON) dans `koharu-batch.yml`.
-- **Release** : `lto = "thin"` dans le profil release ; tag **`v0.83.5`** publié ; job **macOS
-  désactivé** dans `release.yml` (secrets Apple absents) — les 5 secrets requis
-  (`BUILD_CERTIFICATE_BASE64`, `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`,
-  `APPLE_TEAM`) sont listés dans le commentaire de la matrice (2026-10-02) ; vérifié par API
-  qu'aucun n'existe encore (seules les clés Tauri sont présentes).
+- **Release** : `lto = "thin"` dans le profil release ; job **macOS désactivé** dans
+  `release.yml` (secrets Apple absents) — les 5 secrets requis (`BUILD_CERTIFICATE_BASE64`,
+  `KEYCHAIN_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM`) sont listés dans le
+  commentaire de la matrice (2026-10-02) ; vérifié par API qu'aucun n'existe encore (seules les
+  clés Tauri sont présentes).
+- **`scripts/release.ts` tolère le préfixe `v` de git-cliff** (2026-10-11, piège rencontré sur
+  v0.85.0) : git-cliff renvoie `v0.85.0` (il épouse le préfixe des tags existants, `tag_pattern`
+  accepte les deux formes) mais `[workspace.package]` veut le semver nu — l'ancien script
+  écrivait `version = "v0.85.0"` et `cargo metadata` plantait, laissant Cargo.toml corrompu sur
+  disque. Maintenant : `version` = sans `v` pour Cargo, `tag` = `v` + version pour le commit
+  `chore(release):` et le tag — seul `v*` déclenche `release.yml` (un tag nu `0.85.0` ne
+  déclenche rien, il a fallu le recréer à la main sur v0.85.0). Validation `x.y.z` en amont
+  (exit 1, aucun fichier touché) et le changelog est régénéré après le tag : son lien
+  `compare/v0.84.0..v0.85.0` reprend le nom du tag — régénérer après un renommage de tag sinon
+  le lien porte l'ancien nom. Testé de bout en bout dans un dépôt jetable (sans argument,
+  argument nu, argument `v`, entrée invalide).
 
 ## Décisions tranchées (ne pas rouvrir sans re-mesurer sur la cible)
 
@@ -1049,9 +1060,10 @@ binaire GOOD termine le chapitre 33 pages (1148 s, 0 échec). Artefacts bisect :
 
 | Workflow | Déclencheur | État |
 |---|---|---|
-| `build.yml` / `test.yml` | push `main` | verts (2026-10-02) |
+| `build.yml` | push `main` | vert (2026-10-11) |
+| `test.yml` | push `main` | **rouge depuis d8d86ff6** (2026-10-10) : `E0063 missing field \`gpu_layers\`` dans le helper `selection()` du test de [koharu-app] batch.rs — le commit v0.84.0 avait ajouté le champ à `ModelSelection` sans initialiser l'app (qui ne planifie jamais de split) ; fix local `gpu_layers: None` + `cargo check --workspace --tests` vert (2026-10-11), **non commité** |
 | `koharu-batch.yml` | `main` + tag | vert (2026-10-02) : smokes `models` + `prune --delete` sur les sous-commandes **validés en CI réel**, + smoke `bun scripts/bench-cross.ts --plan` |
-| `lint.yml` | push `main` | vert (2026-10-02) après deux fixes : typecheck scripts sous TypeScript 7 (`1158e6e3`) et clippy Linux `determinism.rs` (`e5624756`) + guard `bun scripts/check-path-portability.ts` (bannit les littéraux `Path::new(r"C:\...")` — piège du fix `3cd290b9`) |
+| `lint.yml` | push `main` | **rouge de ed9fc5b3 (2026-10-08) au fix du 2026-10-11** : clippy `-D deprecated` sur les 147 `std::f64::NAN` du fichier **généré** `koharu-torch/src/wrappers/tensor_fallible_generated.rs`. Le générateur (codegen tch-rs/ocaml-torch) n'est **pas dans ce dépôt** — les wrappers sont committés tels quels, avec un `#![allow(clippy::all)]` qui ne couvre pas le lint rustc `deprecated`. Fix : `#[allow(deprecated)]` sur la déclaration du module dans `wrappers/mod.rs` (fichier écrit à la main, surface d'action légitime sans toucher au généré), `cargo clippy --workspace -- -D warnings` vert. Le jour où le fork régénérera les wrappers, vérifier si l'upstream a migré sur `f64::NAN` (associated const) et retirer l'allow. Vert avant : typecheck scripts sous TypeScript 7 (`1158e6e3`), clippy Linux `determinism.rs` (`e5624756`), guard `bun scripts/check-path-portability.ts` |
 | `release.yml` | tag `v*` | Windows / Ubuntu / ARM ✅ ; macOS désactivé |
 
 **Release = tag `v*` déclenche `release.yml`.** Pousser sur `main` ne publie rien.
