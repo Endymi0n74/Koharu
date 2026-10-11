@@ -333,7 +333,9 @@ Règles durables : [`AGENTS.md`](AGENTS.md). Ici : état du projet, décisions t
   (exit 1, aucun fichier touché) et le changelog est régénéré après le tag : son lien
   `compare/v0.84.0..v0.85.0` reprend le nom du tag — régénérer après un renommage de tag sinon
   le lien porte l'ancien nom. Testé de bout en bout dans un dépôt jetable (sans argument,
-  argument nu, argument `v`, entrée invalide).
+  argument nu, argument `v`, entrée invalide), puis **validé en conditions réelles sur la
+  release v0.86.0** (2026-10-11, argument `v0.86.0` passé à la main : flux complet sans accroc,
+  Release CI 3/3 jobs verts, 16 artefacts attachés, `latest.json` à jour).
 
 ## Décisions tranchées (ne pas rouvrir sans re-mesurer sur la cible)
 
