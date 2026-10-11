@@ -1,3 +1,16 @@
+## [0.86.0](https://github.com/Endymi0n74/Koharu/compare/v0.85.0..v0.86.0) - 2026-10-11
+
+### 🐛 Bug Fixes
+
+- *(app)* Initialize gpu_layers in the batch test selection helper - ([e0fb1c3](https://github.com/Endymi0n74/Koharu/commit/e0fb1c3b3f16dd54bdc3b8124661d24d82f9e484))
+- *(scripts)* Strip git-cliff's v prefix in the release version - ([b56d9f6](https://github.com/Endymi0n74/Koharu/commit/b56d9f61b65e1aa1666102619dd6de0aba15b6b5))
+- *(torch)* Exempt generated tensor wrappers from rustc deprecation lint - ([1f543e6](https://github.com/Endymi0n74/Koharu/commit/1f543e6592871222149cb78b3f8ad73b8b4683c4))
+
+### 📚 Documentation
+
+- *(memory)* Marque les fixes Test et release.ts comme committés - ([494a948](https://github.com/Endymi0n74/Koharu/commit/494a948829786c6e78d910662a21e87a5e6bbba8))
+
+
 ## [0.85.0](https://github.com/Endymi0n74/Koharu/compare/v0.84.0..v0.85.0) - 2026-10-11
 
 ### ⛰️  Features
