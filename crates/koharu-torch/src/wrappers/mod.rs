@@ -15,5 +15,10 @@ pub(crate) mod optimizer;
 pub(crate) mod scalar;
 pub(crate) mod stream;
 pub(crate) mod tensor;
+// The generated tensor wrappers stay byte-identical to the upstream tch-rs
+// codegen, whose `allow(clippy::all)` silences only clippy: its `std::f64::NAN`
+// defaults trip rustc's `deprecated` under CI's `-D warnings`. Exempting the
+// module here keeps the generated files untouched for the next upstream sync.
+#[allow(deprecated)]
 pub(crate) mod tensor_fallible_generated;
 pub(crate) mod tensor_generated;
