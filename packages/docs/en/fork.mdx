@@ -121,34 +121,38 @@ Recommendation for an 8 GB card:
 
 ### Larger GPUs: what `--llm auto` picks
 
-`auto` walks the preference list from the largest model down and takes the first one that fits,
-so a card with more VRAM gets a stronger translation model instead of the 8 GB recommendation.
-The *download* column is what the configuration needs in the store (weights plus vision
-projector); the *VRAM* column is the peak it has to fit. Both are reported in GiB, as in the
-CLI output. Only the 8 GiB row is a measured peak — the larger ones come from the
-parameter/quantization formula until a real run calibrates them, so treat them as planning
-figures and let `--dry-run` confirm the plan.
+`auto` walks the preference list from the largest model down and takes the first one the budget
+can *run*: whole when it fits, through a partial offload when the split keeps **at least half its
+blocks on the GPU** (see *Partial offload* below). A card slightly too small for the 31B gets the
+31B split instead of stepping down to the 12B — a stronger model at the price of slower pages,
+announced by a warning before the run starts. The *VRAM* column is the peak the configuration
+has to fit, reported in GiB as in the CLI output. Only the E4B row (5 GiB card) is a measured
+peak — the others come from the parameter/quantization formula until a real run calibrates
+them, so treat them as planning figures and let `--dry-run` confirm the plan.
 
-| Card | Model | Quantization | Download | VRAM peak |
+| Card | Model | Quantization | Split | VRAM peak |
 |---|---|---|---|---|
-| 8 GiB | gemma4-e4b-uncensored | Q4_K_P | ≈5.3 GiB | 6.3 GiB (measured) |
-| 12 GiB | gemma4-12b-uncensored | Q4_K_M | ≈7.3 GiB | 8.3 GiB (estimated) |
-| 20 GiB | gemma4-26b-a4b-uncensored | Q4_K_M | ≈14.7 GiB | 15.7 GiB (estimated) |
-| 24 GiB and up | gemma4-31b-uncensored | Q4_K_M | ≈17.4 GiB | 18.4 GiB (estimated) |
+| 5 GiB | gemma4-e4b-uncensored | Q4_K_P | 24/42 blocks on the GPU | 6.3 GiB (measured) |
+| 6 GiB | gemma4-12b-uncensored | Q4_K_M | 26/48 blocks on the GPU | 8.3 GiB (estimated) |
+| 8 GiB | gemma4-12b-uncensored | Q4_K_M | 39/48 blocks on the GPU | 8.3 GiB (estimated) |
+| 12 GiB | gemma4-31b-uncensored | Q4_K_M | 32/60 blocks on the GPU | 18.4 GiB (estimated) |
+| 20 GiB | gemma4-31b-uncensored | Q4_K_M | 58/60 blocks on the GPU | 18.4 GiB (estimated) |
+| 24 GiB and up | gemma4-31b-uncensored | Q4_K_M | — (fits whole) | 18.4 GiB (estimated) |
 
-Below 8 GiB the list steps down to the instruct 4B, then to the 2B tier — the gemma E2B first,
-and on a card whose measured E2B no longer fits the budget, the Qwen 2B pair (`qwen3.5-2b-uncensored`,
+Below 5 GiB the list keeps stepping down the same way — a split E4B instruct, then the
+measured E2B instruct, the uncensored E2B, the Qwen 2B pair (`qwen3.5-2b-uncensored`,
 then `qwen3.5-2b`, picked from their static estimate until the first run calibrates them) — and
-finally a 0.8B generalist, and a card too small for any vision model makes `auto` refuse instead of
-guessing (pass `--llm` explicitly with `--force`, or `--cpu`). An unforced pick is refused as well while it stays below
-the 2B quality floor: a sub-2B model fits a busy card, yet it renders dialogue into repetitive
-filler, so the run stops with the ways out spelled out (free VRAM, an explicit `--llm`, `--cpu`,
-or `--force` accepting the small pick).
+finally a 0.8B generalist. A card too small for any viable split makes `auto` refuse instead of
+guessing (pass `--llm` explicitly with `--force`, or `--cpu`). An unforced pick is refused as
+well while it stays below the 2B quality floor: a sub-2B model fits a busy card, yet it renders
+dialogue into repetitive filler, so the run stops with the ways out spelled out (free VRAM, an
+explicit `--llm`, `--cpu`, or `--force` accepting the small pick).
 
-The automatic pick never spills: it walks the list until a model fits the card *whole*, because
-the stepping above is tuned for speed. Asking for a model that does not fit is a different
-intent, and `--llm <id>` answers it by splitting the model when at least half its blocks stay on
-the GPU — see *Partial offload* below.
+A candidate whose split would leave **most** of its blocks in host memory is skipped the same way
+a model too large for the card always was: the list continues down to the next runnable entry, so
+`auto` never starts a run that would take minutes per page. When speed matters more than quality,
+pin the model that fits whole with `--llm <id>` — `auto` now trades speed for a stronger model
+by default whenever the split stays viable.
 
 Because `auto` can now select a model that is not in the store yet, the run prints what it
 picked together with the download it implies, and warns explicitly when the choice needs more
@@ -183,9 +187,11 @@ reading or writing it (reference estimates, nothing recorded).
 
 ### Partial offload
 
-An explicit model that does not fit the budget is split between the card and the CPU when the
-plan keeps **at least half its transformer blocks on the GPU**. If the plan would leave most of
-the model in host memory, `koharu-batch` refuses before loading the weights: CPU-resident blocks
+A model that does not fit the budget — picked explicitly with `--llm <id>`, or chosen by `auto` —
+is split between the card and the CPU when the
+plan keeps **at least half its transformer blocks on the GPU**. For `auto` a CPU-heavy split
+instead skips that candidate and continues down the preference list; for an explicit pick,
+`koharu-batch` refuses before loading the weights: CPU-resident blocks
 make decoding so slow that pages can take minutes. Pick a smaller model instead. `--force`
 explicitly bypasses the budget check and tries to load the model **whole** on the GPU; it can fail
 if there is not enough VRAM. For a split that stays above the threshold, the warning and model

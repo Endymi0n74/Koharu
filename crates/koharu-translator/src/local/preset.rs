@@ -271,16 +271,23 @@ fn projector_bytes(descriptor: &LocalModelDescriptor, vision: bool) -> u64 {
     u64::from(vision && descriptor.projector.is_some()) * VISION_PROJECTOR_BYTES
 }
 
-/// A local model configuration that fits a VRAM budget.
+/// A local model configuration that runs within a VRAM budget: either it
+/// fits whole, or it carries the partial offload that makes it fit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AutoChoice {
     pub model: &'static str,
     pub quantization: &'static str,
     pub estimate: VramEstimate,
+    /// How the configuration is split when it exceeds the budget; `None`
+    /// when every block stays on the accelerator.
+    pub offload: Option<OffloadPlan>,
 }
 
-/// Preference order for `--llm auto`: the strongest model that fits the budget
-/// wins, so a large card is not held back by the 8 GB recommendation. Within
+/// Preference order for `--llm auto`: the strongest model the budget can run
+/// wins — fitting whole, or split by a partial offload that keeps a majority
+/// of its blocks on the GPU (see [`offload_plan`]) — so a large card is not
+/// held back by the 8 GB recommendation and a card slightly too small for a
+/// model still gets it instead of a step down. Within
 /// one size the uncensored variant comes first (manga dialogue is the target
 /// workload), then the instruct build — the unsloth `-it` models are Google's
 /// official QAT releases, so the instruct entries already carry quantization-
@@ -321,15 +328,23 @@ pub const AUTO_QUALITY_FLOOR_B: f64 = 2.0;
 
 /// Selects the best local model for `budget` (usable bytes, already margin-trimmed).
 ///
-/// `vision` skips models without a projector. Returns `None` when nothing fits.
+/// `vision` skips models without a projector. Returns `None` when nothing
+/// runs on the budget — neither whole nor through a viable partial offload.
 #[must_use]
 pub fn resolve_auto(budget: u64, vision: bool) -> Option<AutoChoice> {
     resolve_auto_with(budget, vision, &MeasuredPeaks::new())
 }
 
 /// [`resolve_auto`] against a table of real measurements, so a model that
-/// measured over the budget on this machine is skipped in favor of the next
-/// candidate that did fit.
+/// measured over the budget on this machine is split — or skipped when its
+/// split would leave most blocks on the CPU — in favor of the next candidate.
+///
+/// The strongest candidate wins: one that fits whole is picked as-is, and
+/// one that only fits split carries the [`OffloadPlan`] to run it, so a card
+/// slightly too small for the 31B gets the 31B instead of the 12B. A
+/// candidate with no useful split (the excess is larger than its weights) or
+/// one that would leave a majority of its blocks in host memory is skipped
+/// the same way a whole-fit candidate further down the list would be.
 #[must_use]
 pub fn resolve_auto_with(
     budget: u64,
@@ -351,13 +366,23 @@ pub fn resolve_auto_with(
                 return None;
             }
             let estimate = estimate_vram_with(descriptor, Some(quantization), vision, measurements);
+            let offload = if estimate.bytes <= budget {
+                None
+            } else {
+                let plan = offload_plan(descriptor, Some(quantization), estimate, budget)?;
+                if plan.leaves_majority_on_cpu() {
+                    return None;
+                }
+                Some(plan)
+            };
             Some(AutoChoice {
                 model,
                 quantization,
                 estimate,
+                offload,
             })
         })
-        .find(|choice| choice.estimate.bytes <= budget)
+        .next()
 }
 
 /// Physical VRAM of the reference machine, trimmed by [`BUDGET_MARGIN`].
@@ -689,23 +714,44 @@ mod tests {
     }
 
     #[test]
-    fn auto_grows_with_the_card_up_to_the_largest_model_that_fits() {
+    fn auto_grows_with_the_card_up_to_the_strongest_model_it_can_run() {
+        // The strongest candidate the budget can run wins: whole when it
+        // fits, through a partial offload when the split keeps a majority of
+        // its blocks on the GPU. A card slightly too small for the 31B gets
+        // the 31B split instead of stepping down to the 12B.
         let expected = [
-            (8, "gemma4-e4b-uncensored"),
-            (12, "gemma4-12b-uncensored"),
-            (20, "gemma4-26b-a4b-uncensored"),
-            (24, "gemma4-31b-uncensored"),
-            (48, "gemma4-31b-uncensored"),
+            (8, "gemma4-12b-uncensored", true),
+            (12, "gemma4-31b-uncensored", true),
+            (20, "gemma4-31b-uncensored", true),
+            (24, "gemma4-31b-uncensored", false),
+            (48, "gemma4-31b-uncensored", false),
         ];
-        for (gib, model) in expected {
+        for (gib, model, split) in expected {
             let budget = budget_from_total(gib * GIB);
             let choice = resolve_auto(budget, true)
-                .unwrap_or_else(|| panic!("{gib} GiB fits a vision model"));
-            assert_eq!(choice.model, model, "a {gib} GiB card must not step down");
-            assert!(
-                choice.estimate.bytes <= budget,
-                "the auto pick must respect the budget"
+                .unwrap_or_else(|| panic!("{gib} GiB can run a vision model"));
+            assert_eq!(
+                choice.model, model,
+                "a {gib} GiB card must not settle for a weaker model"
             );
+            assert_eq!(
+                choice.offload.is_some(),
+                split,
+                "{gib} GiB must split exactly when the pick exceeds the budget"
+            );
+            match choice.offload {
+                Some(plan) => {
+                    assert!(
+                        !plan.leaves_majority_on_cpu(),
+                        "the automatic split must keep a majority of blocks on the GPU"
+                    );
+                    assert!(choice.estimate.bytes > budget);
+                }
+                None => assert!(
+                    choice.estimate.bytes <= budget,
+                    "a whole pick must respect the budget"
+                ),
+            }
         }
     }
 
@@ -737,39 +783,39 @@ mod tests {
     }
 
     #[test]
-    fn auto_selects_the_uncensored_e4b_on_an_eight_gib_card() {
-        let budget = budget_from_total(8 * GIB);
-        let choice = resolve_auto(budget, true).expect("an 8 GiB card fits a local model");
+    fn auto_prefers_a_stronger_split_over_a_smaller_model_that_fits() {
+        // A split pick only appears where it beats the next whole fit: at
+        // 8 GiB the 12B at 39/48 outranks the E4B that would fit whole, and
+        // each step down keeps the strongest candidate the budget can run.
+        let choice = resolve_auto(budget_from_total(8 * GIB), true)
+            .expect("an 8 GiB card can run a split model");
+        assert_eq!(choice.model, "gemma4-12b-uncensored");
+        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(39));
+
+        let choice =
+            resolve_auto(budget_from_total(5 * GIB), true).expect("5 GiB can split a vision model");
         assert_eq!(choice.model, "gemma4-e4b-uncensored");
-        assert_eq!(choice.quantization, "Q4_K_P");
+        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(24));
 
-        // A tighter budget steps down the priority list: at 5 GiB the
-        // uncensored E4B (≈5.7 GiB with vision) no longer fits and the
-        // instruct E4B (≈4.5 GiB, formula-estimated) takes over.
-        let choice =
-            resolve_auto(budget_from_total(5 * GIB), true).expect("5 GiB fits a vision model");
+        let choice = resolve_auto(budget_from_total(4 * GIB), true)
+            .expect("4 GiB can split a lean vision model");
         assert_eq!(choice.model, "gemma4-e4b-it");
+        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(30));
 
-        // Beyond the 8 GB recommendation the same stepping continues with the
-        // lean tail, so a busy card resolves a runnable vision model instead
-        // of refusing everything: measured E2B instruct (≈3.9 GiB) first, the
-        // uncensored E2B (≈3.0 GiB) below it, the 0.8B generalist (≈2.4 GiB)
-        // as the last resort.
-        let choice =
-            resolve_auto(budget_from_total(4 * GIB), true).expect("4 GiB fits a lean vision model");
-        assert_eq!(choice.model, "gemma4-e2b-uncensored");
-        assert_eq!(choice.quantization, "Q4_K_P");
         let choice = resolve_auto(budget_from_total(3 * GIB), true)
-            .expect("3 GiB fits the smallest vision model");
-        assert_eq!(choice.model, "qwen3.5-0.8b");
-        assert_eq!(choice.quantization, "Q4_K_XL");
+            .expect("3 GiB can still run the smallest 2B");
+        assert_eq!(choice.model, "gemma4-e2b-uncensored");
+        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(26));
 
-        // Below the smallest footprint nothing fits at all.
+        // Below the smallest footprint nothing runs at all: every split
+        // would leave a majority of the blocks in host memory.
         assert!(resolve_auto(budget_from_total(2 * GIB), true).is_none());
 
-        // Text-only still fits where vision cannot carry the projector.
-        let choice = resolve_auto(budget_from_total(4 * GIB), false).expect("text-only fits 4 GiB");
-        assert_eq!(choice.model, "gemma4-e4b-it");
+        // Text-only drops the projector and resolves further down the list.
+        let choice = resolve_auto(budget_from_total(4 * GIB), false)
+            .expect("text-only 4 GiB can still run a split");
+        assert_eq!(choice.model, "gemma4-e4b-uncensored");
+        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(24));
     }
 
     #[test]
@@ -994,7 +1040,7 @@ mod tests {
     }
 
     #[test]
-    fn auto_steps_down_when_the_measured_peak_exceeds_the_budget() {
+    fn a_measured_over_budget_model_is_split_or_outranked_never_run_whole() {
         let mut measurements = MeasuredPeaks::new();
         // The preferred model measured over this machine's usable budget.
         measurements.record(sample_peak(
@@ -1004,26 +1050,36 @@ mod tests {
         ));
         let budget = budget_from_total(8 * GIB);
         let choice =
-            resolve_auto_with(budget, true, &measurements).expect("the fallback still fits");
-        assert_ne!(
-            choice.model, "gemma4-e4b-uncensored",
-            "auto must skip a model that measured over budget"
+            resolve_auto_with(budget, true, &measurements).expect("a vision model can run");
+        assert_eq!(
+            choice.model, "gemma4-12b-uncensored",
+            "the measured-over model must not outrank a stronger runnable candidate"
         );
+        // Over budget means a plan, never a whole load: whatever auto picks
+        // at this budget carries its split.
+        let plan = choice
+            .offload
+            .expect("the strongest runnable candidate at 8 GiB is a split pick");
+        assert!(!plan.leaves_majority_on_cpu());
     }
 
     #[test]
-    fn a_calibrated_e2b_over_budget_falls_back_to_the_qwen_2b() {
+    fn a_calibrated_e2b_over_budget_falls_back_above_the_quality_floor() {
         let mut measurements = MeasuredPeaks::new();
         // The busy 8 GB card: the E2B measured over the squeezed budget, so
-        // the Qwen 2B pair answers before the sub-floor 0.8B ever comes up.
+        // auto answers with a stronger split above the 2B quality floor.
         measurements.record(sample_peak(
             "gemma4-e2b-uncensored",
             true,
             (5.25f64 * GIB as f64) as u64,
         ));
         let choice = resolve_auto_with(budget_from_total(4 * GIB), true, &measurements)
-            .expect("the Qwen 2B fits the busy budget");
-        assert_eq!(choice.model, "qwen3.5-2b-uncensored");
+            .expect("a runnable vision model answers");
+        assert_eq!(choice.model, "gemma4-e4b-it");
+        assert!(
+            choice.offload.is_some(),
+            "the pick exceeds the budget and carries its split"
+        );
         assert!(
             parameters_billion(choice.model)
                 .is_some_and(|parameters| parameters >= AUTO_QUALITY_FLOOR_B),
