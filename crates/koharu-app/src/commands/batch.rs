@@ -426,6 +426,9 @@ mod tests {
             quantization: quantization.map(str::to_owned),
             vision,
             reasoning: false,
+            // The app never plans a split: it leaves the field empty and the
+            // model loads whole.
+            gpu_layers: None,
         }
     }
 
