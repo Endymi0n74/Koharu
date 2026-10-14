@@ -4608,7 +4608,6 @@ dependencies = [
  "clap",
  "console",
  "koharu-app",
- "koharu-metrics",
  "log",
  "rfd",
  "sentry",
@@ -4660,7 +4659,6 @@ dependencies = [
  "image",
  "koharu-agent",
  "koharu-desktop",
- "koharu-metrics",
  "koharu-ml",
  "koharu-pipeline",
  "koharu-psd",
@@ -4801,26 +4799,6 @@ dependencies = [
  "koharu-bindgen",
  "libc",
  "libloading 0.9.0",
-]
-
-[[package]]
-name = "koharu-metrics"
-version = "0.83.5"
-dependencies = [
- "anyhow",
- "blake3",
- "libc",
- "parking_lot",
- "reqwest",
- "serde_json",
- "strum",
- "sys-locale",
- "sysinfo 0.39.6",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "url",
- "windows",
 ]
 
 [[package]]
@@ -9050,15 +9028,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
-]
-
-[[package]]
-name = "sys-locale"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4"
-dependencies = [
- "libc",
 ]
 
 [[package]]
