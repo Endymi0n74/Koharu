@@ -8,6 +8,7 @@ mod analysis;
 mod assets;
 mod groups;
 mod layers;
+mod profile;
 mod provenance;
 mod spatial;
 mod structure;
@@ -23,6 +24,7 @@ pub use layers::{
     FontStyle, RasterLayer, RasterLayerKind, TextAlignment, TextLayout, TextLayoutKind, Typography,
     WritingMode,
 };
+pub use profile::{DocumentProfile, ProfileTerm};
 pub use provenance::{Authored, Generation, Origin};
 pub use spatial::{Geometry, Point, Visibility};
 pub use structure::{EntityOrigin, Page, PageDraft, Project, Relation, RelationKind};

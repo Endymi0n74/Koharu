@@ -1,7 +1,13 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use koharu_scene::{Authored, LanguageTag, Origin, SourceText, Translation};
-use koharu_translator::{TranslationContext, TranslationRequest, Translator, normalize_segment};
+use koharu_scene::{
+    Authored, DocumentProfile, LanguageTag, Origin, ProfileTerm as SceneProfileTerm, SourceText,
+    Translation,
+};
+use koharu_translator::{
+    ProfileRequest, ProfileTerm, TranslationContext, TranslationProfile, TranslationRequest,
+    Translator, normalize_segment,
+};
 
 use crate::TranslationConfig;
 
@@ -16,6 +22,9 @@ const CONTEXT_LINES: usize = 12;
 /// Longest context line kept, so a single sprawling OCR block cannot crowd out
 /// the segments actually being translated.
 const CONTEXT_LINE_CHARS: usize = 160;
+/// Longest chapter text handed to the one profile call, in characters. Reading
+/// order is kept, so the analysis still sees the opening of the chapter.
+const PROFILE_MAX_CHARS: usize = 12_000;
 
 pub(super) struct Processor {
     config: TranslationConfig,
@@ -25,6 +34,51 @@ pub(super) struct Processor {
 impl Processor {
     pub(super) fn new(config: TranslationConfig, translator: Translator) -> Self {
         Self { config, translator }
+    }
+
+    /// The chapter dossier every page's request carries.
+    ///
+    /// A stored [`DocumentProfile`] wins; when the project has none yet (a
+    /// first batch run, say), the chapter's own OCR text is read once,
+    /// described by the translation model, and returned so the caller can
+    /// persist it. A failing analysis never fails the page: it is logged, and
+    /// the page is translated with continuity context alone.
+    async fn document_profile(
+        &self,
+        scene: &koharu_scene::Snapshot,
+        source_language: Option<koharu_translator::Language>,
+    ) -> Result<(Option<TranslationProfile>, Option<DocumentProfile>)> {
+        if let Some(stored) = scene.project_component::<DocumentProfile>()? {
+            let profile = to_translation_profile(&stored);
+            return Ok(((!profile.is_empty()).then_some(profile), None));
+        }
+        let segments = chapter_segments(scene)?;
+        if segments.is_empty() {
+            return Ok((None, None));
+        }
+        let mut request = ProfileRequest::new(segments, self.config.target_language);
+        if let Some(language) = source_language {
+            request = request.with_source_language(language);
+        }
+        match self
+            .translator
+            .profile(&self.config.model, self.config.generation, request)
+            .await
+        {
+            Ok(Some(profile)) => {
+                tracing::info!(
+                    characters = profile.characters.len(),
+                    glossary = profile.glossary.len(),
+                    "learned the chapter's document profile"
+                );
+                Ok((Some(profile.clone()), Some(to_document_profile(&profile))))
+            }
+            Ok(None) => Ok((None, None)),
+            Err(error) => {
+                tracing::warn!(%error, "document profile analysis failed; translating without it");
+                Ok((None, None))
+            }
+        }
     }
 }
 
@@ -65,6 +119,8 @@ impl StageProcessor for Processor {
                 }
             }
         }
+        let (profile, learned) = self.document_profile(&input.scene, source_language).await?;
+
         let mut request = TranslationRequest::new(
             targets.iter().map(|(_, source)| source.clone()),
             self.config.target_language,
@@ -73,6 +129,9 @@ impl StageProcessor for Processor {
             // OCR records the source language it recognized; telling the
             // translator avoids guessing it from the segments alone.
             request = request.with_source_language(language);
+        }
+        if let Some(profile) = profile {
+            request = request.with_profile(profile);
         }
         let context = chapter_context(&input.scene, input.page)?;
         if !context.is_empty() {
@@ -93,6 +152,11 @@ impl StageProcessor for Processor {
         let language = LanguageTag::new(self.config.target_language.tag())?;
         let generated = generation(PRODUCER, provider)?;
         let mut edit = input.scene.edit_as(generated.clone());
+        if let Some(learned) = learned {
+            // Persist the dossier so later pages, later runs, and the app all
+            // read the same profile instead of re-deriving it.
+            edit.set_project(&learned)?;
+        }
         for (entity, _) in &targets {
             edit.observe::<SourceText>(*entity)?;
             edit.observe::<Translation>(*entity)?;
@@ -169,6 +233,72 @@ fn clip(text: &str) -> String {
         clipped.push('…');
     }
     clipped
+}
+
+/// Reads the chapter's source text in reading order, bounded so the analysis
+/// prompt stays affordable on a long chapter.
+fn chapter_segments(scene: &koharu_scene::Snapshot) -> Result<Vec<String>> {
+    let mut segments = Vec::new();
+    let mut chars = 0_usize;
+    for page in scene.pages() {
+        let Some(group) = page.text_group()? else {
+            continue;
+        };
+        for layer in group.text_layers()? {
+            let content = layer.content()?;
+            let Some(source) = content.source()? else {
+                continue;
+            };
+            let text = source.text.value.trim();
+            if text.is_empty() {
+                continue;
+            }
+            chars += text.chars().count();
+            segments.push(text.to_owned());
+            if chars >= PROFILE_MAX_CHARS {
+                return Ok(segments);
+            }
+        }
+    }
+    Ok(segments)
+}
+
+fn to_translation_profile(profile: &DocumentProfile) -> TranslationProfile {
+    TranslationProfile {
+        series: profile.series.clone(),
+        synopsis: profile.synopsis.clone(),
+        register: profile.register.clone(),
+        characters: profile.characters.iter().map(to_translation_term).collect(),
+        glossary: profile.glossary.iter().map(to_translation_term).collect(),
+    }
+}
+
+fn to_translation_term(term: &SceneProfileTerm) -> ProfileTerm {
+    ProfileTerm {
+        source: term.source.clone(),
+        target: term.target.clone(),
+        note: term.note.clone(),
+    }
+}
+
+fn to_document_profile(profile: &TranslationProfile) -> DocumentProfile {
+    DocumentProfile {
+        // The pipeline stamp overwrites this with the edit's generation.
+        origin: Origin::User,
+        series: profile.series.clone(),
+        synopsis: profile.synopsis.clone(),
+        register: profile.register.clone(),
+        characters: profile.characters.iter().map(to_document_term).collect(),
+        glossary: profile.glossary.iter().map(to_document_term).collect(),
+    }
+}
+
+fn to_document_term(term: &ProfileTerm) -> SceneProfileTerm {
+    SceneProfileTerm {
+        source: term.source.clone(),
+        target: term.target.clone(),
+        note: term.note.clone(),
+    }
 }
 
 #[cfg(test)]
@@ -293,5 +423,102 @@ mod tests {
         let clipped = clip(&"a".repeat(CONTEXT_LINE_CHARS + 1));
         assert_eq!(clipped.chars().count(), CONTEXT_LINE_CHARS + 1);
         assert!(clipped.ends_with('…'));
+    }
+
+    #[test]
+    fn the_document_profile_round_trips_through_the_request_type() {
+        let profile = TranslationProfile {
+            series: Some("Musashino Shijin".to_owned()),
+            synopsis: Some("Un folkloriste.".to_owned()),
+            register: None,
+            characters: vec![ProfileTerm {
+                source: "柳田".to_owned(),
+                target: "Yanagita".to_owned(),
+                note: None,
+            }],
+            glossary: vec![ProfileTerm {
+                source: "貴族院".to_owned(),
+                target: "la Chambre des pairs".to_owned(),
+                note: Some("institution".to_owned()),
+            }],
+        };
+
+        assert_eq!(
+            to_translation_profile(&to_document_profile(&profile)),
+            profile
+        );
+    }
+
+    #[tokio::test]
+    async fn chapter_segments_read_every_page_in_order() {
+        let mut session = Session::memory().await.unwrap();
+        add_page(&mut session, "one", &[line("いち", None), line("に", None)]).await;
+        add_page(&mut session, "two", &[line("さん", Some("trois"))]).await;
+
+        assert_eq!(
+            chapter_segments(&session.snapshot()).unwrap(),
+            ["いち", "に", "さん"],
+            "the analysis pass sees the chapter's own text, translations or not"
+        );
+    }
+
+    fn processor() -> Processor {
+        let translator = Translator::from_config(
+            koharu_ml::device(true),
+            koharu_config::Config::memory(koharu_translator::ProvidersConfig::default()),
+        )
+        .unwrap();
+        Processor::new(TranslationConfig::default(), translator)
+    }
+
+    #[tokio::test]
+    async fn a_stored_document_profile_is_attached_without_re_running_the_analysis() {
+        let mut session = Session::memory().await.unwrap();
+        add_page(&mut session, "one", &[line("柳田先生", None)]).await;
+        let stored = DocumentProfile {
+            series: Some("Musashino Shijin".to_owned()),
+            characters: vec![SceneProfileTerm {
+                source: "柳田".to_owned(),
+                target: "Yanagita".to_owned(),
+                note: None,
+            }],
+            ..DocumentProfile::default()
+        };
+        let patch = session
+            .snapshot()
+            .patch(|edit| edit.set_project(&stored))
+            .unwrap();
+        session.commit(patch).await.unwrap();
+
+        let (profile, learned) = processor()
+            .document_profile(
+                &session.snapshot(),
+                Some(koharu_translator::Language::Japanese),
+            )
+            .await
+            .unwrap();
+
+        assert!(learned.is_none(), "a stored profile is never re-analyzed");
+        let profile = profile.expect("the stored profile reaches the request");
+        assert_eq!(profile.series.as_deref(), Some("Musashino Shijin"));
+        assert_eq!(profile.characters[0].target, "Yanagita");
+    }
+
+    #[tokio::test]
+    async fn an_empty_stored_document_profile_is_not_attached() {
+        let mut session = Session::memory().await.unwrap();
+        add_page(&mut session, "one", &[line("未翻訳", None)]).await;
+        let patch = session
+            .snapshot()
+            .patch(|edit| edit.set_project(&DocumentProfile::default()))
+            .unwrap();
+        session.commit(patch).await.unwrap();
+
+        let (profile, learned) = processor()
+            .document_profile(&session.snapshot(), None)
+            .await
+            .unwrap();
+
+        assert!(profile.is_none() && learned.is_none());
     }
 }

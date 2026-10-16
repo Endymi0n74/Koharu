@@ -1558,3 +1558,71 @@ async fn user_promotion_protects_generated_entity_and_relation_lifecycle() {
         Err(Error::Authorship(_))
     ));
 }
+
+#[tokio::test]
+async fn document_profile_persists_as_a_project_component() {
+    let mut session = Session::memory().await.unwrap();
+    let profile = DocumentProfile {
+        origin: Origin::User,
+        series: Some("Musashino Shijin".to_owned()),
+        synopsis: None,
+        register: Some("dialogue d'époque".to_owned()),
+        characters: vec![ProfileTerm {
+            source: "柳田國男".to_owned(),
+            target: "Yanagita Kunio".to_owned(),
+            note: Some("le folkloriste".to_owned()),
+        }],
+        glossary: vec![ProfileTerm {
+            source: "貴族院".to_owned(),
+            target: "la Chambre des pairs".to_owned(),
+            note: None,
+        }],
+    };
+    let patch = session
+        .snapshot()
+        .patch(|edit| edit.set_project(&profile))
+        .unwrap();
+    let commit = session.commit(patch).await.unwrap();
+
+    assert!(commit.changes.components.iter().any(|change| {
+        change.owner == ComponentOwner::Project && change.kind == DocumentProfile::KIND
+    }));
+    assert_eq!(
+        commit
+            .snapshot
+            .project_component::<DocumentProfile>()
+            .unwrap(),
+        Some(profile)
+    );
+}
+
+#[tokio::test]
+async fn document_profile_rejects_empty_and_oversized_values() {
+    let session = Session::memory().await.unwrap();
+
+    let half_terms = DocumentProfile {
+        glossary: vec![ProfileTerm {
+            source: "term".to_owned(),
+            target: String::new(),
+            note: None,
+        }],
+        ..DocumentProfile::default()
+    };
+    assert!(
+        session
+            .snapshot()
+            .patch(|edit| edit.set_project(&half_terms))
+            .is_err()
+    );
+
+    let oversized = DocumentProfile {
+        series: Some("x".repeat(5_000)),
+        ..DocumentProfile::default()
+    };
+    assert!(
+        session
+            .snapshot()
+            .patch(|edit| edit.set_project(&oversized))
+            .is_err()
+    );
+}
