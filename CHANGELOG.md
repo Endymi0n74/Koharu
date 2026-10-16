@@ -1,3 +1,18 @@
+## [0.87.0](https://github.com/Endymi0n74/Koharu/compare/v0.86.0..v0.87.0) - 2026-10-16
+
+### ⛰️  Features
+
+- *(translation)* Fiche de chapitre apprise, jointe à chaque page avec son glossaire - ([15b0380](https://github.com/Endymi0n74/Koharu/commit/15b0380916c78938f31ebf802458af71611b4e7c))
+
+### 📚 Documentation
+
+- *(memory)* Release v0.86.0 valide le fix release.ts en conditions réelles - ([8fcf2db](https://github.com/Endymi0n74/Koharu/commit/8fcf2db956c41f716d7b7f81745a2453fbe1de55))
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove sponsors workflow (100% failing, tokens absents) - ([d2e950a](https://github.com/Endymi0n74/Koharu/commit/d2e950a6d2d8ec04f371b70441da891ca48fdd1b))
+
+
 ## [0.86.0](https://github.com/Endymi0n74/Koharu/compare/v0.85.0..v0.86.0) - 2026-10-11
 
 ### 🐛 Bug Fixes
