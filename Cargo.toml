@@ -76,7 +76,7 @@ tokenizers = { version = "0.23.2", features = ["onig"] }
 strum = { version = "0.28.0", features = ["derive"] }
 sysinfo = { version = "0.39.6", features = ["system"] }
 rars = "0.10.0"
-zip = { version = "8.6.0", features = ["deflate"] }
+zip = { version = "9.0.2", features = ["deflate"] }
 dirs = "7.0.0"
 futures = "0.3.34"
 futures-channel = "0.3.34"
