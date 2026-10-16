@@ -13,8 +13,8 @@ pub use catalog::LocalModelDescriptor;
 pub(crate) use catalog::{DEFAULT_MODEL, DEFAULT_QUANTIZATION};
 
 use crate::{
-    Device, Error, GenerationConfig, Model, ModelSelection, Provider, Quantization, Result,
-    TranslationRequest, prompt, prompt::Translations,
+    Device, Error, GenerationConfig, Model, ModelSelection, ProfileRequest, Provider, Quantization,
+    Result, TranslationProfile, TranslationRequest, prompt, prompt::Translations,
 };
 
 #[derive(Debug)]
@@ -22,6 +22,10 @@ pub struct LocalTranslator {
     descriptor: LocalModelDescriptor,
     llm: Arc<Llm>,
 }
+
+/// Output budget for the one profile call a chapter makes. The response is a
+/// short JSON object, but a chapter with many characters and terms needs room.
+const PROFILE_OUTPUT_TOKENS: usize = 1024;
 
 impl LocalTranslator {
     pub async fn load(device: Device, selection: &ModelSelection) -> Result<Self> {
@@ -105,6 +109,35 @@ impl LocalTranslator {
         })
         .await?;
         Ok(prompt::translations("local", &output.text, request)?)
+    }
+
+    /// Reads a chapter and describes it, so its translation can be kept
+    /// consistent. One extra model call per chapter, local models only.
+    pub(crate) async fn profile(
+        &self,
+        request: &ProfileRequest,
+        generation: GenerationConfig,
+    ) -> Result<TranslationProfile> {
+        let (system, payload) = prompt::profile_prompt(request);
+        let prompt = self
+            .llm
+            .render_chat_prompt_with_options(
+                &[ChatMessage::system(system), ChatMessage::user(payload)],
+                ChatTemplateOptions {
+                    add_generation_prompt: true,
+                    enable_thinking: false,
+                },
+            )
+            .context("failed to render local document profile prompt")?;
+        let schema = prompt::profile_schema();
+        let llm = Arc::clone(&self.llm);
+        let mut generation = self.descriptor.generation.options(generation);
+        generation.max_tokens = generation.max_tokens.max(PROFILE_OUTPUT_TOKENS);
+        let output = tokio_rayon::spawn(move || {
+            llm.inference_with_json_schema(&Input::new(&prompt), &generation, &schema)
+        })
+        .await?;
+        Ok(prompt::profile("local", &output.text)?)
     }
 
     fn render_prompt(&self, request: &TranslationRequest, reasoning: bool) -> Result<String> {

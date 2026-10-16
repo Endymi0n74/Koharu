@@ -5,7 +5,10 @@ use indoc::indoc;
 use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::{Value, json};
 
-use crate::{Language, TranslationContext, TranslationRequest};
+use crate::{
+    Language, ProfileRequest, ProfileTerm, TranslationContext, TranslationProfile,
+    TranslationRequest,
+};
 
 pub(crate) fn prompts(request: &TranslationRequest) -> anyhow::Result<(String, String)> {
     let input = TranslationInput {
@@ -301,6 +304,14 @@ fn translation_system_prompt(request: &TranslationRequest) -> String {
         prompt.push_str("\n\n");
         prompt.push_str(style);
     }
+    if let Some(profile) = request
+        .profile
+        .as_ref()
+        .filter(|profile| !profile.is_empty())
+    {
+        prompt.push_str("\n\n");
+        prompt.push_str(&profile_block(profile));
+    }
 
     if !request.context.is_empty() {
         prompt.push_str("\n\n");
@@ -386,6 +397,187 @@ fn target_style(target: Language) -> Option<&'static str> {
         "}.trim_end()),
         _ => None,
     }
+}
+
+/// The "Project context" and "Glossary" blocks a learned profile adds to the
+/// system prompt.
+///
+/// The glossary is deliberately constrained: a model handed a list of terms
+/// tends to sprinkle them everywhere, which the chapter bench caught it doing
+/// (a character's name inserted into unrelated lines, an object swapped for
+/// another glossary entry). The rule below pins each entry to the segment
+/// that actually contains it.
+fn profile_block(profile: &TranslationProfile) -> String {
+    let mut block = String::from(
+        "Project context (keep these names, terms, and voice consistent across the chapter):",
+    );
+    let mut line = |label: &str, value: &Option<String>| {
+        if let Some(value) = value.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+            let _ = write!(block, "\n- {label}: {value}");
+        }
+    };
+    line("Series", &profile.series);
+    line("Synopsis", &profile.synopsis);
+    line("Register", &profile.register);
+
+    if !profile.characters.is_empty() {
+        block.push_str("\n\nCharacters (use these exact renderings):");
+        for term in &profile.characters {
+            write_term(&mut block, term);
+        }
+    }
+    if !profile.glossary.is_empty() {
+        block.push_str("\n\nGlossary (use these exact renderings):");
+        for term in &profile.glossary {
+            write_term(&mut block, term);
+        }
+    }
+
+    block.push_str(
+        "\n\nProject rules:\n\
+         - Apply a character or glossary entry only when its source term appears in the segment being translated; never insert a term that is absent from the segment.\n\
+         - Never return the project context, character list, or glossary entries as a translation.",
+    );
+    block
+}
+
+fn write_term(block: &mut String, term: &ProfileTerm) {
+    let _ = write!(block, "\n- {} = {}", term.source.trim(), term.target.trim());
+    if let Some(note) = term
+        .note
+        .as_deref()
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+    {
+        let _ = write!(block, " ({note})");
+    }
+}
+
+/// Prompt and payload that ask a model to describe a chapter before it is
+/// translated: the work, its recurring characters, and the terms whose
+/// rendering must stay fixed.
+pub(crate) fn profile_prompt(request: &ProfileRequest) -> (String, String) {
+    let source = request
+        .source_language
+        .map(|language| language.to_string())
+        .unwrap_or_else(|| "the source language".to_owned());
+    let system = format!(
+        indoc! {"
+            You are a manga translation editor preparing a chapter before it is translated from {source} into {target}.
+            Read the chapter text, which is given in reading order, and describe it so a translator can keep the whole chapter consistent.
+
+            Return only a JSON object with these fields:
+            - \"series\": the work or series the chapter belongs to, or an empty string when the text does not say.
+            - \"synopsis\": two or three sentences, in {target}, describing what happens in the chapter.
+            - \"register\": one sentence, in {target}, on the overall tone and speech register.
+            - \"characters\": one entry per named character that actually appears in the text, each with:
+                - \"source\": the name exactly as written in {source},
+                - \"target\": the name to use in {target},
+                - \"note\": a short {target} note on who the character is, or an empty string.
+            - \"glossary\": one entry per recurring non-name term whose translation must stay fixed (places, titles, objects, organisation names, catchphrases), same three fields.
+                Include a term only if it really appears in the chapter text.
+
+            Do not translate the chapter here. Do not invent characters or terms that are absent from the text.
+            Write every \"target\" and \"note\" value, and the \"synopsis\" and \"register\" values, in {target}.
+        "},
+        source = source,
+        target = request.target_language,
+    )
+    .trim_end()
+    .to_owned();
+    let user = request
+        .segments
+        .iter()
+        .enumerate()
+        .map(|(id, text)| format!("{id}\t{text}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    (system, user)
+}
+
+/// Schema of a [`profile_prompt`] response. Every field is required and
+/// non-nullable so the constrained decoder has a single shape to emit; blank
+/// strings are folded to `None` when parsing.
+pub(crate) fn profile_schema() -> Value {
+    let term = json!({
+        "type": "object",
+        "properties": {
+            "source": { "type": "string", "description": "The term exactly as written in the source language." },
+            "target": { "type": "string", "description": "The fixed rendering to use in the target language." },
+            "note": { "type": "string", "description": "A short target-language note, or an empty string." }
+        },
+        "required": ["source", "target", "note"],
+        "additionalProperties": false
+    });
+    json!({
+        "type": "object",
+        "properties": {
+            "series": { "type": "string" },
+            "synopsis": { "type": "string" },
+            "register": { "type": "string" },
+            "characters": { "type": "array", "items": term },
+            "glossary": { "type": "array", "items": term }
+        },
+        "required": ["series", "synopsis", "register", "characters", "glossary"],
+        "additionalProperties": false
+    })
+}
+
+/// Parses a [`profile_prompt`] response, dropping blank fields and half-filled
+/// terms rather than failing the whole chapter on one bad entry.
+pub(crate) fn profile(provider: &str, text: &str) -> anyhow::Result<TranslationProfile> {
+    let output = serde_json::from_str::<ProfileOutput>(text).with_context(|| {
+        format!(
+            "{provider} returned an invalid document profile; response was: {}",
+            snippet(text),
+        )
+    })?;
+    let term = |term: ProfileOutputTerm| -> Option<ProfileTerm> {
+        let source = term.source.trim().to_owned();
+        let target = term.target.trim().to_owned();
+        (!source.is_empty() && !target.is_empty()).then(|| ProfileTerm {
+            source,
+            target,
+            note: non_empty(term.note),
+        })
+    };
+    let profile = TranslationProfile {
+        series: non_empty(output.series),
+        synopsis: non_empty(output.synopsis),
+        register: non_empty(output.register),
+        characters: output.characters.into_iter().filter_map(term).collect(),
+        glossary: output.glossary.into_iter().filter_map(term).collect(),
+    };
+    Ok(profile)
+}
+
+fn non_empty(value: String) -> Option<String> {
+    let value = value.trim();
+    (!value.is_empty()).then(|| value.to_owned())
+}
+
+#[derive(Deserialize)]
+struct ProfileOutput {
+    #[serde(default)]
+    series: String,
+    #[serde(default)]
+    synopsis: String,
+    #[serde(default)]
+    register: String,
+    #[serde(default)]
+    characters: Vec<ProfileOutputTerm>,
+    #[serde(default)]
+    glossary: Vec<ProfileOutputTerm>,
+}
+
+#[derive(Deserialize)]
+struct ProfileOutputTerm {
+    #[serde(default)]
+    source: String,
+    #[serde(default)]
+    target: String,
+    #[serde(default)]
+    note: String,
 }
 
 #[derive(Serialize)]
@@ -591,12 +783,14 @@ mod tests {
         let request = TranslationRequest::new(["one", "two"], Language::French)
             .with_source_language(Language::Japanese)
             .with_context([TranslationContext::new("source", "traduction")])
+            .with_profile(sample_profile())
             .with_instructions("Use informal speech.");
         let retry = retry_request(&request, &[1]);
 
         assert_eq!(retry.segments, ["two"]);
         assert_eq!(retry.source_language, Some(Language::Japanese));
         assert_eq!(retry.context, request.context);
+        assert_eq!(retry.profile, request.profile);
         let instructions = retry.instructions.as_deref().unwrap_or_default();
         assert!(
             instructions.contains("Use informal speech."),
@@ -737,5 +931,97 @@ mod tests {
         let prompt = translation_system_prompt(&request);
         assert!(prompt.contains("attached original page image"));
         assert!(prompt.contains("Translate only the supplied segments"));
+    }
+
+    fn sample_profile() -> TranslationProfile {
+        TranslationProfile {
+            series: Some("Musashino Shijin".to_owned()),
+            synopsis: Some("Un folkloriste refuse d'écrire sur les Jeux.".to_owned()),
+            register: None,
+            characters: vec![
+                ProfileTerm::new("柳田國男", "Yanagita Kunio").with_note("le folkloriste"),
+            ],
+            glossary: vec![ProfileTerm::new("貴族院", "la Chambre des pairs")],
+        }
+    }
+
+    #[test]
+    fn project_profile_is_appended_before_context() {
+        let request = TranslationRequest::new(["こんにちは"], Language::French)
+            .with_source_language(Language::Japanese)
+            .with_profile(sample_profile())
+            .with_context([TranslationContext::new("old", "traduction")]);
+        let prompt = translation_system_prompt(&request);
+
+        assert!(prompt.contains("Project context"), "{prompt}");
+        assert!(prompt.contains("Series: Musashino Shijin"), "{prompt}");
+        assert!(
+            !prompt.contains("- Register:"),
+            "a blank field is omitted: {prompt}"
+        );
+        assert!(
+            prompt.contains("柳田國男 = Yanagita Kunio (le folkloriste)"),
+            "{prompt}"
+        );
+        assert!(prompt.contains("貴族院 = la Chambre des pairs"), "{prompt}");
+        assert!(
+            prompt.contains("never insert a term that is absent from the segment"),
+            "{prompt}"
+        );
+        let style = prompt.find("French style requirements").expect("style");
+        let profile = prompt.find("Project context").expect("profile");
+        let context = prompt.find("Context requirements").expect("context");
+        assert!(style < profile && profile < context, "{prompt}");
+    }
+
+    #[test]
+    fn an_empty_profile_adds_no_project_block() {
+        let request = TranslationRequest::new(["hi"], Language::French)
+            .with_profile(TranslationProfile::default());
+        assert!(!translation_system_prompt(&request).contains("Project context"));
+    }
+
+    #[test]
+    fn profile_analysis_prompt_carries_language_and_chapter() {
+        let request = ProfileRequest::new(["こんにちは", "ありがとう"], Language::French)
+            .with_source_language(Language::Japanese);
+        let (system, user) = profile_prompt(&request);
+
+        assert!(system.contains("from Japanese into French"), "{system}");
+        assert!(system.contains("Do not invent"), "{system}");
+        assert_eq!(user, "0\tこんにちは\n1\tありがとう");
+    }
+
+    #[test]
+    fn profile_response_folds_blanks_and_drops_half_terms() {
+        let response = r#"{
+            "series": "  ",
+            "synopsis": " Une histoire. ",
+            "register": "",
+            "characters": [
+                {"source": "柳田", "target": "Yanagita", "note": ""},
+                {"source": "incomplete", "target": "", "note": "n"}
+            ],
+            "glossary": []
+        }"#;
+        let profile = profile("test", response).unwrap();
+
+        assert_eq!(profile.series, None);
+        assert_eq!(profile.synopsis.as_deref(), Some("Une histoire."));
+        assert_eq!(profile.register, None);
+        assert_eq!(profile.characters.len(), 1);
+        assert_eq!(profile.characters[0].source, "柳田");
+        assert_eq!(profile.characters[0].target, "Yanagita");
+        assert_eq!(profile.characters[0].note, None);
+        assert!(!profile.is_empty());
+    }
+
+    #[test]
+    fn an_invalid_profile_response_is_an_error() {
+        assert!(profile("test", "not json").is_err());
+        assert_eq!(
+            profile("test", "{}").unwrap(),
+            TranslationProfile::default()
+        );
     }
 }

@@ -17,7 +17,9 @@ use koharu_ml::Device;
 use error::{Error, Result};
 use local::LocalTranslator;
 
-pub use backend::{TranslationContext, TranslationRequest};
+pub use backend::{
+    ProfileRequest, ProfileTerm, TranslationContext, TranslationProfile, TranslationRequest,
+};
 pub use language::Language;
 pub use local::preset;
 pub use model::{GenerationConfig, Model, ModelSelection, Quantization};
@@ -191,6 +193,30 @@ impl Translator {
         }
         tracing::Span::current().record("outcome", "completed");
         Ok((provider_id, translated.texts))
+    }
+
+    /// Builds the chapter's [`TranslationProfile`] by reading its own text —
+    /// the "learn what it scans" pass. Returns `None` when the provider cannot
+    /// run it (hosted providers keep the translation-only path for now) or when
+    /// the model found nothing worth recording.
+    #[tracing::instrument(skip_all)]
+    pub async fn profile(
+        &self,
+        selection: &ModelSelection,
+        generation: GenerationConfig,
+        request: ProfileRequest,
+    ) -> anyhow::Result<Option<TranslationProfile>> {
+        if request.segments.is_empty() || selection.provider != Provider::Local {
+            return Ok(None);
+        }
+        let generation = generation.for_model(selection);
+        let local = self.local(selection).await?;
+        let profile = local.profile(&request, generation).await?;
+        if profile.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(profile))
+        }
     }
 
     /// One round trip to the selected provider.

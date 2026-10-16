@@ -17,6 +17,7 @@ pub struct TranslationRequest {
     pub target_language: Language,
     pub instructions: Option<String>,
     pub context: Vec<TranslationContext>,
+    pub profile: Option<TranslationProfile>,
     pub image: Option<Arc<DynamicImage>>,
 }
 
@@ -32,6 +33,7 @@ impl TranslationRequest {
             target_language,
             instructions: None,
             context: Vec::new(),
+            profile: None,
             image: None,
         }
     }
@@ -57,6 +59,12 @@ impl TranslationRequest {
     #[must_use]
     pub fn with_context(mut self, context: impl IntoIterator<Item = TranslationContext>) -> Self {
         self.context = context.into_iter().collect();
+        self
+    }
+
+    #[must_use]
+    pub fn with_profile(mut self, profile: TranslationProfile) -> Self {
+        self.profile = Some(profile);
         self
     }
 
@@ -132,5 +140,89 @@ impl TranslationContext {
             source: source.into(),
             translation: translation.into(),
         }
+    }
+}
+
+/// What a chapter is *about*, learned from the chapter itself before it is
+/// translated: the work, the recurring characters, and the terms whose
+/// translation must not drift from page to page.
+///
+/// The translation stage attaches one to every request of a chapter, so page
+/// 1's rendering of a name survives to page 30 instead of being re-invented
+/// from the twelve lines of preceding context.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct TranslationProfile {
+    pub series: Option<String>,
+    pub synopsis: Option<String>,
+    pub register: Option<String>,
+    pub characters: Vec<ProfileTerm>,
+    pub glossary: Vec<ProfileTerm>,
+}
+
+impl TranslationProfile {
+    /// Whether the profile carries nothing worth adding to a prompt.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        let blank =
+            |value: &Option<String>| value.as_deref().map(str::trim).is_none_or(str::is_empty);
+        blank(&self.series)
+            && blank(&self.synopsis)
+            && blank(&self.register)
+            && self.characters.is_empty()
+            && self.glossary.is_empty()
+    }
+}
+
+/// One learned term: the source form as it appears in the chapter and the
+/// rendering every page must reuse.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ProfileTerm {
+    pub source: String,
+    pub target: String,
+    pub note: Option<String>,
+}
+
+impl ProfileTerm {
+    #[must_use]
+    pub fn new(source: impl Into<String>, target: impl Into<String>) -> Self {
+        Self {
+            source: source.into(),
+            target: target.into(),
+            note: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_note(mut self, note: impl Into<String>) -> Self {
+        self.note = Some(note.into());
+        self
+    }
+}
+
+/// A chapter's text, handed to the model to build a [`TranslationProfile`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProfileRequest {
+    pub segments: Vec<String>,
+    pub source_language: Option<Language>,
+    pub target_language: Language,
+}
+
+impl ProfileRequest {
+    #[must_use]
+    pub fn new(
+        segments: impl IntoIterator<Item = impl Into<String>>,
+        target_language: Language,
+    ) -> Self {
+        Self {
+            segments: segments.into_iter().map(Into::into).collect(),
+            source_language: None,
+            target_language,
+        }
+    }
+
+    #[must_use]
+    pub fn with_source_language(mut self, language: Language) -> Self {
+        self.source_language = Some(language);
+        self
     }
 }
