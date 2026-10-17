@@ -60,3 +60,6 @@ test-results/
 # Local documentation output
 /packages/docs/.mintlify/
 /packages/docs/site/
+
+# Memoire de projet du fork (notes locales, pas du contenu amont)
+/memory.md
