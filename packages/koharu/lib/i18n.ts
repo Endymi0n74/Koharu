@@ -7,6 +7,7 @@ import { initReactI18next } from 'react-i18next'
 
 import enUS from '@/public/locales/en-US/translation.json'
 import esES from '@/public/locales/es-ES/translation.json'
+import frFR from '@/public/locales/fr-FR/translation.json'
 import jaJP from '@/public/locales/ja-JP/translation.json'
 import koKR from '@/public/locales/ko-KR/translation.json'
 import ptBR from '@/public/locales/pt-BR/translation.json'
@@ -27,6 +28,7 @@ export const resources = {
   'ko-KR': { translation: koKR },
   'pt-BR': { translation: ptBR },
   wuu: { translation: wuu },
+  'fr-FR': { translation: frFR },
 } satisfies Resource
 
 export type SupportedLanguage = keyof typeof resources
