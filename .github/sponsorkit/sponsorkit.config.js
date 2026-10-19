@@ -13,6 +13,7 @@ const specialSponsors = {
   async fetchSponsors() {
     return [
       { login: 'getsentry', name: 'Sentry', websiteUrl: 'https://sentry.io/' },
+      { login: 'greptileai', name: 'Greptile', websiteUrl: 'https://www.greptile.com/' },
       { login: 'mintlify', name: 'Mintlify', websiteUrl: 'https://www.mintlify.com/' },
       { login: 'openai', name: 'OpenAI', websiteUrl: 'https://openai.com/' },
       { login: 'signpath', name: 'SignPath', websiteUrl: 'https://signpath.io/' },
