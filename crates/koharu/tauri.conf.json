@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/1991873f5e2baa68773f21465f61baa93077498f/crates/tauri-schema-generator/schemas/config.schema.json",
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/40a2d81d97f5c950e892fa7a6ce8b03064410c4d/crates/tauri-schema-generator/schemas/config.schema.json",
   "identifier": "Koharu",
   "build": {
     "devUrl": "http://localhost:3000",
