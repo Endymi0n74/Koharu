@@ -1,3 +1,15 @@
+## [0.87.1](https://github.com/Endymi0n74/Koharu/compare/v0.87.0..v0.87.1) - 2026-10-20
+
+### ⚡ Performance
+
+- *(batch)* Cache d'images partagée, décodage du load réutilisé, lookahead N+2 - ([67c476b](https://github.com/Endymi0n74/Koharu/commit/67c476b3311d644fbf4276d6151e8473beea1d62))
+- *(batch)* Rendu en parallèle, détection accélérée, modèles échauffés hors chrono - ([50ff5f8](https://github.com/Endymi0n74/Koharu/commit/50ff5f84660f8c2b39d29777a2b56e305e51f2e4))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(memory)* Sort la mémoire de projet du suivi git - ([b55094f](https://github.com/Endymi0n74/Koharu/commit/b55094fb9efd9453905208a42bf3817e9b684893))
+
+
 ## [0.87.0](https://github.com/Endymi0n74/Koharu/compare/v0.86.0..v0.87.0) - 2026-10-16
 
 ### ⛰️  Features
