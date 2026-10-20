@@ -3,17 +3,19 @@ use std::sync::Arc;
 use anyhow::{Context as _, Result};
 use arc_swap::ArcSwap;
 use koharu_config::Config;
-use koharu_scene::Snapshot;
+use koharu_scene::{AssetRole, EntityId, Snapshot};
 
 use crate::{
     Committer, PipelineConfig, PipelineError, Report, Request, ResourceSnapshot,
-    execution::Execution, resources::ResourceMonitor, stage_runner::StageRunner,
+    execution::Execution, images::ImageCache, resources::ResourceMonitor,
+    stage_runner::StageRunner,
 };
 
 #[derive(Clone)]
 pub struct Pipeline {
     current: Arc<ArcSwap<StageRunner>>,
     resources: Arc<ResourceMonitor>,
+    images: Arc<ImageCache>,
     execution: Arc<tokio::sync::Mutex<()>>,
 }
 
@@ -63,6 +65,7 @@ impl Pipeline {
         Ok(Self {
             current,
             resources,
+            images: Arc::new(ImageCache::default()),
             execution: Arc::new(tokio::sync::Mutex::new(())),
         })
     }
@@ -92,6 +95,40 @@ impl Pipeline {
         self.current.load_full().stages.load(stage).await
     }
 
+    /// Decodes a page's `source` image into the pipeline's shared image cache
+    /// without blocking the caller. The batch calls it for the pages after
+    /// the one in flight, so that decode runs while the current page's stage
+    /// occupies the models — the stage's own image `get` then hits the cache
+    /// instead of serializing a decode. Best effort by contract — a failed or
+    /// late prefetch only falls back to the stage's own decode.
+    pub fn prefetch_image(&self, snapshot: Snapshot, page: EntityId) {
+        let images = Arc::clone(&self.images);
+        tokio::spawn(async move {
+            let _ = images.get(&snapshot, page, "source").await;
+        });
+    }
+
+    /// Folds a `source` image the caller already decoded into the shared
+    /// image cache under the page's content-addressed blob. The batch calls
+    /// it with the decode its page load just performed, so the stages reuse
+    /// those pixels instead of reading and decoding the same bytes again for
+    /// every stage of every phase. Best effort by contract — an unresolvable
+    /// page or role only leaves the stage's own decode in place.
+    pub(crate) fn insert_image(
+        &self,
+        snapshot: &Snapshot,
+        page: EntityId,
+        image: image::DynamicImage,
+    ) {
+        let Ok(role) = AssetRole::new("source") else {
+            return;
+        };
+        let Ok(Some(asset)) = snapshot.asset(page, &role) else {
+            return;
+        };
+        self.images.insert(asset.blob, Arc::new(image));
+    }
+
     pub fn subscribe_resources(&self) -> tokio::sync::watch::Receiver<ResourceSnapshot> {
         self.resources.start();
         self.resources.subscribe()
@@ -108,6 +145,7 @@ impl Pipeline {
         Execution::new(
             self.current.load_full(),
             self.resources.clone(),
+            self.images.clone(),
             snapshot,
             request,
             committer,
