@@ -56,11 +56,21 @@ impl KoharuLayoutRFDetrSeg2XL {
         model
             .load(&weights_path)
             .with_context(|| format!("failed to load {}", weights_path.display()))?;
-        Ok(Self {
+        let network = Self {
             device,
             model,
             processor,
-        })
+        };
+        // The first CUDA forward of the process pays ~0.5 s of runtime
+        // initialization (modules, cuDNN handle, kernel selection). Paying it
+        // here — inside model loading — bills it to the loader instead of the
+        // first page's stage; batch callers load at the phase boundary, which
+        // no stage timer covers. Nothing derived from the dummy image is
+        // kept, so no page's output can depend on it.
+        network
+            .warmup()
+            .context("failed to warm up the layout detector")?;
+        Ok(network)
     }
 
     pub fn inference(&self, image: &DynamicImage) -> Result<KoharuLayoutDetections> {
@@ -86,6 +96,33 @@ impl KoharuLayoutRFDetrSeg2XL {
 
     pub fn recommended_thresholds(&self) -> KoharuLayoutThresholds {
         self.processor.recommended_thresholds()
+    }
+
+    /// One disposable inference through the exact production path (preprocess,
+    /// forward, postprocess) so all of it initializes at load time. The
+    /// forward is synchronized: its GPU work must finish here rather than be
+    /// billed to the next caller's timer. The dettrace probes are deliberately
+    /// skipped — this call produces no page output.
+    fn warmup(&self) -> Result<()> {
+        let dummy = DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
+            64,
+            64,
+            image::Rgb([127_u8, 127, 127]),
+        ));
+        koharu_torch::no_grad(|| {
+            let pixel_values = self.processor.preprocess(&dummy, self.device)?;
+            let output = self.model.forward(&pixel_values);
+            if let Device::Cuda(index) = self.device {
+                koharu_torch::Cuda::synchronize(index as i64);
+            }
+            self.processor.postprocess(
+                &output,
+                dummy.width(),
+                dummy.height(),
+                self.processor.recommended_thresholds(),
+            )?;
+            Ok(())
+        })
     }
 }
 

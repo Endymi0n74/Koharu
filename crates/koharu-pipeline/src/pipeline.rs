@@ -82,6 +82,16 @@ impl Pipeline {
         koharu_ml::torch_cache::empty();
     }
 
+    /// Loads a stage's model outside every stage timer, so a phase's first
+    /// page is billed warm: the first forward of the process pays runtime
+    /// initialization that would otherwise land inside that page's stage
+    /// duration. Best effort by contract — the model cell does not remember
+    /// errors, so a failed preload lets the stage's own load retry exactly as
+    /// before.
+    pub async fn load_stage(&self, stage: crate::Stage) -> Result<()> {
+        self.current.load_full().stages.load(stage).await
+    }
+
     pub fn subscribe_resources(&self) -> tokio::sync::watch::Receiver<ResourceSnapshot> {
         self.resources.start();
         self.resources.subscribe()

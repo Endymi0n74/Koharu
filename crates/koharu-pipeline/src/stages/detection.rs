@@ -792,14 +792,15 @@ fn mask_window([left, top, right, bottom]: [f32; 4], width: u32, height: u32) ->
 fn mask_angle(points: &[MaskPoint], [left, top, right, bottom]: [f32; 4]) -> (f32, bool) {
     let mut horizontal = (f64::NEG_INFINITY, 0.0);
     let mut vertical = (f64::NEG_INFINITY, 0.0);
+    let mut scratch = ProjectionScratch::default();
     for step in -ANGLE_SEARCH_HALF_STEPS..=ANGLE_SEARCH_HALF_STEPS {
         let angle_degrees = f64::from(step) * ANGLE_SEARCH_STEP_DEGREES;
         let (sin, cos) = angle_degrees.to_radians().sin_cos();
-        let horizontal_score = projection_score(points, -sin, cos);
+        let horizontal_score = scratch.projection_score(points, -sin, cos);
         if horizontal_score > horizontal.0 {
             horizontal = (horizontal_score, angle_degrees);
         }
-        let vertical_score = projection_score(points, cos, sin);
+        let vertical_score = scratch.projection_score(points, cos, sin);
         if vertical_score > vertical.0 {
             vertical = (vertical_score, angle_degrees);
         }
@@ -822,25 +823,44 @@ fn mask_angle(points: &[MaskPoint], [left, top, right, bottom]: [f32; 4]) -> (f3
     (angle, is_vertical)
 }
 
-fn projection_score(points: &[MaskPoint], axis_x: f64, axis_y: f64) -> f64 {
-    let mut minimum = f64::INFINITY;
-    let mut maximum = f64::NEG_INFINITY;
-    for point in points {
-        let projection = point.x * axis_x + point.y * axis_y;
-        minimum = minimum.min(projection);
-        maximum = maximum.max(projection);
+/// Reusable buffers of one `mask_angle` search: 181 angles × 2 axes are
+/// scored over every mask point, so the previous per-score allocation and
+/// second walk over the points dominated the typography inference. The
+/// arithmetic is unchanged — each projection is computed exactly once with
+/// the same expression, and the profile accumulates in point order, so every
+/// score is bit-identical to the former free function.
+#[derive(Default)]
+struct ProjectionScratch {
+    projections: Vec<f64>,
+    profile: Vec<f64>,
+}
+
+impl ProjectionScratch {
+    fn projection_score(&mut self, points: &[MaskPoint], axis_x: f64, axis_y: f64) -> f64 {
+        self.projections.resize(points.len(), 0.0);
+        let mut minimum = f64::INFINITY;
+        let mut maximum = f64::NEG_INFINITY;
+        for (slot, point) in self.projections.iter_mut().zip(points) {
+            let projection = point.x * axis_x + point.y * axis_y;
+            minimum = minimum.min(projection);
+            maximum = maximum.max(projection);
+            *slot = projection;
+        }
+        let origin = minimum.floor();
+        let length = (maximum.ceil() - origin).max(0.0) as usize + 2;
+        self.profile.resize(length, 0.0);
+        self.profile.fill(0.0);
+        for &projection in &self.projections {
+            // `origin` is the floored minimum, so every shifted projection is
+            // non-negative: truncation selects the same bucket as floor.
+            let projection = projection - origin;
+            let index = projection as usize;
+            let fraction = projection - index as f64;
+            self.profile[index] += 1.0 - fraction;
+            self.profile[index + 1] += fraction;
+        }
+        self.profile.iter().map(|value| value * value).sum::<f64>() / points.len() as f64
     }
-    let origin = minimum.floor();
-    let length = (maximum.ceil() - origin).max(0.0) as usize + 2;
-    let mut profile = vec![0.0; length];
-    for point in points {
-        let projection = point.x * axis_x + point.y * axis_y - origin;
-        let index = projection.floor() as usize;
-        let fraction = projection - index as f64;
-        profile[index] += 1.0 - fraction;
-        profile[index + 1] += fraction;
-    }
-    profile.iter().map(|value| value * value).sum::<f64>() / points.len() as f64
 }
 
 fn histogram_value_at(histogram: &[u32; 256], mut rank: usize) -> u8 {
