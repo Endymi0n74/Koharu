@@ -641,18 +641,38 @@ fn encode_image(
     Ok(encoded)
 }
 
-/// Renders and rasterizes one finished page. Failures are the page's own:
-/// they must never abort the run, which would cost the report.
+/// Renders and rasterizes one finished page from the snapshot taken right
+/// after its translation, so it can run on its own task while the next page
+/// translates. Failures are the page's own: they must never abort the run,
+/// which would cost the report.
 async fn render_page(
-    renderer: &Renderer,
-    rasterizer: &Rasterizer,
-    session: &Session,
+    renderer: Renderer,
+    rasterizer: Arc<Rasterizer>,
+    snapshot: koharu_scene::Snapshot,
     page: EntityId,
 ) -> Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>> {
-    let frame = renderer.render(&session.snapshot(), page).await?;
+    let frame = renderer.render(&snapshot, page).await?;
     Ok(rasterizer
         .rasterize(&frame.raster_frame()?, RasterOptions::default())?
         .image)
+}
+
+/// Where a finished page's report row and the chapter's checkpoints go.
+struct Reporting<'r> {
+    prefix: &'r str,
+    pages_report: &'r mut [Option<PageReport>],
+    failures: &'r mut Vec<(String, String)>,
+    report_base: Option<&'r Path>,
+    previous_state: &'r [PageReport],
+    metadata: &'r RunMetadata,
+}
+
+/// A page whose render runs on its own task while the next page translates.
+struct PendingRender {
+    page: LoadedPage,
+    render: tokio::task::JoinHandle<Result<image::ImageBuffer<image::Rgba<u8>, Vec<u8>>>>,
+    /// When the render task was spawned: the page's render wall time.
+    started: Instant,
 }
 
 /// One page admitted to the phase-major run: its session entity plus the
@@ -1323,8 +1343,8 @@ fn finalize_page(
 /// Translation plus per-page finalization for one chapter.
 struct Translation<'a> {
     pipeline: &'a Pipeline,
-    renderer: &'a Renderer,
-    rasterizer: &'a Rasterizer,
+    renderer: Renderer,
+    rasterizer: Arc<Rasterizer>,
     vram_sampler: Option<&'a VramSampler>,
     format: FormatChoice,
     retries: usize,
@@ -1366,6 +1386,7 @@ impl Translation<'_> {
         // translation overlaps this page's encode, write, and thumbnail.
         let mut finalizer =
             Finalizer::start(chapter.output.clone(), self.format, chapter.archive.take());
+        let mut pending: Option<PendingRender> = None;
         while !remaining.is_empty() {
             let mut attempt = 0_usize;
             let translated = loop {
@@ -1456,52 +1477,52 @@ impl Translation<'_> {
             let Some(page) = translated else {
                 continue;
             };
-            let page_name = page.name.clone();
-
-            let finalize_started = Instant::now();
-            let raster = match render_page(self.renderer, self.rasterizer, session, page.page_id)
-                .await
-            {
-                Ok(raster) => raster,
-                Err(error) => {
-                    eprintln!("{prefix}[{page_name}] failed to render: {error:#}");
-                    chapter.pages_report[page.index] = Some(PageReport::failed(
-                        page.index,
-                        page_name.clone(),
-                        format!("render failed: {error:#}"),
-                    ));
-                    chapter.failures.push((page_name, error.to_string()));
-                    self.checkpoint(report_base, &chapter.pages_report, previous_state, metadata);
-                    continue;
-                }
-            };
-            // Rendering stays on this thread (it borrows the session); every
-            // step after it moves to the worker and overlaps the translation
-            // of the next page.
-            let job = FinalizeJob {
-                index: page.index,
-                name: page_name,
-                prefix: prefix.clone(),
-                raster,
-                elapsed: page.elapsed + finalize_started.elapsed(),
-                stages: page
-                    .stage_timings
-                    .lock()
-                    .expect("stage timings mutex")
-                    .clone(),
-                before_uri: page.before_uri,
-                vram_peak: page.vram_peak,
-            };
-            for finalized in finalizer.poll() {
-                self.record(
-                    &prefix,
-                    &mut chapter.pages_report,
-                    &mut chapter.failures,
-                    finalized,
-                );
-                self.checkpoint(report_base, &chapter.pages_report, previous_state, metadata);
+            // The previous page's render ran during this page's translation;
+            // settle it before this page joins the finalizer, so pages keep
+            // their reading order.
+            if let Some(previous) = pending.take() {
+                self.settle(
+                    previous,
+                    &mut finalizer,
+                    Reporting {
+                        prefix: &prefix,
+                        pages_report: &mut chapter.pages_report,
+                        failures: &mut chapter.failures,
+                        report_base,
+                        previous_state,
+                        metadata,
+                    },
+                )
+                .await?;
             }
-            finalizer.push(job)?;
+            // The render starts from the snapshot taken now and overlaps the
+            // translation of the next page.
+            let render = tokio::spawn(render_page(
+                self.renderer.clone(),
+                Arc::clone(&self.rasterizer),
+                session.snapshot(),
+                page.page_id,
+            ));
+            pending = Some(PendingRender {
+                page,
+                render,
+                started: Instant::now(),
+            });
+        }
+        if let Some(last) = pending.take() {
+            self.settle(
+                last,
+                &mut finalizer,
+                Reporting {
+                    prefix: &prefix,
+                    pages_report: &mut chapter.pages_report,
+                    failures: &mut chapter.failures,
+                    report_base,
+                    previous_state,
+                    metadata,
+                },
+            )
+            .await?;
         }
         // Drain the worker: every remaining page gets its report row, then
         // the chapter's archive is published.
@@ -1516,6 +1537,68 @@ impl Translation<'_> {
             self.checkpoint(report_base, &chapter.pages_report, previous_state, metadata);
         }
         published?;
+        Ok(())
+    }
+
+    /// Awaits a page's render and hands its raster to the finalizer. A render
+    /// failure is the page's own: it is recorded and the run goes on.
+    async fn settle(
+        &mut self,
+        pending: PendingRender,
+        finalizer: &mut Finalizer,
+        reporting: Reporting<'_>,
+    ) -> Result<()> {
+        let Reporting {
+            prefix,
+            pages_report,
+            failures,
+            report_base,
+            previous_state,
+            metadata,
+        } = reporting;
+        let PendingRender {
+            page,
+            render,
+            started,
+        } = pending;
+        let page_name = page.name.clone();
+        let rendered = match render.await {
+            Ok(result) => result,
+            Err(join) => Err(anyhow::Error::new(join).context("render task panicked")),
+        };
+        let raster = match rendered {
+            Ok(raster) => raster,
+            Err(error) => {
+                eprintln!("{prefix}[{page_name}] failed to render: {error:#}");
+                pages_report[page.index] = Some(PageReport::failed(
+                    page.index,
+                    page_name.clone(),
+                    format!("render failed: {error:#}"),
+                ));
+                failures.push((page_name, error.to_string()));
+                self.checkpoint(report_base, pages_report, previous_state, metadata);
+                return Ok(());
+            }
+        };
+        let job = FinalizeJob {
+            index: page.index,
+            name: page_name,
+            prefix: prefix.to_owned(),
+            raster,
+            elapsed: page.elapsed + started.elapsed(),
+            stages: page
+                .stage_timings
+                .lock()
+                .expect("stage timings mutex")
+                .clone(),
+            before_uri: page.before_uri,
+            vram_peak: page.vram_peak,
+        };
+        for finalized in finalizer.poll() {
+            self.record(prefix, pages_report, failures, finalized);
+            self.checkpoint(report_base, pages_report, previous_state, metadata);
+        }
+        finalizer.push(job)?;
         Ok(())
     }
 
@@ -1739,7 +1822,7 @@ async fn verify_replay(
         device,
     )?;
     let renderer = Renderer::new()?;
-    let rasterizer = Rasterizer::new()?;
+    let rasterizer = Arc::new(Rasterizer::new()?);
     // One pipeline for every replay pass: its stages stay resident between
     // passes, which reloads nothing and measures exactly the inference
     // jitter (the stage transitions are the same ones the main run makes
@@ -1776,7 +1859,7 @@ async fn replay_pass(
     resolved: &cli::Resolved,
     pipeline: &Pipeline,
     renderer: &Renderer,
-    rasterizer: &Rasterizer,
+    rasterizer: &Arc<Rasterizer>,
 ) -> Result<Vec<Chapter>> {
     let mut replay = prepare_chapters(
         replay_arguments,
@@ -1841,8 +1924,8 @@ async fn replay_pass(
         // earlier page's text, exactly like the main run).
         let mut translation = Translation {
             pipeline,
-            renderer,
-            rasterizer,
+            renderer: renderer.clone(),
+            rasterizer: Arc::clone(rasterizer),
             vram_sampler: None,
             format: replay_arguments.format,
             retries: replay_arguments.retries,
@@ -2344,7 +2427,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
         device,
     )?;
     let renderer = Renderer::new()?;
-    let rasterizer = Rasterizer::new()?;
+    let rasterizer = Arc::new(Rasterizer::new()?);
 
     for chapter in chapters
         .iter_mut()
@@ -2362,6 +2445,16 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     // reloaded around every page. Fault isolation is preserved: a phase
     // failure drops that page from the later phases only.
     for stage in [Stage::Detection, Stage::Ocr, Stage::Inpainting] {
+        // Load (and warm) the phase's model before the first page's stage
+        // timer starts: the first forward of the process pays seconds of
+        // runtime initialization that would otherwise be billed to page 1's
+        // stage. Best effort — on failure the stage's own load retries and
+        // bills it exactly as before.
+        if chapters.iter().any(|chapter| !chapter.loaded.is_empty())
+            && let Err(error) = pipeline.load_stage(stage).await
+        {
+            eprintln!("warning: {stage} model could not be preloaded: {error:#}");
+        }
         for chapter in chapters.iter_mut() {
             if chapter.loaded.is_empty() {
                 continue;
@@ -2401,8 +2494,8 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     // written right after its own translation.
     let mut translation = Translation {
         pipeline: &pipeline,
-        renderer: &renderer,
-        rasterizer: &rasterizer,
+        renderer: renderer.clone(),
+        rasterizer: Arc::clone(&rasterizer),
         vram_sampler: vram_sampler.as_ref(),
         format: arguments.format,
         retries: arguments.retries,
