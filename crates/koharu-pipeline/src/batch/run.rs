@@ -893,8 +893,10 @@ fn prepare_chapters(
 
 /// Reads every pending page of the chapter into its own session. A read or
 /// decode failure reports the page and drops it from the run; it never
-/// aborts the chapter (which would cost the report).
-async fn load_chapter(chapter: &mut Chapter) -> Result<()> {
+/// aborts the chapter (which would cost the report). Each page's decode is
+/// folded into the pipeline's shared image cache: the stages re-read the
+/// same blob, and that reuse removes a second decode per page per phase.
+async fn load_chapter(chapter: &mut Chapter, pipeline: &Pipeline) -> Result<()> {
     if chapter.output_is_archive {
         chapter.archive = Some(cbz::ArchiveOutput::create(
             &chapter.output,
@@ -999,6 +1001,9 @@ async fn load_chapter(chapter: &mut Chapter) -> Result<()> {
             chapter.failures.push((page_name, error.to_string()));
             continue;
         }
+        if let Some(page_id) = session_page {
+            pipeline.insert_image(&session.snapshot(), page_id, decoded);
+        }
         chapter.loaded.push(LoadedPage {
             index: page.index,
             page_id: session_page.expect("page ID is assigned by the edit"),
@@ -1049,6 +1054,20 @@ impl Phases<'_> {
         let phase_started = Instant::now();
         let mut index = 0;
         while index < pages.len() {
+            // Decode the following pages now: they run while this page's
+            // stage occupies the models, so the decodes hide behind the
+            // stage's GPU work instead of extending it. Two pages ahead are
+            // launched together because the detection forward alone (65-87 ms
+            // hot) is long enough to absorb both decodes (~10 ms each), which
+            // keeps page N+2 ready even when the current stage returns early
+            // (a page with no detections). Best effort — the stage's own
+            // image get retries on failure.
+            for offset in 1..=2 {
+                if let Some(next) = pages.get(index + offset) {
+                    self.pipeline
+                        .prefetch_image(self.session.snapshot(), next.page_id);
+                }
+            }
             let mut attempt = 0_usize;
             loop {
                 let (page_id, timings) = {
@@ -1890,7 +1909,7 @@ async fn replay_pass(
         .iter_mut()
         .filter(|chapter| !chapter.pending.is_empty())
     {
-        load_chapter(chapter).await?;
+        load_chapter(chapter, pipeline).await?;
         for stage in [Stage::Detection, Stage::Ocr, Stage::Inpainting] {
             if chapter.loaded.is_empty() {
                 break;
@@ -2433,7 +2452,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
         .iter_mut()
         .filter(|chapter| !chapter.pending.is_empty())
     {
-        load_chapter(chapter).await?;
+        load_chapter(chapter, &pipeline).await?;
     }
 
     // Phase-major execution across the whole run — the whole volume in

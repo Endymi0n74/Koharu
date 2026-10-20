@@ -1,8 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-    time::Instant,
-};
+use std::{collections::BTreeSet, sync::Arc, time::Instant};
 
 use anyhow::{Context as _, Result, ensure};
 use futures::{StreamExt as _, stream::FuturesUnordered};
@@ -29,7 +25,7 @@ pub(crate) struct Execution<'a> {
     scope: NormalizedScope,
     scheduler: Scheduler,
     scene: Snapshot,
-    images: BTreeMap<EntityId, Arc<ImageCache>>,
+    images: Arc<ImageCache>,
     busy_stages: BTreeSet<Stage>,
     completed: usize,
     failure: Option<PipelineError>,
@@ -42,6 +38,7 @@ impl<'a> Execution<'a> {
     pub(crate) fn new(
         runner: Arc<StageRunner>,
         resources: Arc<ResourceMonitor>,
+        images: Arc<ImageCache>,
         snapshot: Snapshot,
         request: Request,
         committer: &'a mut dyn Committer,
@@ -81,7 +78,7 @@ impl<'a> Execution<'a> {
             scope,
             scheduler: Scheduler::new(&pages, &stages),
             scene: snapshot,
-            images: BTreeMap::new(),
+            images,
             busy_stages: BTreeSet::new(),
             completed: 0,
             failure: None,
@@ -127,11 +124,7 @@ impl<'a> Execution<'a> {
         }
         let (page, stage) = self.scheduler.start_next(&self.busy_stages)?;
         self.busy_stages.insert(stage);
-        let images = self
-            .images
-            .entry(page)
-            .or_insert_with(|| Arc::new(ImageCache::default()))
-            .clone();
+        let images = self.images.clone();
         Some(StageJob::new(
             stage,
             StageInput::new(
@@ -217,9 +210,7 @@ impl<'a> Execution<'a> {
     }
 
     fn mark_complete(&mut self, page: EntityId, stage: Stage) {
-        if self.scheduler.complete_stage(page, stage) {
-            self.images.remove(&page);
-        }
+        self.scheduler.complete_stage(page, stage);
         self.completed += 1;
     }
 
