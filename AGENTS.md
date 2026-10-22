@@ -82,6 +82,7 @@ Document only durable, repository-specific constraints here. Do not record curre
 - A model port needs a structured comparison on identical inputs. A green build is not that comparison.
 - A green check is not acceptance. Small bug fixes, documentation, translations, and tests can be opened directly. A new product feature, significant UI change, model or provider integration, platform integration, dependency, public API, schema change, or architectural refactor needs an issue discussion first.
 - Keep the pull-request text short: problem, change, and verification. A human reviews the whole diff and can explain every change. Do not submit an unreviewed autonomous patch.
+- Never add an AI assistant as a co-author of a git commit, such as through a `Co-Authored-By` trailer.
 
 ## Desktop UI Debugging
 
