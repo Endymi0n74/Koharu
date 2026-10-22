@@ -1,3 +1,10 @@
+## [0.87.3](https://github.com/Endymi0n74/Koharu/compare/v0.87.2..v0.87.3) - 2026-10-22
+
+### ⚡ Performance
+
+- *(translation)* Le follow-up ne renvoie plus l'image de la page - ([a34abcf](https://github.com/Endymi0n74/Koharu/commit/a34abcfa84c377b55ee296e4f1dc59a71219f705))
+
+
 ## [0.87.2](https://github.com/Endymi0n74/Koharu/compare/v0.87.1..v0.87.2) - 2026-10-22
 
 ### 🐛 Bug Fixes
