@@ -95,6 +95,11 @@ pub(crate) fn retry_request(request: &TranslationRequest, missing: &[usize]) -> 
         .iter()
         .filter_map(|index| request.segments.get(*index).cloned())
         .collect();
+    // The page image already did its job in the response that read it —
+    // disambiguating who speaks to whom. Re-sending it for a handful of
+    // segments costs the vision encoder and several hundred prompt tokens on
+    // every follow-up, so the retry carries text only.
+    retry.image = None;
     retry.instructions = Some(
         match request
             .instructions
@@ -922,6 +927,25 @@ mod tests {
         let prompt = translation_system_prompt(&request);
         assert!(prompt.contains("dialogue continuity"));
         assert!(prompt.contains("Do not translate or return the context"));
+    }
+
+    #[test]
+    fn the_follow_up_carries_the_missing_segments_without_the_page_image() {
+        let request = TranslationRequest::new(["a", "b", "c"], Language::French)
+            .with_context([TranslationContext::new("old", "ancien")])
+            .with_image(std::sync::Arc::new(image::DynamicImage::new_rgb8(1, 1)));
+        let retry = retry_request(&request, &[1, 2]);
+
+        assert_eq!(retry.segments, ["b", "c"], "only the missing segments");
+        assert!(
+            retry.image.is_none(),
+            "the page image has already been read once; re-sending it costs the \
+             vision encoder and hundreds of prompt tokens per follow-up"
+        );
+        assert_eq!(
+            retry.context, request.context,
+            "the continuity context still applies"
+        );
     }
 
     #[test]

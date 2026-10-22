@@ -124,6 +124,36 @@ Recommendation for an 8 GB card:
 - **Avoid `gemma4-12b-it` on 8 GB** — it peaks at ~7.7 GB *without* the vision projector and
   becomes the slowest option.
 
+### Where a chapter's time goes
+
+Measured on the reference RTX 3070 with `qwen3.5-4b-uncensored` Q4_K_M, the defaults of
+`koharu-batch 0.87.2`, a 21-page chapter and per-call timings from the translation stage:
+
+| Share of a 21-page chapter | What it is |
+|---|---|
+| ~60% | generating the translations: ~240 tokens per page at ~75–85 tok/s |
+| ~20% | reading the prompt (prefill), including the page image |
+| ~10% | loading the model once, plus detection, OCR and inpainting |
+| the rest | rendering, encoding and writing the pages |
+
+Two conclusions that steer the knobs:
+
+- **The page image is not the expensive part.** Its longest edge is capped at 2048 px; dropping
+  that cap to 1536, 1024 or 896 px moved chapter translation time from 35.8 s to 35.8 s, 34.5 s and
+  33.8 s on the same six pages — a few percent, inside run-to-run noise — while the prompt only lost
+  130 tokens per page, because the projector already clamps the image to its own token budget. Keep
+  the 2048 px cap: it costs almost nothing and gives the model the most to look at.
+- **What a page costs is what it emits.** A page that comes back with 400 tokens of JSON costs
+  twice the model time of one that comes back with 200, and a follow-up call for segments the first
+  response left untranslated costs a second prefill. The follow-up therefore no longer re-sends the
+  page image: text only, ~1200 prompt tokens instead of ~2250, ~0.45 s instead of ~0.95 s per
+  retried page.
+
+When translation time matters more than the image context, `--no-vision` removes the projector and
+the image tokens (about a quarter of the translation time on the same pages); a text-only
+specialist such as `hy-mt2-1.8b` went about 20% faster still. Both give up the page image, which is
+what tells the translator who is speaking to whom, so compare a chapter before settling.
+
 ### Larger GPUs: what `--llm auto` picks
 
 `auto` first picks the highest-priority model that fits whole; only if none fits does it retry the
