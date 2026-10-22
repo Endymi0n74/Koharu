@@ -40,7 +40,7 @@ struct Arguments {
     #[arg(long)]
     translation_instructions: Option<String>,
 
-    #[arg(long, default_value = "gemma4-12b-it")]
+    #[arg(long, default_value = "qwen3.5-4b-uncensored")]
     llm: String,
 
     #[arg(long)]

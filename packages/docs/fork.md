@@ -108,9 +108,14 @@ Measurements on a Ryzen 7600 / 32 GB RAM / RTX 3070 (8 GB, CUDA, BF16), with a r
 
 Recommendation for an 8 GB card:
 
-- **Default: `gemma4-e4b-uncensored` (Q4_K_P)** — uncensored, vision-capable (the projector
-  adds ~0.9 GiB, for a 6.3 GiB peak against the ~7.2 GiB an 8 GB card can spare), and roughly
-  4× faster than the 12B model.
+- **Default: `qwen3.5-4b-uncensored` (Q4_K_M)** — vision-capable and small enough to fit
+  **whole**: ~4.0 GiB, so no block is pushed to host memory and every page stays on the GPU.
+  On the reference RTX 3070 a 21-page chapter took 205 s end to end; the split E4B below needed
+  342 s for the same chapter length.
+- **Quality-first, notably slower: `gemma4-e4b-uncensored` (Q4_K_P)** — uncensored and
+  vision-capable, but its ~6.3 GiB peak with the projector does not fit an 8 GB card, so it
+  runs as a partial offload (26 of 42 blocks on the GPU). That split is what makes it several
+  times slower per page, not its size alone.
 - **Fast text-only:** `hy-mt2-1.8b` (Hy-MT2) — translation-specialized 1.8B with no vision
   projector; an explicit `--llm hy-mt2-1.8b` only (`auto` never picks it, it sits below the
   2B quality floor), with targets limited to the 38 languages it was trained for (no pt-BR,
@@ -121,25 +126,26 @@ Recommendation for an 8 GB card:
 
 ### Larger GPUs: what `--llm auto` picks
 
-`auto` walks the preference list from the largest model down and takes the first one the budget
-can *run*: whole when it fits, through a partial offload when the split keeps **at least half its
-blocks on the GPU** (see *Partial offload* below). A card slightly too small for the 31B gets the
-31B split instead of stepping down to the 12B — a stronger model at the price of slower pages,
-announced by a warning before the run starts. The *VRAM* column is the peak the configuration
-has to fit, reported in GiB as in the CLI output. Only the E4B row (5 GiB card) is a measured
-peak — the others come from the parameter/quantization formula until a real run calibrates
-them, so treat them as planning figures and let `--dry-run` confirm the plan.
+`auto` first picks the highest-priority model that fits whole; only if none fits does it retry the
+preference list with partial offload, requiring **at least half its blocks on the GPU** (see
+*Partial offload* below). This makes a whole-GPU Qwen 3.5 4B outrank the slower offloaded E4B on
+an 8 GB card: on the reference RTX 3070 and a dense 21-page chapter, that took 98 s versus 342 s
+for the split E4B. The 31B still wins when it fits whole, and remains the first split fallback if
+no model fits whole. The *VRAM* column is the peak the configuration has to fit, reported in GiB
+as in the CLI output. The Qwen row reflects its 4.0 GiB formula estimate; other rows come from the
+parameter/quantization formula until a real run calibrates them, so treat them as planning figures
+and let `--dry-run` confirm the plan.
 
 | Card | Model | Quantization | Split | VRAM peak |
 |---|---|---|---|---|
-| 5 GiB | gemma4-e4b-uncensored | Q4_K_P | 24/42 blocks on the GPU | 6.3 GiB (measured) |
-| 6 GiB | gemma4-12b-uncensored | Q4_K_M | 26/48 blocks on the GPU | 8.3 GiB (estimated) |
-| 8 GiB | gemma4-12b-uncensored | Q4_K_M | 39/48 blocks on the GPU | 8.3 GiB (estimated) |
-| 12 GiB | gemma4-31b-uncensored | Q4_K_M | 32/60 blocks on the GPU | 18.4 GiB (estimated) |
-| 20 GiB | gemma4-31b-uncensored | Q4_K_M | 58/60 blocks on the GPU | 18.4 GiB (estimated) |
+| 5 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.0 GiB (estimated) |
+| 6 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.0 GiB (estimated) |
+| 8 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.0 GiB (estimated) |
+| 12 GiB | gemma4-12b-uncensored | Q4_K_M | — (fits whole) | 8.3 GiB (estimated) |
+| 20 GiB | gemma4-26b-a4b-uncensored | Q4_K_M | — (fits whole) | 15.7 GiB (estimated) |
 | 24 GiB and up | gemma4-31b-uncensored | Q4_K_M | — (fits whole) | 18.4 GiB (estimated) |
 
-Below 5 GiB the list keeps stepping down the same way — a split E4B instruct, then the
+Below 4 GiB the list keeps stepping down the same way — a split E4B instruct, then the
 measured E2B instruct, the uncensored E2B, the Qwen 2B pair (`qwen3.5-2b-uncensored`,
 then `qwen3.5-2b`, picked from their static estimate until the first run calibrates them) — and
 finally a 0.8B generalist. A card too small for any viable split makes `auto` refuse instead of
@@ -148,11 +154,9 @@ well while it stays below the 2B quality floor: a sub-2B model fits a busy card,
 dialogue into repetitive filler, so the run stops with the ways out spelled out (free VRAM, an
 explicit `--llm`, `--cpu`, or `--force` accepting the small pick).
 
-A candidate whose split would leave **most** of its blocks in host memory is skipped the same way
-a model too large for the card always was: the list continues down to the next runnable entry, so
-`auto` never starts a run that would take minutes per page. When speed matters more than quality,
-pin the model that fits whole with `--llm <id>` — `auto` now trades speed for a stronger model
-by default whenever the split stays viable.
+A candidate whose split would leave **most** of its blocks in host memory is skipped: if no model
+fits whole, the list continues to the next viable split, so `auto` avoids impractically slow runs.
+Explicit `--llm <id>` still overrides the automatic pick when a particular model is preferred.
 
 Because `auto` can now select a model that is not in the store yet, the run prints what it
 picked together with the download it implies, and warns explicitly when the choice needs more
@@ -164,9 +168,9 @@ The selected model and quantization live in `~/.koharu/config.toml`:
 
 ```toml
 [pipeline.translation.model]
-model = "gemma4-e4b-uncensored"
+model = "qwen3.5-4b-uncensored"
 provider = "local"
-quantization = "Q4_K_P"
+quantization = "Q4_K_M"
 vision = true
 ```
 
@@ -248,8 +252,10 @@ The split also lands in the run report (a *Déport partiel* row) and in the `--j
 A configuration whose excess is larger than the model's own weights has no useful split — the
 context, the vision projector, and the other pipeline stages keep their own accelerator
 footprint — and that one still refuses, naming `--cpu`, a smaller model, and `--force` (which
-loads the model whole with the budget ignored, at the risk of a failed load). `--llm auto`
-never splits: it walks the preference list until a model fits the card whole.
+loads the model whole with the budget ignored, at the risk of a failed load). `--llm auto` first
+checks every candidate for a whole-GPU fit, then considers viable splits in preference order.
+Thus it takes the whole Qwen 4B rather than the measured slower E4B offload on 8 GB, while larger
+models still win if they fit whole.
 
 ## Batch mode (`koharu-batch`)
 
@@ -365,7 +371,9 @@ sent, with the key read from the app's keyring; an unknown id is a usage error),
 services without one), `--quantization`, `--no-vision` (text-only
 translation, skips the vision projector), `--force`, `--vram-budget-mib`,
 `--detection`, `--ocr`, `--inpainting`, `--translation-instructions`, `--format`
-(png/jpg/webp for folder outputs), `--store`, `--report <BASE|none>`, `--json <PATH>`,
+(png/jpg/webp for folder outputs; omitted, it follows the input pages — a JPEG chapter keeps
+JPEG, so its output weighs about what its source weighs instead of several times more),
+`--store`, `--report <BASE|none>`, `--json <PATH>`,
 `--retries <N>` (extra attempts per stage, default `1`), `--pages <RANGE>` (translate only
 these pages, 1-based, `1-10,15`), `--recursive` (flatten subfolders into one chapter
 instead of the volume rule), `--quiet`, `--no-calibration`, `--deterministic` (greedy

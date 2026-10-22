@@ -627,17 +627,63 @@ fn list_models(measurements: &MeasuredPeaks) {
     }
 }
 
+/// JPEG quality for a rendered page: high enough that the flat fills and
+/// glyph edges of a manga page stay clean, low enough that a page weighs
+/// what its source scan weighed instead of several times more.
+const JPEG_QUALITY: u8 = 90;
+
 fn encode_image(
     image: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
     format: FormatChoice,
 ) -> Result<Vec<u8>> {
-    let mut encoded = Vec::new();
-    let target = match format {
-        FormatChoice::Png => image::ImageFormat::Png,
-        FormatChoice::Jpg => image::ImageFormat::Jpeg,
-        FormatChoice::Webp => image::ImageFormat::WebP,
+    use image::{
+        ExtendedColorType, ImageEncoder as _,
+        codecs::{
+            jpeg::JpegEncoder,
+            png::{CompressionType, FilterType, PngEncoder},
+        },
     };
-    image.write_to(&mut std::io::Cursor::new(&mut encoded), target)?;
+
+    let mut encoded = Vec::new();
+    // A rasterized page is opaque: its alpha channel is written by nobody and
+    // read by nobody, so dropping it saves a quarter of the bytes and of the
+    // encoder's work.
+    let opaque = image.pixels().all(|pixel| pixel[3] == u8::MAX);
+    let (width, height) = image.dimensions();
+    let rgb = || {
+        image
+            .pixels()
+            .flat_map(|pixel| [pixel[0], pixel[1], pixel[2]])
+            .collect::<Vec<u8>>()
+    };
+    match format {
+        FormatChoice::Png => {
+            let encoder = PngEncoder::new_with_quality(
+                &mut encoded,
+                CompressionType::Default,
+                FilterType::Adaptive,
+            );
+            if opaque {
+                encoder.write_image(&rgb(), width, height, ExtendedColorType::Rgb8)?;
+            } else {
+                encoder.write_image(image.as_raw(), width, height, ExtendedColorType::Rgba8)?;
+            }
+        }
+        FormatChoice::Jpg => {
+            JpegEncoder::new_with_quality(&mut encoded, JPEG_QUALITY).write_image(
+                &rgb(),
+                width,
+                height,
+                ExtendedColorType::Rgb8,
+            )?;
+        }
+        FormatChoice::Webp => {
+            image.write_to(
+                &mut std::io::Cursor::new(&mut encoded),
+                image::ImageFormat::WebP,
+            )?;
+        }
+    }
     Ok(encoded)
 }
 
@@ -723,6 +769,9 @@ struct Chapter {
     /// Folder of pages or `.cbz` path this chapter writes to.
     output: PathBuf,
     output_is_archive: bool,
+    /// Image format its pages are written in: `--format`, else the format
+    /// the input pages came in (`FormatChoice::for_pages`).
+    format: FormatChoice,
     report_base: Option<PathBuf>,
     /// Resolved once the model is picked; carries this chapter's paths.
     metadata: Option<RunMetadata>,
@@ -788,6 +837,12 @@ fn prepare_chapters(
             .and_then(|base| report::load_state(base))
             .unwrap_or_default();
         let all_pages = source.input.list();
+        // An explicit `--format` wins; otherwise the chapter keeps the media
+        // type it came in, so a JPEG chapter is not rewritten as PNG — which
+        // costs roughly seven times the bytes of the scan it came from.
+        let format = arguments.format.unwrap_or_else(|| {
+            FormatChoice::for_pages(all_pages.iter().map(|page| page.media_type))
+        });
 
         // Pages already present in an existing output archive: a resumed CBZ
         // run carries their entries over instead of translating them again.
@@ -824,8 +879,7 @@ fn prepare_chapters(
                 && if output_is_archive {
                     resumed.contains(&page.index)
                 } else {
-                    output_page_path(&chapter_output, page.index, arguments.format.extension())
-                        .exists()
+                    output_page_path(&chapter_output, page.index, format.extension()).exists()
                 }
         };
         // `--pages` narrows the run to a range: pages outside it are left out
@@ -875,6 +929,7 @@ fn prepare_chapters(
             input: source.input,
             output: chapter_output,
             output_is_archive,
+            format,
             report_base,
             previous_state,
             metadata: None,
@@ -1946,7 +2001,7 @@ async fn replay_pass(
             renderer: renderer.clone(),
             rasterizer: Arc::clone(rasterizer),
             vram_sampler: None,
-            format: replay_arguments.format,
+            format: chapter.format,
             retries: replay_arguments.retries,
             quiet: true,
             started: Instant::now(),
@@ -2516,7 +2571,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
         renderer: renderer.clone(),
         rasterizer: Arc::clone(&rasterizer),
         vram_sampler: vram_sampler.as_ref(),
-        format: arguments.format,
+        format: arguments.format.unwrap_or(FormatChoice::Png),
         retries: arguments.retries,
         quiet: arguments.quiet,
         started,
@@ -2526,6 +2581,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
     };
     for chapter in chapters.iter_mut() {
         if !chapter.pending.is_empty() {
+            translation.format = chapter.format;
             translation.run(chapter).await?;
             // Publish the chapter's outputs, then its final report: a crash
             // from here on still leaves the interim report on disk.
@@ -3048,6 +3104,7 @@ mod tests {
             input: InputPages::Directory(Vec::new()),
             output: PathBuf::from("out/ch1"),
             output_is_archive: false,
+            format: FormatChoice::Png,
             report_base: None,
             previous_state: Vec::new(),
             metadata: Some(RunMetadata {
