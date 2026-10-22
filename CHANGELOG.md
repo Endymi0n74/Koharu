@@ -1,3 +1,10 @@
+## [0.87.2](https://github.com/Endymi0n74/Koharu/compare/v0.87.1..v0.87.2) - 2026-10-22
+
+### 🐛 Bug Fixes
+
+- *(batch)* La sortie suit le format d'entrée, et le défaut de l'app tient sur 8 Go - ([501f37a](https://github.com/Endymi0n74/Koharu/commit/501f37aaa0edc754ef68ba53e6758f88f46de536))
+
+
 ## [0.87.1](https://github.com/Endymi0n74/Koharu/compare/v0.87.0..v0.87.1) - 2026-10-20
 
 ### ⚡ Performance
