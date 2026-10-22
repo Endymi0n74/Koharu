@@ -8745,9 +8745,9 @@ dependencies = [
 
 [[package]]
 name = "specta"
-version = "2.0.0-rc.25"
+version = "2.0.0-rc.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38f9a30cbcbb7011f1da7d73483983bf838af123883e45f2b36ed76328df9c50"
+checksum = "ed155e448f42fc4be7a5cbc12bd43f6c549981f7c32fcba429ff6bc57cc4f30c"
 dependencies = [
  "paste",
  "rustc_version",
@@ -8758,9 +8758,9 @@ dependencies = [
 
 [[package]]
 name = "specta-macros"
-version = "2.0.0-rc.25"
+version = "2.0.0-rc.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ce14957ecc2897f1f848b8255b6531d13ddf49cbcf506b7c2c9fb1d005593bb"
+checksum = "b34b2516e16a9ddd3dc4e73cd6454cfe21fe209f8cb5a6f37346fe3774d759b3"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -8770,9 +8770,9 @@ dependencies = [
 
 [[package]]
 name = "specta-serde"
-version = "0.0.12"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee8a72b755ddb8949fd8f17c5db43f0e8a806ea587d9bc602ee3f73240c00029"
+checksum = "4983177ed0eb28235080261953de5f9ebae8a2d107851b5852420bd2ab246245"
 dependencies = [
  "specta",
  "specta-macros",
@@ -8780,18 +8780,18 @@ dependencies = [
 
 [[package]]
 name = "specta-typescript"
-version = "0.0.12"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "639404ee95557f2f8b7e4cb773ffefd45304c7ab8ba21ac83b69051595e083c0"
+checksum = "3ecbe75dc1d27b36141b50b02b7c73bed00945710cee6edffa86d296a159a6f9"
 dependencies = [
  "specta",
 ]
 
 [[package]]
 name = "specta-util"
-version = "0.0.12"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29b1fc02b446f7244a92924fe68c0555921209f1d342990cd1539e9138e69502"
+checksum = "d9bf531215ea70fba8264edecf98f12600462cf359f2038602a47aeda5ecd5b8"
 dependencies = [
  "specta",
 ]
@@ -9101,7 +9101,7 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 [[package]]
 name = "tauri"
 version = "3.0.0-alpha.5"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "anyhow",
  "bytes",
@@ -9148,7 +9148,7 @@ dependencies = [
 [[package]]
 name = "tauri-build"
 version = "3.0.0-alpha.4"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "anyhow",
  "cargo_toml",
@@ -9170,7 +9170,7 @@ dependencies = [
 [[package]]
 name = "tauri-codegen"
 version = "3.0.0-alpha.4"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "base64 0.23.1",
  "brotli 9.0.0",
@@ -9196,7 +9196,7 @@ dependencies = [
 [[package]]
 name = "tauri-macros"
 version = "3.0.0-alpha.4"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -9209,7 +9209,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin"
 version = "3.0.0-alpha.4"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "anyhow",
  "glob",
@@ -9336,7 +9336,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime"
 version = "3.0.0-alpha.4"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "cookie",
  "dpi",
@@ -9356,7 +9356,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime-cef"
 version = "3.0.0-alpha.6"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "base64 0.22.1",
  "cef",
@@ -9394,7 +9394,7 @@ dependencies = [
 [[package]]
 name = "tauri-specta"
 version = "2.0.0-rc.25"
-source = "git+https://github.com/koharu-rs/tauri-specta?tag=v2.0.0-rc.25-koharu.1#77e14e0a342b604e91d4cebbe018a7cb6eef0582"
+source = "git+https://github.com/tauri-apps/tauri-specta?rev=6bcec0cdec0c92decf404c85ff01b4d8c3868599#6bcec0cdec0c92decf404c85ff01b4d8c3868599"
 dependencies = [
  "heck",
  "serde",
@@ -9411,7 +9411,7 @@ dependencies = [
 [[package]]
 name = "tauri-specta-macros"
 version = "2.0.0-rc.25"
-source = "git+https://github.com/koharu-rs/tauri-specta?tag=v2.0.0-rc.25-koharu.1#77e14e0a342b604e91d4cebbe018a7cb6eef0582"
+source = "git+https://github.com/tauri-apps/tauri-specta?rev=6bcec0cdec0c92decf404c85ff01b4d8c3868599#6bcec0cdec0c92decf404c85ff01b4d8c3868599"
 dependencies = [
  "darling 0.23.0",
  "heck",
@@ -9423,7 +9423,7 @@ dependencies = [
 [[package]]
 name = "tauri-utils"
 version = "3.0.0-alpha.4"
-source = "git+https://github.com/tauri-apps/tauri?rev=40a2d81d97f5c950e892fa7a6ce8b03064410c4d#40a2d81d97f5c950e892fa7a6ce8b03064410c4d"
+source = "git+https://github.com/tauri-apps/tauri?rev=78f49ba3993fed5a1b921235c547731006ad2a74#78f49ba3993fed5a1b921235c547731006ad2a74"
 dependencies = [
  "anyhow",
  "brotli 9.0.0",
