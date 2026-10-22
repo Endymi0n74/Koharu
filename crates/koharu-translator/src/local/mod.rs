@@ -108,6 +108,16 @@ impl LocalTranslator {
             llm.inference_with_json_schema(&input, &generation, &schema)
         })
         .await?;
+        // Where a page's translation time went: the prefill of the prompt and
+        // its image against the decoding of the answer. Both are logged so a
+        // slow page can be attributed instead of guessed at.
+        tracing::debug!(
+            prompt_tokens = output.prompt_tokens,
+            generated_tokens = output.generated_tokens,
+            prefill_ms = output.prompt_duration.as_millis() as u64,
+            decode_ms = output.generation_duration.as_millis() as u64,
+            "translated a page"
+        );
         Ok(prompt::translations("local", &output.text, request)?)
     }
 
