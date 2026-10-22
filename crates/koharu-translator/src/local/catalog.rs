@@ -4,8 +4,15 @@ use koharu_runtime::HuggingFaceFile;
 
 use crate::{Language, ModelGeneration, ModelSelection, QuantizationDefinition};
 
-pub(crate) const DEFAULT_MODEL: &str = "gemma4-12b-it";
-pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_XL";
+/// The model a fresh install translates with. It is the largest catalog
+/// entry that still fits **whole** on an 8 GB consumer card (~4.0 GiB with
+/// its vision projector): a model that has to be split between the GPU and
+/// host memory costs several times more per page, which is what made a
+/// 21-page chapter take fifteen minutes instead of three. Bigger cards can
+/// pick a larger model in the app's picker, or leave `koharu-batch` on
+/// `--llm auto` to choose by VRAM.
+pub(crate) const DEFAULT_MODEL: &str = "qwen3.5-4b-uncensored";
+pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_M";
 
 /// Languages a catalog entry can translate into.
 ///

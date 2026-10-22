@@ -283,25 +283,15 @@ pub struct AutoChoice {
     pub offload: Option<OffloadPlan>,
 }
 
-/// Preference order for `--llm auto`: the strongest model the budget can run
-/// wins — fitting whole, or split by a partial offload that keeps a majority
-/// of its blocks on the GPU (see [`offload_plan`]) — so a large card is not
-/// held back by the 8 GB recommendation and a card slightly too small for a
-/// model still gets it instead of a step down. Within
-/// one size the uncensored variant comes first (manga dialogue is the target
-/// workload), then the instruct build — the unsloth `-it` models are Google's
-/// official QAT releases, so the instruct entries already carry quantization-
-/// aware training — and the small E2B rounds out the vision fallbacks for an
-/// 8 GB card and below. The tail extends the same idea with leaner
-/// configurations so a busy 8 GB card (desktop, browser, the app itself on the
-/// GPU) still resolves a runnable vision model instead of refusing everything:
-/// the uncensored E2B first, then the Qwen 2B pair — static estimates that
-/// calibrate on the first run, so a card whose measured E2B no longer fits
-/// still translates with a real 2B — and finally the 0.8B generalist. Lighter
-/// quantizations of the 4B models stay out until a run records them in the
-/// calibration file — their formula estimate under-reports the real peak by
-/// roughly the context the measurements observed. Models not listed here stay
-/// reachable through an explicit `--llm <id> --quantization <id>`.
+/// Priority order for `--llm auto`, searched first for whole-GPU fits and
+/// then for viable partial offloads. A measured 21-page RTX 3070 run showed
+/// that the E4B split across host memory took 342 s, while the whole-GPU Qwen
+/// 3.5 4B took 98 s on the same chapter. This makes the 4B outrank an E4B split
+/// on an 8 GB card, while larger models still win when they fit whole. If no
+/// model fits whole, the existing largest-first split ladder remains available.
+/// Within a size the uncensored variant comes first, followed by the QAT
+/// instruct variants. Models not listed here remain available through an
+/// explicit `--llm <id> --quantization <id>`.
 ///
 /// The 0.8B tail entry only answers an explicit `--force`: an unforced pick
 /// below [`AUTO_QUALITY_FLOOR_B`] refuses instead of running.
@@ -309,6 +299,8 @@ const AUTO_PRIORITY: &[(&str, &str)] = &[
     ("gemma4-31b-uncensored", "Q4_K_M"),
     ("gemma4-26b-a4b-uncensored", "Q4_K_M"),
     ("gemma4-12b-uncensored", "Q4_K_M"),
+    // The measured whole-GPU Qwen replaces an E4B split when it fits.
+    ("qwen3.5-4b-uncensored", "Q4_K_M"),
     ("gemma4-e4b-uncensored", "Q4_K_P"),
     ("gemma4-e4b-it", "Q4_K_XL"),
     ("gemma4-e2b-it", "Q4_K_XL"),
@@ -338,51 +330,60 @@ pub fn resolve_auto(budget: u64, vision: bool) -> Option<AutoChoice> {
 /// [`resolve_auto`] against a table of real measurements, so a model that
 /// measured over the budget on this machine is split — or skipped when its
 /// split would leave most blocks on the CPU — in favor of the next candidate.
-///
-/// The strongest candidate wins: one that fits whole is picked as-is, and
-/// one that only fits split carries the [`OffloadPlan`] to run it, so a card
-/// slightly too small for the 31B gets the 31B instead of the 12B. A
-/// candidate with no useful split (the excess is larger than its weights) or
-/// one that would leave a majority of its blocks in host memory is skipped
-/// the same way a whole-fit candidate further down the list would be.
+/// Whole-model fits are considered before any split, in priority order: measured
+/// runs showed that host-memory offload can overwhelm the quality benefit. If
+/// nothing fits whole, candidates are retried in priority order with viable
+/// partial offload. Splits that leave most blocks on the CPU are skipped.
 #[must_use]
 pub fn resolve_auto_with(
     budget: u64,
     vision: bool,
     measurements: &MeasuredPeaks,
 ) -> Option<AutoChoice> {
-    AUTO_PRIORITY
-        .iter()
-        .filter_map(|&(model, quantization)| {
-            let descriptor = MODELS.iter().find(|descriptor| descriptor.id == model)?;
+    for whole_fit in [true, false] {
+        for &(model, quantization) in AUTO_PRIORITY {
+            // A priority entry missing from the catalog is skipped, not a
+            // reason to give up on every candidate after it.
+            let Some(descriptor) = MODELS.iter().find(|descriptor| descriptor.id == model) else {
+                continue;
+            };
             if vision && descriptor.projector.is_none() {
-                return None;
+                continue;
             }
             if !descriptor
                 .quantizations
                 .iter()
                 .any(|definition| definition.id == quantization)
             {
-                return None;
+                continue;
             }
             let estimate = estimate_vram_with(descriptor, Some(quantization), vision, measurements);
-            let offload = if estimate.bytes <= budget {
-                None
-            } else {
-                let plan = offload_plan(descriptor, Some(quantization), estimate, budget)?;
-                if plan.leaves_majority_on_cpu() {
-                    return None;
+            if whole_fit {
+                if estimate.bytes <= budget {
+                    return Some(AutoChoice {
+                        model,
+                        quantization,
+                        estimate,
+                        offload: None,
+                    });
                 }
-                Some(plan)
+                continue;
+            }
+            let Some(plan) = offload_plan(descriptor, Some(quantization), estimate, budget) else {
+                continue;
             };
-            Some(AutoChoice {
+            if plan.leaves_majority_on_cpu() {
+                continue;
+            }
+            return Some(AutoChoice {
                 model,
                 quantization,
                 estimate,
-                offload,
-            })
-        })
-        .next()
+                offload: Some(plan),
+            });
+        }
+    }
+    None
 }
 
 /// Physical VRAM of the reference machine, trimmed by [`BUDGET_MARGIN`].
@@ -715,14 +716,12 @@ mod tests {
 
     #[test]
     fn auto_grows_with_the_card_up_to_the_strongest_model_it_can_run() {
-        // The strongest candidate the budget can run wins: whole when it
-        // fits, through a partial offload when the split keeps a majority of
-        // its blocks on the GPU. A card slightly too small for the 31B gets
-        // the 31B split instead of stepping down to the 12B.
+        // Any whole-model fit outranks every split; larger whole fits still win
+        // over smaller ones, and split fallback remains largest-first.
         let expected = [
-            (8, "gemma4-12b-uncensored", true),
-            (12, "gemma4-31b-uncensored", true),
-            (20, "gemma4-31b-uncensored", true),
+            (8, "qwen3.5-4b-uncensored", false),
+            (12, "gemma4-12b-uncensored", false),
+            (20, "gemma4-26b-a4b-uncensored", false),
             (24, "gemma4-31b-uncensored", false),
             (48, "gemma4-31b-uncensored", false),
         ];
@@ -783,29 +782,42 @@ mod tests {
     }
 
     #[test]
-    fn auto_prefers_a_stronger_split_over_a_smaller_model_that_fits() {
-        // A split pick only appears where it beats the next whole fit: at
-        // 8 GiB the 12B at 39/48 outranks the E4B that would fit whole, and
-        // each step down keeps the strongest candidate the budget can run.
+    fn auto_prefers_whole_4b_over_the_e4b_split_but_keeps_larger_models_ahead() {
+        // This is the RTX 3070 case: the measured E4B (6.3 GiB) would be split
+        // at 8 GiB physical VRAM (7.2 GiB usable), but the 4B fits wholly.
         let choice = resolve_auto(budget_from_total(8 * GIB), true)
-            .expect("an 8 GiB card can run a split model");
+            .expect("an 8 GiB card can run the whole Qwen 4B");
+        assert_eq!(choice.model, "qwen3.5-4b-uncensored");
+        assert_eq!(choice.quantization, "Q4_K_M");
+        assert_eq!(choice.offload, None);
+
+        // Whole 12B fits outrank any split 31B.
+        let choice =
+            resolve_auto(budget_from_total(10 * GIB), true).expect("10 GiB can run the 12B");
         assert_eq!(choice.model, "gemma4-12b-uncensored");
-        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(39));
+        assert_eq!(choice.offload, None);
 
         let choice =
-            resolve_auto(budget_from_total(5 * GIB), true).expect("5 GiB can split a vision model");
-        assert_eq!(choice.model, "gemma4-e4b-uncensored");
-        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(24));
+            resolve_auto(budget_from_total(24 * GIB), true).expect("24 GiB can run the 31B whole");
+        assert_eq!(choice.model, "gemma4-31b-uncensored");
+        assert_eq!(choice.offload, None);
 
-        let choice = resolve_auto(budget_from_total(4 * GIB), true)
-            .expect("4 GiB can split a lean vision model");
-        assert_eq!(choice.model, "gemma4-e4b-it");
-        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(30));
+        // With only 4 GiB physical VRAM the 4B cannot be usefully offloaded,
+        // so the fallback is the uncensored E2B.
+        let choice =
+            resolve_auto(budget_from_total(4 * GIB), true).expect("4 GiB can run a smaller model");
+        assert_eq!(choice.model, "gemma4-e2b-uncensored");
+        assert!(choice.estimate.bytes <= budget_from_total(4 * GIB));
+
+        let choice =
+            resolve_auto(budget_from_total(5 * GIB), true).expect("5 GiB can run a vision model");
+        assert_eq!(choice.model, "qwen3.5-4b-uncensored");
+        assert_eq!(choice.offload, None);
 
         let choice = resolve_auto(budget_from_total(3 * GIB), true)
-            .expect("3 GiB can still run the smallest 2B");
-        assert_eq!(choice.model, "gemma4-e2b-uncensored");
-        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(26));
+            .expect("3 GiB can still run the smallest available model");
+        assert_eq!(choice.model, "qwen3.5-0.8b");
+        assert!(choice.offload.is_none());
 
         // Below the smallest footprint nothing runs at all: every split
         // would leave a majority of the blocks in host memory.
@@ -813,9 +825,9 @@ mod tests {
 
         // Text-only drops the projector and resolves further down the list.
         let choice = resolve_auto(budget_from_total(4 * GIB), false)
-            .expect("text-only 4 GiB can still run a split");
-        assert_eq!(choice.model, "gemma4-e4b-uncensored");
-        assert_eq!(choice.offload.map(|plan| plan.gpu_layers), Some(24));
+            .expect("text-only 4 GiB can run a model");
+        assert_eq!(choice.model, "qwen3.5-4b-uncensored");
+        assert_eq!(choice.offload, None);
     }
 
     #[test]
@@ -1040,7 +1052,7 @@ mod tests {
     }
 
     #[test]
-    fn a_measured_over_budget_model_is_split_or_outranked_never_run_whole() {
+    fn a_measured_over_budget_model_prefers_any_whole_fit_before_splitting() {
         let mut measurements = MeasuredPeaks::new();
         // The preferred model measured over this machine's usable budget.
         measurements.record(sample_peak(
@@ -1052,22 +1064,17 @@ mod tests {
         let choice =
             resolve_auto_with(budget, true, &measurements).expect("a vision model can run");
         assert_eq!(
-            choice.model, "gemma4-12b-uncensored",
-            "the measured-over model must not outrank a stronger runnable candidate"
+            choice.model, "qwen3.5-4b-uncensored",
+            "a whole-GPU model outranks every split when the preferred model exceeds budget"
         );
-        // Over budget means a plan, never a whole load: whatever auto picks
-        // at this budget carries its split.
-        let plan = choice
-            .offload
-            .expect("the strongest runnable candidate at 8 GiB is a split pick");
-        assert!(!plan.leaves_majority_on_cpu());
+        assert_eq!(choice.offload, None);
     }
 
     #[test]
     fn a_calibrated_e2b_over_budget_falls_back_above_the_quality_floor() {
         let mut measurements = MeasuredPeaks::new();
-        // The busy 8 GB card: the E2B measured over the squeezed budget, so
-        // auto answers with a stronger split above the 2B quality floor.
+        // The busy 8 GB card: the 4B fits whole after the E2B calibration
+        // pushes the E2B above budget; it stays above the 2B quality floor.
         measurements.record(sample_peak(
             "gemma4-e2b-uncensored",
             true,
@@ -1075,11 +1082,8 @@ mod tests {
         ));
         let choice = resolve_auto_with(budget_from_total(4 * GIB), true, &measurements)
             .expect("a runnable vision model answers");
-        assert_eq!(choice.model, "gemma4-e4b-it");
-        assert!(
-            choice.offload.is_some(),
-            "the pick exceeds the budget and carries its split"
-        );
+        assert_eq!(choice.model, "qwen3.5-2b-uncensored");
+        assert!(choice.offload.is_none(), "the fallback fits whole");
         assert!(
             parameters_billion(choice.model)
                 .is_some_and(|parameters| parameters >= AUTO_QUALITY_FLOOR_B),

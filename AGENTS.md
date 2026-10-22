@@ -68,4 +68,5 @@ Document only durable, repository-specific constraints here. Do not record curre
 ## Documentation
 
 - Comments should explain ownership, invariants, upstream mapping, or deliberate divergence; do not narrate straightforward code.
+- Keep `README.md` and `README.en.md` aligned: same sections in the same order, same bullet points, same commands, flags and measured figures. Edit both in the same commit — no feature is documented in one language only.
 - Keep this file focused on long-lived decision rules rather than the current implementation.

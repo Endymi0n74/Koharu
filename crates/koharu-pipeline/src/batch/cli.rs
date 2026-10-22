@@ -198,9 +198,12 @@ pub struct Arguments {
     #[arg(long, help_heading = "Reproducibility")]
     pub no_ocr_cache: bool,
 
-    /// Output image format when writing a folder.
-    #[arg(long, value_enum, default_value = "png")]
-    pub format: FormatChoice,
+    /// Output image format when writing a folder. Omitted, it follows the
+    /// pages it came from: JPEG pages stay JPEG, which keeps a chapter's
+    /// output close to its input size instead of rewriting a 300 KB scan as
+    /// a 2 MB PNG. Mixed or unusual input falls back to PNG.
+    #[arg(long, value_enum)]
+    pub format: Option<FormatChoice>,
 
     /// Run without reading or writing the calibration file: built-in
     /// estimates only, nothing persisted.
@@ -310,6 +313,38 @@ impl FormatChoice {
             Self::Jpg => "jpg",
             Self::Webp => "webp",
         }
+    }
+
+    /// The output format that preserves a page's own media type, so a
+    /// translated chapter weighs about what its input weighed instead of
+    /// being re-encoded losslessly.
+    #[must_use]
+    pub fn for_media_type(media_type: &str) -> Option<Self> {
+        match media_type {
+            "image/jpeg" => Some(Self::Jpg),
+            "image/webp" => Some(Self::Webp),
+            "image/png" => Some(Self::Png),
+            _ => None,
+        }
+    }
+
+    /// The format a chapter's pages share, when they all agree; PNG handles
+    /// the mixed case, since a lossless output never loses anything a page
+    /// brought in.
+    #[must_use]
+    pub fn for_pages<'a>(media_types: impl IntoIterator<Item = &'a str>) -> Self {
+        let mut shared: Option<Self> = None;
+        for media_type in media_types {
+            let Some(format) = Self::for_media_type(media_type) else {
+                return Self::Png;
+            };
+            match shared {
+                Some(previous) if previous.extension() != format.extension() => return Self::Png,
+                Some(_) => {}
+                None => shared = Some(format),
+            }
+        }
+        shared.unwrap_or(Self::Png)
     }
 }
 
@@ -771,6 +806,27 @@ mod tests {
     }
 
     #[test]
+    fn an_omitted_format_follows_the_pages() {
+        assert_eq!(
+            FormatChoice::for_pages(["image/jpeg", "image/jpeg"]).extension(),
+            "jpg",
+            "a JPEG chapter stays JPEG"
+        );
+        assert_eq!(FormatChoice::for_pages(["image/webp"]).extension(), "webp");
+        assert_eq!(FormatChoice::for_pages(["image/png"]).extension(), "png");
+        assert_eq!(
+            FormatChoice::for_pages(["image/jpeg", "image/png"]).extension(),
+            "png",
+            "mixed chapters fall back to the lossless format"
+        );
+        assert_eq!(
+            FormatChoice::for_pages(std::iter::empty()).extension(),
+            "png",
+            "nothing to go by means PNG"
+        );
+    }
+
+    #[test]
     fn a_page_range_is_one_based_ordered_and_bounded() {
         assert_eq!(parse_page_range("1-3,7", 10).unwrap(), [0, 1, 2, 6]);
         assert_eq!(parse_page_range("2", 10).unwrap(), [1]);
@@ -966,10 +1022,14 @@ mod tests {
             &MeasuredPeaks::new(),
         )
         .expect("6 GiB runs a model above the floor");
-        assert_eq!(resolved.model.as_deref(), Some("gemma4-12b-uncensored"));
+        assert_eq!(
+            resolved.model.as_deref(),
+            Some("qwen3.5-4b-uncensored"),
+            "whole-GPU models win over a bigger one that must be split"
+        );
         assert!(
-            resolved.offload.is_some(),
-            "the 12B exceeds 6 GiB and carries its split"
+            resolved.offload.is_none(),
+            "the 4B fits 6 GiB whole, so it carries no split"
         );
     }
 
@@ -1224,7 +1284,10 @@ mod tests {
         assert_eq!(arguments.provider, Provider::Local);
         assert_eq!(arguments.llm, "auto");
         assert_eq!(arguments.retries, 1);
-        assert_eq!(arguments.format.extension(), "png");
+        assert!(
+            arguments.format.is_none(),
+            "an omitted --format follows the input pages"
+        );
         assert!(!arguments.no_vision);
         assert!(!arguments.no_calibration);
         assert!(
@@ -1277,7 +1340,7 @@ mod tests {
             "jpg",
         ]);
         assert!(forced.no_vision);
-        assert_eq!(forced.format.extension(), "jpg");
+        assert_eq!(forced.format.map(FormatChoice::extension), Some("jpg"));
     }
 
     #[test]
