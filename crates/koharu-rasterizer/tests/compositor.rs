@@ -290,3 +290,142 @@ fn tiled_layers_composite_like_premultiplied_source_over() {
         assert_eq!(output[3], u8::MAX);
     }
 }
+
+/// Vello stores straight (unpremultiplied) colour in its target, but the compositor blends
+/// premultiplied. A light vector edge over a raster layer must still blend partially instead
+/// of saturating every partly covered pixel to the vector colour.
+#[test]
+fn vector_layer_edges_blend_partially_over_raster_layers() {
+    use koharu_rasterizer::{
+        FillRule, PathElement, PreparedPath, PreparedScene, PreparedSceneCommand,
+    };
+    let (width, height) = (64u32, 64u32);
+    let mut blue = vec![0u8; (width * height * 4) as usize];
+    for pixel in blue.as_chunks_mut::<4>().0 {
+        *pixel = [0, 0, 255, 255];
+    }
+    let resource =
+        PreparedResource::encoded_raster(width, height, "image/png", Arc::from(&b"blue"[..]))
+            .unwrap();
+    let source = resource.id();
+    // A white disc with fractional centre and radius, so most edge pixels are partly covered.
+    let (cx, cy, radius) = (32.3, 31.7, 20.4);
+    let mut elements = Vec::new();
+    for step in 0..=360 {
+        let angle = f64::from(step).to_radians();
+        let point = [cx + radius * angle.cos(), cy + radius * angle.sin()];
+        elements.push(if step == 0 {
+            PathElement::MoveTo(point)
+        } else {
+            PathElement::LineTo(point)
+        });
+    }
+    elements.push(PathElement::Close);
+    let mut vector = tiled_layer(3, source, width, height);
+    vector.kind = LayerKind::Text;
+    vector.content = PreparedContent::Vector(PreparedScene {
+        commands: vec![PreparedSceneCommand::FillPath(PreparedPath {
+            fill: FillRule::NonZero,
+            transform: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            color: [255, 255, 255, 255],
+            elements,
+        })],
+    });
+    let frame = PreparedFrameBundle {
+        frame: PreparedFrame {
+            revision: Revision::new(1),
+            page: LayerId::from_bytes([1; 16]),
+            width,
+            height,
+            origin: (0, 0),
+            normalization: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            layers: vec![tiled_layer(2, source, width, height), vector],
+        },
+        resources: vec![resource],
+    }
+    .into_frame_with_raster_sources(&HashMap::from([(source, Arc::from(&blue[..]))]))
+    .unwrap();
+    let image = Rasterizer::new()
+        .unwrap()
+        .rasterize(&frame, RasterOptions::default())
+        .unwrap()
+        .image;
+    let mut partial = 0;
+    for pixel in image.pixels() {
+        let [red, green, blue, alpha] = pixel.0;
+        assert_eq!(alpha, 255);
+        assert!(blue >= 254, "white over blue keeps a full blue channel");
+        // Straight-alpha white over blue: red and green both equal the coverage.
+        assert!(red.abs_diff(green) <= 1);
+        if (16..=239).contains(&red) {
+            partial += 1;
+        }
+    }
+    assert!(
+        partial > 60,
+        "the disc edge must antialias against the raster layer below: {partial} partial pixels"
+    );
+}
+
+#[test]
+fn native_readback_preserves_straight_alpha_for_transparent_layers() {
+    use koharu_rasterizer::{
+        FillRule, PathElement, PreparedPath, PreparedScene, PreparedSceneCommand,
+    };
+    let (width, height) = (64, 32);
+    let pixels = [80, 160, 240, 128].repeat(32 * 32);
+    let resource =
+        PreparedResource::encoded_raster(32, 32, "image/png", Arc::from(&b"translucent"[..]))
+            .unwrap();
+    let source = resource.id();
+    let mut raster = tiled_layer(2, source, 32, 32);
+    raster.placement[4] = 32.0;
+    let mut vector = tiled_layer(3, source, width, height);
+    vector.kind = LayerKind::Text;
+    vector.content = PreparedContent::Vector(PreparedScene {
+        commands: vec![PreparedSceneCommand::FillPath(PreparedPath {
+            fill: FillRule::NonZero,
+            transform: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            color: [200, 100, 50, 128],
+            elements: vec![
+                PathElement::MoveTo([4.25, 4.25]),
+                PathElement::LineTo([27.75, 4.25]),
+                PathElement::LineTo([27.75, 27.75]),
+                PathElement::LineTo([4.25, 27.75]),
+                PathElement::Close,
+            ],
+        })],
+    });
+    let frame = PreparedFrameBundle {
+        frame: PreparedFrame {
+            revision: Revision::new(1),
+            page: LayerId::from_bytes([1; 16]),
+            width,
+            height,
+            origin: (0, 0),
+            normalization: [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            layers: vec![raster, vector],
+        },
+        resources: vec![resource],
+    }
+    .into_frame_with_raster_sources(&HashMap::from([(source, Arc::from(pixels))]))
+    .unwrap();
+    let image = Rasterizer::new()
+        .unwrap()
+        .rasterize(&frame, RasterOptions::default())
+        .unwrap()
+        .image;
+    for ((x, y), expected) in [
+        ((8, 8), [200u8, 100, 50, 128]),
+        ((40, 8), [80, 160, 240, 128]),
+        ((0, 0), [0, 0, 0, 0]),
+    ] {
+        let actual = image.get_pixel(x, y).0;
+        for channel in 0..4 {
+            assert!(
+                actual[channel].abs_diff(expected[channel]) <= 1,
+                "straight RGBA at ({x}, {y}): {actual:?} != {expected:?}"
+            );
+        }
+    }
+}
