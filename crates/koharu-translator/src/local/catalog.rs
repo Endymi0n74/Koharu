@@ -4,14 +4,13 @@ use koharu_runtime::HuggingFaceFile;
 
 use crate::{Language, ModelGeneration, ModelSelection, QuantizationDefinition};
 
-/// The model a fresh install translates with. It is the largest catalog
-/// entry that still fits **whole** on an 8 GB consumer card (~4.0 GiB with
-/// its vision projector): a model that has to be split between the GPU and
-/// host memory costs several times more per page, which is what made a
-/// 21-page chapter take fifteen minutes instead of three. Bigger cards can
-/// pick a larger model in the app's picker, or leave `koharu-batch` on
-/// `--llm auto` to choose by VRAM.
-pub(crate) const DEFAULT_MODEL: &str = "qwen3.5-4b-uncensored";
+/// The model a fresh install translates with: Tencent's Hy-MT2 7B, a dense
+/// model trained for translation rather than a general instruct model asked to
+/// translate. It is the largest **translation-specialized** entry that still
+/// fits **whole** on an 8 GB consumer card (~4.3 GiB of weights, ~1 GiB of
+/// context, no vision projector), so a fresh install runs it without a split
+/// between GPU and host memory.
+pub(crate) const DEFAULT_MODEL: &str = "hy-mt2-7b";
 pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_M";
 
 /// Languages a catalog entry can translate into.
@@ -21,10 +20,10 @@ pub(crate) const DEFAULT_QUANTIZATION: &str = "Q4_K_M";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SupportedLanguages {
     All,
-    /// A model trained for a documented subset of the catalog languages:
-    /// `hy-mt2-1.8b` names the 38 languages Hy-MT2 translates into (its card
-    /// leaves out Brazilian Portuguese, Bulgarian, Belarusian, and
-    /// Hungarian), so a target outside the list is refused with
+    /// A model trained for a documented subset of the catalog languages: the
+    /// Hy-MT2 entries name the 38 languages they translate into (their cards
+    /// leave out Brazilian Portuguese, Bulgarian, Belarusian, and Hungarian),
+    /// so a target outside the list is refused with
     /// `Error::UnsupportedLanguage` instead of being silently mistranslated.
     Limited(&'static [crate::Language]),
 }
@@ -63,6 +62,51 @@ pub struct LocalModelDescriptor {
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, specta::Type)]
 #[serde(default)]
 pub struct LocalConfig {}
+
+/// Target languages the Hy-MT2 family documents — 38 of the catalog's 42. Its
+/// cards leave out Brazilian Portuguese (they list a single `pt`), Bulgarian,
+/// Belarusian, and Hungarian. One list shared by every size, so a new one
+/// cannot drift from the family it belongs to.
+static HY_MT2_LANGUAGES: &[Language] = &[
+    Language::ChineseSimplified,
+    Language::English,
+    Language::French,
+    Language::Portuguese,
+    Language::Spanish,
+    Language::Japanese,
+    Language::Turkish,
+    Language::Russian,
+    Language::Arabic,
+    Language::Korean,
+    Language::Thai,
+    Language::Italian,
+    Language::German,
+    Language::Vietnamese,
+    Language::Malay,
+    Language::Indonesian,
+    Language::Filipino,
+    Language::Hindi,
+    Language::ChineseTraditional,
+    Language::Polish,
+    Language::Czech,
+    Language::Dutch,
+    Language::Khmer,
+    Language::Burmese,
+    Language::Persian,
+    Language::Gujarati,
+    Language::Urdu,
+    Language::Telugu,
+    Language::Marathi,
+    Language::Hebrew,
+    Language::Bengali,
+    Language::Tamil,
+    Language::Ukrainian,
+    Language::Tibetan,
+    Language::Kazakh,
+    Language::Mongolian,
+    Language::Uyghur,
+    Language::Cantonese,
+];
 
 pub(super) static MODELS: &[LocalModelDescriptor] = &[
     LocalModelDescriptor {
@@ -1009,13 +1053,45 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         projector: Some("mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf"),
         target_languages: SupportedLanguages::All,
     },
-    // The catalog's first text-only entry: Tencent's translation-specialized
-    // Hy-MT2 (Apache-2.0) — no projector (vision stages fall back to OCR), no
-    // thinking mode (its "fast-thinking" template has none), and the vendor's
-    // own sampling recipe for the 1.8B (0.7 / 0.6 / 20, repetition 1.05, no
-    // min_p — the card specifies none). `Limited` carries its 38 documented
-    // target languages; `--llm auto` never reaches it (below the 2 B quality
-    // floor), so it is an explicit `--llm hy-mt2-1.8b` choice.
+    LocalModelDescriptor {
+        id: "hy-mt2-7b",
+        reasoning: false,
+        name: "Hy-MT2 7B",
+        layers: 32,
+        quantizations: &[
+            QuantizationDefinition::new("Q4_K_M", "Q4_K M", "Hy-MT2-7B-Q4_K_M.gguf"),
+            // The repository spells two of its own files with a capital `HY`
+            // and the third with `Hy`; both are pinned as published.
+            QuantizationDefinition::new("Q6_K", "Q6_K", "HY-MT2-7B-Q6_K.gguf"),
+            QuantizationDefinition::new("Q8_0", "Q8_0", "HY-MT2-7B-Q8_0.gguf"),
+        ],
+        generation: ModelGeneration {
+            temperature: Some(0.7),
+            top_k: Some(20),
+            top_p: Some(0.6),
+            min_p: None,
+            max_tokens: Some(1000),
+            repeat_penalty: Some(1.05),
+            frequency_penalty: None,
+            presence_penalty: None,
+        },
+        repository: "tencent/Hy-MT2-7B-GGUF",
+        revision: "ab8472660ac61fac25f1af43fac2599d52a8a775",
+        projector: None,
+        target_languages: SupportedLanguages::Limited(HY_MT2_LANGUAGES),
+    },
+    // Tencent's Hy-MT2 family is the catalog's translation-specialized line
+    // (Apache-2.0): no projector (the pipeline translates the page's OCR text),
+    // no thinking mode (its "fast-thinking" template has none), and each
+    // size's own sampling recipe. The 1.8B sits below the `auto` quality floor,
+    // so only an explicit `--llm hy-mt2-1.8b` reaches it.
+    //
+    // The 30B-A3B member (tencent/Hy-MT2-30B-A3B-GGUF) is deliberately absent:
+    // its GGUF declares `general.architecture = hy_v3`, and the pinned runtime
+    // (llama.cpp b9982) resolves only `hunyuan-dense`, `hunyuan-moe` and
+    // `hunyuan_vl` — `hy_v3` appears neither in its `llama-arch.cpp` nor in the
+    // `llama.dll` the store ships, so a load can only fail. Re-add it only
+    // together with a runtime that resolves that architecture.
     LocalModelDescriptor {
         id: "hy-mt2-1.8b",
         reasoning: false,
@@ -1039,46 +1115,7 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         repository: "tencent/Hy-MT2-1.8B-GGUF",
         revision: "a0c709d9fac510f2c807aa3af52872340dc37a4a",
         projector: None,
-        target_languages: SupportedLanguages::Limited(&[
-            Language::ChineseSimplified,
-            Language::English,
-            Language::French,
-            Language::Portuguese,
-            Language::Spanish,
-            Language::Japanese,
-            Language::Turkish,
-            Language::Russian,
-            Language::Arabic,
-            Language::Korean,
-            Language::Thai,
-            Language::Italian,
-            Language::German,
-            Language::Vietnamese,
-            Language::Malay,
-            Language::Indonesian,
-            Language::Filipino,
-            Language::Hindi,
-            Language::ChineseTraditional,
-            Language::Polish,
-            Language::Czech,
-            Language::Dutch,
-            Language::Khmer,
-            Language::Burmese,
-            Language::Persian,
-            Language::Gujarati,
-            Language::Urdu,
-            Language::Telugu,
-            Language::Marathi,
-            Language::Hebrew,
-            Language::Bengali,
-            Language::Tamil,
-            Language::Ukrainian,
-            Language::Tibetan,
-            Language::Kazakh,
-            Language::Mongolian,
-            Language::Uyghur,
-            Language::Cantonese,
-        ]),
+        target_languages: SupportedLanguages::Limited(HY_MT2_LANGUAGES),
     },
 ];
 
@@ -1137,7 +1174,7 @@ mod tests {
 
     #[test]
     fn local_catalog_has_unique_complete_entries() {
-        assert_eq!(MODELS.len(), 26);
+        assert_eq!(MODELS.len(), 27);
         for (index, model) in MODELS.iter().enumerate() {
             let id = model.id;
             assert!(!model.repository.is_empty());
@@ -1160,13 +1197,13 @@ mod tests {
 
     #[test]
     fn reasoning_matches_supported_chat_templates() {
-        // Every gemma/qwen chat template supports reasoning; Hy-MT2 is
-        // "fast-thinking" by design, with no thinking blocks to enable or
-        // strip, so it is the catalog's one non-reasoning entry.
+        // Every gemma/qwen chat template supports reasoning; the Hy-MT2 family
+        // is "fast-thinking" by design, with no thinking blocks to enable or
+        // strip, so its entries are the catalog's non-reasoning ones.
         for model in MODELS {
             assert_eq!(
                 model.reasoning,
-                model.id != "hy-mt2-1.8b",
+                !model.id.starts_with("hy-mt2-"),
                 "{} should expose reasoning matching its chat template",
                 model.id
             );

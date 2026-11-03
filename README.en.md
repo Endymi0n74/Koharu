@@ -164,7 +164,10 @@ Translation can use a local language model or a remote API.
 
 #### Specialized Translation Engine (Text-Only)
 
-- Hy-MT2: [hy-mt2-1.8b](https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF) — Tencent's translation model (1.8B parameters, Apache-2.0): no vision (no projector) and no reasoning mode, targets limited to the 38 languages it was trained for (no pt-BR, Bulgarian, Belarusian, or Hungarian). Explicit `--llm hy-mt2-1.8b` only — `--llm auto` never picks it (below the 2 B quality floor).
+- Hy-MT2: Tencent's translation-model family (Apache-2.0), text-only — no vision (no projector), no reasoning mode — with targets limited to the 38 languages it was trained for (no pt-BR, Bulgarian, Belarusian, or Hungarian):
+  - [hy-mt2-7b](https://huggingface.co/tencent/Hy-MT2-7B-GGUF) — 7B parameters, **the default of a fresh install**: ~4.3 GiB of weights, so it fits whole on an 8 GB card, with no offload.
+  - [hy-mt2-1.8b](https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF) — 1.8B parameters, fast; explicit `--llm hy-mt2-1.8b` only (`--llm auto` never picks it, below the 2 B quality floor).
+  The family's 30B-A3B stays out of the catalog: its GGUF declares `general.architecture = hy_v3`, which the pinned llama.cpp (b9982) cannot resolve (`llama-arch.cpp` knows `hunyuan-dense`, `hunyuan-moe`, `hunyuan_vl`), so it cannot load.
 
 #### Cloud Providers
 

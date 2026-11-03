@@ -118,6 +118,111 @@ impl fmt::Debug for CredentialInput {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The app as it starts on a machine that already saved a preference: it
+    /// reads `~/.koharu/config.toml`, so a model left over from an older
+    /// default would silently outrank the one measured in
+    /// `bench-profile/ja-quality.md`. Ignored: it needs that machine state, the
+    /// GGUF in the store, and a GPU.
+    #[tokio::test]
+    #[ignore = "reads ~/.koharu/config.toml and loads weights: needs machine state and a GPU"]
+    async fn saved_preferences_translate_with_the_winner() {
+        let preferences = Preferences::load().expect("app preferences");
+        let selection = preferences.pipeline.translation.model.clone();
+        println!(
+            "koharu saved preference resolves: {} {} (quantization {})",
+            selection.provider,
+            selection.model.as_deref().unwrap_or("<provider default>"),
+            selection.quantization.as_deref().unwrap_or("<default>"),
+        );
+        assert_eq!(selection.provider, Provider::Local);
+        assert_eq!(selection.model.as_deref(), Some("hy-mt2-7b"));
+        koharu_ml::init().await.expect("ml runtime init");
+        let translator = koharu_translator::Translator::from_config(
+            koharu_ml::device(false),
+            ProvidersConfig::load().expect("providers configuration"),
+        )
+        .expect("build the translator");
+        let request = koharu_translator::TranslationRequest::new(
+            ["まずい、財布を忘れた。"],
+            Language::French,
+        );
+        let (provider, texts) = translator
+            .translate(
+                &selection,
+                preferences.pipeline.translation.generation,
+                request,
+            )
+            .await
+            .expect("translate with the saved model");
+        println!("{provider}: {}", texts[0]);
+        assert!(!texts[0].is_empty());
+    }
+
+    /// The model the app translates with when nobody picked one: no saved
+    /// preference, a fresh install. It must stay on the model that won the
+    /// Japanese→French measurement (`bench-profile/ja-quality.md`), because
+    /// every other entry point follows this default.
+    #[test]
+    fn the_default_translation_path_resolves_the_measured_winner() {
+        let config = PipelineConfig::default();
+        let selection = &config.translation.model;
+        assert_eq!(selection.provider, Provider::Local);
+        assert_eq!(selection.model.as_deref(), Some("hy-mt2-7b"));
+        assert_eq!(selection.quantization.as_deref(), Some("Q4_K_M"));
+        assert!(
+            !koharu_translator::Translator::supports_vision(
+                selection,
+                &config.translation.generation
+            ),
+            "the winner is text-only; the page image must not be claimed"
+        );
+    }
+
+    /// A real run of the app's default translation path: loads the default
+    /// weights, translates one Japanese line and prints what it resolved.
+    /// Ignored by default because it needs a GPU and the GGUF in the store.
+    #[tokio::test]
+    #[ignore = "loads the default model and translates: needs a GPU and the GGUF"]
+    async fn the_default_translation_path_translates_with_the_winner() {
+        koharu_ml::init().await.expect("ml runtime init");
+        let config = PipelineConfig::default();
+        let selection = config.translation.model.clone();
+        println!(
+            "koharu default translation model: {} {} (quantization {})",
+            selection.provider,
+            selection.model.as_deref().unwrap_or("<provider default>"),
+            selection.quantization.as_deref().unwrap_or("<default>"),
+        );
+        let translator = koharu_translator::Translator::from_config(
+            koharu_ml::device(false),
+            ProvidersConfig::load().expect("providers configuration"),
+        )
+        .expect("build the translator");
+        let request = koharu_translator::TranslationRequest::new(
+            ["まずい、財布を忘れた。", "甘いものは正義！"],
+            Language::French,
+        );
+        let (provider, texts) = translator
+            .translate(&selection, config.translation.generation, request)
+            .await
+            .expect("translate with the default model");
+        for text in &texts {
+            println!("{provider}: {text}");
+        }
+        assert_eq!(texts.len(), 2);
+        assert!(
+            texts.iter().all(|text| !text
+                .chars()
+                .any(|character| ('\u{3040}'..='\u{30ff}').contains(&character))),
+            "a French rendering must not keep kana: {texts:?}"
+        );
+    }
+}
+
 impl CredentialInput {
     fn load(key: &str) -> Result<Self> {
         Ok(Self {

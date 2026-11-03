@@ -296,6 +296,12 @@ pub struct AutoChoice {
 /// The 0.8B tail entry only answers an explicit `--force`: an unforced pick
 /// below [`AUTO_QUALITY_FLOOR_B`] refuses instead of running.
 const AUTO_PRIORITY: &[(&str, &str)] = &[
+    // The translation-specialized entry leads: a model trained to translate
+    // beats a general instruct model of the same size on the same page (see
+    // `bench-profile/ja-*.md`). It carries no vision projector, so a run that
+    // asks for the page image (`vision`) skips it and falls through to the
+    // vision ladder below; `--no-vision` reaches it.
+    ("hy-mt2-7b", "Q4_K_M"),
     ("gemma4-31b-uncensored", "Q4_K_M"),
     ("gemma4-26b-a4b-uncensored", "Q4_K_M"),
     ("gemma4-12b-uncensored", "Q4_K_M"),
@@ -1068,6 +1074,28 @@ mod tests {
             "a whole-GPU model outranks every split when the preferred model exceeds budget"
         );
         assert_eq!(choice.offload, None);
+    }
+
+    #[test]
+    fn a_text_only_auto_run_prefers_the_translation_specialist() {
+        let budget = budget_from_total(8 * GIB);
+        let choice = resolve_auto_with(budget, false, &MeasuredPeaks::new())
+            .expect("a text-only model fits an 8 GiB card");
+        assert_eq!(choice.model, "hy-mt2-7b");
+        assert_eq!(choice.quantization, "Q4_K_M");
+        assert!(choice.offload.is_none(), "it must fit whole");
+        assert!(choice.estimate.bytes <= budget);
+    }
+
+    #[test]
+    fn a_vision_run_skips_the_projector_less_specialists() {
+        let choice = resolve_auto_with(budget_from_total(8 * GIB), true, &MeasuredPeaks::new())
+            .expect("a vision model fits an 8 GiB card");
+        assert!(
+            supports_vision(descriptor(choice.model)),
+            "{} has no projector, so a run asking for the page image must not pick it",
+            choice.model
+        );
     }
 
     #[test]

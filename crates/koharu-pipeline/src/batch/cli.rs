@@ -57,14 +57,16 @@ pub struct Arguments {
     #[arg(long, default_value = "local", help_heading = "Model & VRAM")]
     pub provider: Provider,
 
-    /// Translation model: with `--provider local`, a catalog id or `auto` —
-    /// the strongest model the VRAM budget can run, fitting whole or through
-    /// a partial offload that keeps a majority of blocks on the GPU (a big
-    /// pick is downloaded on the first run; a pick below the 2B quality floor
-    /// refuses unless `--force`). With a hosted provider, its model id;
-    /// `auto` asks for the service without one, which only the model-less
-    /// providers (DeepL and friends) accept.
-    #[arg(long, default_value = "auto")]
+    /// Translation model: with `--provider local`, a catalog id or `auto`.
+    /// The default is `hy-mt2-7b`, the model that won the Japanese→French
+    /// measurement recorded in `bench-profile/ja-quality.md`; `auto` instead
+    /// scans for the strongest model the VRAM budget can run, fitting whole
+    /// or through a partial offload that keeps a majority of blocks on the
+    /// GPU (a big pick is downloaded on the first run; a pick below the 2B
+    /// quality floor refuses unless `--force`). With a hosted provider, its
+    /// model id; `auto` asks for the service without one, which only the
+    /// model-less providers (DeepL and friends) accept.
+    #[arg(long, default_value = "hy-mt2-7b")]
     pub llm: String,
 
     /// Local LLM quantization (defaults to the model's first entry).
@@ -652,6 +654,16 @@ fn resolve_hosted(arguments: &Arguments) -> Result<Resolved> {
             arguments.provider
         ),
         "auto" => None,
+        // A model-less service translates as itself: the CLI's local catalog
+        // default must not travel to an endpoint that has no models.
+        _ if !arguments.provider.takes_model() => None,
+        // A local catalog id names weights this machine loads, not a model the
+        // provider serves; sending it would surface as an opaque API error.
+        model if preset::descriptor_for(model).is_some() => bail!(
+            "--llm {model} is a local catalog model, which {0} cannot run; pass \
+             --provider local, or --llm <model-id> for {0}",
+            arguments.provider
+        ),
         model => Some(model.to_owned()),
     };
     Ok(Resolved {
@@ -949,10 +961,34 @@ mod tests {
             "out",
             "--provider",
             "openai",
+            // `auto` is what asks a chat provider for a model id it must
+            // then reject; a local catalog id as the default would mask it.
+            "--llm",
+            "auto",
         ]);
         let error = resolve_model(&openai, None, &MeasuredPeaks::new())
             .expect_err("a chat provider cannot translate without a model");
         assert!(error.to_string().contains("--llm <model-id>"), "{error:#}");
+    }
+
+    #[test]
+    fn a_local_catalog_id_is_refused_by_a_hosted_provider() {
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--provider",
+            "openai",
+            "--llm",
+            "hy-mt2-7b",
+        ]);
+        let error = resolve_model(&arguments, None, &MeasuredPeaks::new())
+            .expect_err("a local catalog model cannot run on a hosted endpoint");
+        let message = error.to_string();
+        assert!(message.contains("local catalog model"), "{message}");
+        assert!(message.contains("--llm <model-id>"), "{message}");
     }
 
     #[test]
@@ -992,7 +1028,15 @@ mod tests {
 
     #[test]
     fn auto_refuses_a_pick_below_the_quality_floor_unless_forced() {
-        let arguments = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--llm",
+            "auto",
+        ]);
         // 2.25 GiB sits below every 2B configuration's viable split (the
         // 2B pair needs ≈2.43 GiB for a majority-on-GPU plan) and above the
         // 0.8B tail pick, so only the sub-floor model can run.
@@ -1010,6 +1054,8 @@ mod tests {
             "in",
             "--output",
             "out",
+            "--llm",
+            "auto",
             "--force",
         ]);
         let resolved = resolve_model(&forced, Some(crowded), &MeasuredPeaks::new())
@@ -1282,7 +1328,13 @@ mod tests {
         let arguments = Arguments::parse_from(["koharu-batch", "--input", "in", "--output", "out"]);
         assert_eq!(arguments.lang.tag(), "fr-FR");
         assert_eq!(arguments.provider, Provider::Local);
-        assert_eq!(arguments.llm, "auto");
+        assert_eq!(
+            arguments.llm,
+            koharu_translator::ModelSelection::default()
+                .model
+                .expect("the local default names a catalog model"),
+            "an omitted --llm must translate with the app's default model"
+        );
         assert_eq!(arguments.retries, 1);
         assert!(
             arguments.format.is_none(),

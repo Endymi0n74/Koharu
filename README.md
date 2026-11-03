@@ -164,7 +164,10 @@ La traduction peut utiliser un modèle de langage local ou une API distante.
 
 #### Moteur de traduction spécialisé (texte seul)
 
-- Hy-MT2 : [hy-mt2-1.8b](https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF) — modèle de traduction de Tencent (1,8 Md de paramètres, Apache-2.0) : ni vision (pas de projector) ni mode reasoning, cibles limitées aux 38 langues de son entraînement (pas de pt-BR, de bulgare, de biélorusse ni de hongrois). Choix explicite `--llm hy-mt2-1.8b` — `--llm auto` ne le prend jamais (sous le plancher de qualité 2 B).
+- Hy-MT2 : famille de modèles de traduction de Tencent (Apache-2.0), texte seul — ni vision (pas de projector), ni mode reasoning — cibles limitées aux 38 langues de son entraînement (pas de pt-BR, de bulgare, de biélorusse ni de hongrois) :
+  - [hy-mt2-7b](https://huggingface.co/tencent/Hy-MT2-7B-GGUF) — 7 Md de paramètres, **le défaut d'une installation neuve** : ~4,3 Gio de poids, donc entier sur une carte 8 Go, sans déport.
+  - [hy-mt2-1.8b](https://huggingface.co/tencent/Hy-MT2-1.8B-GGUF) — 1,8 Md de paramètres, rapide ; choix explicite `--llm hy-mt2-1.8b` seulement (`--llm auto` ne le prend jamais, sous le plancher de qualité 2 B).
+  Le 30B-A3B de la famille reste hors catalogue : son GGUF déclare `general.architecture = hy_v3`, que le llama.cpp épinglé (b9982) ne connaît pas (`llama-arch.cpp` résout `hunyuan-dense`, `hunyuan-moe`, `hunyuan_vl`), donc il ne peut pas se charger.
 
 #### Fournisseurs cloud
 

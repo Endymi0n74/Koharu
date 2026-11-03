@@ -108,18 +108,25 @@ Measurements on a Ryzen 7600 / 32 GB RAM / RTX 3070 (8 GB, CUDA, BF16), with a r
 
 Recommendation for an 8 GB card:
 
-- **Default: `qwen3.5-4b-uncensored` (Q4_K_M)** — vision-capable and small enough to fit
-  **whole**: ~4.0 GiB, so no block is pushed to host memory and every page stays on the GPU.
-  On the reference RTX 3070 a 21-page chapter took 205 s end to end; the split E4B below needed
-  342 s for the same chapter length.
+- **Default: `hy-mt2-7b` (Q4_K_M)** — Tencent's translation-specialized Hy-MT2 7B, text-only,
+  small enough to fit **whole** on an 8 GB card: ~4.3 GiB of weights plus ~1 GiB of context,
+  no vision projector, so no block is pushed to host memory.
+- **Vision-capable, whole-GPU: `qwen3.5-4b-uncensored` (Q4_K_M)** — ~4.0 GiB, so every page
+  stays on the GPU *and* the model sees the page image. On the reference RTX 3070 a 21-page
+  chapter took 205 s end to end; the split E4B below needed 342 s for the same chapter length.
 - **Quality-first, notably slower: `gemma4-e4b-uncensored` (Q4_K_P)** — uncensored and
   vision-capable, but its ~6.3 GiB peak with the projector does not fit an 8 GB card, so it
   runs as a partial offload (26 of 42 blocks on the GPU). That split is what makes it several
   times slower per page, not its size alone.
-- **Fast text-only:** `hy-mt2-1.8b` (Hy-MT2) — translation-specialized 1.8B with no vision
-  projector; an explicit `--llm hy-mt2-1.8b` only (`auto` never picks it, it sits below the
-  2B quality floor), with targets limited to the 38 languages it was trained for (no pt-BR,
-  Bulgarian, Belarusian, or Hungarian).
+- **Small and fast text-only:** `hy-mt2-1.8b` — the 1.8B member of the same family; an explicit
+  `--llm hy-mt2-1.8b` only (`auto` never picks it, it sits below the 2B quality floor). Every
+  Hy-MT2 size limits its targets to the 38 languages it was trained for (no pt-BR, Bulgarian,
+  Belarusian, or Hungarian).
+
+The family's 30B-A3B is deliberately not cataloged: its GGUF declares
+`general.architecture = hy_v3`, and the pinned runtime (llama.cpp b9982) resolves only
+`hunyuan-dense`, `hunyuan-moe` and `hunyuan_vl` — `hy_v3` is in neither its `llama-arch.cpp` nor
+the shipped `llama.dll`, so the load can only fail.
 - **Very fast with vision:** `gemma4-e2b-it` — low VRAM, lower translation quality.
 - **Avoid `gemma4-12b-it` on 8 GB** — it peaks at ~7.7 GB *without* the vision projector and
   becomes the slowest option.
@@ -154,6 +161,20 @@ the image tokens (about a quarter of the translation time on the same pages); a 
 specialist such as `hy-mt2-1.8b` went about 20% faster still. Both give up the page image, which is
 what tells the translator who is speaking to whom, so compare a chapter before settling.
 
+### Why not speculative decoding
+
+A 0.8B draft of the same Qwen 3.5 family — same vocabulary — was prototyped against the 4B: the
+draft proposes four tokens, the 4B verifies them in one pass, the matched prefix is kept. On the
+reference RTX 3070 it ran at **0.32–0.51× the plain loop**, and it was token-for-token identical in
+only 6 of 15 runs. Two measured blockers: Qwen 3.5 is a hybrid model, so llama.cpp cannot trim its
+linear-attention state and a rejected round has to restore an 85 MiB sequence snapshot (18 ms) and
+replay the accepted tokens; and the draft itself costs 4.8 ms per token against the target's 10.8,
+while acceptance drops from ~90% at one proposal to ~60% at four. Even with a free rollback the
+round arithmetic stays below break-even unless a draft is accepted ~95% of the time, and batched
+verification shifts logits enough to flip a near-tie — which would break the reproducibility
+`--deterministic` promises. Not shipped; the probe and its measurements live in the fork's
+`bench-profile/spec-decode.md`.
+
 ### Larger GPUs: what `--llm auto` picks
 
 `auto` first picks the highest-priority model that fits whole; only if none fits does it retry the
@@ -165,6 +186,10 @@ no model fits whole. The *VRAM* column is the peak the configuration has to fit,
 as in the CLI output. The Qwen row reflects its 4.0 GiB formula estimate; other rows come from the
 parameter/quantization formula until a real run calibrates them, so treat them as planning figures
 and let `--dry-run` confirm the plan.
+
+The preference list leads with the two translation-specialized Hy-MT2 sizes, but they carry no
+vision projector: a run that keeps the page image (`auto` unless `--no-vision`) skips them and
+uses the table below, while `--no-vision --llm auto` picks `hy-mt2-7b` on an 8 GB card.
 
 | Card | Model | Quantization | Split | VRAM peak |
 |---|---|---|---|---|
