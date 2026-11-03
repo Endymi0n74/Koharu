@@ -1,3 +1,10 @@
+## [0.88.0](https://github.com/Endymi0n74/Koharu/compare/v0.87.3..v0.88.0) - 2026-11-03
+
+### ⛰️  Features
+
+- *(translation)* Hy-MT2 7B devient le modèle par défaut - ([40a5b56](https://github.com/Endymi0n74/Koharu/commit/40a5b56852f5610817dc16d89298e0a298cc79c7))
+
+
 ## [0.87.3](https://github.com/Endymi0n74/Koharu/compare/v0.87.2..v0.87.3) - 2026-10-22
 
 ### ⚡ Performance
