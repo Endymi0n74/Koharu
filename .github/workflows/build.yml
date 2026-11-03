@@ -16,7 +16,11 @@ jobs:
     name: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest, ubuntu-24.04-arm]
+        # macOS is deliberately absent: this fork cannot sign Apple binaries
+        # (release.yml has no Developer certificate secrets), and the current
+        # macos-latest image ships an Xcode SDK that cannot link
+        # `cargo install tauri-cli` during `bun install` (libmacho.tbd, errno=22).
+        os: [windows-latest, ubuntu-latest, ubuntu-24.04-arm]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -40,9 +44,6 @@ jobs:
         with:
           shared-key: koharu-app-${{ matrix.os }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Install macOS CEF helper targets
-        if: startsWith(matrix.os, 'macos')
-        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
