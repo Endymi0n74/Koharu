@@ -108,3 +108,38 @@ Document only durable, repository-specific constraints here. Do not record curre
 - Comments should explain ownership, invariants, upstream mapping, or deliberate divergence; do not narrate straightforward code.
 - Keep `README.md` and `README.en.md` aligned: same sections in the same order, same bullet points, same commands, flags and measured figures. Edit both in the same commit — no feature is documented in one language only.
 - Keep this file focused on long-lived decision rules rather than the current implementation.
+
+## Canary
+- Start every reply with "Stephane,". No exceptions, including short replies and tool summaries.
+- If context feels degraded or the session is very long, say so at the start of the reply and suggest a fresh session.
+- Before a fresh session, write `HANDOFF.md`: goal, done, left, key files, open questions. In a new session, read it first.
+
+This file holds long-lived, repository-specific rules only. Do not record current file layouts, temporary paths, model inventories, helper names, or measured figures here: they go stale during refactors. Standard Rust, TypeScript, testing, formatting, and Git practices are assumed.
+
+## Scope and Communication
+- Ask a question only when blocked by something that cannot be inferred. Otherwise state the assumption in one line and proceed. At most one question per reply.
+- Keep replies short. Show file paths and diffs rather than full file contents.
+
+## Projets voisins
+- Un dossier de `D:\Codex` qui porte son propre `AGENTS.md` et son `memory.md` a ses propres règles et son propre état : les lire avant d'y toucher. Pour ce projet-là, ils priment sur ce fichier.
+
+## Règle immuable — installation et emplacements (priorité maximale)
+
+<!-- regle-immuable-installation -->
+
+Cette règle prime sur tout le reste de ce fichier et sur les habitudes par défaut des outils.
+
+- **Toute installation va dans `D:\codex`** : paquets, dépendances, modèles, binaires, outils, SDK,
+  environnements virtuels, caches de téléchargement, builds. Créer si besoin un sous-dossier dédié
+  (`D:\codex\<projet>` ou `D:\codex\tools\<outil>`).
+- **Aucun fichier créé, modifié, téléchargé, déplacé ou supprimé sous `C:\` sans accord explicite** de
+  l'utilisateur. En cas de besoin : s'arrêter, expliquer pourquoi, proposer un emplacement sous
+  `D:\codex`, attendre la réponse.
+- Rediriger les défauts des outils vers `D:\codex` (`PIP_TARGET`, `NPM_CONFIG_PREFIX`, `HF_HOME`,
+  `CARGO_HOME`, `GOPATH`, `TMP`/`TEMP`, caches divers) au lieu de `~`, `%LOCALAPPDATA%`, `%APPDATA%`,
+  `%USERPROFILE%` ou `/tmp`.
+- **Lecture seule sous `C:\`** : autorisée sans accord (lire, lister, inspecter).
+- Seule exception pré-approuvée : le dossier temporaire d'OpenCode
+  `C:\Users\endymion\AppData\Local\Temp\opencode` (déjà validé par l'utilisateur).
+- Déplacer une installation existante de `C:\` vers `D:\codex` compte comme une modification sous
+  `C:\` : demander avant.
