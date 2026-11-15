@@ -106,6 +106,7 @@
             "pages": [
               "guides/projects",
               "guides/processing",
+              "guides/batch",
               "guides/review",
               "guides/canvas",
               "guides/cleanup",
@@ -141,6 +142,10 @@
               "reference/troubleshooting",
               "privacy"
             ]
+          },
+          {
+            "group": "Fork",
+            "pages": ["fork"]
           }
         ]
       },
@@ -264,6 +269,10 @@
               "ja/reference/troubleshooting",
               "ja/privacy"
             ]
+          },
+          {
+            "group": "Fork",
+            "pages": ["ja/fork"]
           }
         ]
       },
@@ -387,6 +396,10 @@
               "zh/reference/troubleshooting",
               "zh/privacy"
             ]
+          },
+          {
+            "group": "Fork",
+            "pages": ["zh/fork"]
           }
         ]
       }
