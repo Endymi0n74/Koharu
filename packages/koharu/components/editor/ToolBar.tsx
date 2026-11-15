@@ -177,7 +177,3 @@ function BrushSize({ value, onChange }: { value: number; onChange: (value: numbe
     </Popover>
   )
 }
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min))
-}
