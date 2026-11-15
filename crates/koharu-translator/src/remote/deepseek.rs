@@ -8,8 +8,11 @@ use koharu_secrets::ExposeSecret;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use super::openai_compatible::{ChatBackend, ResponseMode};
-use crate::{GenerationConfig, Model, Provider, Result, TranslationRequest, prompt::Translations};
+use super::send_json;
+use crate::{
+    GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image,
+    display_name, prompt,
+};
 
 const URL: &str = "https://api.deepseek.com/chat/completions";
 const MODELS_URL: &str = "https://api.deepseek.com/models";
@@ -47,7 +50,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Translations> {
+) -> Result<prompt::Translations> {
     let api_key = koharu_secrets::get("deepseek")?.context("deepseek API key is not configured")?;
     let (system, user) = prompt::prompts(request)?;
     let user_content = match request.image.as_deref() {
@@ -99,7 +102,7 @@ pub(super) async fn translate(
         .message
         .content
         .context("DeepSeek returned no message content")?;
-    Ok(prompt::translations("deepseek", &text, &request.segments)?)
+    Ok(prompt::translations("deepseek", &text, request)?)
 }
 
 #[derive(Serialize)]

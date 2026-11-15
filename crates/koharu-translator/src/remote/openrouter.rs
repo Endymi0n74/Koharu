@@ -9,8 +9,10 @@ use koharu_secrets::ExposeSecret;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use super::openai_compatible::{ChatBackend, ResponseMode};
-use crate::{GenerationConfig, Model, Provider, Result, TranslationRequest, prompt::Translations};
+use super::send_json;
+use crate::{
+    GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image, prompt,
+};
 
 const CHAT_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 const MODELS_URL: &str = "https://openrouter.ai/api/v1/models";
@@ -25,7 +27,7 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Translations> {
+) -> Result<prompt::Translations> {
     let api_key =
         koharu_secrets::get("openrouter")?.context("openrouter API key is not configured")?;
     let (system, user) = prompt::prompts(request)?;
@@ -88,11 +90,7 @@ pub(super) async fn translate(
         .message
         .content
         .context("OpenRouter returned no message content")?;
-    Ok(prompt::translations(
-        "openrouter",
-        &text,
-        &request.segments,
-    )?)
+    Ok(prompt::translations("openrouter", &text, request)?)
 }
 
 pub(super) async fn models(client: &Client) -> Result<Vec<Model>> {

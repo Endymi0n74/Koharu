@@ -87,25 +87,27 @@ impl LocalTranslator {
         }
 
         let image = request.image.clone();
-        let prompt = self.render_prompt(request)?;
+        let prompt = self.render_prompt(
+            request,
+            generation.reasoning.unwrap_or(false) && self.descriptor.reasoning,
+        )?;
         let schema = prompt::output_schema(expected);
         let llm = Arc::clone(&self.llm);
         let mut generation = self.descriptor.generation.options(generation);
         // The schema makes the model emit one entry per segment, so a catalog
-        // default sized for a short prompt leaves the tail of a dense page
-        // untranslated.
+        // default sized for a short prompt truncates a dense page's JSON and
+        // its tail comes back untranslated.
         generation.max_tokens = generation
             .max_tokens
             .max(prompt::output_budget(&request.segments));
-        let output = tokio::task::spawn_blocking(move || {
+        let output = tokio_rayon::spawn(move || {
             let input = image.as_deref().map_or_else(
                 || Input::new(&prompt),
                 |image| Input::new(&prompt).with_image(image),
             );
             llm.inference_with_json_schema(&input, &generation, &schema)
         })
-        .await
-        .context("local translation task panicked")??;
+        .await?;
         // Where a page's translation time went: the prefill of the prompt and
         // its image against the decoding of the answer. Both are logged so a
         // slow page can be attributed instead of guessed at.

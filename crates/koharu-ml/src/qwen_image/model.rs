@@ -44,8 +44,8 @@ impl Model {
     pub(super) fn vae_tiling(&self) -> TilingParams {
         TilingParams {
             enabled: self.low_vram,
-            tile_size_x: 512,
-            tile_size_y: 512,
+            tile_size_w: 512,
+            tile_size_h: 512,
             ..TilingParams::default()
         }
     }

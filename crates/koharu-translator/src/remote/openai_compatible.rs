@@ -9,7 +9,7 @@ use url::Url;
 use super::send_json;
 use crate::{
     GenerationConfig, Model, Provider, Result, TranslationRequest, backend::encode_image,
-    display_name, prompt, prompt::Translations,
+    display_name, prompt,
 };
 
 const DEFAULT_BASE_URL: &str = "http://localhost:11434/v1";
@@ -36,29 +36,8 @@ pub(super) async fn translate(
     model: &str,
     generation: &GenerationConfig,
     request: &TranslationRequest,
-) -> Result<Translations> {
+) -> Result<prompt::Translations> {
     let api_key = koharu_secrets::get("openai-compatible")?;
-    let endpoint = endpoint(config.base_url.as_ref(), "chat/completions");
-    translate(
-        client,
-        ChatBackend::new(
-            "openai-compatible",
-            &endpoint,
-            api_key.as_ref().map(ExposeSecret::expose_secret),
-            model,
-            generation,
-            ResponseMode::PromptOnly,
-        ),
-        request,
-    )
-    .await
-}
-
-pub(super) async fn translate(
-    client: &Client,
-    backend: ChatBackend<'_>,
-    request: &TranslationRequest,
-) -> Result<Translations> {
     let (system, user) = prompt::prompts(request)?;
     let user_content = match request.image.as_deref() {
         Some(image) => MessageContent::Parts(vec![
@@ -114,8 +93,9 @@ pub(super) async fn translate(
         .next()
         .context("OpenAI-compatible backend returned no choices")?
         .message
-        .content;
-    Ok(prompt::translations(backend.provider, &text, request)?)
+        .content
+        .context("OpenAI-compatible backend returned no message content")?;
+    Ok(prompt::translations("openai-compatible", &text, request)?)
 }
 
 pub(super) async fn models(client: &Client, config: &OpenAiCompatibleConfig) -> Result<Vec<Model>> {
