@@ -12,6 +12,18 @@ export const commands = {
 	saveAgentConfig: (config: Config) => __TAURI_INVOKE<Config>("save_agent_config", { config }),
 	runAgent: (prompt: string, onEvent: Channel<Event>) => __TAURI_INVOKE<RunId>("run_agent", { prompt, onEvent }),
 	cancelAgent: (run: RunId) => __TAURI_INVOKE<null>("cancel_agent", { run }),
+	/**
+	 *  Folder picker for the batch dialog: the paths are kept in the frontend
+	 *  until [`start_batch`] is called, like the import dialog keeps its files.
+	 */
+	pickBatchFolder: () => __TAURI_INVOKE<string | null>("pick_batch_folder"),
+	/**
+	 *  Translates a folder (or chapter) with `koharu-batch` and reports it as a
+	 *  regular job: the child owns the run, this side only mirrors its stderr.
+	 *  `model` is the picker's choice; `None` translates like the CLI's own
+	 *  default — the local `auto` pick.
+	 */
+	startBatch: (input: string, output: string, lang: string, model: ModelSelection | null, deterministic: boolean, overwrite: boolean) => __TAURI_INVOKE<JobId>("start_batch", { input, output, lang, model, deterministic, overwrite }),
 	subscribe: (onCanvas: Channel<CanvasState>, onJob: Channel<Job>, onDownload: Channel<Download>, onResources: Channel<ModelResources>, onProject: Channel<ProjectInfo | null>) => __TAURI_INVOKE<StartupState>("subscribe", { onCanvas, onJob, onDownload, onResources, onProject }),
 	getProject: () => __TAURI_INVOKE<ProjectInfo | null>("get_project"),
 	getPages: () => __TAURI_INVOKE<PageSummary[]>("get_pages"),
@@ -317,6 +329,13 @@ export type ModelSelection = {
 	quantization?: string | null,
 	vision?: boolean,
 	reasoning?: boolean,
+	/**
+	 *  Blocks to keep on the accelerator: `None` loads every block there, a
+	 *  lower count spills the tail to the CPU, which is how a configuration
+	 *  whose full footprint exceeds the VRAM budget still runs (the batch CLI
+	 *  plans that split; the app leaves it empty).
+	 */
+	gpu_layers?: number | null,
 };
 
 export type OcrModel = { model: "paddleocr-vl-1.6" } | { model: "manga-ocr" } | { model: "baberu-ocr" } | { model: "hayai-ocr" };
