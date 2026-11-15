@@ -3,8 +3,6 @@ title: Fork Guide
 description: Build and install this fork locally, understand the runtime store, and pick a translation model for an 8 GB GPU.
 ---
 
-# Fork Guide
-
 This page documents the `Endymi0n74/Koharu` fork: how a local build is installed without
 code-signing, where the runtime store lives, and how to choose a translation model for a
 consumer GPU with 8 GB of VRAM (for example an RTX 3070).
@@ -320,7 +318,7 @@ inpainting, translation, rendering) as the desktop app, but runs unattended so i
 scripted or launched for a long reading session.
 
 The desktop app offers the same run under **File → Batch Translate Folder…**, tracked in
-the activity center — see [Batch translate a folder](/en/guides/batch).
+the activity center — see [Batch translate a folder](/guides/batch).
 
 Key behaviors:
 
