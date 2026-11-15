@@ -2,75 +2,75 @@
 
 ### ⛰️  Features
 
-- *(translation)* Hy-MT2 7B devient le modèle par défaut - ([40a5b56](https://github.com/Endymi0n74/Koharu/commit/40a5b56852f5610817dc16d89298e0a298cc79c7))
+- *(translation)* Hy-MT2 7B devient le modèle par défaut - ([40a5b56](https://github.com/Endymi0n74/Koharu/commit/94cfa4af2e28d0e782fab59966dfb26754f9b544))
 
 
 ## [0.87.3](https://github.com/Endymi0n74/Koharu/compare/v0.87.2..v0.87.3) - 2026-10-22
 
 ### ⚡ Performance
 
-- *(translation)* Le follow-up ne renvoie plus l'image de la page - ([a34abcf](https://github.com/Endymi0n74/Koharu/commit/a34abcfa84c377b55ee296e4f1dc59a71219f705))
+- *(translation)* Le follow-up ne renvoie plus l'image de la page - ([a34abcf](https://github.com/Endymi0n74/Koharu/commit/f4b52a62dfe2257522019150beed9ab92a99bff5))
 
 
 ## [0.87.2](https://github.com/Endymi0n74/Koharu/compare/v0.87.1..v0.87.2) - 2026-10-22
 
 ### 🐛 Bug Fixes
 
-- *(batch)* La sortie suit le format d'entrée, et le défaut de l'app tient sur 8 Go - ([501f37a](https://github.com/Endymi0n74/Koharu/commit/501f37aaa0edc754ef68ba53e6758f88f46de536))
+- *(batch)* La sortie suit le format d'entrée, et le défaut de l'app tient sur 8 Go - ([501f37a](https://github.com/Endymi0n74/Koharu/commit/9002055c67b26b4e928bc99ae8b0b9d0da3decec))
 
 
 ## [0.87.1](https://github.com/Endymi0n74/Koharu/compare/v0.87.0..v0.87.1) - 2026-10-20
 
 ### ⚡ Performance
 
-- *(batch)* Cache d'images partagée, décodage du load réutilisé, lookahead N+2 - ([67c476b](https://github.com/Endymi0n74/Koharu/commit/67c476b3311d644fbf4276d6151e8473beea1d62))
-- *(batch)* Rendu en parallèle, détection accélérée, modèles échauffés hors chrono - ([50ff5f8](https://github.com/Endymi0n74/Koharu/commit/50ff5f84660f8c2b39d29777a2b56e305e51f2e4))
+- *(batch)* Cache d'images partagée, décodage du load réutilisé, lookahead N+2 - ([67c476b](https://github.com/Endymi0n74/Koharu/commit/13a250cc48f390568b182066babb3eec366a17dd))
+- *(batch)* Rendu en parallèle, détection accélérée, modèles échauffés hors chrono - ([50ff5f8](https://github.com/Endymi0n74/Koharu/commit/1f3380c4155484777ec8263fcf51a952e065d52f))
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(memory)* Sort la mémoire de projet du suivi git - ([b55094f](https://github.com/Endymi0n74/Koharu/commit/b55094fb9efd9453905208a42bf3817e9b684893))
+- *(memory)* Sort la mémoire de projet du suivi git - ([b55094f](https://github.com/Endymi0n74/Koharu/commit/ab282bbd284165f5193b7f6cf82682e964a8a2f6))
 
 
 ## [0.87.0](https://github.com/Endymi0n74/Koharu/compare/v0.86.0..v0.87.0) - 2026-10-16
 
 ### ⛰️  Features
 
-- *(translation)* Fiche de chapitre apprise, jointe à chaque page avec son glossaire - ([15b0380](https://github.com/Endymi0n74/Koharu/commit/15b0380916c78938f31ebf802458af71611b4e7c))
+- *(translation)* Fiche de chapitre apprise, jointe à chaque page avec son glossaire - ([15b0380](https://github.com/Endymi0n74/Koharu/commit/ff90414959f0d94a0309a732c318cba42c445e8e))
 
 ### 📚 Documentation
 
-- *(memory)* Release v0.86.0 valide le fix release.ts en conditions réelles - ([8fcf2db](https://github.com/Endymi0n74/Koharu/commit/8fcf2db956c41f716d7b7f81745a2453fbe1de55))
+- *(memory)* Release v0.86.0 valide le fix release.ts en conditions réelles - ([8fcf2db](https://github.com/Endymi0n74/Koharu/commit/e29f47df3d1c3b8b9bc2f9f292ff4813701bbbe8))
 
 ### ⚙️ Miscellaneous Tasks
 
-- Remove sponsors workflow (100% failing, tokens absents) - ([d2e950a](https://github.com/Endymi0n74/Koharu/commit/d2e950a6d2d8ec04f371b70441da891ca48fdd1b))
+- Remove sponsors workflow (100% failing, tokens absents) - ([d2e950a](https://github.com/Endymi0n74/Koharu/commit/bd3a9145045e844733ba1f9660cbd16726edf61e))
 
 
 ## [0.86.0](https://github.com/Endymi0n74/Koharu/compare/v0.85.0..v0.86.0) - 2026-10-11
 
 ### 🐛 Bug Fixes
 
-- *(app)* Initialize gpu_layers in the batch test selection helper - ([e0fb1c3](https://github.com/Endymi0n74/Koharu/commit/e0fb1c3b3f16dd54bdc3b8124661d24d82f9e484))
-- *(scripts)* Strip git-cliff's v prefix in the release version - ([b56d9f6](https://github.com/Endymi0n74/Koharu/commit/b56d9f61b65e1aa1666102619dd6de0aba15b6b5))
-- *(torch)* Exempt generated tensor wrappers from rustc deprecation lint - ([1f543e6](https://github.com/Endymi0n74/Koharu/commit/1f543e6592871222149cb78b3f8ad73b8b4683c4))
+- *(app)* Initialize gpu_layers in the batch test selection helper - ([e0fb1c3](https://github.com/Endymi0n74/Koharu/commit/1eb688720d8bed1dba1a6e1989df6479aa0fbfbb))
+- *(scripts)* Strip git-cliff's v prefix in the release version - ([b56d9f6](https://github.com/Endymi0n74/Koharu/commit/6946818deea022b456b1a109e2e245a8baa349f7))
+- *(torch)* Exempt generated tensor wrappers from rustc deprecation lint - ([1f543e6](https://github.com/Endymi0n74/Koharu/commit/8815ea77e319a0a19f3588fa10ac5536804dcb69))
 
 ### 📚 Documentation
 
-- *(memory)* Marque les fixes Test et release.ts comme committés - ([494a948](https://github.com/Endymi0n74/Koharu/commit/494a948829786c6e78d910662a21e87a5e6bbba8))
+- *(memory)* Marque les fixes Test et release.ts comme committés - ([494a948](https://github.com/Endymi0n74/Koharu/commit/dd305924371f0b7ddacb71412165d38e10bc34c8))
 
 
 ## [0.85.0](https://github.com/Endymi0n74/Koharu/compare/v0.84.0..v0.85.0) - 2026-10-11
 
 ### ⛰️  Features
 
-- *(batch)* Let auto pick a partially offloaded model within budget - ([65c22cc](https://github.com/Endymi0n74/Koharu/commit/65c22cc393fa151784c8d9bdb2ab222bac939511))
+- *(batch)* Let auto pick a partially offloaded model within budget - ([65c22cc](https://github.com/Endymi0n74/Koharu/commit/9b3d8b3d274f14c0fa2f6b2ce8487f8b6fbfe983))
 
 
 ## [0.84.0](https://github.com/Endymi0n74/Koharu/compare/v0.83.9..v0.84.0) - 2026-10-10
 
 ### ⛰️  Features
 
-- *(batch)* Partially offload explicit translation models within VRAM budget - ([d8d86ff](https://github.com/Endymi0n74/Koharu/commit/d8d86ff6e473eb1d3ae8b5513f0eba4e6961cfe4))
+- *(batch)* Partially offload explicit translation models within VRAM budget - ([d8d86ff](https://github.com/Endymi0n74/Koharu/commit/9b6afd0b17f57db89523060b378353909e2285bc))
 
 ## [0.83.5](https://github.com/koharu-rs/koharu/compare/0.83.4..0.83.5) - 2026-09-22
 
@@ -85,186 +85,186 @@
 
 ### ⛰️  Features
 
-- *(catalog)* Ajoute hy-mt2-1.8b, premier modele texte seul du catalogue - ([9abd7c3](https://github.com/Endymi0n74/Koharu/commit/9abd7c3e22f46264ace213344dd64d7668f7c5d6))
+- *(catalog)* Ajoute hy-mt2-1.8b, premier modele texte seul du catalogue - ([9abd7c3](https://github.com/Endymi0n74/Koharu/commit/11c0802489b21a0c2f0b4ff9d6bc332a10e54205))
 
 ### 🐛 Bug Fixes
 
-- *(detection)* Restaure le trio detection de d90750c3 (bulles dupliquees) - ([6b4ad53](https://github.com/Endymi0n74/Koharu/commit/6b4ad5357e53d9ed50764b43d42378c0ccbdc5b8))
-- *(pipeline)* Recover ggml VRAM failures between phases - ([ed9fc5b](https://github.com/Endymi0n74/Koharu/commit/ed9fc5b31d55ec82bbaeec19e2e43b497b9325f9))
+- *(detection)* Restaure le trio detection de d90750c3 (bulles dupliquees) - ([6b4ad53](https://github.com/Endymi0n74/Koharu/commit/d5985d8da136266fbfca65aaf6466b03cc343323))
+- *(pipeline)* Recover ggml VRAM failures between phases - ([ed9fc5b](https://github.com/Endymi0n74/Koharu/commit/690622d36a1e07ab4a33fa996359ba8304e989ca))
 
 ### 📚 Documentation
 
-- *(installation)* Retire la ligne winget qui sert la version amont - ([71d67f7](https://github.com/Endymi0n74/Koharu/commit/71d67f74a06a02b89675db10b17997df2771f904))
-- *(memory)* Banc 33 pages hy vs gemma, fix du doublon, piege VRAM phases - ([f11abc4](https://github.com/Endymi0n74/Koharu/commit/f11abc431e32a7c3666788dc1864fe7ca9d033b5))
+- *(installation)* Retire la ligne winget qui sert la version amont - ([71d67f7](https://github.com/Endymi0n74/Koharu/commit/a251345810899ddb7bcb600bc5119742f9cbd471))
+- *(memory)* Banc 33 pages hy vs gemma, fix du doublon, piege VRAM phases - ([f11abc4](https://github.com/Endymi0n74/Koharu/commit/bb64fff6254c127fd21f175f1cac9ea6343e8397))
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(ci)* Retire le gabarit commente du job winget - ([b8bd478](https://github.com/Endymi0n74/Koharu/commit/b8bd47853121c03acca923de73c8716328889d4d))
+- *(ci)* Retire le gabarit commente du job winget - ([b8bd478](https://github.com/Endymi0n74/Koharu/commit/dc9a3e8d10d2c1c5f28dad25cd76c68e8ac896b4))
 
 
 ## [0.83.8](https://github.com/Endymi0n74/Koharu/compare/v0.83.7..v0.83.8) - 2026-10-05
 
 ### ⛰️  Features
 
-- *(inpainting)* Ajoute Qwen Image 2.1 Uncensored comme modele d'inpainting - ([5c47ab4](https://github.com/Endymi0n74/Koharu/commit/5c47ab4cc141e902e025e4cfeb98a2d12f345af5))
+- *(inpainting)* Ajoute Qwen Image 2.1 Uncensored comme modele d'inpainting - ([5c47ab4](https://github.com/Endymi0n74/Koharu/commit/2a9621a6807bc06ce6bd8aa74ae3d1d439c17f15))
 
 ### 🐛 Bug Fixes
 
-- *(updater)* Retire le MSI des cibles et passe l'update en passive - ([ad8d290](https://github.com/Endymi0n74/Koharu/commit/ad8d2906c2fe710868f2cbca49d86827d72be88f))
+- *(updater)* Retire le MSI des cibles et passe l'update en passive - ([ad8d290](https://github.com/Endymi0n74/Koharu/commit/b38613430f57a88d5a15fb2b35501dfbd8e26c89))
 
 ### 📚 Documentation
 
-- *(memory)* Note la recette rebuild desktop et le piege updater MSI 1925 - ([6c4f7ab](https://github.com/Endymi0n74/Koharu/commit/6c4f7ab010bb21f1dec45176810d6fb9f3964bb1))
-- *(memory)* Note le piege gh sans -R qui lit l'amont au lieu du fork - ([8a6c524](https://github.com/Endymi0n74/Koharu/commit/8a6c524ca5be6ff2b0acb48d9cecc00158da789a))
-- *(readme)* Refait les README francais et anglais - ([9e94a5d](https://github.com/Endymi0n74/Koharu/commit/9e94a5dff77a362458f98de36bc0624359b2f070))
+- *(memory)* Note la recette rebuild desktop et le piege updater MSI 1925 - ([6c4f7ab](https://github.com/Endymi0n74/Koharu/commit/4f1bd61ad68d842b82a009a7b0ab02a1de4af310))
+- *(memory)* Note le piege gh sans -R qui lit l'amont au lieu du fork - ([8a6c524](https://github.com/Endymi0n74/Koharu/commit/8f1733216b0fc315486764624ce15c9efca34f92))
+- *(readme)* Refait les README francais et anglais - ([9e94a5d](https://github.com/Endymi0n74/Koharu/commit/02bf30577465e07bcda3dcedae038a8538a935a2))
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(release)* Desactive le job winget faute de WINGET_TOKEN - ([d5367b0](https://github.com/Endymi0n74/Koharu/commit/d5367b03416f4f317b38d8363ad4e4a757fddac0))
+- *(release)* Desactive le job winget faute de WINGET_TOKEN - ([d5367b0](https://github.com/Endymi0n74/Koharu/commit/d82781b90601bf04b871126368348b1aa7a1920d))
 
 
 ## [0.83.7](https://github.com/Endymi0n74/Koharu/compare/v0.83.6..v0.83.7) - 2026-10-04
 
 ### ⛰️  Features
 
-- *(app)* Mode dossier — traduire un dossier via koharu-batch en GUI - ([0c70fad](https://github.com/Endymi0n74/Koharu/commit/0c70fad071478a5570882d62dc57b3b8913c96e5))
-- *(app)* Expose Qwen Image 2.1 et la référence de page dans l'UI - ([06903bf](https://github.com/Endymi0n74/Koharu/commit/06903bf2761b98b0d54a2afc29ea002f409a1f85))
-- *(batch)* Auto retombe sur le Qwen 2B quand la calibration exclut les gemmas - ([8d180d7](https://github.com/Endymi0n74/Koharu/commit/8d180d78aacc975af1f1cc4e2bb446b103be4eee))
-- *(batch)* Auto refuse un pick sous le plancher 2B et l'activite montre le modele - ([fa1a0f8](https://github.com/Endymi0n74/Koharu/commit/fa1a0f8ad5b2e23d02fad925e1ab89da9b3e75ab))
-- *(batch)* Le mode dossier choisit le modele et le provider distant - ([8438a59](https://github.com/Endymi0n74/Koharu/commit/8438a59b8275216f0b890159be7c0459f6490880))
-- *(batch)* Les actions one-shot deviennent des sous-commandes - ([521237b](https://github.com/Endymi0n74/Koharu/commit/521237b5973ce0e096205124a07865b3870ab599))
-- *(batch)* --help regroupe ses 35 options en 6 rubriques - ([951596d](https://github.com/Endymi0n74/Koharu/commit/951596d72d22a6e9ad4e877d27c89424b221ee00))
-- *(batch)* --verify-passes N vote la derive run-to-run sur N replays - ([fb793f4](https://github.com/Endymi0n74/Koharu/commit/fb793f455adc9ff2162e5490bf60fef9fda5874a))
-- *(batch)* Post-vérification --verify et sonde logits0 contre la dérive run-to-run - ([ae1ae55](https://github.com/Endymi0n74/Koharu/commit/ae1ae55abaed58a37ea10aee47fbfc23e413d4ee))
-- *(batch)* Étend --prune aux datasets et aux runtimes périmés - ([a8ff739](https://github.com/Endymi0n74/Koharu/commit/a8ff739c8cfe49af7db6c3107d68065d741cadd9))
-- *(batch)* Liste et supprime les modèles orphelins du store avec --prune - ([f871d2a](https://github.com/Endymi0n74/Koharu/commit/f871d2a2ec4adddbaa947b26f4ddbeaf56fe677a))
-- *(ml)* Sonde lama_inpaint --repeat mesure le drift LaMa run-to-run - ([f8faa99](https://github.com/Endymi0n74/Koharu/commit/f8faa99d8f6296a3368937ccceb6f34b1fd45662))
-- *(ml)* Sonde DETTRACE/OCRTRACE pour biser le non-déterminisme Torch et llama.cpp - ([97f813d](https://github.com/Endymi0n74/Koharu/commit/97f813df3d07e6f0ac57fba6c6cbb9a8eee9b56f))
-- *(ml)* Sonde la génération llama.cpp avec KOHARU_LLM_DEBUG - ([8900288](https://github.com/Endymi0n74/Koharu/commit/89002887e9f98911a75791ae38548d7f63bfa684))
-- *(ml)* Applique la recette déterministe torch au batch via koharu_ml::determinism - ([4f4adcb](https://github.com/Endymi0n74/Koharu/commit/4f4adcb16d11abec909932f63a7689950385f65a))
-- *(ml)* Sonde la dérive de l'OCR quantisé gguf avec --repeat - ([d6f3866](https://github.com/Endymi0n74/Koharu/commit/d6f386603045da8f2374ad584a1951a6d76b011a))
-- *(ml)* Probe l'encodeur vision couche par couche et auto-relance avec le workspace cuBLAS - ([029b60d](https://github.com/Endymi0n74/Koharu/commit/029b60de11a7df16fd33f4be30bdbe2e163ca174))
-- *(ml)* Rend l'OCR torch reproductible derrière KOHARU_TORCH_NO_BF16 - ([26c463b](https://github.com/Endymi0n74/Koharu/commit/26c463ba37e66c731689815d6a9a8d6c3f969206))
-- *(ml)* Inpaint Qwen Image par défaut à 12 steps échantillonnés - ([c52b7ff](https://github.com/Endymi0n74/Koharu/commit/c52b7ff84d16513df71a3f910dcbca5112846bf2))
-- *(ml)* Réserve le VRAM libre et tuile le décodage VAE de Qwen Image - ([d28d18d](https://github.com/Endymi0n74/Koharu/commit/d28d18d5110c8c89a4ba01fa3b79b57a5c916d1e))
-- *(ml)* Journalise le temps de chargement de Qwen Image 2.1 - ([af9561a](https://github.com/Endymi0n74/Koharu/commit/af9561ae556025404c6d2b74ac4d95781759a6b7))
-- *(ml)* Module Qwen Image 2.1 (t2i, édition, inpaint) - ([e1b0713](https://github.com/Endymi0n74/Koharu/commit/e1b0713d60a32c1ed61a678d017ee687f25ce000))
-- *(pipeline)* Hache la sortie brute du détecteur avec KOHARU_PATCH_HASH - ([4c1cd68](https://github.com/Endymi0n74/Koharu/commit/4c1cd68988b0b69885d79b8013d5f2365882adea))
-- *(pipeline)* Sonde le contenu de scène commité avec KOHARU_PATCH_HASH - ([cfcd86d](https://github.com/Endymi0n74/Koharu/commit/cfcd86d857124445fc6d977cf353482ad6613ef6))
-- *(pipeline)* Rend --torch-fp32 auto-suffisant via un restart avec le workspace cuBLAS - ([cc398c0](https://github.com/Endymi0n74/Koharu/commit/cc398c0ef659a01ed1df40d2613320ba9e5f15c5))
-- *(pipeline)* Prévient quand --torch-fp32 tourne sans CUBLAS_WORKSPACE_CONFIG - ([11fde95](https://github.com/Endymi0n74/Koharu/commit/11fde958d74b047ee5f1de43c92d68fc41143673))
-- *(pipeline)* Expose --torch-fp32 pour des sessions batch reproductibles - ([e324849](https://github.com/Endymi0n74/Koharu/commit/e324849aebc0f514ab2361278e94be84fc3ee9f9))
-- *(pipeline)* Persiste l'OCR entre les runs de batch - ([34d18a2](https://github.com/Endymi0n74/Koharu/commit/34d18a2c7be5eb1621e942f3855b57f12aa1e211))
-- *(pipeline)* Ajoute --deterministic pour traduire en greedy - ([d45ef8f](https://github.com/Endymi0n74/Koharu/commit/d45ef8ffa4c22b8fe5735f55310b5f225b74f25f))
-- *(pipeline)* Expose --qwen-steps sur koharu-batch - ([92e66cf](https://github.com/Endymi0n74/Koharu/commit/92e66cf6e92e88ee1e4e25228201ed716ec9480b))
-- *(pipeline)* Référence la page voisine comme image d'édition Qwen - ([108c96a](https://github.com/Endymi0n74/Koharu/commit/108c96a68dba87dd8f81caed51bb75b1f567f0b7))
-- *(pipeline)* Branche Qwen Image 2.1 sur le stage d'inpainting - ([0de3f85](https://github.com/Endymi0n74/Koharu/commit/0de3f85f7b334e198b81b2cf6b461b21e54e8d39))
+- *(app)* Mode dossier — traduire un dossier via koharu-batch en GUI - ([0c70fad](https://github.com/Endymi0n74/Koharu/commit/6b8734223ef1325c652ae3aa98a7e39e4ca1b26d))
+- *(app)* Expose Qwen Image 2.1 et la référence de page dans l'UI - ([06903bf](https://github.com/Endymi0n74/Koharu/commit/b9f3f79834a70b74818100dfbc7327bf41d6e87e))
+- *(batch)* Auto retombe sur le Qwen 2B quand la calibration exclut les gemmas - ([8d180d7](https://github.com/Endymi0n74/Koharu/commit/ed6c1d912f04040e1256be95e49a4d24fae4aac7))
+- *(batch)* Auto refuse un pick sous le plancher 2B et l'activite montre le modele - ([fa1a0f8](https://github.com/Endymi0n74/Koharu/commit/1c66286cd6aebf0baacdc39de41c589f3b232297))
+- *(batch)* Le mode dossier choisit le modele et le provider distant - ([8438a59](https://github.com/Endymi0n74/Koharu/commit/db69529c2a543b71ec776bc6873931c8713e504c))
+- *(batch)* Les actions one-shot deviennent des sous-commandes - ([521237b](https://github.com/Endymi0n74/Koharu/commit/5ef7716fcb6fcacb8a6ee351c5708bb54583875a))
+- *(batch)* --help regroupe ses 35 options en 6 rubriques - ([951596d](https://github.com/Endymi0n74/Koharu/commit/a71f4271ca9ccde2a3cc9d75e204eac30aabd6b5))
+- *(batch)* --verify-passes N vote la derive run-to-run sur N replays - ([fb793f4](https://github.com/Endymi0n74/Koharu/commit/3936b941374f4bf7ce45558b167d74b9711f2a5b))
+- *(batch)* Post-vérification --verify et sonde logits0 contre la dérive run-to-run - ([ae1ae55](https://github.com/Endymi0n74/Koharu/commit/4470efdb8c9df724c581194fda786c6aecf3abc6))
+- *(batch)* Étend --prune aux datasets et aux runtimes périmés - ([a8ff739](https://github.com/Endymi0n74/Koharu/commit/06032d69ecfd400bbcba5dbea003b2c9bdf0171c))
+- *(batch)* Liste et supprime les modèles orphelins du store avec --prune - ([f871d2a](https://github.com/Endymi0n74/Koharu/commit/9d4c73aabb1c2ff2c56d5e0c5097e72b8adb3178))
+- *(ml)* Sonde lama_inpaint --repeat mesure le drift LaMa run-to-run - ([f8faa99](https://github.com/Endymi0n74/Koharu/commit/93c637dd0c4ed49c5c03f42e4cb96eeff95dd1c8))
+- *(ml)* Sonde DETTRACE/OCRTRACE pour biser le non-déterminisme Torch et llama.cpp - ([97f813d](https://github.com/Endymi0n74/Koharu/commit/bc3548f400d0fa0965e8c3a338cbfb3efe87badd))
+- *(ml)* Sonde la génération llama.cpp avec KOHARU_LLM_DEBUG - ([8900288](https://github.com/Endymi0n74/Koharu/commit/97f1525bad90461887d5cc3895177cb283c534a4))
+- *(ml)* Applique la recette déterministe torch au batch via koharu_ml::determinism - ([4f4adcb](https://github.com/Endymi0n74/Koharu/commit/b62ee4618a51cc0a0a2be92861e72371a7bb7a08))
+- *(ml)* Sonde la dérive de l'OCR quantisé gguf avec --repeat - ([d6f3866](https://github.com/Endymi0n74/Koharu/commit/8d18a4cf724eb78a1158917e31c15ecd3bb24ae7))
+- *(ml)* Probe l'encodeur vision couche par couche et auto-relance avec le workspace cuBLAS - ([029b60d](https://github.com/Endymi0n74/Koharu/commit/66690bd0ea26213fa15b8838f8054ee64d425c72))
+- *(ml)* Rend l'OCR torch reproductible derrière KOHARU_TORCH_NO_BF16 - ([26c463b](https://github.com/Endymi0n74/Koharu/commit/e863722e8ae5a8bb076b408712de832fd5dc2cae))
+- *(ml)* Inpaint Qwen Image par défaut à 12 steps échantillonnés - ([c52b7ff](https://github.com/Endymi0n74/Koharu/commit/633f0803b828171a5679427dcc6d2f59ff3c7a19))
+- *(ml)* Réserve le VRAM libre et tuile le décodage VAE de Qwen Image - ([d28d18d](https://github.com/Endymi0n74/Koharu/commit/cdaf4d2db648ec9309c95c19502b962ca7a92818))
+- *(ml)* Journalise le temps de chargement de Qwen Image 2.1 - ([af9561a](https://github.com/Endymi0n74/Koharu/commit/aeccd80033a17488249adb4932bbef159bddf16c))
+- *(ml)* Module Qwen Image 2.1 (t2i, édition, inpaint) - ([e1b0713](https://github.com/Endymi0n74/Koharu/commit/042364c7a779166497314eb107668658aa7ae03d))
+- *(pipeline)* Hache la sortie brute du détecteur avec KOHARU_PATCH_HASH - ([4c1cd68](https://github.com/Endymi0n74/Koharu/commit/23f105b36b9a6adabb86bce54644e0dfee2b1f6c))
+- *(pipeline)* Sonde le contenu de scène commité avec KOHARU_PATCH_HASH - ([cfcd86d](https://github.com/Endymi0n74/Koharu/commit/2f526ddd7de01bf63c8941d4c981edc9efe27b94))
+- *(pipeline)* Rend --torch-fp32 auto-suffisant via un restart avec le workspace cuBLAS - ([cc398c0](https://github.com/Endymi0n74/Koharu/commit/3bc9057bedf5faf5e3752b621c6232aef74f36ad))
+- *(pipeline)* Prévient quand --torch-fp32 tourne sans CUBLAS_WORKSPACE_CONFIG - ([11fde95](https://github.com/Endymi0n74/Koharu/commit/fea5adc452dde2675bfcd45b2d5f72571150349c))
+- *(pipeline)* Expose --torch-fp32 pour des sessions batch reproductibles - ([e324849](https://github.com/Endymi0n74/Koharu/commit/3d8f0732e6170c629f7aecdbc5bdb60be7dec071))
+- *(pipeline)* Persiste l'OCR entre les runs de batch - ([34d18a2](https://github.com/Endymi0n74/Koharu/commit/db2c25852e56d8a66001699c28a6401494ba0289))
+- *(pipeline)* Ajoute --deterministic pour traduire en greedy - ([d45ef8f](https://github.com/Endymi0n74/Koharu/commit/ca92897e85279606cb588f5ca4961aa3a7a5648b))
+- *(pipeline)* Expose --qwen-steps sur koharu-batch - ([92e66cf](https://github.com/Endymi0n74/Koharu/commit/fe38b14a14984dff36431029598670ff02d7d086))
+- *(pipeline)* Référence la page voisine comme image d'édition Qwen - ([108c96a](https://github.com/Endymi0n74/Koharu/commit/5cbc3b5325972a5e739e721e6b239615b7e16ac4))
+- *(pipeline)* Branche Qwen Image 2.1 sur le stage d'inpainting - ([0de3f85](https://github.com/Endymi0n74/Koharu/commit/619b9d5b2b1c1deb961c3dd0e9fe034255044104))
 - *(runtime)* Bump stable-diffusion.cpp à master-920 - ([745bf6e](https://github.com/Endymi0n74/Koharu/commit/745bf6e87345f8fc0157b60838cbe574db40dc82))
-- *(store)* KOHARU_STORE pour deplacer le store hors du disque systeme - ([bb57d4e](https://github.com/Endymi0n74/Koharu/commit/bb57d4e90049627f353a0228b0328493bc534373))
-- *(translator)* Ajoute qwen3.5-9b-abliterated au catalogue - ([6a427b3](https://github.com/Endymi0n74/Koharu/commit/6a427b38863206f8d88282509ad80963a387bccf))
+- *(store)* KOHARU_STORE pour deplacer le store hors du disque systeme - ([bb57d4e](https://github.com/Endymi0n74/Koharu/commit/314da3c7e4469fba7f8f415cfced332fbcad1aaf))
+- *(translator)* Ajoute qwen3.5-9b-abliterated au catalogue - ([6a427b3](https://github.com/Endymi0n74/Koharu/commit/987facf0ff3a0a8e347841bb076d9aaf9ffe33ec))
 
 ### 🐛 Bug Fixes
 
-- *(app)* Erreurs du lot inline et activity center enracine - ([09d9d42](https://github.com/Endymi0n74/Koharu/commit/09d9d4222699cce88e96b364dde3b30ca1d24e6b))
-- *(config)* La tolerance [translation] passe par une shadow struct - ([1833865](https://github.com/Endymi0n74/Koharu/commit/18338657c9c6e2822fbcbb8beacb38517252f16f))
-- *(config)* Les sections [translation] anciennes reparsent - ([ba8321e](https://github.com/Endymi0n74/Koharu/commit/ba8321ec661da0ed06e6699d34885c13fc2e5d4d))
-- *(lint)* Utilise as_chunks dans la conversion RGB→RGBA - ([e0b8af9](https://github.com/Endymi0n74/Koharu/commit/e0b8af95c46e8de08cb241e778a2f8d76332f1ee))
-- *(ml)* Echantillonne KOHARU_LLM_DEBUG une seule fois par process - ([43e6155](https://github.com/Endymi0n74/Koharu/commit/43e615561b14c2dfbf1f155be6d5234918216bb1))
-- *(ml)* Qualifie anyhow::bail dans determinism.rs pour le CI Linux - ([e562475](https://github.com/Endymi0n74/Koharu/commit/e5624756a9994999306bc041684ffbb20bad46b7))
-- *(ml)* Corrige le test dettrace qui ne compile pas en edition 2024 - ([1bf5177](https://github.com/Endymi0n74/Koharu/commit/1bf5177d1dc71c77b88db0e42597e836615835f6))
-- *(ml)* Épingle la sélection d'engines conv cuDNN dans la recette déterministe - ([f67193e](https://github.com/Endymi0n74/Koharu/commit/f67193ed76435a36041dc8943b8897e14dfec920))
-- *(scripts)* Le typecheck de l'etape prune passe sous TypeScript 7 - ([1158e6e](https://github.com/Endymi0n74/Koharu/commit/1158e6e38833bbfb32c356d3b69c8e0c1f2de97d))
+- *(app)* Erreurs du lot inline et activity center enracine - ([09d9d42](https://github.com/Endymi0n74/Koharu/commit/8e3124df205ed0d2b4f8523343a6abd22d1b2d41))
+- *(config)* La tolerance [translation] passe par une shadow struct - ([1833865](https://github.com/Endymi0n74/Koharu/commit/3bfebf276d6c9e46185f36ee82952ed0ae8f36f0))
+- *(config)* Les sections [translation] anciennes reparsent - ([ba8321e](https://github.com/Endymi0n74/Koharu/commit/417348f25e94c2e6e8becb47ed863301e429e294))
+- *(lint)* Utilise as_chunks dans la conversion RGB→RGBA - ([e0b8af9](https://github.com/Endymi0n74/Koharu/commit/24d261feadd5fdcfb11e97190c6f3c1fd19b18e4))
+- *(ml)* Echantillonne KOHARU_LLM_DEBUG une seule fois par process - ([43e6155](https://github.com/Endymi0n74/Koharu/commit/0c8dbd28c55427703096e121c5a9a9b99c0e653e))
+- *(ml)* Qualifie anyhow::bail dans determinism.rs pour le CI Linux - ([e562475](https://github.com/Endymi0n74/Koharu/commit/bbaeb98e8843be19b06a77c889c22b7fb68aabe4))
+- *(ml)* Corrige le test dettrace qui ne compile pas en edition 2024 - ([1bf5177](https://github.com/Endymi0n74/Koharu/commit/1bf8dff6f65ec9dd790ab4c5e683de201b22c94a))
+- *(ml)* Épingle la sélection d'engines conv cuDNN dans la recette déterministe - ([f67193e](https://github.com/Endymi0n74/Koharu/commit/7b81b7304eb50fbb76639eddbb402e603ed1acc8))
+- *(scripts)* Le typecheck de l'etape prune passe sous TypeScript 7 - ([1158e6e](https://github.com/Endymi0n74/Koharu/commit/305ed07999088cebdf04299f78884e37c4a5d0ef))
 
 ### 🚜 Refactor
 
-- *(translator)* Purge de trois entrees du catalogue local - ([05bddb4](https://github.com/Endymi0n74/Koharu/commit/05bddb40a5cbacb450118d95376d8e770b5bd179))
+- *(translator)* Purge de trois entrees du catalogue local - ([05bddb4](https://github.com/Endymi0n74/Koharu/commit/0858c77be7f2d1b6daa161a4c059fff4534ad4b3))
 
 ### 📚 Documentation
 
-- *(batch)* Decrit --detection/--ocr/--inpainting et documente --verify - ([068e66f](https://github.com/Endymi0n74/Koharu/commit/068e66f05562f9d3cb05e36e94980324893dfbc3))
-- *(guide)* Mode dossier batch (en/ja/zh) et KOHARU_STORE - ([db19d5d](https://github.com/Endymi0n74/Koharu/commit/db19d5d92fe1ad78518af44c88120801fc0700d5))
-- *(hardware)* Table de mesure Qwen Image 2.1 sur la 3070 - ([54426ed](https://github.com/Endymi0n74/Koharu/commit/54426ed5caa84dd1d84ce3e0e77d22ad58f63e3a))
-- *(memory)* Cloture la purge CEF, le job macOS et les MTP drafters - ([8a52f6b](https://github.com/Endymi0n74/Koharu/commit/8a52f6be2c44f9b1c7a0ce5612c82a42ae8ec9e7))
-- *(memory)* Consigne les 2 lints --all-targets preexistants de koharu-renderer - ([efce5aa](https://github.com/Endymi0n74/Koharu/commit/efce5aa82ae2233acdc9d6a7b880d863c1f21237))
-- *(memory)* Consigne les controles determinisme du 2026-10-02 et les pieges WSL/TS - ([b1640af](https://github.com/Endymi0n74/Koharu/commit/b1640aff923c6e4792931be5c33b896d7643e4c4))
-- *(memory)* Consigne les pieges gh upstream, clippy Linux et la table CI - ([9408315](https://github.com/Endymi0n74/Koharu/commit/94083154564f4b5e0c0ddafa6d698ddffae93982))
-- *(repo)* Prepare la jambe macOS et fige le sort des sondes - ([30f6c90](https://github.com/Endymi0n74/Koharu/commit/30f6c909881f38151dc36bd032bca759d6d07705))
-- Falsifie MMQ/FA/contention et identifie la détection layout comme source des flips - ([442feeb](https://github.com/Endymi0n74/Koharu/commit/442feebb787eb8398d503ec23fb16b8d4c33725b))
-- Consigne la stratégie anti-non-déterminisme et quantifie les flips LLM - ([2a5b88e](https://github.com/Endymi0n74/Koharu/commit/2a5b88e1bca36476d11d4f1457c90796c0f0286d))
-- Interdit l'ouverture de pull requests dans les règles du projet - ([87be009](https://github.com/Endymi0n74/Koharu/commit/87be00912f9488dc085b667a64a91721448a3dfc))
-- Précise que Qwen Image 2.1 s'inspire de la page voisine - ([41ca38b](https://github.com/Endymi0n74/Koharu/commit/41ca38b95777ad5b838a39eabeb884b19ae86ea6))
-- Présente Qwen Image 2.1 comme modèle d'inpainting - ([04a0d09](https://github.com/Endymi0n74/Koharu/commit/04a0d09fe5597dd59b356f2c439b5bfb1435ec9a))
+- *(batch)* Decrit --detection/--ocr/--inpainting et documente --verify - ([068e66f](https://github.com/Endymi0n74/Koharu/commit/fd943c144cda432ab52fae8464ecc3e1712ddd5c))
+- *(guide)* Mode dossier batch (en/ja/zh) et KOHARU_STORE - ([db19d5d](https://github.com/Endymi0n74/Koharu/commit/d6e44bc2424b08322f506307b0c08df2ff95dff0))
+- *(hardware)* Table de mesure Qwen Image 2.1 sur la 3070 - ([54426ed](https://github.com/Endymi0n74/Koharu/commit/d87352f445ca075f2f7562d5ddb573bd6a1bff93))
+- *(memory)* Cloture la purge CEF, le job macOS et les MTP drafters - ([8a52f6b](https://github.com/Endymi0n74/Koharu/commit/f5af672073db3ffee5b2913d7f584ce4fb94263e))
+- *(memory)* Consigne les 2 lints --all-targets preexistants de koharu-renderer - ([efce5aa](https://github.com/Endymi0n74/Koharu/commit/faa51ffa84dd4ba1e629f2ee2955a25b592a4dfe))
+- *(memory)* Consigne les controles determinisme du 2026-10-02 et les pieges WSL/TS - ([b1640af](https://github.com/Endymi0n74/Koharu/commit/dc395560ad561e588a7c20a4eaa1db63a32e578a))
+- *(memory)* Consigne les pieges gh upstream, clippy Linux et la table CI - ([9408315](https://github.com/Endymi0n74/Koharu/commit/b8a4c312972d7e5fd4887a7bd3540e6eafcf0fbf))
+- *(repo)* Prepare la jambe macOS et fige le sort des sondes - ([30f6c90](https://github.com/Endymi0n74/Koharu/commit/7e842b72dd69f62ded76a62d488dbc7fbd11c2cd))
+- Falsifie MMQ/FA/contention et identifie la détection layout comme source des flips - ([442feeb](https://github.com/Endymi0n74/Koharu/commit/94ed97e1622ea71f83f14917bae78d8237ac5fb3))
+- Consigne la stratégie anti-non-déterminisme et quantifie les flips LLM - ([2a5b88e](https://github.com/Endymi0n74/Koharu/commit/aa6a6509115e6b198c6d2f4d453993b9b969c753))
+- Interdit l'ouverture de pull requests dans les règles du projet - ([87be009](https://github.com/Endymi0n74/Koharu/commit/065e95b9f753c9b36d29f6ca09db89eb7b69c488))
+- Précise que Qwen Image 2.1 s'inspire de la page voisine - ([41ca38b](https://github.com/Endymi0n74/Koharu/commit/382a5ce1a8200915d03f328d3dc2367f9ac6e61c))
+- Présente Qwen Image 2.1 comme modèle d'inpainting - ([04a0d09](https://github.com/Endymi0n74/Koharu/commit/134c93727086310cc7f5753c2f58f4b9ea0d1475))
 
 ### 🧪 Testing
 
-- *(batch)* Fige le refus des anciens drapeaux one-shot - ([50191ac](https://github.com/Endymi0n74/Koharu/commit/50191ac0095095d428bd9833428ef3a260549166))
-- *(bench)* Mutant cassant le guard anti-calibration détecté par le smoke - ([fc354de](https://github.com/Endymi0n74/Koharu/commit/fc354de65ba37b9d9075567adf7d39f0ab538c9f))
-- *(bench)* Tests persistance loadRuns/saveRuns et mutants smoke --help - ([ec6d1a8](https://github.com/Endymi0n74/Koharu/commit/ec6d1a806e6b3f1d32f55afb813e4aacd4e0fe06))
-- *(bench)* 14 tests unitaires pour bench-cross + step dans test.yml - ([9a46800](https://github.com/Endymi0n74/Koharu/commit/9a46800d8bfb92edf5ae1cc515bee88ed2d60cfe))
+- *(batch)* Fige le refus des anciens drapeaux one-shot - ([50191ac](https://github.com/Endymi0n74/Koharu/commit/0e4a6ead08519fedfd83e453bdbc44f65b10f32f))
+- *(bench)* Mutant cassant le guard anti-calibration détecté par le smoke - ([fc354de](https://github.com/Endymi0n74/Koharu/commit/e6fc559da26212f708ce812b9effdb645bbf7295))
+- *(bench)* Tests persistance loadRuns/saveRuns et mutants smoke --help - ([ec6d1a8](https://github.com/Endymi0n74/Koharu/commit/820f611a376d92df80e781857c68a7de66b9d9a9))
+- *(bench)* 14 tests unitaires pour bench-cross + step dans test.yml - ([9a46800](https://github.com/Endymi0n74/Koharu/commit/9a028ea4af3294f8c75dd102fb377d8b8da4fbe9))
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(batch)* Rejoue --prune sur un store factice à chaque push - ([30491cb](https://github.com/Endymi0n74/Koharu/commit/30491cb2207ef0110554925aa93cf2cec75fbd9c))
-- *(batch)* Check anti-calibration guard sur les tags v* aussi - ([594e64e](https://github.com/Endymi0n74/Koharu/commit/594e64e17f6d82e98e577f27a86223cdfd471fbc))
-- *(lint)* Check vivant du guard anti-calibration (mutant sémantique) - ([cf1e36f](https://github.com/Endymi0n74/Koharu/commit/cf1e36f3f6c10b949f3f7d638437bd6b36e91310))
-- *(lint)* Smoke --help de bench-cross au chargement du script - ([c6ef5ed](https://github.com/Endymi0n74/Koharu/commit/c6ef5ed85b73f2faad119d5937b2cd6730fe219b))
-- *(lint)* Typecheck des scripts TS (bench-cross, guards) en CI - ([e0b3827](https://github.com/Endymi0n74/Koharu/commit/e0b3827399d05937ba2e19c0db1c6bd4b56f3ed6))
+- *(batch)* Rejoue --prune sur un store factice à chaque push - ([30491cb](https://github.com/Endymi0n74/Koharu/commit/1b23ae08a1ee2a61c4638facecbbf23dc77c5112))
+- *(batch)* Check anti-calibration guard sur les tags v* aussi - ([594e64e](https://github.com/Endymi0n74/Koharu/commit/2bcc02f3cb1d12ed20b9902b34a4c2993c3b25e6))
+- *(lint)* Check vivant du guard anti-calibration (mutant sémantique) - ([cf1e36f](https://github.com/Endymi0n74/Koharu/commit/1c19980a3b38d40b9b6b5dfe38147190f2a8b283))
+- *(lint)* Smoke --help de bench-cross au chargement du script - ([c6ef5ed](https://github.com/Endymi0n74/Koharu/commit/190c2e3f0cf5cf788222531eaba79ee1efce663d))
+- *(lint)* Typecheck des scripts TS (bench-cross, guards) en CI - ([e0b3827](https://github.com/Endymi0n74/Koharu/commit/71b2f8b6ba8a9ac7abe6bdf6d428e6cb628eb601))
 
 
 ## [0.83.6](https://github.com/Endymi0n74/Koharu/compare/v0.83.5..v0.83.6) - 2026-09-26
 
 ### ⛰️  Features
 
-- *(app)* Locale fr-FR, import de dossier et garde de job - ([03cf9c7](https://github.com/Endymi0n74/Koharu/commit/03cf9c7881a9c8834fc72e59ab8516a8d7b1734d))
-- *(batch)* La reprise conserve vignettes et durées du run d'origine - ([297f561](https://github.com/Endymi0n74/Koharu/commit/297f5614f38dd8bb46a03c7ba98d8c7043ab22e6))
-- *(batch)* Les dossiers de regroupement descendent en mode volume - ([f426c33](https://github.com/Endymi0n74/Koharu/commit/f426c332406b3b88a4391a1e7abd00601ffbe92e))
-- *(batch)* Mode volume, --json, reprise CBZ et finalisation en overlap - ([f0a1e5a](https://github.com/Endymi0n74/Koharu/commit/f0a1e5a0b425f21cbdc8f6cdf5b466250f168362))
-- *(bench)* Script de banc croisé reproductible - ([cae9a98](https://github.com/Endymi0n74/Koharu/commit/cae9a98fde6eb56c16ef42eaf9aeba0ae4fa4035))
+- *(app)* Locale fr-FR, import de dossier et garde de job - ([03cf9c7](https://github.com/Endymi0n74/Koharu/commit/5e983480fe69c0f840cac0c9be0d065237792a6d))
+- *(batch)* La reprise conserve vignettes et durées du run d'origine - ([297f561](https://github.com/Endymi0n74/Koharu/commit/f7f5bd88e86192221cf49eabb4b2f2eed2d1b2c4))
+- *(batch)* Les dossiers de regroupement descendent en mode volume - ([f426c33](https://github.com/Endymi0n74/Koharu/commit/9ae9cee79f550806e643329f1c2baccc0b9d90e3))
+- *(batch)* Mode volume, --json, reprise CBZ et finalisation en overlap - ([f0a1e5a](https://github.com/Endymi0n74/Koharu/commit/e2ef86b43fc9659643b266cc618327d0bef95869))
+- *(bench)* Script de banc croisé reproductible - ([cae9a98](https://github.com/Endymi0n74/Koharu/commit/5922011c6a863c606143e3894c186ea1464fcc30))
 
 ### 🐛 Bug Fixes
 
-- *(ci)* Regenere bun.lock apres purge 6 deps - ([77a2a28](https://github.com/Endymi0n74/Koharu/commit/77a2a2835fb5fa4505f03686d8bf6343a8d15f04))
-- *(test)* Chemin du test folder_project_name portable sous Linux - ([3cd290b](https://github.com/Endymi0n74/Koharu/commit/3cd290b9cb3c4d68b24807cdbded5400043186e6))
+- *(ci)* Regenere bun.lock apres purge 6 deps - ([77a2a28](https://github.com/Endymi0n74/Koharu/commit/04f6e57bbe3947d2e08c03c929d79c47dc22e22f))
+- *(test)* Chemin du test folder_project_name portable sous Linux - ([3cd290b](https://github.com/Endymi0n74/Koharu/commit/707487e3b94de0075dc43407a35eb5ab7f5e15d0))
 
 ### 📚 Documentation
 
-- *(memory)* Rapports de reprise et banc croisé du finalizer - ([2c74418](https://github.com/Endymi0n74/Koharu/commit/2c7441878e23d3dddb3cc3c9f9059cddbe474ded))
-- *(memory)* Mesure real50, règle du volume imbriqué et 110 tests lib - ([1b6fb5f](https://github.com/Endymi0n74/Koharu/commit/1b6fb5f985a51daf573c6b937535bb14da7800b9))
-- *(memory)* Livraisons, mesures et note fmt corrigée - ([b18f0e8](https://github.com/Endymi0n74/Koharu/commit/b18f0e855f6fa865a907cfdbcf4e9a1b5903f86d))
+- *(memory)* Rapports de reprise et banc croisé du finalizer - ([2c74418](https://github.com/Endymi0n74/Koharu/commit/6d2880402ca4b40950c9d70fe3b085f90bd6e490))
+- *(memory)* Mesure real50, règle du volume imbriqué et 110 tests lib - ([1b6fb5f](https://github.com/Endymi0n74/Koharu/commit/a9690f820fe9137701d4ae3f752a31f54c264ec4))
+- *(memory)* Livraisons, mesures et note fmt corrigée - ([b18f0e8](https://github.com/Endymi0n74/Koharu/commit/8e72bc23a7d5d1ad237aac8fb336af1203f1c431))
 - README bilingue (FR/EN) + lien de langue - ([1bde905](https://github.com/Endymi0n74/Koharu/commit/1bde9059295556991b011430b47b96eccf9b5354))
 - README bilingue (FR/EN) + lien de langue - ([6943e84](https://github.com/Endymi0n74/Koharu/commit/6943e847f405f2694fbc3448f987aab2151680fd))
-- README fork - purge 41 ui components + 6 deps - ([211a030](https://github.com/Endymi0n74/Koharu/commit/211a030e9a10edaee43184ea0fcbe9a0962ca98e))
-- Refresh README batch section, project rules and memory - ([77f742a](https://github.com/Endymi0n74/Koharu/commit/77f742a8f4094f4f01a5d103c2c7f46f42060b23))
+- README fork - purge 41 ui components + 6 deps - ([211a030](https://github.com/Endymi0n74/Koharu/commit/ebcb97ac94350dd9949d799f30adf551eb107de9))
+- Refresh README batch section, project rules and memory - ([77f742a](https://github.com/Endymi0n74/Koharu/commit/892d4774b0106e809f88d853a55723510e7c586b))
 
 ### 🎨 Styling
 
-- Cargo fmt (14 fichiers) - ([4466b97](https://github.com/Endymi0n74/Koharu/commit/4466b975726f30eb6c1abc16bede0af554ca26d4))
+- Cargo fmt (14 fichiers) - ([4466b97](https://github.com/Endymi0n74/Koharu/commit/3ff64430faced542fad3910a4b0fd8cbdf4a7757))
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(bench)* Smoke --plan de bench-cross dans koharu-batch + chiffres real50 régénérés - ([28e060a](https://github.com/Endymi0n74/Koharu/commit/28e060a623bc1580357b2599184d9b12c451bf59))
-- *(lint)* Guard interdisant les littéraux de chemin Windows dans le code Rust - ([4446938](https://github.com/Endymi0n74/Koharu/commit/444693883a8ab4d1ac68fc84d2e5bb1c7dbe0c24))
-- *(release)* Disable the macOS matrix leg - ([7fe733e](https://github.com/Endymi0n74/Koharu/commit/7fe733e0c6f87020dabf18f7ce06010cf75b90a5))
-- *(ui)* Package.json purge 6 deps (commit manquant) - ([f05ab54](https://github.com/Endymi0n74/Koharu/commit/f05ab54eb453f1605d1ded263ae82525d41d10f4))
-- *(ui)* Purge 41 composants morts + 6 deps lourdes (recharts, embla, cmdk, calendar, input-otp) - ([e7f576b](https://github.com/Endymi0n74/Koharu/commit/e7f576b0f497a4474c9b02337ef4ec26d18ed581))
+- *(bench)* Smoke --plan de bench-cross dans koharu-batch + chiffres real50 régénérés - ([28e060a](https://github.com/Endymi0n74/Koharu/commit/6634ecbd9498888db5791953a2286d1d87cb3d9e))
+- *(lint)* Guard interdisant les littéraux de chemin Windows dans le code Rust - ([4446938](https://github.com/Endymi0n74/Koharu/commit/cd364a5e04bb723983723a7b9bc69226520cb774))
+- *(release)* Disable the macOS matrix leg - ([7fe733e](https://github.com/Endymi0n74/Koharu/commit/0d1ffce0101b6da6e5627ce19c85795545551dcd))
+- *(ui)* Package.json purge 6 deps (commit manquant) - ([f05ab54](https://github.com/Endymi0n74/Koharu/commit/7e4fe9fcbe3402657bd515bfc5222f80d57fe71a))
+- *(ui)* Purge 41 composants morts + 6 deps lourdes (recharts, embla, cmdk, calendar, input-otp) - ([e7f576b](https://github.com/Endymi0n74/Koharu/commit/f890c8ce466438084cd6a9c04e81f8ef0893d822))
 
 
 ## [0.83.5](https://github.com/Endymi0n74/Koharu/compare/v0.83.4..v0.83.5) - 2026-09-22
 
 ### ⛰️  Features
 
-- Phase-major batch, --no-vision, enriched JA/RU->FR prompt - ([2fd7415](https://github.com/Endymi0n74/Koharu/commit/2fd74154a166b1ddb587b47a6f7e5c82454b9b7e))
+- Phase-major batch, --no-vision, enriched JA/RU->FR prompt - ([2fd7415](https://github.com/Endymi0n74/Koharu/commit/73908e34d0d079bd6d11472be3d1d58f21aa8e88))
 
 
 ## [0.83.4](https://github.com/Endymi0n74/Koharu/compare/0.83.4..v0.83.4) - 2026-09-19
 
 ### ⛰️  Features
 
-- *(runtime)* Keep download verification on upstream's new stack - ([c35b467](https://github.com/Endymi0n74/Koharu/commit/c35b4676d1c5fd18184b8aa0b29145d184221a34))
+- *(runtime)* Keep download verification on upstream's new stack - ([c35b467](https://github.com/Endymi0n74/Koharu/commit/5a9b2a2ee49fb7a51a1b8f688dfa1fa8ca5e96dd))
 
 ### 🐛 Bug Fixes
 
-- *(ci)* Resolve the release changelog against the fork - ([01c0971](https://github.com/Endymi0n74/Koharu/commit/01c09715f4ae501acf72c8669392d998ab0f6f3a))
+- *(ci)* Resolve the release changelog against the fork - ([01c0971](https://github.com/Endymi0n74/Koharu/commit/ac2206bd0760d01c38d8e7852a93be487b332ed7))
 
 
 ## [0.83.4](https://github.com/Endymi0n74/Koharu/compare/0.83.3..0.83.4) - 2026-09-17
@@ -1026,21 +1026,21 @@
 
 ### ⛰️  Features
 
-- *(batch)* Finish whole-chapter translation and scale auto model picks - ([d90750c](https://github.com/Endymi0n74/Koharu/commit/d90750c3ad3bc2150d46bce8b8d971a5ec060ba4))
-- *(cli)* Add keyboard navigation to the HTML run report - ([0288909](https://github.com/Endymi0n74/Koharu/commit/02889093605bf02939da23c30795a39b8c8d91cb))
-- *(cli)* Add --reset-calibration and --no-calibration flags - ([36595f5](https://github.com/Endymi0n74/Koharu/commit/36595f5d65cfc1de3a93e3d0da2055ae42c405e2))
-- *(cli)* Auto-calibrate VRAM estimates from measured runs - ([dd89453](https://github.com/Endymi0n74/Koharu/commit/dd89453f445cc665d94323e6a2520f994d1b71e5))
-- *(cli)* Measure real VRAM usage and embed report thumbnails - ([70bf9f3](https://github.com/Endymi0n74/Koharu/commit/70bf9f3cad3f161cf69e0e4a20db4d1ac75f46ef))
-- *(cli)* Add end-of-run reports and fix koharu-batch e2e issues - ([c231aea](https://github.com/Endymi0n74/Koharu/commit/c231aeae30399f7d31ea67e498affc8ff84b68ee))
-- *(cli)* Add koharu-batch for whole-chapter French translation - ([9c01dc0](https://github.com/Endymi0n74/Koharu/commit/9c01dc07518cc71c4e0cf9fdc558af73f29a59db))
-- *(editor)* Make activity error previews readable - ([1ca1fa1](https://github.com/Endymi0n74/Koharu/commit/1ca1fa1e293032f08a7bd4308b39e67f1bdbb0b3))
-- *(llama)* Surface llama.cpp logs when model loading fails - ([4d22aae](https://github.com/Endymi0n74/Koharu/commit/4d22aae36ee2b5a754f48ac5c0ecd4bbd18ff25b))
-- *(runtime)* Verify download size and sha256 before publishing to the store - ([cdd8c67](https://github.com/Endymi0n74/Koharu/commit/cdd8c67dd019bcf0f1d43db1c958339e2af3b610))
+- *(batch)* Finish whole-chapter translation and scale auto model picks - ([d90750c](https://github.com/Endymi0n74/Koharu/commit/9888234423761c086176f939e993a267257ac4ad))
+- *(cli)* Add keyboard navigation to the HTML run report - ([0288909](https://github.com/Endymi0n74/Koharu/commit/2fc78e4f37930548e914900049a63e34811901be))
+- *(cli)* Add --reset-calibration and --no-calibration flags - ([36595f5](https://github.com/Endymi0n74/Koharu/commit/112ee4ba994e25a605b4334b388c3fb4f7dbdd43))
+- *(cli)* Auto-calibrate VRAM estimates from measured runs - ([dd89453](https://github.com/Endymi0n74/Koharu/commit/d5e0605bfd453cdde71a64dc4a7ad4eade864a1e))
+- *(cli)* Measure real VRAM usage and embed report thumbnails - ([70bf9f3](https://github.com/Endymi0n74/Koharu/commit/5135ab3156ccb7cc3706461419319bf809aad3b7))
+- *(cli)* Add end-of-run reports and fix koharu-batch e2e issues - ([c231aea](https://github.com/Endymi0n74/Koharu/commit/92933d70ac7a276c456368737db6f8d23ea7ba71))
+- *(cli)* Add koharu-batch for whole-chapter French translation - ([9c01dc0](https://github.com/Endymi0n74/Koharu/commit/4cedf236f4737cf570469236f314258f8ea6be44))
+- *(editor)* Make activity error previews readable - ([1ca1fa1](https://github.com/Endymi0n74/Koharu/commit/f73c9bdba447d082c10084e34167a258899e3af6))
+- *(llama)* Surface llama.cpp logs when model loading fails - ([4d22aae](https://github.com/Endymi0n74/Koharu/commit/a44568d1928c3ad32931da622820dcdae682f63c))
+- *(runtime)* Verify download size and sha256 before publishing to the store - ([cdd8c67](https://github.com/Endymi0n74/Koharu/commit/98bdacac1ec277d0c8a309d4a449ccfb1acb57b4))
 - Update diffusion and ggml FFI bindings - ([6959411](https://github.com/Endymi0n74/Koharu/commit/6959411c7ccabab694683bb95d155f92ef90ccd6))
 
 ### 🐛 Bug Fixes
 
-- *(llama)* Satisfy clippy manual-pattern-char-comparison - ([dd7cfa2](https://github.com/Endymi0n74/Koharu/commit/dd7cfa2f4b4b1abb8073f291305a9620d36a5827))
+- *(llama)* Satisfy clippy manual-pattern-char-comparison - ([dd7cfa2](https://github.com/Endymi0n74/Koharu/commit/3ad22fda75adedda8ebbc19895e79dca8e546c1c))
 - Correct updater dialog presentation - ([6a9a3d8](https://github.com/Endymi0n74/Koharu/commit/6a9a3d8f9ebc35a17e4250910379154f85d07724))
 - Disable viewport scaling - ([4cfebec](https://github.com/Endymi0n74/Koharu/commit/4cfebec4bf76400575b1d7a8fe26a1a7eac4858b))
 
@@ -1051,11 +1051,11 @@
 
 ### 📚 Documentation
 
-- *(cli)* Document installing koharu-batch outside the repository - ([98973c2](https://github.com/Endymi0n74/Koharu/commit/98973c2d443b188c57e7b44ef1474135d491e152))
-- *(readme)* Add CI status badge for the koharu-batch workflow - ([7a9c811](https://github.com/Endymi0n74/Koharu/commit/7a9c8119c8ccbb2cde50b34b0015ca7e7e187a7f))
-- *(readme)* Highlight the koharu-batch batch CLI with usage examples - ([e1c407b](https://github.com/Endymi0n74/Koharu/commit/e1c407bd6ab23337812bd77e3a25603e51a8410b))
-- Translate fork guide into Japanese and Simplified Chinese - ([0492919](https://github.com/Endymi0n74/Koharu/commit/04929193852f554776974e13766aa79e06b91e06))
-- Add fork guide for local installs, the store, and 8 GB GPUs - ([72163d5](https://github.com/Endymi0n74/Koharu/commit/72163d50d793faee2e55b6b7501dfef4f76e16eb))
+- *(cli)* Document installing koharu-batch outside the repository - ([98973c2](https://github.com/Endymi0n74/Koharu/commit/56d757a01ed19da357b325855b7a880889068f44))
+- *(readme)* Add CI status badge for the koharu-batch workflow - ([7a9c811](https://github.com/Endymi0n74/Koharu/commit/dae019d93ae2bd787fed716b420b2203de4fc6f5))
+- *(readme)* Highlight the koharu-batch batch CLI with usage examples - ([e1c407b](https://github.com/Endymi0n74/Koharu/commit/d53f03b77ae10b30f78a034fb892fdfbbdb37b47))
+- Translate fork guide into Japanese and Simplified Chinese - ([0492919](https://github.com/Endymi0n74/Koharu/commit/7fbb1a024982f50f4fe44358c357f588b284d138))
+- Add fork guide for local installs, the store, and 8 GB GPUs - ([72163d5](https://github.com/Endymi0n74/Koharu/commit/8f25b2877ceb6b4ded50091a2da58a8ca6719042))
 
 ### 🧪 Testing
 
@@ -1064,9 +1064,9 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Update sponsors ([#927](https://github.com/koharu-rs/koharu/issues/927)) - ([106a99c](https://github.com/Endymi0n74/Koharu/commit/106a99cccc656168742b53f304c6abbd4cf28cf9))
-- Publish koharu-batch.exe to GitHub Releases on v* tags - ([6cb4b15](https://github.com/Endymi0n74/Koharu/commit/6cb4b15bbee5145972242167433eeb6ef2352324))
-- Build koharu-batch release binary as a Windows artifact - ([7f20cab](https://github.com/Endymi0n74/Koharu/commit/7f20cabc35551421553d4d0ef16024b5e1df6619))
-- Drop Windows code-signing command - ([91b3541](https://github.com/Endymi0n74/Koharu/commit/91b35418a07612f46c53aa895726e9cf9977ddf1))
+- Publish koharu-batch.exe to GitHub Releases on v* tags - ([6cb4b15](https://github.com/Endymi0n74/Koharu/commit/3d73777b5189d525af6f60d950d28772ed1d246f))
+- Build koharu-batch release binary as a Windows artifact - ([7f20cab](https://github.com/Endymi0n74/Koharu/commit/132262422a661eb00174270f9831e44621f61c9f))
+- Drop Windows code-signing command - ([91b3541](https://github.com/Endymi0n74/Koharu/commit/0f9feb82498b9185f1335bbc7d02b380843abb6e))
 - Bump llama.cpp and sd.cpp - ([c4fddad](https://github.com/Endymi0n74/Koharu/commit/c4fddad24c77e345353788fae5c795bc329108bc))
 - Remove unused workspace dependencies - ([cac8f75](https://github.com/Endymi0n74/Koharu/commit/cac8f75718ad2585bd449c9e85d725deba777529))
 
