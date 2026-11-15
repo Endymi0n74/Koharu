@@ -38,6 +38,10 @@ jobs:
       - run: cargo fmt -- --check
       - run: cargo check
       - run: cargo clippy -- -D warnings
+      - name: Generated protocol is up to date
+        run: |
+          cargo run --quiet --locked -p koharu-app --bin generate
+          git diff --exit-code -- packages/bridge/src/protocol.ts
 
   ui:
     name: UI

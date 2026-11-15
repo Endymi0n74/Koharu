@@ -32,6 +32,9 @@ target/
 # model results
 /runs
 
+# Local benchmark artefacts: measurements cited by the batch CLI and the docs
+/bench-profile/
+
 # model checkpoints
 /models
 
