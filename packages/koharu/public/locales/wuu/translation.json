@@ -15,6 +15,8 @@
     "pageLabel": "第 {{number}} 页：{{label}}",
     "processing": "来勒处理",
     "processingFailed": "处理失败哉。",
+    "showLess": "收起",
+    "showMore": "展开",
     "stop": "停止",
     "title": "活动"
   },
@@ -52,6 +54,20 @@
     "thinking": "来勒忖…",
     "title": "智能体",
     "working": "来勒处理任务…"
+  },
+  "batch": {
+    "autoModel": "自动",
+    "choose": "选…",
+    "description": "弗用项目，直接用 koharu-batch 翻译文件夹里个所有页面。进度会勒活动中心显示。",
+    "deterministic": "确定性翻译（温度 0）",
+    "model": "模型",
+    "output": "输出文件夹",
+    "overwrite": "重新翻译输出里向已经有个页面",
+    "pick": "还呒没选",
+    "source": "要翻译个文件夹",
+    "start": "开始",
+    "starting": "来勒开始…",
+    "title": "批量翻译文件夹"
   },
   "canvas": {
     "empty": "先选一页，就好开始。",
@@ -245,6 +261,7 @@
   },
   "menu": {
     "about": "关于",
+    "batch": "批量翻译文件夹…",
     "closeProject": "关闭项目",
     "delete": "删除拣中个内容",
     "discord": "Discord",
@@ -369,12 +386,12 @@
       "maxTokens": "最大令牌数",
       "minP": "Min P",
       "presencePenalty": "存在惩罚",
+      "reasoning": "推理",
+      "reasoningDescription": "翻译个辰光用模型推理。",
       "repeatPenalty": "重复惩罚",
       "sampling": "采样",
       "samplingDescription": "调整模型选词个方式，控制生成个文本有多少变化。",
       "temperature": "温度",
-      "reasoning": "推理",
-      "reasoningDescription": "翻译个辰光用模型推理。",
       "title": "生成",
       "topK": "Top K",
       "topP": "Top P",
@@ -390,6 +407,7 @@
         "negativePrompt": "负面提示词",
         "panelThreshold": "分镜阈值",
         "prompt": "提示词",
+        "referenceNeighbor": "参考旁边个页面",
         "textThreshold": "文本阈值"
       },
       "processing": "来勒处理",
@@ -479,6 +497,7 @@
     "loadingProjects": "来勒加载项目…",
     "newDescription": "建一个清爽个工作区，用来放页面、译文搭导出文件。",
     "newProject": "新建项目",
+    "openFolder": "打开文件夹…",
     "projectKind": "Koharu 项目",
     "projectList": "项目",
     "projectName": "项目名称",

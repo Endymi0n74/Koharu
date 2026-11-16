@@ -15,6 +15,8 @@
     "pageLabel": "الصفحة {{number}}: {{label}}",
     "processing": "قيد المعالجة",
     "processingFailed": "فشلت المعالجة.",
+    "showLess": "عرض أقل",
+    "showMore": "عرض المزيد",
     "stop": "إيقاف",
     "title": "النشاط"
   },
@@ -52,6 +54,20 @@
     "thinking": "جارٍ التفكير...",
     "title": "Agent",
     "working": "جارٍ العمل..."
+  },
+  "batch": {
+    "autoModel": "تلقائي",
+    "choose": "اختيار…",
+    "description": "ترجم جميع صفحات مجلد باستخدام koharu-batch، من دون مشروع. تظهر العملية في مركز النشاط.",
+    "deterministic": "ترجمة حتمية (درجة الحرارة 0)",
+    "model": "النموذج",
+    "output": "مجلد الإخراج",
+    "overwrite": "أعد ترجمة الصفحات الموجودة بالفعل في الإخراج",
+    "pick": "لم يتم الاختيار",
+    "source": "المجلد المطلوب ترجمته",
+    "start": "بدء",
+    "starting": "جارٍ البدء…",
+    "title": "ترجمة مجلد على دفعات"
   },
   "canvas": {
     "empty": "اختر صفحة للبدء.",
@@ -245,6 +261,7 @@
   },
   "menu": {
     "about": "عن البرنامج",
+    "batch": "ترجمة مجلد على دفعات…",
     "closeProject": "إغلاق المشروع",
     "delete": "حذف المحدّد",
     "discord": "Discord",
@@ -369,12 +386,12 @@
       "maxTokens": "Maximum tokens",
       "minP": "Min P",
       "presencePenalty": "Presence penalty",
+      "reasoning": "التفكير",
+      "reasoningDescription": "استخدام تفكير النموذج أثناء الترجمة.",
       "repeatPenalty": "Repeat penalty",
       "sampling": "أخذ العينات",
       "samplingDescription": "تحكّم في كيفية اختيار النموذج للنص المولّد وتنويعه.",
       "temperature": "Temperature",
-      "reasoning": "التفكير",
-      "reasoningDescription": "استخدام تفكير النموذج أثناء الترجمة.",
       "title": "التوليد",
       "topK": "Top K",
       "topP": "Top P",
@@ -390,6 +407,7 @@
         "negativePrompt": "الطلب السلبي",
         "panelThreshold": "عتبة الألواح",
         "prompt": "الطلب",
+        "referenceNeighbor": "استخدام الصفحة المجاورة كمرجع",
         "textThreshold": "عتبة النص"
       },
       "processing": "المعالجة",
@@ -479,6 +497,7 @@
     "loadingProjects": "جارٍ تحميل المشاريع…",
     "newDescription": "أنشئ مساحة عمل نظيفة لصفحاتك وترجماتك وعمليات التصدير.",
     "newProject": "مشروع جديد",
+    "openFolder": "فتح مجلد…",
     "projectKind": "مشروع Koharu",
     "projectList": "المشاريع",
     "projectName": "اسم المشروع",
