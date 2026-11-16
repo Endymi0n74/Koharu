@@ -2,6 +2,7 @@
 
 import { useMutationState } from '@tanstack/react-query'
 import { CircleAlert, Download, LoaderCircle, Square, X } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { call } from '@/lib/backend'
@@ -193,12 +194,79 @@ function DownloadItem({ download }: { download: DownloadState }) {
   )
 }
 
+const PREVIEW_HEAD = 96
+const PREVIEW_TAIL = 64
+/// A longer failure line is previewed as head + ellipsis + tail.
+const PREVIEW_LIMIT = PREVIEW_HEAD + PREVIEW_TAIL
+
+/// The GGUF file named in a message line, without its directory separators.
+const GGUF_RE = /[^\\/\s]*\.gguf/gi
+
+interface Preview {
+  text: string
+  /// The GGUF filename inside `text`, kept whole so the failing model stays
+  /// identifiable; `null` when the line names no model.
+  filename: string | null
+}
+
+/// Builds a compact preview of a failure: the first line only, with the middle
+/// replaced by an ellipsis when that line is long (e.g. a full GGUF path). The
+/// GGUF filename stays whole so the ellipsis never cuts it, and the following
+/// lines (llama.cpp's captured logs) stay behind the expand toggle.
+function previewOf(message: string): Preview {
+  const line = message.split('\n')[0] ?? ''
+  const filename = [...line.matchAll(GGUF_RE)].at(-1)?.[0] ?? null
+  if (line.length <= PREVIEW_LIMIT) return { text: line, filename }
+  // The default tail is the last PREVIEW_TAIL characters; when it would cut
+  // the GGUF filename, the tail starts at the filename instead.
+  let tailStart = line.length - PREVIEW_TAIL
+  const fileStart = filename ? line.lastIndexOf(filename) : -1
+  if (filename && fileStart > PREVIEW_HEAD && fileStart + filename.length > tailStart) {
+    tailStart = fileStart
+  }
+  return { text: `${line.slice(0, PREVIEW_HEAD)}…${line.slice(tailStart)}`, filename }
+}
+
+/// Renders the preview with the GGUF filename emphasized.
+function PreviewText({ text, filename }: Preview) {
+  const at = filename ? text.indexOf(filename) : -1
+  if (filename === null || at < 0) return text
+  return (
+    <>
+      {text.slice(0, at)}
+      <span className='font-semibold text-foreground'>{filename}</span>
+      {text.slice(at + filename.length)}
+    </>
+  )
+}
+
 function Failure({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const preview = previewOf(message)
+  const hasMore = preview.text !== message
   return (
     <div className='grid grid-cols-[1rem_minmax(0,1fr)_2.25rem_1.5rem] items-start gap-x-2.5 border-b p-3 text-[11px] last:border-b-0'>
       <CircleAlert className='mt-0.5 size-3.5 justify-self-center text-destructive' />
-      <span className='col-start-2 col-end-4 min-w-0 text-destructive'>{message}</span>
+      <div className='col-start-2 col-end-4 min-w-0'>
+        {expanded ? (
+          <pre className='max-h-48 overflow-y-auto font-mono text-[10px] leading-4 break-words whitespace-pre-wrap text-destructive'>
+            {message}
+          </pre>
+        ) : (
+          <span className='block break-words text-destructive'><PreviewText {...preview} /></span>
+        )}
+        {hasMore && (
+          <button
+            type='button'
+            aria-expanded={expanded}
+            className='mt-1 block font-medium text-destructive/80 hover:text-destructive'
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? t('activity.showLess') : t('activity.showMore')}
+          </button>
+        )}
+      </div>
       <Button
         size='icon-xs'
         variant='ghost'
