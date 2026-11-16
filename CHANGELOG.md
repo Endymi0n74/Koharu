@@ -1,3 +1,35 @@
+## [0.88.1](https://github.com/Endymi0n74/Koharu/compare/v0.88.0..v0.88.1) - 2026-11-16
+
+### 🐛 Bug Fixes
+
+- *(app)* Retablir l'apercu d'erreur tronque du centre d'activite - ([235f5cd](https://github.com/Endymi0n74/Koharu/commit/235f5cde9900b5f0de745751a122dc65ae172d29))
+- *(app)* Deux séquelles du rebase dans le paquet koharu - ([b5f5490](https://github.com/Endymi0n74/Koharu/commit/b5f5490e49b712066027a2e4328377a8d5adca5d))
+- *(bridge)* Régénère protocol.ts, périmé depuis le rebase - ([d4fd39e](https://github.com/Endymi0n74/Koharu/commit/d4fd39e029a7574a66bc13ac17c62caa31d7df7c))
+- *(ci)* Retire la jambe macOS du build - ([f96c731](https://github.com/Endymi0n74/Koharu/commit/f96c73136c7ad02713ceaf4a9c42c0e5263629fb))
+- *(i18n)* Completer les locales ar et wuu apres le rebase - ([e85f738](https://github.com/Endymi0n74/Koharu/commit/e85f738fd20ef7a79513fa8204ab25487ff9500e))
+- *(rebase)* Répare les fichiers endommagés par les résolutions de conflits - ([1a53d39](https://github.com/Endymi0n74/Koharu/commit/1a53d39549586084c8ff1fef000463dd2ac2c27a))
+- *(release)* Fusionne les deux tables [profile.release] du rebase - ([5db7d74](https://github.com/Endymi0n74/Koharu/commit/5db7d749f3a4f83801a8ff8e045ef2306692350a))
+
+### 📚 Documentation
+
+- Exposer les pages fork et le guide batch dans la navigation - ([cf08b2b](https://github.com/Endymi0n74/Koharu/commit/cf08b2bd5fb01487ef49f8f19ae83386e4c58f87))
+- Remettre la documentation Mintlify d'aplomb après le rebase - ([60b19c7](https://github.com/Endymi0n74/Koharu/commit/60b19c7e2fd0a88d5e8a70b04028bd7a4ce23321))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(project)* Remove duplicated install rule from packages/koharu/AGENTS.md - ([66b62eb](https://github.com/Endymi0n74/Koharu/commit/66b62ebf3af27e4dc4427bf31dd9053bd81360a9))
+- *(project)* Add the immutable installation rule to CLAUDE.md - ([55a0988](https://github.com/Endymi0n74/Koharu/commit/55a0988019dff7cc12e677f6ee69a14c56400eaf))
+- *(project)* Preserve the immutable installation rule - ([dea5909](https://github.com/Endymi0n74/Koharu/commit/dea59097577bc5044aef900a59bc6faa2b47139c))
+- *(release)* Prefixer aussi le nom de release avec v - ([73cce4f](https://github.com/Endymi0n74/Koharu/commit/73cce4f768a67841ca64362f50899781d68a38f1))
+- *(release)* Prefixer les tags de version avec v - ([5c4738f](https://github.com/Endymi0n74/Koharu/commit/5c4738f5b47f2434820810359a0ae198ee8e559b))
+- *(ui)* Aligne quatre plages de dependances sur l'amont - ([eb75f59](https://github.com/Endymi0n74/Koharu/commit/eb75f597940717d8b8cd0986a857277ce8859643))
+- Régénérer protocol.ts pour détecter sa dérive - ([5562b0c](https://github.com/Endymi0n74/Koharu/commit/5562b0cc2833cd0352f04b6e15b715d6d699d3d7))
+- Retire du suivi les fichiers ajoutes par erreur - ([95107c0](https://github.com/Endymi0n74/Koharu/commit/95107c086fa4d23079940327d2f32ca381eec78d))
+
+### Build
+
+- Repartir du Cargo.lock de l'amont - ([6fdcf37](https://github.com/Endymi0n74/Koharu/commit/6fdcf37ee37610afaea90a8ead3cb559beef36ac))
+
 ## [0.88.0](https://github.com/Endymi0n74/Koharu/compare/v0.87.3..v0.88.0) - 2026-11-03
 
 ### ⛰️  Features
