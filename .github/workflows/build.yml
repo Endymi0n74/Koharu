@@ -3,7 +3,13 @@ name: Build
 on:
   push:
     branches: ['main']
+    # Paths that cannot change a build input; both triggers share the list.
+    paths-ignore: &code-irrelevant
+      - '**.md'
+      - 'packages/docs/**'
+      - '.github/release-please/**'
   pull_request:
+    paths-ignore: *code-irrelevant
 
 permissions:
   contents: read
