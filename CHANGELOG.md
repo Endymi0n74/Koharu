@@ -63,7 +63,7 @@
 - *(memory)* Sort la mémoire de projet du suivi git - ([b55094f](https://github.com/Endymi0n74/Koharu/commit/ab282bbd284165f5193b7f6cf82682e964a8a2f6))
 
 
-## [0.87.0](https://github.com/Endymi0n74/Koharu/compare/v0.86.0..v0.87.0) - 2026-10-16
+## [0.87.0] - 2026-10-16
 
 ### ⛰️  Features
 
@@ -78,7 +78,7 @@
 - Remove sponsors workflow (100% failing, tokens absents) - ([d2e950a](https://github.com/Endymi0n74/Koharu/commit/bd3a9145045e844733ba1f9660cbd16726edf61e))
 
 
-## [0.86.0](https://github.com/Endymi0n74/Koharu/compare/v0.85.0..v0.86.0) - 2026-10-11
+## [0.86.0] - 2026-10-11
 
 ### 🐛 Bug Fixes
 
@@ -91,14 +91,14 @@
 - *(memory)* Marque les fixes Test et release.ts comme committés - ([494a948](https://github.com/Endymi0n74/Koharu/commit/dd305924371f0b7ddacb71412165d38e10bc34c8))
 
 
-## [0.85.0](https://github.com/Endymi0n74/Koharu/compare/v0.84.0..v0.85.0) - 2026-10-11
+## [0.85.0] - 2026-10-11
 
 ### ⛰️  Features
 
 - *(batch)* Let auto pick a partially offloaded model within budget - ([65c22cc](https://github.com/Endymi0n74/Koharu/commit/9b3d8b3d274f14c0fa2f6b2ce8487f8b6fbfe983))
 
 
-## [0.84.0](https://github.com/Endymi0n74/Koharu/compare/v0.83.9..v0.84.0) - 2026-10-10
+## [0.84.0] - 2026-10-10
 
 ### ⛰️  Features
 
@@ -111,9 +111,7 @@
 - *(ci)* Recover incomplete release asset uploads - ([19430a0](https://github.com/koharu-rs/koharu/commit/19430a0810f83b0eb2f85045968301557c27ea8b))
 
 
-## [0.83.4](https://github.com/koharu-rs/koharu/compare/0.83.3..0.83.4) - 2026-09-17
-
-## [0.83.9](https://github.com/Endymi0n74/Koharu/compare/v0.83.8..v0.83.9) - 2026-10-08
+## [0.83.9] - 2026-10-08
 
 ### ⛰️  Features
 
@@ -134,7 +132,7 @@
 - *(ci)* Retire le gabarit commente du job winget - ([b8bd478](https://github.com/Endymi0n74/Koharu/commit/dc9a3e8d10d2c1c5f28dad25cd76c68e8ac896b4))
 
 
-## [0.83.8](https://github.com/Endymi0n74/Koharu/compare/v0.83.7..v0.83.8) - 2026-10-05
+## [0.83.8] - 2026-10-05
 
 ### ⛰️  Features
 
@@ -155,7 +153,7 @@
 - *(release)* Desactive le job winget faute de WINGET_TOKEN - ([d5367b0](https://github.com/Endymi0n74/Koharu/commit/d82781b90601bf04b871126368348b1aa7a1920d))
 
 
-## [0.83.7](https://github.com/Endymi0n74/Koharu/compare/v0.83.6..v0.83.7) - 2026-10-04
+## [0.83.7] - 2026-10-04
 
 ### ⛰️  Features
 
@@ -243,7 +241,7 @@
 - *(lint)* Typecheck des scripts TS (bench-cross, guards) en CI - ([e0b3827](https://github.com/Endymi0n74/Koharu/commit/71b2f8b6ba8a9ac7abe6bdf6d428e6cb628eb601))
 
 
-## [0.83.6](https://github.com/Endymi0n74/Koharu/compare/v0.83.5..v0.83.6) - 2026-09-26
+## [0.83.6] - 2026-09-26
 
 ### ⛰️  Features
 
@@ -281,14 +279,14 @@
 - *(ui)* Purge 41 composants morts + 6 deps lourdes (recharts, embla, cmdk, calendar, input-otp) - ([e7f576b](https://github.com/Endymi0n74/Koharu/commit/f890c8ce466438084cd6a9c04e81f8ef0893d822))
 
 
-## [0.83.5](https://github.com/Endymi0n74/Koharu/compare/v0.83.4..v0.83.5) - 2026-09-22
+## [0.83.5] - 2026-09-22
 
 ### ⛰️  Features
 
 - Phase-major batch, --no-vision, enriched JA/RU->FR prompt - ([2fd7415](https://github.com/Endymi0n74/Koharu/commit/73908e34d0d079bd6d11472be3d1d58f21aa8e88))
 
 
-## [0.83.4](https://github.com/Endymi0n74/Koharu/compare/0.83.4..v0.83.4) - 2026-09-19
+## [0.83.4] - 2026-09-19
 
 ### ⛰️  Features
 
@@ -299,21 +297,21 @@
 - *(ci)* Resolve the release changelog against the fork - ([01c0971](https://github.com/Endymi0n74/Koharu/commit/ac2206bd0760d01c38d8e7852a93be487b332ed7))
 
 
-## [0.83.4](https://github.com/Endymi0n74/Koharu/compare/0.83.3..0.83.4) - 2026-09-17
+## [0.83.4](https://github.com/koharu-rs/koharu/compare/0.83.3..0.83.4) - 2026-09-17
 
 ### 🐛 Bug Fixes
 
 - *(deps)* Align gpu-allocator Windows bindings - ([19197a7](https://github.com/Endymi0n74/Koharu/commit/19197a77481d4a36e2091dec163014886ff6743f))
 
 
-## [0.83.3](https://github.com/Endymi0n74/Koharu/compare/0.83.2..0.83.3) - 2026-09-16
+## [0.83.3](https://github.com/koharu-rs/koharu/compare/0.83.2..0.83.3) - 2026-09-16
 
 ### 🐛 Bug Fixes
 
 - *(desktop)* Force X11 ozone platform for Linux CEF ([#1110](https://github.com/koharu-rs/koharu/issues/1110)) - ([c1e9d23](https://github.com/Endymi0n74/Koharu/commit/c1e9d23e25e6568f53b827a82a91994467adede9))
 
 
-## [0.83.2](https://github.com/Endymi0n74/Koharu/compare/0.83.1..0.83.2) - 2026-09-15
+## [0.83.2](https://github.com/koharu-rs/koharu/compare/0.83.1..0.83.2) - 2026-09-15
 
 ### 🐛 Bug Fixes
 
@@ -323,7 +321,7 @@
 - *(translator)* Cache model-listing client with five-second timeout ([#1103](https://github.com/koharu-rs/koharu/issues/1103)) - ([bc1a51b](https://github.com/Endymi0n74/Koharu/commit/bc1a51b67e50612a8dcbe00827ce22746c988d11))
 
 
-## [0.83.1](https://github.com/Endymi0n74/Koharu/compare/0.83.0..0.83.1) - 2026-09-15
+## [0.83.1](https://github.com/koharu-rs/koharu/compare/0.83.0..0.83.1) - 2026-09-15
 
 ### 🐛 Bug Fixes
 
@@ -334,7 +332,7 @@
 - Remove Atlas Cloud provider and sponsorship - ([9e8698b](https://github.com/Endymi0n74/Koharu/commit/9e8698be9c85a4446cc99a3c310a24ec0a720ea7))
 
 
-## [0.83.0](https://github.com/Endymi0n74/Koharu/compare/0.82.1..0.83.0) - 2026-09-14
+## [0.83.0](https://github.com/koharu-rs/koharu/compare/0.82.1..0.83.0) - 2026-09-14
 
 ### ⛰️  Features
 
@@ -349,7 +347,7 @@
 - *(ui)* Long project names pushing the delete button off screen ([#1093](https://github.com/koharu-rs/koharu/issues/1093)) - ([0704f7f](https://github.com/Endymi0n74/Koharu/commit/0704f7f81ad7a992b62eab642a4b6706f782af77))
 
 
-## [0.82.1](https://github.com/Endymi0n74/Koharu/compare/0.82.0..0.82.1) - 2026-09-11
+## [0.82.1](https://github.com/koharu-rs/koharu/compare/0.82.0..0.82.1) - 2026-09-11
 
 ### 🐛 Bug Fixes
 
@@ -360,7 +358,7 @@
 - *(app)* Default the processing scope to the selection ([#1088](https://github.com/koharu-rs/koharu/issues/1088)) - ([767e4d0](https://github.com/Endymi0n74/Koharu/commit/767e4d0441f986c18e55fc4e1af42f3dddfd860e))
 
 
-## [0.82.0](https://github.com/Endymi0n74/Koharu/compare/0.81.10..0.82.0) - 2026-09-11
+## [0.82.0](https://github.com/koharu-rs/koharu/compare/0.81.10..0.82.0) - 2026-09-11
 
 ### ⛰️  Features
 
@@ -371,7 +369,7 @@
 - *(scripts)* Add Kindle JP downloader - ([8ccfe9f](https://github.com/Endymi0n74/Koharu/commit/8ccfe9ffafd8037e06c8999213dd55a78a6f7b37))
 
 
-## [0.81.9](https://github.com/Endymi0n74/Koharu/compare/0.81.8..0.81.9) - 2026-09-08
+## [0.81.9](https://github.com/koharu-rs/koharu/compare/0.81.8..0.81.9) - 2026-09-08
 
 ### 🐛 Bug Fixes
 
@@ -388,7 +386,7 @@
 - Simplify contribution templates and use issue types - ([e29860a](https://github.com/Endymi0n74/Koharu/commit/e29860a75f551f1e0d5d4384eda8dc98aba97d73))
 
 
-## [0.81.8](https://github.com/Endymi0n74/Koharu/compare/0.81.7..0.81.8) - 2026-09-08
+## [0.81.8](https://github.com/koharu-rs/koharu/compare/0.81.7..0.81.8) - 2026-09-08
 
 ### 🐛 Bug Fixes
 
@@ -406,7 +404,7 @@
 - Update feature request template name and label - ([fb1071a](https://github.com/Endymi0n74/Koharu/commit/fb1071a8e701128738de9b29b17d45034fd3dd54))
 
 
-## [0.81.7](https://github.com/Endymi0n74/Koharu/compare/0.81.6..0.81.7) - 2026-09-05
+## [0.81.7](https://github.com/koharu-rs/koharu/compare/0.81.6..0.81.7) - 2026-09-05
 
 ### 🐛 Bug Fixes
 
@@ -417,49 +415,49 @@
 - Remove summary GHA - ([3a0c6a3](https://github.com/Endymi0n74/Koharu/commit/3a0c6a366d5355dee7a19cc905f28d84afa6e4b8))
 
 
-## [0.81.6](https://github.com/Endymi0n74/Koharu/compare/0.81.5..0.81.6) - 2026-09-04
+## [0.81.6](https://github.com/koharu-rs/koharu/compare/0.81.5..0.81.6) - 2026-09-04
 
 ### 🐛 Bug Fixes
 
 - *(app)* Pass Linux CEF switches correctly - ([24bda3a](https://github.com/Endymi0n74/Koharu/commit/24bda3a5cc9d47ed45b0d118cbf0711c3b46effe))
 
 
-## [0.81.5](https://github.com/Endymi0n74/Koharu/compare/0.81.4..0.81.5) - 2026-09-03
+## [0.81.5](https://github.com/koharu-rs/koharu/compare/0.81.4..0.81.5) - 2026-09-03
 
 ### 🐛 Bug Fixes
 
 - *(updater)* Install Windows updates quietly - ([e2df1f6](https://github.com/Endymi0n74/Koharu/commit/e2df1f60ad3850b79d78b224dc698de6c2d82c8b))
 
 
-## [0.81.4](https://github.com/Endymi0n74/Koharu/compare/0.81.3..0.81.4) - 2026-09-03
+## [0.81.4](https://github.com/koharu-rs/koharu/compare/0.81.3..0.81.4) - 2026-09-03
 
 ### 🐛 Bug Fixes
 
 - *(translator)* Recover model responses the JSON repair layer rejects ([#1022](https://github.com/koharu-rs/koharu/issues/1022)) - ([e6d330c](https://github.com/Endymi0n74/Koharu/commit/e6d330c83a76ed3efa1f7ab15988f81544df8219))
 
 
-## [0.81.3](https://github.com/Endymi0n74/Koharu/compare/0.81.2..0.81.3) - 2026-09-03
+## [0.81.3](https://github.com/koharu-rs/koharu/compare/0.81.2..0.81.3) - 2026-09-03
 
 ### 🐛 Bug Fixes
 
 - *(ci)* Remove AppImage bundle target ([#1035](https://github.com/koharu-rs/koharu/issues/1035)) ([#1037](https://github.com/koharu-rs/koharu/issues/1037)) - ([859ae68](https://github.com/Endymi0n74/Koharu/commit/859ae68a6c012afe349bedffc616e38a929b8f19))
 
 
-## [0.81.2](https://github.com/Endymi0n74/Koharu/compare/0.81.1..0.81.2) - 2026-09-03
+## [0.81.2](https://github.com/koharu-rs/koharu/compare/0.81.1..0.81.2) - 2026-09-03
 
 ### 🐛 Bug Fixes
 
 - *(agent)* Recover from invalidated Codex refresh tokens ([#1034](https://github.com/koharu-rs/koharu/issues/1034)) - ([5f299cd](https://github.com/Endymi0n74/Koharu/commit/5f299cd88e2ecfd834823a6e62068f420a72f73a))
 
 
-## [0.81.1](https://github.com/Endymi0n74/Koharu/compare/0.81.0..0.81.1) - 2026-09-02
+## [0.81.1](https://github.com/koharu-rs/koharu/compare/0.81.0..0.81.1) - 2026-09-02
 
 ### ⚙️ Miscellaneous Tasks
 
 - Build Linux ARM64 application - ([4add6d8](https://github.com/Endymi0n74/Koharu/commit/4add6d8d7a60f7a7cafc70a9b756fae4a3b0dd6a))
 
 
-## [0.81.0](https://github.com/Endymi0n74/Koharu/compare/0.80.0..0.81.0) - 2026-09-02
+## [0.81.0](https://github.com/koharu-rs/koharu/compare/0.80.0..0.81.0) - 2026-09-02
 
 ### ⛰️  Features
 
@@ -485,7 +483,7 @@
 - Update sponsors ([#943](https://github.com/koharu-rs/koharu/issues/943)) - ([687af18](https://github.com/Endymi0n74/Koharu/commit/687af180abcd5ecb69994d997acfcef115ad560f))
 
 
-## [0.80.0](https://github.com/Endymi0n74/Koharu/compare/0.79.5..0.80.0) - 2026-08-31
+## [0.80.0](https://github.com/koharu-rs/koharu/compare/0.79.5..0.80.0) - 2026-08-31
 
 ### ⛰️  Features
 
@@ -496,7 +494,7 @@
 - Improve contribution guidelines - ([971fed9](https://github.com/Endymi0n74/Koharu/commit/971fed9c16bf712d5bb1ddf9e46abaf67a018dfb))
 
 
-## [0.79.5](https://github.com/Endymi0n74/Koharu/compare/0.79.4..0.79.5) - 2026-08-31
+## [0.79.5](https://github.com/koharu-rs/koharu/compare/0.79.4..0.79.5) - 2026-08-31
 
 ### 🐛 Bug Fixes
 
@@ -520,7 +518,7 @@
 - Support every ROCm 10 device target - ([f282f22](https://github.com/Endymi0n74/Koharu/commit/f282f22528218092d93a4453beb4619adc77c16c))
 
 
-## [0.79.4](https://github.com/Endymi0n74/Koharu/compare/0.79.3..0.79.4) - 2026-08-28
+## [0.79.4](https://github.com/koharu-rs/koharu/compare/0.79.3..0.79.4) - 2026-08-28
 
 ### 🐛 Bug Fixes
 
@@ -532,7 +530,7 @@
 - Update readme - ([4932a9d](https://github.com/Endymi0n74/Koharu/commit/4932a9d02a925b014f8d7f8e5768bf6932c2f134))
 
 
-## [0.79.3](https://github.com/Endymi0n74/Koharu/compare/0.79.2..0.79.3) - 2026-08-27
+## [0.79.3](https://github.com/koharu-rs/koharu/compare/0.79.2..0.79.3) - 2026-08-27
 
 ### 🐛 Bug Fixes
 
@@ -544,21 +542,21 @@
 - Update codeowners - ([52dfe1e](https://github.com/Endymi0n74/Koharu/commit/52dfe1e6984c631ebae63cabec71a5e4f12310ac))
 
 
-## [0.79.2](https://github.com/Endymi0n74/Koharu/compare/0.79.1..0.79.2) - 2026-08-27
+## [0.79.2](https://github.com/koharu-rs/koharu/compare/0.79.1..0.79.2) - 2026-08-27
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Use koharu-rs release repositories - ([559aab7](https://github.com/Endymi0n74/Koharu/commit/559aab7b1328e31191ef1356fdc57103329bc3b4))
 
 
-## [0.79.1](https://github.com/Endymi0n74/Koharu/compare/0.79.0..0.79.1) - 2026-08-27
+## [0.79.1](https://github.com/koharu-rs/koharu/compare/0.79.0..0.79.1) - 2026-08-27
 
 ### 🐛 Bug Fixes
 
 - *(build)* Pin Tauri CEF toolchain - ([a9ce05f](https://github.com/Endymi0n74/Koharu/commit/a9ce05f83465382ebe866ed8943510b90b50cef6))
 
 
-## [0.79.0](https://github.com/Endymi0n74/Koharu/compare/0.78.2..0.79.0) - 2026-08-26
+## [0.79.0](https://github.com/koharu-rs/koharu/compare/0.78.2..0.79.0) - 2026-08-26
 
 ### ⛰️  Features
 
@@ -570,7 +568,7 @@
 - Inpaint preview mask transparency ([#987](https://github.com/koharu-rs/koharu/issues/987)) - ([023bf7a](https://github.com/Endymi0n74/Koharu/commit/023bf7a6496dbf13344da9ddf39649987efb4609))
 
 
-## [0.78.2](https://github.com/Endymi0n74/Koharu/compare/0.78.1..0.78.2) - 2026-08-26
+## [0.78.2](https://github.com/koharu-rs/koharu/compare/0.78.1..0.78.2) - 2026-08-26
 
 ### 🐛 Bug Fixes
 
@@ -625,7 +623,7 @@
 - Build Torch runtime releases - ([c7daa73](https://github.com/Endymi0n74/Koharu/commit/c7daa7322fcba56e89803698129d40d327452679))
 
 
-## [0.78.1](https://github.com/Endymi0n74/Koharu/compare/0.78.0..0.78.1) - 2026-08-22
+## [0.78.1](https://github.com/koharu-rs/koharu/compare/0.78.0..0.78.1) - 2026-08-22
 
 ### 🐛 Bug Fixes
 
@@ -636,7 +634,7 @@
 - *(runtime)* Simplify downloads - ([7834852](https://github.com/Endymi0n74/Koharu/commit/7834852e9258a43af626cbc2d626c46b69446ce2))
 
 
-## [0.78.0](https://github.com/Endymi0n74/Koharu/compare/0.77.5..0.78.0) - 2026-08-22
+## [0.78.0](https://github.com/koharu-rs/koharu/compare/0.77.5..0.78.0) - 2026-08-22
 
 ### ⛰️  Features
 
@@ -647,7 +645,7 @@
 - *(runtime)* Improve accelerator detection - ([e7f0cbc](https://github.com/Endymi0n74/Koharu/commit/e7f0cbced69e7d621b06f32286d4105b70979409))
 
 
-## [0.77.5](https://github.com/Endymi0n74/Koharu/compare/0.77.4..0.77.5) - 2026-08-21
+## [0.77.5](https://github.com/koharu-rs/koharu/compare/0.77.4..0.77.5) - 2026-08-21
 
 ### 🐛 Bug Fixes
 
@@ -667,7 +665,7 @@
 - Fix lint - ([68be117](https://github.com/Endymi0n74/Koharu/commit/68be11737b14e573928639e8e547612f08340428))
 
 
-## [0.77.4](https://github.com/Endymi0n74/Koharu/compare/0.77.3..0.77.4) - 2026-08-20
+## [0.77.4](https://github.com/koharu-rs/koharu/compare/0.77.3..0.77.4) - 2026-08-20
 
 ### 📚 Documentation
 
@@ -679,28 +677,28 @@
 - *(runtime)* Update native runtimes - ([6df4ded](https://github.com/Endymi0n74/Koharu/commit/6df4ded508658019e3b969ac9dc863d8fdccc9e1))
 
 
-## [0.77.3](https://github.com/Endymi0n74/Koharu/compare/0.77.2..0.77.3) - 2026-08-19
+## [0.77.3](https://github.com/koharu-rs/koharu/compare/0.77.2..0.77.3) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
 - *(translator)* Decode optional Gemini thinking capability - ([3da3391](https://github.com/Endymi0n74/Koharu/commit/3da339141b56b97323e001ce79df260cfd2ddc27))
 
 
-## [0.77.2](https://github.com/Endymi0n74/Koharu/compare/0.77.1..0.77.2) - 2026-08-19
+## [0.77.2](https://github.com/koharu-rs/koharu/compare/0.77.1..0.77.2) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Load ROCm libraries globally - ([1dda084](https://github.com/Endymi0n74/Koharu/commit/1dda08440a0b6d2115025ee9a8def543375083ff))
 
 
-## [0.77.1](https://github.com/Endymi0n74/Koharu/compare/0.77.0..0.77.1) - 2026-08-19
+## [0.77.1](https://github.com/koharu-rs/koharu/compare/0.77.0..0.77.1) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Load Linux cuFile for Torch - ([556485b](https://github.com/Endymi0n74/Koharu/commit/556485b18651e952e9adee92825b5c02d66ed31d))
 
 
-## [0.77.0](https://github.com/Endymi0n74/Koharu/compare/0.76.0..0.77.0) - 2026-08-19
+## [0.77.0](https://github.com/koharu-rs/koharu/compare/0.76.0..0.77.0) - 2026-08-19
 
 ### ⛰️  Features
 
@@ -713,7 +711,7 @@
 - *(pipeline)* Refine detection and inpainting reruns - ([acb7d99](https://github.com/Endymi0n74/Koharu/commit/acb7d99c9855db8c09224655c84d5d68e359c2e5))
 
 
-## [0.76.0](https://github.com/Endymi0n74/Koharu/compare/0.75.16..0.76.0) - 2026-08-19
+## [0.76.0](https://github.com/koharu-rs/koharu/compare/0.75.16..0.76.0) - 2026-08-19
 
 ### ⛰️  Features
 
@@ -725,7 +723,7 @@
 - *(translator)* Align reasoning capabilities - ([5b6672c](https://github.com/Endymi0n74/Koharu/commit/5b6672ccefb94a1afefcaf45190cb633b5b65442))
 
 
-## [0.75.16](https://github.com/Endymi0n74/Koharu/compare/0.75.15..0.75.16) - 2026-08-19
+## [0.75.16](https://github.com/koharu-rs/koharu/compare/0.75.15..0.75.16) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
@@ -739,7 +737,7 @@
 - Use windows-latest runners - ([d4997ca](https://github.com/Endymi0n74/Koharu/commit/d4997cad5dd1855f4b11e63ff250ba852e09864e))
 
 
-## [0.75.15](https://github.com/Endymi0n74/Koharu/compare/0.75.14..0.75.15) - 2026-08-19
+## [0.75.15](https://github.com/koharu-rs/koharu/compare/0.75.14..0.75.15) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
@@ -750,7 +748,7 @@
 - Enable Linux AppImage bundling - ([6d4d303](https://github.com/Endymi0n74/Koharu/commit/6d4d303ea0cacbfba3ffa70280e2f915cda15ac6))
 
 
-## [0.75.14](https://github.com/Endymi0n74/Koharu/compare/0.75.13..0.75.14) - 2026-08-19
+## [0.75.14](https://github.com/koharu-rs/koharu/compare/0.75.13..0.75.14) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
@@ -761,21 +759,21 @@
 - Optimize release caches - ([9aba741](https://github.com/Endymi0n74/Koharu/commit/9aba7419dbc9358bb77951995b691cfffd24f49c))
 
 
-## [0.75.13](https://github.com/Endymi0n74/Koharu/compare/0.75.12..0.75.13) - 2026-08-19
+## [0.75.13](https://github.com/koharu-rs/koharu/compare/0.75.12..0.75.13) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Share ROCm runtime on Linux - ([c6dab0c](https://github.com/Endymi0n74/Koharu/commit/c6dab0c076129551627744ac491b77f3bde4d66d))
 
 
-## [0.75.12](https://github.com/Endymi0n74/Koharu/compare/0.75.11..0.75.12) - 2026-08-19
+## [0.75.12](https://github.com/koharu-rs/koharu/compare/0.75.11..0.75.12) - 2026-08-19
 
 ### 🐛 Bug Fixes
 
 - *(ui)* Gate vision by model capability - ([80b03f1](https://github.com/Endymi0n74/Koharu/commit/80b03f16d7340fd0560720f18806f31425f44216))
 
 
-## [0.75.11](https://github.com/Endymi0n74/Koharu/compare/0.75.10..0.75.11) - 2026-08-18
+## [0.75.11](https://github.com/koharu-rs/koharu/compare/0.75.10..0.75.11) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
@@ -786,21 +784,21 @@
 - Disable OpenMP for stable-diffusion.cpp - ([77de3a4](https://github.com/Endymi0n74/Koharu/commit/77de3a4d4d9f28fe290344e83c7cc3f9330bd313))
 
 
-## [0.75.10](https://github.com/Endymi0n74/Koharu/compare/0.75.9..0.75.10) - 2026-08-18
+## [0.75.10](https://github.com/koharu-rs/koharu/compare/0.75.9..0.75.10) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Load CUDA Torch dependencies in order - ([0d20664](https://github.com/Endymi0n74/Koharu/commit/0d2066409ed827761fbe5fc782cded94d13825b1))
 
 
-## [0.75.9](https://github.com/Endymi0n74/Koharu/compare/0.75.8..0.75.9) - 2026-08-18
+## [0.75.9](https://github.com/koharu-rs/koharu/compare/0.75.8..0.75.9) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
 - *(translator)* Use LM Studio vision capability - ([8ab7cde](https://github.com/Endymi0n74/Koharu/commit/8ab7cde12bfc8fc9bae2012c531a8442cd13426a))
 
 
-## [0.75.8](https://github.com/Endymi0n74/Koharu/compare/0.75.7..0.75.8) - 2026-08-18
+## [0.75.8](https://github.com/koharu-rs/koharu/compare/0.75.7..0.75.8) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
@@ -811,14 +809,14 @@
 - Cache on release - ([9772b7c](https://github.com/Endymi0n74/Koharu/commit/9772b7cde02f5fd3896834d41a0a218243971e46))
 
 
-## [0.75.7](https://github.com/Endymi0n74/Koharu/compare/0.75.6..0.75.7) - 2026-08-18
+## [0.75.7](https://github.com/koharu-rs/koharu/compare/0.75.6..0.75.7) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
 - *(app)* Limit persistent log size - ([a4e8b4d](https://github.com/Endymi0n74/Koharu/commit/a4e8b4d029f2304eabbdc4a00059d67ee9cbd261))
 
 
-## [0.75.6](https://github.com/Endymi0n74/Koharu/compare/0.75.5..0.75.6) - 2026-08-18
+## [0.75.6](https://github.com/koharu-rs/koharu/compare/0.75.5..0.75.6) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
@@ -827,42 +825,42 @@
 - *(runtime)* Correct Linux cuDNN library manifest - ([84ef3ee](https://github.com/Endymi0n74/Koharu/commit/84ef3ee5ed6c40e6ba0a2e9f0b2e92d25c761969))
 
 
-## [0.75.5](https://github.com/Endymi0n74/Koharu/compare/0.75.4..0.75.5) - 2026-08-18
+## [0.75.5](https://github.com/koharu-rs/koharu/compare/0.75.4..0.75.5) - 2026-08-18
 
 ### ⛰️  Features
 
 - *(app)* Persist backend logs - ([3587243](https://github.com/Endymi0n74/Koharu/commit/3587243199c39335755ca28669dd171f412d8b6f))
 
 
-## [0.75.4](https://github.com/Endymi0n74/Koharu/compare/0.75.3..0.75.4) - 2026-08-18
+## [0.75.4](https://github.com/koharu-rs/koharu/compare/0.75.3..0.75.4) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Load ROCm Torch dependencies in order - ([01bc970](https://github.com/Endymi0n74/Koharu/commit/01bc97057d89169a5251dec9236707bb087f25b8))
 
 
-## [0.75.3](https://github.com/Endymi0n74/Koharu/compare/0.75.2..0.75.3) - 2026-08-18
+## [0.75.3](https://github.com/koharu-rs/koharu/compare/0.75.2..0.75.3) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
 - *(ui)* Preserve model toggle preferences - ([63764d6](https://github.com/Endymi0n74/Koharu/commit/63764d6c28647cd992200474be164fc5faad6d47))
 
 
-## [0.75.2](https://github.com/Endymi0n74/Koharu/compare/0.75.1..0.75.2) - 2026-08-18
+## [0.75.2](https://github.com/koharu-rs/koharu/compare/0.75.1..0.75.2) - 2026-08-18
 
 ### 🐛 Bug Fixes
 
 - *(app)* Restore frameless window resizing - ([d8bddc4](https://github.com/Endymi0n74/Koharu/commit/d8bddc426b48758c8feec39694438c8699956d26))
 
 
-## [0.75.1](https://github.com/Endymi0n74/Koharu/compare/0.75.0..0.75.1) - 2026-08-18
+## [0.75.1](https://github.com/koharu-rs/koharu/compare/0.75.0..0.75.1) - 2026-08-18
 
 ### ⚡ Performance
 
 - *(runtime)* Accelerate multipart downloads - ([22dab37](https://github.com/Endymi0n74/Koharu/commit/22dab373485245bbe1ce9ec2b35ca7a72ba56d45))
 
 
-## [0.75.0](https://github.com/Endymi0n74/Koharu/compare/0.74.0..0.75.0) - 2026-08-18
+## [0.75.0](https://github.com/koharu-rs/koharu/compare/0.74.0..0.75.0) - 2026-08-18
 
 ### ⛰️  Features
 
@@ -888,7 +886,7 @@
 - Automate native dependency releases - ([9cd3100](https://github.com/Endymi0n74/Koharu/commit/9cd3100515c17fbb0007bc456c5e47add6a49a55))
 
 
-## [0.74.0](https://github.com/Endymi0n74/Koharu/compare/0.73.0..0.74.0) - 2026-08-18
+## [0.74.0](https://github.com/koharu-rs/koharu/compare/0.73.0..0.74.0) - 2026-08-18
 
 ### ⛰️  Features
 
@@ -899,7 +897,7 @@
 - *(app)* Hide link status bubble - ([002ec11](https://github.com/Endymi0n74/Koharu/commit/002ec11bd6133c082cf5989ac57ddb4f0f2ef46a))
 
 
-## [0.73.0](https://github.com/Endymi0n74/Koharu/compare/0.72.0..0.73.0) - 2026-08-17
+## [0.73.0](https://github.com/koharu-rs/koharu/compare/0.72.0..0.73.0) - 2026-08-17
 
 ### ⛰️  Features
 
@@ -919,7 +917,7 @@
 - *(translator)* Optimize structured inference - ([e47620c](https://github.com/Endymi0n74/Koharu/commit/e47620c06479b6d3e422687dc048289fed8b1abf))
 
 
-## [0.72.0](https://github.com/Endymi0n74/Koharu/compare/0.71.0..0.72.0) - 2026-08-17
+## [0.72.0](https://github.com/koharu-rs/koharu/compare/0.71.0..0.72.0) - 2026-08-17
 
 ### ⛰️  Features
 
@@ -928,7 +926,7 @@
 - *(translator)* Refresh remote model catalogs - ([08601a8](https://github.com/Endymi0n74/Koharu/commit/08601a8fbffbc7cb802e791d50483635d12f51e2))
 
 
-## [0.71.0](https://github.com/Endymi0n74/Koharu/compare/0.70.6..0.71.0) - 2026-08-17
+## [0.71.0](https://github.com/koharu-rs/koharu/compare/0.70.6..0.71.0) - 2026-08-17
 
 ### ⛰️  Features
 
@@ -939,14 +937,14 @@
 - *(renderer)* Apply language-aware line breaking - ([d4c075f](https://github.com/Endymi0n74/Koharu/commit/d4c075fe95bcf511e91a4a15eff6a1f433658dc5))
 
 
-## [0.70.6](https://github.com/Endymi0n74/Koharu/compare/0.70.5..0.70.6) - 2026-08-17
+## [0.70.6](https://github.com/koharu-rs/koharu/compare/0.70.5..0.70.6) - 2026-08-17
 
 ### 🐛 Bug Fixes
 
 - Restore app icons - ([faf9f42](https://github.com/Endymi0n74/Koharu/commit/faf9f42d83212dda2d1c65743c46d167658bf64a))
 
 
-## [0.70.5](https://github.com/Endymi0n74/Koharu/compare/0.70.4..0.70.5) - 2026-08-17
+## [0.70.5](https://github.com/koharu-rs/koharu/compare/0.70.4..0.70.5) - 2026-08-17
 
 ### 🐛 Bug Fixes
 
@@ -957,24 +955,24 @@
 - *(dev)* Fix macos development - ([2169d0d](https://github.com/Endymi0n74/Koharu/commit/2169d0d298e4f40003f9379990945a3049e68f2c))
 
 
-## [0.70.4](https://github.com/Endymi0n74/Koharu/compare/0.70.3..0.70.4) - 2026-08-16
+## [0.70.4](https://github.com/koharu-rs/koharu/compare/0.70.3..0.70.4) - 2026-08-16
 
 
-## [0.70.3](https://github.com/Endymi0n74/Koharu/compare/0.70.2..0.70.3) - 2026-08-16
+## [0.70.3](https://github.com/koharu-rs/koharu/compare/0.70.2..0.70.3) - 2026-08-16
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Disable broken gfx1032 inpainting solver - ([8199a8b](https://github.com/Endymi0n74/Koharu/commit/8199a8b20e5cbfb4affba569475d66bda0eb4572))
 
 
-## [0.70.2](https://github.com/Endymi0n74/Koharu/compare/0.70.1..0.70.2) - 2026-08-16
+## [0.70.2](https://github.com/koharu-rs/koharu/compare/0.70.1..0.70.2) - 2026-08-16
 
 ### 🐛 Bug Fixes
 
 - *(runtime)* Disable broken gfx1032 Winograd solver - ([4d9f3ac](https://github.com/Endymi0n74/Koharu/commit/4d9f3acad1232ab6ba6c3832ab1e99848c5270d2))
 
 
-## [0.70.1](https://github.com/Endymi0n74/Koharu/compare/0.70.0..0.70.1) - 2026-08-16
+## [0.70.1](https://github.com/koharu-rs/koharu/compare/0.70.0..0.70.1) - 2026-08-16
 
 ### 🐛 Bug Fixes
 
@@ -982,7 +980,7 @@
 - *(ui)* Avoid localized hydration mismatch - ([c108afb](https://github.com/Endymi0n74/Koharu/commit/c108afb119d3ddb68f9bc2e9a71ab0619853a48f))
 
 
-## [0.70.0](https://github.com/Endymi0n74/Koharu/compare/0.69.1..0.70.0) - 2026-08-16
+## [0.70.0](https://github.com/koharu-rs/koharu/compare/0.69.1..0.70.0) - 2026-08-16
 
 ### ⛰️  Features
 
@@ -998,7 +996,7 @@
 - Update development prerequisites - ([fc183d8](https://github.com/Endymi0n74/Koharu/commit/fc183d89546eaa670416c3010271d79b28442dff))
 
 
-## [0.69.1](https://github.com/Endymi0n74/Koharu/compare/0.69.0..0.69.1) - 2026-08-16
+## [0.69.1](https://github.com/koharu-rs/koharu/compare/0.69.0..0.69.1) - 2026-08-16
 
 ### 🐛 Bug Fixes
 
@@ -1007,7 +1005,7 @@
 - Brush freeze bug, Change brush size with alt + scroll wheel ([#937](https://github.com/koharu-rs/koharu/issues/937)) - ([0ebc038](https://github.com/Endymi0n74/Koharu/commit/0ebc038442c6cb92dd8943e06f632837f9b19863))
 
 
-## [0.69.0](https://github.com/Endymi0n74/Koharu/compare/0.68.0..0.69.0) - 2026-08-15
+## [0.69.0](https://github.com/koharu-rs/koharu/compare/0.68.0..0.69.0) - 2026-08-15
 
 ### ⛰️  Features
 
@@ -1018,7 +1016,7 @@
 - *(ui)* Align updater header content - ([d80649d](https://github.com/Endymi0n74/Koharu/commit/d80649d0a803b2b06db2d966b631d8a4d4f6e383))
 
 
-## [0.68.0](https://github.com/Endymi0n74/Koharu/compare/0.67.3..0.68.0) - 2026-08-15
+## [0.68.0](https://github.com/koharu-rs/koharu/compare/0.67.3..0.68.0) - 2026-08-15
 
 ### ⛰️  Features
 
@@ -1029,21 +1027,21 @@
 - *(ui)* Keep translation controls usable while saving - ([a0df79a](https://github.com/Endymi0n74/Koharu/commit/a0df79a1b04a2d416bfb46ebe30d95db78246cc7))
 
 
-## [0.67.3](https://github.com/Endymi0n74/Koharu/compare/0.67.2..0.67.3) - 2026-08-15
+## [0.67.3](https://github.com/koharu-rs/koharu/compare/0.67.2..0.67.3) - 2026-08-15
 
 ### 🐛 Bug Fixes
 
 - *(desktop)* Enable Linux WebGPU Vulkan - ([6e19d68](https://github.com/Endymi0n74/Koharu/commit/6e19d6877feb17973f5b78d489ae633925b846f9))
 
 
-## [0.67.2](https://github.com/Endymi0n74/Koharu/compare/0.67.1..0.67.2) - 2026-08-15
+## [0.67.2](https://github.com/koharu-rs/koharu/compare/0.67.1..0.67.2) - 2026-08-15
 
 ### 🚜 Refactor
 
 - Use Tauri with CEF - ([a6c71bd](https://github.com/Endymi0n74/Koharu/commit/a6c71bd06673bbc428cb878987fa135968dc879f))
 
 
-## [0.67.1](https://github.com/Endymi0n74/Koharu/compare/0.67.0..0.67.1) - 2026-08-15
+## [0.67.1](https://github.com/koharu-rs/koharu/compare/0.67.0..0.67.1) - 2026-08-15
 
 ### 🐛 Bug Fixes
 
@@ -1054,7 +1052,7 @@
 - Enable devtools - ([49883fc](https://github.com/Endymi0n74/Koharu/commit/49883fce9bbbf9d25ea830abb738bd4375fc5fd5))
 
 
-## [0.67.0](https://github.com/Endymi0n74/Koharu/compare/0.66.10..0.67.0) - 2026-08-15
+## [0.67.0](https://github.com/koharu-rs/koharu/compare/0.66.10..0.67.0) - 2026-08-15
 
 ### ⛰️  Features
 
@@ -1103,7 +1101,7 @@
 - Remove unused workspace dependencies - ([cac8f75](https://github.com/Endymi0n74/Koharu/commit/cac8f75718ad2585bd449c9e85d725deba777529))
 
 
-## [0.66.10](https://github.com/Endymi0n74/Koharu/compare/0.66.9..0.66.10) - 2026-08-14
+## [0.66.10](https://github.com/koharu-rs/koharu/compare/0.66.9..0.66.10) - 2026-08-14
 
 ### 🐛 Bug Fixes
 
@@ -1113,14 +1111,14 @@
 - Recover from an out-of-range detection threshold ([#912](https://github.com/koharu-rs/koharu/issues/912)) - ([dceb848](https://github.com/Endymi0n74/Koharu/commit/dceb8485471a8acaaa564e0160b599cc35de8de3))
 
 
-## [0.66.9](https://github.com/Endymi0n74/Koharu/compare/0.66.8..0.66.9) - 2026-08-13
+## [0.66.9](https://github.com/koharu-rs/koharu/compare/0.66.8..0.66.9) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
 - Render IME preedit without yellow background - ([e81c0a1](https://github.com/Endymi0n74/Koharu/commit/e81c0a16210152b711d1e33aa6545e3876a183ce))
 
 
-## [0.66.8](https://github.com/Endymi0n74/Koharu/compare/0.66.7..0.66.8) - 2026-08-13
+## [0.66.8](https://github.com/koharu-rs/koharu/compare/0.66.7..0.66.8) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
@@ -1128,7 +1126,7 @@
 - Libkoharu-torch.so path - ([1626c7f](https://github.com/Endymi0n74/Koharu/commit/1626c7f64ba83d0d7f6d57916a6ffb2b2c0d1429))
 
 
-## [0.66.7](https://github.com/Endymi0n74/Koharu/compare/0.66.6..0.66.7) - 2026-08-13
+## [0.66.7](https://github.com/koharu-rs/koharu/compare/0.66.6..0.66.7) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
@@ -1136,7 +1134,7 @@
 - Only configure store path for windows - ([f228507](https://github.com/Endymi0n74/Koharu/commit/f22850771edb9e7544d59678e6b985892e8b84ee))
 
 
-## [0.66.6](https://github.com/Endymi0n74/Koharu/compare/0.66.5..0.66.6) - 2026-08-13
+## [0.66.6](https://github.com/koharu-rs/koharu/compare/0.66.5..0.66.6) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
@@ -1147,7 +1145,7 @@
 - Prefer rust cache - ([93b3f50](https://github.com/Endymi0n74/Koharu/commit/93b3f50eafb497c0908e902ebd9eb6cb290cd89c))
 
 
-## [0.66.5](https://github.com/Endymi0n74/Koharu/compare/0.66.4..0.66.5) - 2026-08-13
+## [0.66.5](https://github.com/koharu-rs/koharu/compare/0.66.4..0.66.5) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
@@ -1158,28 +1156,28 @@
 - Remove usage-based eviction - ([47dd0d2](https://github.com/Endymi0n74/Koharu/commit/47dd0d29ac44e30d17fbc3d98caef05da612207b))
 
 
-## [0.66.4](https://github.com/Endymi0n74/Koharu/compare/0.66.3..0.66.4) - 2026-08-13
+## [0.66.4](https://github.com/koharu-rs/koharu/compare/0.66.3..0.66.4) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
 - Missing ROCm files - ([ff37a02](https://github.com/Endymi0n74/Koharu/commit/ff37a02002b3480d9f74630f393f464313fe97c1))
 
 
-## [0.66.3](https://github.com/Endymi0n74/Koharu/compare/0.66.2..0.66.3) - 2026-08-13
+## [0.66.3](https://github.com/koharu-rs/koharu/compare/0.66.2..0.66.3) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
 - Put store in resource dir - ([9590631](https://github.com/Endymi0n74/Koharu/commit/959063121cf15330d41c8acd03f2ffab60a6a2ed))
 
 
-## [0.66.2](https://github.com/Endymi0n74/Koharu/compare/0.66.1..0.66.2) - 2026-08-13
+## [0.66.2](https://github.com/koharu-rs/koharu/compare/0.66.1..0.66.2) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
 - Bundle CEF correctly - ([10d2ae8](https://github.com/Endymi0n74/Koharu/commit/10d2ae8fd88fa32bd9818471e03f902b000e9989))
 
 
-## [0.66.1](https://github.com/Endymi0n74/Koharu/compare/0.66.0..0.66.1) - 2026-08-13
+## [0.66.1](https://github.com/koharu-rs/koharu/compare/0.66.0..0.66.1) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
@@ -1190,7 +1188,7 @@
 - Update sponsors ([#903](https://github.com/koharu-rs/koharu/issues/903)) - ([fe8075e](https://github.com/Endymi0n74/Koharu/commit/fe8075e9b67e9dca7275758149173a8b25f0e640))
 
 
-## [0.66.0](https://github.com/Endymi0n74/Koharu/compare/0.65.3..0.66.0) - 2026-08-13
+## [0.66.0](https://github.com/koharu-rs/koharu/compare/0.65.3..0.66.0) - 2026-08-13
 
 ### ⛰️  Features
 
@@ -1198,20 +1196,20 @@
 - Use CEF runtime - ([547106f](https://github.com/Endymi0n74/Koharu/commit/547106f17e8183046fb22572b532f6755eef02f7))
 
 
-## [0.65.3](https://github.com/Endymi0n74/Koharu/compare/0.65.2..0.65.3) - 2026-08-13
+## [0.65.3](https://github.com/koharu-rs/koharu/compare/0.65.2..0.65.3) - 2026-08-13
 
 ### 🐛 Bug Fixes
 
 - Restore Windows packaged app startup and icon - ([99dd895](https://github.com/Endymi0n74/Koharu/commit/99dd895aee94c18919062b215c48c132efe3de93))
 
 
-## [0.65.2](https://github.com/Endymi0n74/Koharu/compare/0.65.1..0.65.2) - 2026-08-12
+## [0.65.2](https://github.com/koharu-rs/koharu/compare/0.65.1..0.65.2) - 2026-08-12
 
 
-## [0.65.1](https://github.com/Endymi0n74/Koharu/compare/0.65.0..0.65.1) - 2026-08-12
+## [0.65.1](https://github.com/koharu-rs/koharu/compare/0.65.0..0.65.1) - 2026-08-12
 
 
-## [0.65.0](https://github.com/Endymi0n74/Koharu/compare/0.64.2..0.65.0) - 2026-08-12
+## [0.65.0](https://github.com/koharu-rs/koharu/compare/0.64.2..0.65.0) - 2026-08-12
 
 ### ⛰️  Features
 
@@ -1226,7 +1224,7 @@
 - Use CEF to replace Tauri - ([920faac](https://github.com/Endymi0n74/Koharu/commit/920faac6c5cea2209d68ee31588bc5cba3f4f9ee))
 
 
-## [0.64.2](https://github.com/Endymi0n74/Koharu/compare/0.64.1..0.64.2) - 2026-08-12
+## [0.64.2](https://github.com/koharu-rs/koharu/compare/0.64.1..0.64.2) - 2026-08-12
 
 ### 🐛 Bug Fixes
 
@@ -1234,40 +1232,40 @@
 - Support hip 6.x - ([e7e9378](https://github.com/Endymi0n74/Koharu/commit/e7e93783cbb6e254d21731cad3de96c70dfeb213))
 
 
-## [0.64.1](https://github.com/Endymi0n74/Koharu/compare/0.64.0..0.64.1) - 2026-08-12
+## [0.64.1](https://github.com/koharu-rs/koharu/compare/0.64.0..0.64.1) - 2026-08-12
 
 ### 🐛 Bug Fixes
 
 - Only enable bf16 when compute capability >= 80 - ([3b9ca08](https://github.com/Endymi0n74/Koharu/commit/3b9ca08e3027cb77ae3bec08c74fabf387b4e9ca))
 
 
-## [0.64.0](https://github.com/Endymi0n74/Koharu/compare/0.63.5..0.64.0) - 2026-08-12
+## [0.64.0](https://github.com/koharu-rs/koharu/compare/0.63.5..0.64.0) - 2026-08-12
 
 
-## [0.63.5](https://github.com/Endymi0n74/Koharu/compare/0.63.4..0.63.5) - 2026-08-12
+## [0.63.5](https://github.com/koharu-rs/koharu/compare/0.63.4..0.63.5) - 2026-08-12
 
 ### 🐛 Bug Fixes
 
 - Device selection - ([e7a8d07](https://github.com/Endymi0n74/Koharu/commit/e7a8d075adf86be40dd258c68404561db7e33a1e))
 
 
-## [0.63.4](https://github.com/Endymi0n74/Koharu/compare/0.63.3..0.63.4) - 2026-08-11
+## [0.63.4](https://github.com/koharu-rs/koharu/compare/0.63.3..0.63.4) - 2026-08-11
 
 
-## [0.63.3](https://github.com/Endymi0n74/Koharu/compare/0.63.2..0.63.3) - 2026-08-11
+## [0.63.3](https://github.com/koharu-rs/koharu/compare/0.63.2..0.63.3) - 2026-08-11
 
 ### ⚙️ Miscellaneous Tasks
 
 - *(ci)* Skip appimage - ([9d3d913](https://github.com/Endymi0n74/Koharu/commit/9d3d9131d9ce6cdea96e3fc09e7ed0bed99feeb1))
 
 
-## [0.63.2](https://github.com/Endymi0n74/Koharu/compare/0.63.1..0.63.2) - 2026-08-11
+## [0.63.2](https://github.com/koharu-rs/koharu/compare/0.63.1..0.63.2) - 2026-08-11
 
 
-## [0.63.1](https://github.com/Endymi0n74/Koharu/compare/0.63.0..0.63.1) - 2026-08-11
+## [0.63.1](https://github.com/koharu-rs/koharu/compare/0.63.0..0.63.1) - 2026-08-11
 
 
-## [0.63.0](https://github.com/Endymi0n74/Koharu/compare/0.61.2..0.63.0) - 2026-08-11
+## [0.63.0](https://github.com/koharu-rs/koharu/compare/0.61.2..0.63.0) - 2026-08-11
 
 ### ⛰️  Features
 
@@ -1327,7 +1325,7 @@
 - Package native runtimes across supported platforms - ([7b79680](https://github.com/Endymi0n74/Koharu/commit/7b796801fbecdf934f887b1230982ea1179c82f8))
 
 
-## [0.61.2](https://github.com/Endymi0n74/Koharu/compare/0.61.1..0.61.2) - 2026-06-16
+## [0.61.2](https://github.com/koharu-rs/koharu/compare/0.61.1..0.61.2) - 2026-06-16
 
 ### 🐛 Bug Fixes
 
@@ -1342,14 +1340,14 @@
 - Update gemini models ([#790](https://github.com/koharu-rs/koharu/issues/790)) - ([2f3d648](https://github.com/Endymi0n74/Koharu/commit/2f3d64834fd016968640582b7af53c42900c1ae3))
 
 
-## [0.61.1](https://github.com/Endymi0n74/Koharu/compare/0.61.0..0.61.1) - 2026-06-11
+## [0.61.1](https://github.com/koharu-rs/koharu/compare/0.61.0..0.61.1) - 2026-06-11
 
 ### 🐛 Bug Fixes
 
 - Pin windows-2022 ([#772](https://github.com/koharu-rs/koharu/issues/772)) - ([8d00453](https://github.com/Endymi0n74/Koharu/commit/8d004530b4467fa11a3dddc3a58662d5179ebb26))
 
 
-## [0.61.0](https://github.com/Endymi0n74/Koharu/compare/0.60.0..0.61.0) - 2026-06-10
+## [0.61.0](https://github.com/koharu-rs/koharu/compare/0.60.0..0.61.0) - 2026-06-10
 
 ### ⛰️  Features
 
@@ -1368,7 +1366,7 @@
 - Hu-HU label translation ([#762](https://github.com/koharu-rs/koharu/issues/762)) - ([e83ff7b](https://github.com/Endymi0n74/Koharu/commit/e83ff7b4f53432357afaa90c18dd8204ebc83539))
 
 
-## [0.60.0](https://github.com/Endymi0n74/Koharu/compare/0.59.2..0.60.0) - 2026-06-09
+## [0.60.0](https://github.com/koharu-rs/koharu/compare/0.59.2..0.60.0) - 2026-06-09
 
 ### ⛰️  Features
 
@@ -1382,7 +1380,7 @@
 - *(tests)* Remove unused warning - ([4ec5a15](https://github.com/Endymi0n74/Koharu/commit/4ec5a15b2030a7767340a4a60535537452cbc1eb))
 
 
-## [0.59.2](https://github.com/Endymi0n74/Koharu/compare/0.59.1..0.59.2) - 2026-05-23
+## [0.59.2](https://github.com/koharu-rs/koharu/compare/0.59.1..0.59.2) - 2026-05-23
 
 ### 🐛 Bug Fixes
 
@@ -1396,14 +1394,14 @@
 - Update README with icon image ([#703](https://github.com/koharu-rs/koharu/issues/703)) - ([19a9b8f](https://github.com/Endymi0n74/Koharu/commit/19a9b8fdd369cc49b1434243f04b15171e840f50))
 
 
-## [0.59.1](https://github.com/Endymi0n74/Koharu/compare/0.59.0..0.59.1) - 2026-05-12
+## [0.59.1](https://github.com/koharu-rs/koharu/compare/0.59.0..0.59.1) - 2026-05-12
 
 ### 🐛 Bug Fixes
 
 - *(llm)* Honor --cpu by zeroing n_gpu_layers ([#309](https://github.com/koharu-rs/koharu/issues/309)) ([#692](https://github.com/koharu-rs/koharu/issues/692)) - ([2a12c2c](https://github.com/Endymi0n74/Koharu/commit/2a12c2ca1580d330b4848939489dfcdcee42f372))
 
 
-## [0.59.0](https://github.com/Endymi0n74/Koharu/compare/0.58.0..0.59.0) - 2026-05-11
+## [0.59.0](https://github.com/koharu-rs/koharu/compare/0.58.0..0.59.0) - 2026-05-11
 
 ### ⛰️  Features
 
@@ -1411,7 +1409,7 @@
 - Reading Order Dropdown + LTR Reading Order ([#660](https://github.com/koharu-rs/koharu/issues/660)) - ([88625e2](https://github.com/Endymi0n74/Koharu/commit/88625e28ac0dd7a8be9173f5a44b8ad084453e02))
 
 
-## [0.58.0](https://github.com/Endymi0n74/Koharu/compare/0.57.0..0.58.0) - 2026-05-01
+## [0.58.0](https://github.com/koharu-rs/koharu/compare/0.57.0..0.58.0) - 2026-05-01
 
 ### 🐛 Bug Fixes
 
@@ -1423,7 +1421,7 @@
 - I18n languages display names - ([56e0784](https://github.com/Endymi0n74/Koharu/commit/56e078405483192753a5f025406d4f7bf2120199))
 
 
-## [0.57.0](https://github.com/Endymi0n74/Koharu/compare/0.56.0..0.57.0) - 2026-05-01
+## [0.57.0](https://github.com/koharu-rs/koharu/compare/0.56.0..0.57.0) - 2026-05-01
 
 ### ⛰️  Features
 
@@ -1431,7 +1429,7 @@
 - Anime-text model - ([b1ed7e6](https://github.com/Endymi0n74/Koharu/commit/b1ed7e6113742f738d0f843c20f673fbd364cc9d))
 
 
-## [0.56.0](https://github.com/Endymi0n74/Koharu/compare/0.55.0..0.56.0) - 2026-05-01
+## [0.56.0](https://github.com/koharu-rs/koharu/compare/0.55.0..0.56.0) - 2026-05-01
 
 ### ⛰️  Features
 
@@ -1446,14 +1444,14 @@
 - Centering Inconsistencies on Text Render ([#630](https://github.com/koharu-rs/koharu/issues/630)) - ([800c909](https://github.com/Endymi0n74/Koharu/commit/800c9090688056a6354bedfb497b4069ddbf63bf))
 
 
-## [0.55.0](https://github.com/Endymi0n74/Koharu/compare/0.54.0..0.55.0) - 2026-04-28
+## [0.55.0](https://github.com/koharu-rs/koharu/compare/0.54.0..0.55.0) - 2026-04-28
 
 ### ⛰️  Features
 
 - Better text rendering - ([83d79db](https://github.com/Endymi0n74/Koharu/commit/83d79dbac1dc8c0ae8e34b659f516a97a1be3bbe))
 
 
-## [0.54.0](https://github.com/Endymi0n74/Koharu/compare/0.53.0..0.54.0) - 2026-04-28
+## [0.54.0](https://github.com/koharu-rs/koharu/compare/0.53.0..0.54.0) - 2026-04-28
 
 ### ⛰️  Features
 
@@ -1469,7 +1467,7 @@
 - Brush and Mask Layer not syncing on undo/redo ([#557](https://github.com/koharu-rs/koharu/issues/557)) - ([3cc8ac9](https://github.com/Endymi0n74/Koharu/commit/3cc8ac9506375c18b1f73457202df08f131baa32))
 
 
-## [0.53.0](https://github.com/Endymi0n74/Koharu/compare/0.52.0..0.53.0) - 2026-04-26
+## [0.53.0](https://github.com/koharu-rs/koharu/compare/0.52.0..0.53.0) - 2026-04-26
 
 ### ⛰️  Features
 
@@ -1480,7 +1478,7 @@
 - Filename overflow - ([c431e82](https://github.com/Endymi0n74/Koharu/commit/c431e823194e048ee5dee947644906f6b17f54b0))
 
 
-## [0.52.0](https://github.com/Endymi0n74/Koharu/compare/0.51.0..0.52.0) - 2026-04-26
+## [0.52.0](https://github.com/koharu-rs/koharu/compare/0.51.0..0.52.0) - 2026-04-26
 
 ### 🐛 Bug Fixes
 
@@ -1488,7 +1486,7 @@
 - ZLUDA compatibility issues ([#582](https://github.com/koharu-rs/koharu/issues/582)) - ([e9fa6cd](https://github.com/Endymi0n74/Koharu/commit/e9fa6cdb4daf3acb76ae58b4e42409e268ee8ed6))
 
 
-## [0.51.0](https://github.com/Endymi0n74/Koharu/compare/0.50.2..0.51.0) - 2026-04-26
+## [0.51.0](https://github.com/koharu-rs/koharu/compare/0.50.2..0.51.0) - 2026-04-26
 
 ### ⛰️  Features
 
@@ -1499,14 +1497,14 @@
 - Prefer 4000 port - ([a214dcf](https://github.com/Endymi0n74/Koharu/commit/a214dcfa89208aa7e3dc4bcb64286daf21c8dfd8))
 
 
-## [0.50.2](https://github.com/Endymi0n74/Koharu/compare/0.50.1..0.50.2) - 2026-04-26
+## [0.50.2](https://github.com/koharu-rs/koharu/compare/0.50.1..0.50.2) - 2026-04-26
 
 ### ⚡ Performance
 
 - Prefer bf16 - ([7f6f616](https://github.com/Endymi0n74/Koharu/commit/7f6f616fdb76c415cab97ca9122e85a887be09e9))
 
 
-## [0.50.1](https://github.com/Endymi0n74/Koharu/compare/0.50.0..0.50.1) - 2026-04-26
+## [0.50.1](https://github.com/koharu-rs/koharu/compare/0.50.0..0.50.1) - 2026-04-26
 
 ### 🐛 Bug Fixes
 
@@ -1522,7 +1520,7 @@
 - Update ko_KR/translation.json ([#573](https://github.com/koharu-rs/koharu/issues/573)) - ([60a2be4](https://github.com/Endymi0n74/Koharu/commit/60a2be40843d8463bfa9746d83d92de8ec506158))
 
 
-## [0.50.0](https://github.com/Endymi0n74/Koharu/compare/0.49.0..0.50.0) - 2026-04-25
+## [0.50.0](https://github.com/koharu-rs/koharu/compare/0.49.0..0.50.0) - 2026-04-25
 
 ### ⛰️  Features
 
@@ -1548,7 +1546,7 @@
 - Add Winget Releaser workflow ([#570](https://github.com/koharu-rs/koharu/issues/570)) - ([e4529ed](https://github.com/Endymi0n74/Koharu/commit/e4529edba9aad4f2a16029eb23591edf33dad1a0))
 
 
-## [0.49.0](https://github.com/Endymi0n74/Koharu/compare/0.48.0..0.49.0) - 2026-04-25
+## [0.49.0](https://github.com/koharu-rs/koharu/compare/0.48.0..0.49.0) - 2026-04-25
 
 ### ⛰️  Features
 
@@ -1563,7 +1561,7 @@
 - Add FLUX.2 Klein 4B - ([9d33bb6](https://github.com/Endymi0n74/Koharu/commit/9d33bb6a73d76ca564baf65b08b9fb33dc061ea1))
 
 
-## [0.48.0](https://github.com/Endymi0n74/Koharu/compare/0.47.8..0.48.0) - 2026-04-24
+## [0.48.0](https://github.com/koharu-rs/koharu/compare/0.47.8..0.48.0) - 2026-04-24
 
 ### ⛰️  Features
 
@@ -1584,7 +1582,7 @@
 - *(dev)* Fix args parsing - ([e331a6e](https://github.com/Endymi0n74/Koharu/commit/e331a6e0b1883f0386ac81f767b7957678a4bc0b))
 
 
-## [0.47.8](https://github.com/Endymi0n74/Koharu/compare/0.47.7..0.47.8) - 2026-04-23
+## [0.47.8](https://github.com/koharu-rs/koharu/compare/0.47.7..0.47.8) - 2026-04-23
 
 ### 🐛 Bug Fixes
 
@@ -1600,7 +1598,7 @@
 - Rust 1.95.0 clippy fix - ([a1ba983](https://github.com/Endymi0n74/Koharu/commit/a1ba983ee5f23d94d4d746f99159fbed7c67dc62))
 
 
-## [0.47.7](https://github.com/Endymi0n74/Koharu/compare/0.47.6..0.47.7) - 2026-04-22
+## [0.47.7](https://github.com/koharu-rs/koharu/compare/0.47.6..0.47.7) - 2026-04-22
 
 ### 🐛 Bug Fixes
 
@@ -1611,7 +1609,7 @@
 - Adjust MAX_NEW_TOKENS to 256 - ([4cff3ea](https://github.com/Endymi0n74/Koharu/commit/4cff3eaf9d0ed0cdda17529f2acff60a3c7bd178))
 
 
-## [0.47.6](https://github.com/Endymi0n74/Koharu/compare/0.47.5..0.47.6) - 2026-04-22
+## [0.47.6](https://github.com/koharu-rs/koharu/compare/0.47.5..0.47.6) - 2026-04-22
 
 ### 🐛 Bug Fixes
 
@@ -1622,7 +1620,7 @@
 - Make clippy happy - ([c38ac38](https://github.com/Endymi0n74/Koharu/commit/c38ac38062bf2b0f0c1257ae11e1eeec9b4c2994))
 
 
-## [0.47.5](https://github.com/Endymi0n74/Koharu/compare/0.47.4..0.47.5) - 2026-04-22
+## [0.47.5](https://github.com/koharu-rs/koharu/compare/0.47.4..0.47.5) - 2026-04-22
 
 ### 🐛 Bug Fixes
 
@@ -1633,14 +1631,14 @@
 - Make clippy happy - ([0472ea9](https://github.com/Endymi0n74/Koharu/commit/0472ea9fe8256c6c20653ec9c3e72b9f57fa8ef1))
 
 
-## [0.47.4](https://github.com/Endymi0n74/Koharu/compare/0.47.3..0.47.4) - 2026-04-21
+## [0.47.4](https://github.com/koharu-rs/koharu/compare/0.47.3..0.47.4) - 2026-04-21
 
 ### 🐛 Bug Fixes
 
 - Panic when fail to bootstrap - ([5c01ade](https://github.com/Endymi0n74/Koharu/commit/5c01ade0804664e9e5180620bdccc689f64b696c))
 
 
-## [0.47.3](https://github.com/Endymi0n74/Koharu/compare/0.47.2..0.47.3) - 2026-04-21
+## [0.47.3](https://github.com/koharu-rs/koharu/compare/0.47.2..0.47.3) - 2026-04-21
 
 ### 📚 Documentation
 
@@ -1652,21 +1650,21 @@
 - Remove unnecessary dependencies ([#527](https://github.com/koharu-rs/koharu/issues/527)) - ([3f8d464](https://github.com/Endymi0n74/Koharu/commit/3f8d464f5e746ce1ea4ca81ed01b8ca39fddb968))
 
 
-## [0.47.2](https://github.com/Endymi0n74/Koharu/compare/0.47.1..0.47.2) - 2026-04-20
+## [0.47.2](https://github.com/koharu-rs/koharu/compare/0.47.1..0.47.2) - 2026-04-20
 
 ### ⚡ Performance
 
 - Improve inpainting - ([6f1494a](https://github.com/Endymi0n74/Koharu/commit/6f1494af238616cac6cfdcdd9941eb702fe8b404))
 
 
-## [0.47.1](https://github.com/Endymi0n74/Koharu/compare/0.47.0..0.47.1) - 2026-04-20
+## [0.47.1](https://github.com/koharu-rs/koharu/compare/0.47.0..0.47.1) - 2026-04-20
 
 ### 🐛 Bug Fixes
 
 - Inpainting OOM & pipeline error handling - ([aeda77d](https://github.com/Endymi0n74/Koharu/commit/aeda77d085ba22679e5361a3368d982ab87661f6))
 
 
-## [0.47.0](https://github.com/Endymi0n74/Koharu/compare/0.46.0..0.47.0) - 2026-04-20
+## [0.47.0](https://github.com/koharu-rs/koharu/compare/0.46.0..0.47.0) - 2026-04-20
 
 ### ⛰️  Features
 
@@ -1679,7 +1677,7 @@
 - Download stuck at 100% sometimes - ([9ef226a](https://github.com/Endymi0n74/Koharu/commit/9ef226ac76b4f17545adac30fd8334382f8bf300))
 
 
-## [0.46.0](https://github.com/Endymi0n74/Koharu/compare/0.45.3..0.46.0) - 2026-04-20
+## [0.46.0](https://github.com/koharu-rs/koharu/compare/0.45.3..0.46.0) - 2026-04-20
 
 ### ⛰️  Features
 
@@ -1701,7 +1699,7 @@
 - Configure sentry sample rate to 0.1 - ([a2bba3a](https://github.com/Endymi0n74/Koharu/commit/a2bba3aeaa12cb668356ca2035937aef7dc6331b))
 
 
-## [0.45.3](https://github.com/Endymi0n74/Koharu/compare/0.45.2..0.45.3) - 2026-04-19
+## [0.45.3](https://github.com/koharu-rs/koharu/compare/0.45.2..0.45.3) - 2026-04-19
 
 ### 🐛 Bug Fixes
 
@@ -1709,21 +1707,21 @@
 - Text overlapping - ([39a872c](https://github.com/Endymi0n74/Koharu/commit/39a872cb0399f604d618c7f7b17f322b16e2c1f3))
 
 
-## [0.45.2](https://github.com/Endymi0n74/Koharu/compare/0.45.1..0.45.2) - 2026-04-19
+## [0.45.2](https://github.com/koharu-rs/koharu/compare/0.45.1..0.45.2) - 2026-04-19
 
 ### 🐛 Bug Fixes
 
 - Add bootstrap step - ([e70fc65](https://github.com/Endymi0n74/Koharu/commit/e70fc656f31c95d93d221282b2f1cfa486045c19))
 
 
-## [0.45.1](https://github.com/Endymi0n74/Koharu/compare/0.45.0..0.45.1) - 2026-04-19
+## [0.45.1](https://github.com/koharu-rs/koharu/compare/0.45.0..0.45.1) - 2026-04-19
 
 ### 🐛 Bug Fixes
 
 - Broken export - ([08d32e5](https://github.com/Endymi0n74/Koharu/commit/08d32e511c6543269c389ea1ae95c651933abded))
 
 
-## [0.45.0](https://github.com/Endymi0n74/Koharu/compare/0.44.6..0.45.0) - 2026-04-19
+## [0.45.0](https://github.com/koharu-rs/koharu/compare/0.44.6..0.45.0) - 2026-04-19
 
 ### ⛰️  Features
 
@@ -1775,7 +1773,7 @@
 - Workspace config + next.js + tauri build glue for v2 - ([4c1f5c5](https://github.com/Endymi0n74/Koharu/commit/4c1f5c560baaed6e094d3e7926ee7c772fc12f61))
 
 
-## [0.44.6](https://github.com/Endymi0n74/Koharu/compare/0.44.5..0.44.6) - 2026-04-16
+## [0.44.6](https://github.com/koharu-rs/koharu/compare/0.44.5..0.44.6) - 2026-04-16
 
 ### ⛰️  Features
 
@@ -1798,7 +1796,7 @@
 - Replace prettier with oxfmt and apply formatting ([#472](https://github.com/koharu-rs/koharu/issues/472)) - ([19be246](https://github.com/Endymi0n74/Koharu/commit/19be246108f8c479ebde8f21c706bc83cd859ab7))
 
 
-## [0.44.5](https://github.com/Endymi0n74/Koharu/compare/0.44.4..0.44.5) - 2026-04-15
+## [0.44.5](https://github.com/koharu-rs/koharu/compare/0.44.4..0.44.5) - 2026-04-15
 
 ### ⛰️  Features
 
@@ -1809,14 +1807,14 @@
 - Runtime & model downloads - ([0a913e9](https://github.com/Endymi0n74/Koharu/commit/0a913e99ed32e3a585e0511d66b2aaee852811bf))
 
 
-## [0.44.4](https://github.com/Endymi0n74/Koharu/compare/0.44.3..0.44.4) - 2026-04-15
+## [0.44.4](https://github.com/koharu-rs/koharu/compare/0.44.3..0.44.4) - 2026-04-15
 
 ### 🐛 Bug Fixes
 
 - Resolve incorrect ZLUDA DLLs usage ([#442](https://github.com/koharu-rs/koharu/issues/442)) ([#458](https://github.com/koharu-rs/koharu/issues/458)) - ([63bf6c1](https://github.com/Endymi0n74/Koharu/commit/63bf6c1c6c5844ac4bfc2e01a24546a870abd1b0))
 
 
-## [0.44.3](https://github.com/Endymi0n74/Koharu/compare/0.44.2..0.44.3) - 2026-04-15
+## [0.44.3](https://github.com/koharu-rs/koharu/compare/0.44.2..0.44.3) - 2026-04-15
 
 ### 🐛 Bug Fixes
 
@@ -1827,14 +1825,14 @@
 - Improve README formatting and add resource links - ([1c8ad74](https://github.com/Endymi0n74/Koharu/commit/1c8ad742592b0d078c719acf4136f1d70c51ef5d))
 
 
-## [0.44.2](https://github.com/Endymi0n74/Koharu/compare/0.44.1..0.44.2) - 2026-04-14
+## [0.44.2](https://github.com/koharu-rs/koharu/compare/0.44.1..0.44.2) - 2026-04-14
 
 ### 🐛 Bug Fixes
 
 - Upgrade zluda to v6-preview.64 - ([23d97e5](https://github.com/Endymi0n74/Koharu/commit/23d97e552fb9d460ceb0d772c7823518efb36eef))
 
 
-## [0.44.1](https://github.com/Endymi0n74/Koharu/compare/0.44.0..0.44.1) - 2026-04-14
+## [0.44.1](https://github.com/koharu-rs/koharu/compare/0.44.0..0.44.1) - 2026-04-14
 
 ### 🐛 Bug Fixes
 
@@ -1850,7 +1848,7 @@
 - Add missing SENTRY_AUTH_TOKEN - ([82e8c46](https://github.com/Endymi0n74/Koharu/commit/82e8c461162847d10771894de49e172cdce24702))
 
 
-## [0.44.0](https://github.com/Endymi0n74/Koharu/compare/0.43.2..0.44.0) - 2026-04-13
+## [0.44.0](https://github.com/koharu-rs/koharu/compare/0.43.2..0.44.0) - 2026-04-13
 
 ### ⛰️  Features
 
@@ -1899,7 +1897,7 @@
 - Update CODEOWNERS - ([b6972d2](https://github.com/Endymi0n74/Koharu/commit/b6972d2becf534f784e9b6565c5bf61fa5a66d95))
 
 
-## [0.43.2](https://github.com/Endymi0n74/Koharu/compare/0.43.1..0.43.2) - 2026-04-06
+## [0.43.2](https://github.com/koharu-rs/koharu/compare/0.43.1..0.43.2) - 2026-04-06
 
 ### ⛰️  Features
 
@@ -1917,7 +1915,7 @@
 - Enhance pipeline processing - ([d8e3bce](https://github.com/Endymi0n74/Koharu/commit/d8e3bced01de2e560309a41c9c54a02d95aa58d5))
 
 
-## [0.43.1](https://github.com/Endymi0n74/Koharu/compare/0.43.0..0.43.1) - 2026-04-05
+## [0.43.1](https://github.com/koharu-rs/koharu/compare/0.43.0..0.43.1) - 2026-04-05
 
 ### 🐛 Bug Fixes
 
@@ -1932,7 +1930,7 @@
 - Fix tests - ([d530cbe](https://github.com/Endymi0n74/Koharu/commit/d530cbe1d530388c22d8b980edcc83db79e3ac63))
 
 
-## [0.43.0](https://github.com/Endymi0n74/Koharu/compare/0.42.4..0.43.0) - 2026-04-05
+## [0.43.0](https://github.com/koharu-rs/koharu/compare/0.42.4..0.43.0) - 2026-04-05
 
 ### ⛰️  Features
 
@@ -1955,14 +1953,14 @@
 - Format code - ([65bb821](https://github.com/Endymi0n74/Koharu/commit/65bb821e1a79aafca46a288ac1b51bccc43ef90c))
 
 
-## [0.42.4](https://github.com/Endymi0n74/Koharu/compare/0.42.3..0.42.4) - 2026-04-05
+## [0.42.4](https://github.com/koharu-rs/koharu/compare/0.42.3..0.42.4) - 2026-04-05
 
 ### 🐛 Bug Fixes
 
 - Http timeouts - ([676495f](https://github.com/Endymi0n74/Koharu/commit/676495f96179907b162a57f6453808e7f2c97ab7))
 
 
-## [0.42.3](https://github.com/Endymi0n74/Koharu/compare/0.42.2..0.42.3) - 2026-04-05
+## [0.42.3](https://github.com/koharu-rs/koharu/compare/0.42.2..0.42.3) - 2026-04-05
 
 ### 🐛 Bug Fixes
 
@@ -1983,7 +1981,7 @@
 - Disable github changelog - ([3847dcd](https://github.com/Endymi0n74/Koharu/commit/3847dcdde45a699b119a827ef9f016693b2447cf))
 
 
-## [0.42.2](https://github.com/Endymi0n74/Koharu/compare/0.42.1..0.42.2) - 2026-04-04
+## [0.42.2](https://github.com/koharu-rs/koharu/compare/0.42.1..0.42.2) - 2026-04-04
 
 ### 🐛 Bug Fixes
 
@@ -1994,14 +1992,14 @@
 - Reflect new models - ([873236b](https://github.com/Endymi0n74/Koharu/commit/873236b7a0225475e7c9a43c349dfa2300163142))
 
 
-## [0.42.1](https://github.com/Endymi0n74/Koharu/compare/0.42.0..0.42.1) - 2026-04-04
+## [0.42.1](https://github.com/koharu-rs/koharu/compare/0.42.0..0.42.1) - 2026-04-04
 
 ### 🐛 Bug Fixes
 
 - Tauri remote url - ([770a477](https://github.com/Endymi0n74/Koharu/commit/770a477213d15bcc81cb6cc59fdb3c2b93482216))
 
 
-## [0.42.0](https://github.com/Endymi0n74/Koharu/compare/0.41.4..0.42.0) - 2026-04-04
+## [0.42.0](https://github.com/koharu-rs/koharu/compare/0.41.4..0.42.0) - 2026-04-04
 
 ### ⛰️  Features
 
@@ -2031,35 +2029,35 @@
 - Remove macos warnings - ([58e5391](https://github.com/Endymi0n74/Koharu/commit/58e539104d4c60621f549f31fec2b5f944e96199))
 
 
-## [0.41.4](https://github.com/Endymi0n74/Koharu/compare/0.41.3..0.41.4) - 2026-03-30
+## [0.41.4](https://github.com/koharu-rs/koharu/compare/0.41.3..0.41.4) - 2026-03-30
 
 ### ⚙️ Miscellaneous Tasks
 
 - Use explicit tauri cli package in release - ([64cadbc](https://github.com/Endymi0n74/Koharu/commit/64cadbc4fcdcb16879df4591de07676ee08032e9))
 
 
-## [0.41.3](https://github.com/Endymi0n74/Koharu/compare/0.41.2..0.41.3) - 2026-03-30
+## [0.41.3](https://github.com/koharu-rs/koharu/compare/0.41.2..0.41.3) - 2026-03-30
 
 ### ⚙️ Miscellaneous Tasks
 
 - Use npx tauri for release builds - ([ea2a80b](https://github.com/Endymi0n74/Koharu/commit/ea2a80b688f4aad148be55ae78d6650c995a6b69))
 
 
-## [0.41.2](https://github.com/Endymi0n74/Koharu/compare/0.41.1..0.41.2) - 2026-03-30
+## [0.41.2](https://github.com/koharu-rs/koharu/compare/0.41.1..0.41.2) - 2026-03-30
 
 ### ⚙️ Miscellaneous Tasks
 
 - Download trusted-signing-cli from release - ([b686601](https://github.com/Endymi0n74/Koharu/commit/b6866015cbe8a695cb4f6415e35720afec31b644))
 
 
-## [0.41.1](https://github.com/Endymi0n74/Koharu/compare/0.41.0..0.41.1) - 2026-03-30
+## [0.41.1](https://github.com/koharu-rs/koharu/compare/0.41.0..0.41.1) - 2026-03-30
 
 ### 🐛 Bug Fixes
 
 - *(macos)* Allow downloaded llama runtimes to load - ([bb3e7d3](https://github.com/Endymi0n74/Koharu/commit/bb3e7d37680f1c5b2aa66078f19cb910eb3eeae3))
 
 
-## [0.41.0](https://github.com/Endymi0n74/Koharu/compare/0.40.1..0.41.0) - 2026-03-30
+## [0.41.0](https://github.com/koharu-rs/koharu/compare/0.40.1..0.41.0) - 2026-03-30
 
 ### ⛰️  Features
 
@@ -2121,14 +2119,14 @@
 - Vendor paddleocr-vl - ([8003e9b](https://github.com/Endymi0n74/Koharu/commit/8003e9bf8a41d327b28e334db989c28b4d69060a))
 
 
-## [0.40.1](https://github.com/Endymi0n74/Koharu/compare/0.40.0..0.40.1) - 2026-03-21
+## [0.40.1](https://github.com/koharu-rs/koharu/compare/0.40.0..0.40.1) - 2026-03-21
 
 ### ⚙️ Miscellaneous Tasks
 
 - Add github token - ([1269cdd](https://github.com/Endymi0n74/Koharu/commit/1269cdde0137428eee3b880165e6d1f5819d17cb))
 
 
-## [0.40.0](https://github.com/Endymi0n74/Koharu/compare/0.39.0..0.40.0) - 2026-03-21
+## [0.40.0](https://github.com/koharu-rs/koharu/compare/0.39.0..0.40.0) - 2026-03-21
 
 ### ⛰️  Features
 
@@ -2151,7 +2149,7 @@
 - Add refine manga109 script - ([42ddd88](https://github.com/Endymi0n74/Koharu/commit/42ddd88d4164905511d2a4333d2ee3e0af0d312c))
 
 
-## [0.39.0](https://github.com/Endymi0n74/Koharu/compare/0.38.1..0.39.0) - 2026-03-19
+## [0.39.0](https://github.com/koharu-rs/koharu/compare/0.38.1..0.39.0) - 2026-03-19
 
 ### ⛰️  Features
 
@@ -2175,7 +2173,7 @@
 - Add release notes - ([d5e3101](https://github.com/Endymi0n74/Koharu/commit/d5e3101ac84036fdc90fac725ce5848751cf2de8))
 
 
-## [0.38.1](https://github.com/Endymi0n74/Koharu/compare/0.38.0..0.38.1) - 2026-03-17
+## [0.38.1](https://github.com/koharu-rs/koharu/compare/0.38.0..0.38.1) - 2026-03-17
 
 ### 🐛 Bug Fixes
 
@@ -2192,7 +2190,7 @@
 - Update deps - ([0eb93c9](https://github.com/Endymi0n74/Koharu/commit/0eb93c9ef02d6a9fa10b3114a5af2c48e19dbea1))
 
 
-## [0.38.0](https://github.com/Endymi0n74/Koharu/compare/0.37.0..0.38.0) - 2026-03-16
+## [0.38.0](https://github.com/koharu-rs/koharu/compare/0.37.0..0.38.0) - 2026-03-16
 
 ### ⛰️  Features
 
@@ -2231,7 +2229,7 @@
 - Add cargo fmt - ([58fc0e8](https://github.com/Endymi0n74/Koharu/commit/58fc0e84a4ecb24d8f2382c54e5258af2fafe68d))
 
 
-## [0.37.0](https://github.com/Endymi0n74/Koharu/compare/0.36.1..0.37.0) - 2026-03-11
+## [0.37.0](https://github.com/koharu-rs/koharu/compare/0.36.1..0.37.0) - 2026-03-11
 
 ### ⛰️  Features
 
@@ -2262,14 +2260,14 @@
 - Upload portable exe - ([8f5eb50](https://github.com/Endymi0n74/Koharu/commit/8f5eb503f4cfeb404075520c1141e4144166600a))
 
 
-## [0.36.1](https://github.com/Endymi0n74/Koharu/compare/0.36.0..0.36.1) - 2026-03-08
+## [0.36.1](https://github.com/koharu-rs/koharu/compare/0.36.0..0.36.1) - 2026-03-08
 
 ### 🐛 Bug Fixes
 
 - Unable to resize text box on latin text box - ([c3eb3af](https://github.com/Endymi0n74/Koharu/commit/c3eb3afa01de3557379fef860d22d4cec777699b))
 
 
-## [0.36.0](https://github.com/Endymi0n74/Koharu/compare/0.35.0..0.36.0) - 2026-03-08
+## [0.36.0](https://github.com/koharu-rs/koharu/compare/0.35.0..0.36.0) - 2026-03-08
 
 ### ⛰️  Features
 
@@ -2299,7 +2297,7 @@ Fixes #197 - ([8de0019](https://github.com/Endymi0n74/Koharu/commit/8de00194dd20
 - Make clippy happy - ([8464b17](https://github.com/Endymi0n74/Koharu/commit/8464b1775fbe710491065681af85ed33e391f6f4))
 
 
-## [0.35.0](https://github.com/Endymi0n74/Koharu/compare/0.34.0..0.35.0) - 2026-03-07
+## [0.35.0](https://github.com/koharu-rs/koharu/compare/0.34.0..0.35.0) - 2026-03-07
 
 ### ⛰️  Features
 
@@ -2328,7 +2326,7 @@ Fixes #197 - ([8de0019](https://github.com/Endymi0n74/Koharu/commit/8de00194dd20
 - Update deps - ([211ae37](https://github.com/Endymi0n74/Koharu/commit/211ae376ac9a5293f05cf6921bd345b9251c9d19))
 
 
-## [0.34.0](https://github.com/Endymi0n74/Koharu/compare/0.33.0..0.34.0) - 2026-02-21
+## [0.34.0](https://github.com/koharu-rs/koharu/compare/0.33.0..0.34.0) - 2026-02-21
 
 ### ⛰️  Features
 
@@ -2355,7 +2353,7 @@ close #176 - ([3837499](https://github.com/Endymi0n74/Koharu/commit/3837499196bb
 - Remove unused deps - ([6af61fc](https://github.com/Endymi0n74/Koharu/commit/6af61fc29a75283fbaa28f64ee590d95c9f47432))
 
 
-## [0.33.0](https://github.com/Endymi0n74/Koharu/compare/0.32.8..0.33.0) - 2026-02-14
+## [0.33.0](https://github.com/koharu-rs/koharu/compare/0.32.8..0.33.0) - 2026-02-14
 
 ### ⛰️  Features
 
@@ -2375,7 +2373,7 @@ close #176 - ([3837499](https://github.com/Endymi0n74/Koharu/commit/3837499196bb
 - Remove portable path - ([990af47](https://github.com/Endymi0n74/Koharu/commit/990af47522e0ae9c6a8989ccdbb655e32f9b0c0f))
 
 
-## [0.32.8](https://github.com/Endymi0n74/Koharu/compare/0.32.7..0.32.8) - 2026-02-11
+## [0.32.8](https://github.com/koharu-rs/koharu/compare/0.32.7..0.32.8) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
@@ -2387,56 +2385,56 @@ Fixes #170 - ([88e6e7a](https://github.com/Endymi0n74/Koharu/commit/88e6e7aadeaf
 - Remove lint-stage & husky - ([8ac5b18](https://github.com/Endymi0n74/Koharu/commit/8ac5b18a3a2fab1ac2c368f6a11bcfb6d36bb009))
 
 
-## [0.32.7](https://github.com/Endymi0n74/Koharu/compare/0.32.6..0.32.7) - 2026-02-11
+## [0.32.7](https://github.com/koharu-rs/koharu/compare/0.32.6..0.32.7) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Add polyfill for file system api - ([d6c7362](https://github.com/Endymi0n74/Koharu/commit/d6c73624c6fd692479013dcfa55bfe2777ed01de))
 
 
-## [0.32.6](https://github.com/Endymi0n74/Koharu/compare/0.32.5..0.32.6) - 2026-02-11
+## [0.32.6](https://github.com/koharu-rs/koharu/compare/0.32.5..0.32.6) - 2026-02-11
 
 ### ⚙️ Miscellaneous Tasks
 
 - Update deps - ([f1cf37b](https://github.com/Endymi0n74/Koharu/commit/f1cf37b60f6accb7dc2c6d4f5a154a9a5b34c0a9))
 
 
-## [0.32.5](https://github.com/Endymi0n74/Koharu/compare/0.32.4..0.32.5) - 2026-02-11
+## [0.32.5](https://github.com/koharu-rs/koharu/compare/0.32.4..0.32.5) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Update tauri pubkey - ([bcc3f2d](https://github.com/Endymi0n74/Koharu/commit/bcc3f2da5618ecfa529745625cacf4f830b00ee4))
 
 
-## [0.32.4](https://github.com/Endymi0n74/Koharu/compare/0.32.3..0.32.4) - 2026-02-11
+## [0.32.4](https://github.com/koharu-rs/koharu/compare/0.32.3..0.32.4) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Update tauri pubkey - ([d3234b4](https://github.com/Endymi0n74/Koharu/commit/d3234b4f7474209340d62877f3192914c8556f30))
 
 
-## [0.32.3](https://github.com/Endymi0n74/Koharu/compare/0.32.2..0.32.3) - 2026-02-11
+## [0.32.3](https://github.com/koharu-rs/koharu/compare/0.32.2..0.32.3) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Update tauri key - ([50bfad4](https://github.com/Endymi0n74/Koharu/commit/50bfad47f64d6887ff84eb35c1c2a0733488d4bc))
 
 
-## [0.32.2](https://github.com/Endymi0n74/Koharu/compare/0.32.1..0.32.2) - 2026-02-11
+## [0.32.2](https://github.com/koharu-rs/koharu/compare/0.32.1..0.32.2) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Tauri updater password - ([3870dfa](https://github.com/Endymi0n74/Koharu/commit/3870dfa61c589e13fa5b073ad1116bb136f46171))
 
 
-## [0.32.1](https://github.com/Endymi0n74/Koharu/compare/0.32.0..0.32.1) - 2026-02-11
+## [0.32.1](https://github.com/koharu-rs/koharu/compare/0.32.0..0.32.1) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Add serde_json - ([5a25fdc](https://github.com/Endymi0n74/Koharu/commit/5a25fdcd53e2954aeb2e4c9f9033dc10ed67e857))
 
 
-## [0.32.0](https://github.com/Endymi0n74/Koharu/compare/0.31.6..0.32.0) - 2026-02-11
+## [0.32.0](https://github.com/koharu-rs/koharu/compare/0.31.6..0.32.0) - 2026-02-11
 
 ### ⛰️  Features
 
@@ -2447,42 +2445,42 @@ Fixes #170 - ([88e6e7a](https://github.com/Endymi0n74/Koharu/commit/88e6e7aadeaf
 - Fix lint & build - ([ac11eeb](https://github.com/Endymi0n74/Koharu/commit/ac11eeb30523a50e4c7ae59afd88142fa8f87e74))
 
 
-## [0.31.6](https://github.com/Endymi0n74/Koharu/compare/0.31.5..0.31.6) - 2026-02-11
+## [0.31.6](https://github.com/koharu-rs/koharu/compare/0.31.5..0.31.6) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Windows release build - ([4aad5a5](https://github.com/Endymi0n74/Koharu/commit/4aad5a56383db15f60bb9682b680cb85d163c21a))
 
 
-## [0.31.5](https://github.com/Endymi0n74/Koharu/compare/0.31.4..0.31.5) - 2026-02-11
+## [0.31.5](https://github.com/koharu-rs/koharu/compare/0.31.4..0.31.5) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Tauri bundle config - ([5a53752](https://github.com/Endymi0n74/Koharu/commit/5a53752014afed65d421825cab255db92cf78a66))
 
 
-## [0.31.4](https://github.com/Endymi0n74/Koharu/compare/0.31.3..0.31.4) - 2026-02-11
+## [0.31.4](https://github.com/koharu-rs/koharu/compare/0.31.3..0.31.4) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Apple certificate - ([0b76382](https://github.com/Endymi0n74/Koharu/commit/0b7638275e9b1a760d535fc442bd9fa461ff67f2))
 
 
-## [0.31.3](https://github.com/Endymi0n74/Koharu/compare/0.31.2..0.31.3) - 2026-02-11
+## [0.31.3](https://github.com/koharu-rs/koharu/compare/0.31.2..0.31.3) - 2026-02-11
 
 ### 🚜 Refactor
 
 - Remove auto-update - ([35f2622](https://github.com/Endymi0n74/Koharu/commit/35f2622da098ec480365acc47a5e459814ed385f))
 
 
-## [0.31.2](https://github.com/Endymi0n74/Koharu/compare/0.31.1..0.31.2) - 2026-02-11
+## [0.31.2](https://github.com/koharu-rs/koharu/compare/0.31.1..0.31.2) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
 - Linux release bundle - ([5ea500a](https://github.com/Endymi0n74/Koharu/commit/5ea500af877c391aeb07c9befd6fda943e255111))
 
 
-## [0.31.1](https://github.com/Endymi0n74/Koharu/compare/0.31.0..0.31.1) - 2026-02-11
+## [0.31.1](https://github.com/koharu-rs/koharu/compare/0.31.0..0.31.1) - 2026-02-11
 
 ### 🐛 Bug Fixes
 
@@ -2493,7 +2491,7 @@ Fixes #170 - ([88e6e7a](https://github.com/Endymi0n74/Koharu/commit/88e6e7aadeaf
 - Support linux - ([23c65a6](https://github.com/Endymi0n74/Koharu/commit/23c65a662ea9d39e8030a86d3a934cc8bd4d3788))
 
 
-## [0.31.0](https://github.com/Endymi0n74/Koharu/compare/0.30.1..0.31.0) - 2026-02-08
+## [0.31.0](https://github.com/koharu-rs/koharu/compare/0.30.1..0.31.0) - 2026-02-08
 
 ### ⛰️  Features
 
@@ -2509,14 +2507,14 @@ Fix #169 - ([e09a2b2](https://github.com/Endymi0n74/Koharu/commit/e09a2b2d14e875
 - Remove unused tower-http - ([40b84a0](https://github.com/Endymi0n74/Koharu/commit/40b84a097951ca510048253d3963b3ea368acab1))
 
 
-## [0.30.1](https://github.com/Endymi0n74/Koharu/compare/0.30.0..0.30.1) - 2026-02-04
+## [0.30.1](https://github.com/koharu-rs/koharu/compare/0.30.0..0.30.1) - 2026-02-04
 
 ### 🐛 Bug Fixes
 
 - Cuda missing header - ([ae317cc](https://github.com/Endymi0n74/Koharu/commit/ae317ccdf55007e5d4719cc36b1ac7aa2a7a296a))
 
 
-## [0.30.0](https://github.com/Endymi0n74/Koharu/compare/0.29.0..0.30.0) - 2026-02-04
+## [0.30.0](https://github.com/koharu-rs/koharu/compare/0.29.0..0.30.0) - 2026-02-04
 
 ### ⛰️  Features
 
@@ -2535,7 +2533,7 @@ Fix #169 - ([e09a2b2](https://github.com/Endymi0n74/Koharu/commit/e09a2b2d14e875
 - Remove unused settings - ([c48ed3b](https://github.com/Endymi0n74/Koharu/commit/c48ed3b4b3b80069d1e0868a0f1cf6fd079b6ff8))
 
 
-## [0.29.0](https://github.com/Endymi0n74/Koharu/compare/0.28.0..0.29.0) - 2026-02-01
+## [0.29.0](https://github.com/koharu-rs/koharu/compare/0.28.0..0.29.0) - 2026-02-01
 
 ### ⛰️  Features
 
@@ -2566,14 +2564,14 @@ Fix #169 - ([e09a2b2](https://github.com/Endymi0n74/Koharu/commit/e09a2b2d14e875
 - Remove unused types - ([edf1142](https://github.com/Endymi0n74/Koharu/commit/edf1142b92c5126a672048edb73f43fc1ff2a1f4))
 
 
-## [0.28.0](https://github.com/Endymi0n74/Koharu/compare/0.27.2..0.28.0) - 2026-02-01
+## [0.28.0](https://github.com/koharu-rs/koharu/compare/0.27.2..0.28.0) - 2026-02-01
 
 ### ⛰️  Features
 
 - Custom titlebar - ([fa245d1](https://github.com/Endymi0n74/Koharu/commit/fa245d1a0e30b479f06d2af589bfe0cabfb71457))
 
 
-## [0.27.2](https://github.com/Endymi0n74/Koharu/compare/0.27.1..0.27.2) - 2026-02-01
+## [0.27.2](https://github.com/koharu-rs/koharu/compare/0.27.1..0.27.2) - 2026-02-01
 
 ### 🐛 Bug Fixes
 
@@ -2594,7 +2592,7 @@ Fix #169 - ([e09a2b2](https://github.com/Endymi0n74/Koharu/commit/e09a2b2d14e875
 - Rename scripts - ([2eb84f3](https://github.com/Endymi0n74/Koharu/commit/2eb84f3b4085fa1f648d40cddb7c83c3e4e50467))
 
 
-## [0.27.1](https://github.com/Endymi0n74/Koharu/compare/0.27.0..0.27.1) - 2026-01-27
+## [0.27.1](https://github.com/koharu-rs/koharu/compare/0.27.0..0.27.1) - 2026-01-27
 
 ### 🐛 Bug Fixes
 
@@ -2605,7 +2603,7 @@ Fix #169 - ([e09a2b2](https://github.com/Endymi0n74/Koharu/commit/e09a2b2d14e875
 - Change window size to 1024x768 - ([e57bf42](https://github.com/Endymi0n74/Koharu/commit/e57bf4221eb396d7de1170a33ef6b940b8248b72))
 
 
-## [0.27.0](https://github.com/Endymi0n74/Koharu/compare/0.26.2..0.27.0) - 2026-01-27
+## [0.27.0](https://github.com/koharu-rs/koharu/compare/0.26.2..0.27.0) - 2026-01-27
 
 ### ⛰️  Features
 
@@ -2663,21 +2661,21 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Add git-version - ([4e25aa7](https://github.com/Endymi0n74/Koharu/commit/4e25aa7962a8a682053f74004caafc93977ce455))
 
 
-## [0.26.2](https://github.com/Endymi0n74/Koharu/compare/0.26.1..0.26.2) - 2026-01-21
+## [0.26.2](https://github.com/koharu-rs/koharu/compare/0.26.1..0.26.2) - 2026-01-21
 
 ### ⚙️ Miscellaneous Tasks
 
 - Setup dotnet 9.0.x for macos - ([03d4fbc](https://github.com/Endymi0n74/Koharu/commit/03d4fbc2d7e93bdb127f7fc4d6474987cd51a08b))
 
 
-## [0.26.1](https://github.com/Endymi0n74/Koharu/compare/0.26.0..0.26.1) - 2026-01-20
+## [0.26.1](https://github.com/koharu-rs/koharu/compare/0.26.0..0.26.1) - 2026-01-20
 
 ### ⚙️ Miscellaneous Tasks
 
 - Setup dotnet - ([0d182d9](https://github.com/Endymi0n74/Koharu/commit/0d182d907a3f4fb0ebf0ce255cd20ba891269615))
 
 
-## [0.26.0](https://github.com/Endymi0n74/Koharu/compare/0.25.4..0.26.0) - 2026-01-20
+## [0.26.0](https://github.com/koharu-rs/koharu/compare/0.25.4..0.26.0) - 2026-01-20
 
 ### ⛰️  Features
 
@@ -2698,7 +2696,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Improve dev performance - ([0bc56ed](https://github.com/Endymi0n74/Koharu/commit/0bc56edd3dd6178696be414a8a7d78655d7c80b2))
 
 
-## [0.25.4](https://github.com/Endymi0n74/Koharu/compare/0.25.3..0.25.4) - 2025-12-24
+## [0.25.4](https://github.com/koharu-rs/koharu/compare/0.25.3..0.25.4) - 2025-12-24
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -2706,7 +2704,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Add release notes - ([c215017](https://github.com/Endymi0n74/Koharu/commit/c21501702a8a69ef23cf3649c1f2a309e061dd53))
 
 
-## [0.25.2](https://github.com/Endymi0n74/Koharu/compare/0.25.1..0.25.2) - 2025-12-24
+## [0.25.2](https://github.com/koharu-rs/koharu/compare/0.25.1..0.25.2) - 2025-12-24
 
 ### 🐛 Bug Fixes
 
@@ -2718,7 +2716,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Add benchmark for renderer - ([a78fb20](https://github.com/Endymi0n74/Koharu/commit/a78fb20e515b3c21942d28c0f837f6e8bac57261))
 
 
-## [0.25.1](https://github.com/Endymi0n74/Koharu/compare/0.25.0..0.25.1) - 2025-12-23
+## [0.25.1](https://github.com/koharu-rs/koharu/compare/0.25.0..0.25.1) - 2025-12-23
 
 ### 🐛 Bug Fixes
 
@@ -2730,7 +2728,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Update readme - ([81646f8](https://github.com/Endymi0n74/Koharu/commit/81646f8ff8872fc337ca47aa78b46de446f9ee2d))
 
 
-## [0.25.0](https://github.com/Endymi0n74/Koharu/compare/0.24.0..0.25.0) - 2025-12-23
+## [0.25.0](https://github.com/koharu-rs/koharu/compare/0.24.0..0.25.0) - 2025-12-23
 
 ### ⛰️  Features
 
@@ -2746,7 +2744,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Reorganize code - ([7ac87c9](https://github.com/Endymi0n74/Koharu/commit/7ac87c90735a5bf9a3397384c6bc69772973bf0f))
 
 
-## [0.24.0](https://github.com/Endymi0n74/Koharu/compare/0.23.1..0.24.0) - 2025-12-23
+## [0.24.0](https://github.com/koharu-rs/koharu/compare/0.23.1..0.24.0) - 2025-12-23
 
 ### ⛰️  Features
 
@@ -2757,7 +2755,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Correct image layer - ([6f30121](https://github.com/Endymi0n74/Koharu/commit/6f3012167dde2d6b9d9209b36b423b94c801de84))
 
 
-## [0.23.1](https://github.com/Endymi0n74/Koharu/compare/0.23.0..0.23.1) - 2025-12-22
+## [0.23.1](https://github.com/koharu-rs/koharu/compare/0.23.0..0.23.1) - 2025-12-22
 
 ### 🐛 Bug Fixes
 
@@ -2765,7 +2763,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Render brush - ([6907bd4](https://github.com/Endymi0n74/Koharu/commit/6907bd495d0dd80076f740059fcdd9b027090055))
 
 
-## [0.23.0](https://github.com/Endymi0n74/Koharu/compare/0.22.0..0.23.0) - 2025-12-22
+## [0.23.0](https://github.com/koharu-rs/koharu/compare/0.22.0..0.23.0) - 2025-12-22
 
 ### ⛰️  Features
 
@@ -2792,7 +2790,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Do not cache cargo targets - ([5a3b224](https://github.com/Endymi0n74/Koharu/commit/5a3b224c0558555230981065b08ea6c98f599ef1))
 
 
-## [0.22.0](https://github.com/Endymi0n74/Koharu/compare/0.21.0..0.22.0) - 2025-12-21
+## [0.22.0](https://github.com/koharu-rs/koharu/compare/0.21.0..0.22.0) - 2025-12-21
 
 ### ⛰️  Features
 
@@ -2832,7 +2830,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Resizable navigator and panels - ([6da24a6](https://github.com/Endymi0n74/Koharu/commit/6da24a63a1de6b1e34b9a0bc275e5c3c0ffb8348))
 
 
-## [0.21.0](https://github.com/Endymi0n74/Koharu/compare/0.20.0..0.21.0) - 2025-12-19
+## [0.21.0](https://github.com/koharu-rs/koharu/compare/0.20.0..0.21.0) - 2025-12-19
 
 ### ⛰️  Features
 
@@ -2844,14 +2842,14 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Simplify bubble logic - ([43512d2](https://github.com/Endymi0n74/Koharu/commit/43512d2b38678133e6169501ce1616eb110741da))
 
 
-## [0.20.0](https://github.com/Endymi0n74/Koharu/compare/0.19.0..0.20.0) - 2025-12-18
+## [0.20.0](https://github.com/koharu-rs/koharu/compare/0.19.0..0.20.0) - 2025-12-18
 
 ### ⛰️  Features
 
 - Double click or CLI to open a file - ([e02db8f](https://github.com/Endymi0n74/Koharu/commit/e02db8f84728bde647cac3c70a0e21d04433d04c))
 
 
-## [0.19.0](https://github.com/Endymi0n74/Koharu/compare/0.18.0..0.19.0) - 2025-12-18
+## [0.19.0](https://github.com/koharu-rs/koharu/compare/0.18.0..0.19.0) - 2025-12-18
 
 ### ⛰️  Features
 
@@ -2889,7 +2887,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Clippy happier - ([fd1b29c](https://github.com/Endymi0n74/Koharu/commit/fd1b29c0b49aec9624b0e542f5de776049541abd))
 
 
-## [0.18.0](https://github.com/Endymi0n74/Koharu/compare/0.17.0..0.18.0) - 2025-12-16
+## [0.18.0](https://github.com/koharu-rs/koharu/compare/0.17.0..0.18.0) - 2025-12-16
 
 ### ⛰️  Features
 
@@ -2929,7 +2927,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Update cargo clippy command to treat warnings as errors - ([3bb25b1](https://github.com/Endymi0n74/Koharu/commit/3bb25b14f3e0c4eab1299da105084ec036a0e9db))
 
 
-## [0.17.0](https://github.com/Endymi0n74/Koharu/compare/0.16.0..0.17.0) - 2025-12-14
+## [0.17.0](https://github.com/koharu-rs/koharu/compare/0.16.0..0.17.0) - 2025-12-14
 
 ### ⛰️  Features
 
@@ -2940,7 +2938,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Llm template should add generation prompt - ([b5cd3e3](https://github.com/Endymi0n74/Koharu/commit/b5cd3e3771c4d322c11608526d871bd9f21f7019))
 
 
-## [0.16.0](https://github.com/Endymi0n74/Koharu/compare/0.15.0..0.16.0) - 2025-12-14
+## [0.16.0](https://github.com/koharu-rs/koharu/compare/0.15.0..0.16.0) - 2025-12-14
 
 ### ⛰️  Features
 
@@ -2978,7 +2976,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Switch to cudarc 0.18.2 - ([32da9bb](https://github.com/Endymi0n74/Koharu/commit/32da9bb48e22f50ba7dbb8f4cd73315a36efc015))
 
 
-## [0.15.0](https://github.com/Endymi0n74/Koharu/compare/0.14.5..0.15.0) - 2025-12-11
+## [0.15.0](https://github.com/koharu-rs/koharu/compare/0.14.5..0.15.0) - 2025-12-11
 
 ### 🐛 Bug Fixes
 
@@ -2997,7 +2995,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Format lama code with LF - ([a399564](https://github.com/Endymi0n74/Koharu/commit/a399564f297da75a0072893b7e5617c14ea05387))
 
 
-## [0.14.5](https://github.com/Endymi0n74/Koharu/compare/0.14.3..0.14.5) - 2025-12-11
+## [0.14.5](https://github.com/koharu-rs/koharu/compare/0.14.3..0.14.5) - 2025-12-11
 
 ### 🐛 Bug Fixes
 
@@ -3015,7 +3013,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Remove unwrap - ([2be6f04](https://github.com/Endymi0n74/Koharu/commit/2be6f044bdcaf03fa0d78298f9497750a335b8e7))
 
 
-## [0.14.3](https://github.com/Endymi0n74/Koharu/compare/0.14.2..0.14.3) - 2025-12-11
+## [0.14.3](https://github.com/koharu-rs/koharu/compare/0.14.2..0.14.3) - 2025-12-11
 
 ### 🐛 Bug Fixes
 
@@ -3035,7 +3033,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - 0.14.3 - ([71dbaf4](https://github.com/Endymi0n74/Koharu/commit/71dbaf474bd9b8951ef00789ec417448dd6168b1))
 
 
-## [0.14.2](https://github.com/Endymi0n74/Koharu/compare/0.14.1..0.14.2) - 2025-12-11
+## [0.14.2](https://github.com/koharu-rs/koharu/compare/0.14.1..0.14.2) - 2025-12-11
 
 ### 🐛 Bug Fixes
 
@@ -3047,7 +3045,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.14.2 - ([60778d6](https://github.com/Endymi0n74/Koharu/commit/60778d60db89e9e8b8624fcf828720478e44c533))
 
 
-## [0.14.1](https://github.com/Endymi0n74/Koharu/compare/0.14.0..0.14.1) - 2025-12-10
+## [0.14.1](https://github.com/koharu-rs/koharu/compare/0.14.0..0.14.1) - 2025-12-10
 
 ### 🐛 Bug Fixes
 
@@ -3058,7 +3056,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.14.1 - ([3396619](https://github.com/Endymi0n74/Koharu/commit/3396619fde1acf62e6644392fc0b75ce3fd169d8))
 
 
-## [0.14.0](https://github.com/Endymi0n74/Koharu/compare/0.13.1..0.14.0) - 2025-12-09
+## [0.14.0](https://github.com/koharu-rs/koharu/compare/0.13.1..0.14.0) - 2025-12-09
 
 ### ⛰️  Features
 
@@ -3087,7 +3085,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.14.0 - ([8ce0bc7](https://github.com/Endymi0n74/Koharu/commit/8ce0bc7669a4a71c6204f8aa976217e7235126f8))
 
 
-## [0.13.1](https://github.com/Endymi0n74/Koharu/compare/0.13.0..0.13.1) - 2025-12-09
+## [0.13.1](https://github.com/koharu-rs/koharu/compare/0.13.0..0.13.1) - 2025-12-09
 
 ### ⛰️  Features
 
@@ -3111,7 +3109,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.13.1 - ([5b822cf](https://github.com/Endymi0n74/Koharu/commit/5b822cf82ac73f3fc6e678d5d4399333df53b578))
 
 
-## [0.13.0](https://github.com/Endymi0n74/Koharu/compare/0.12.1..0.13.0) - 2025-12-08
+## [0.13.0](https://github.com/koharu-rs/koharu/compare/0.12.1..0.13.0) - 2025-12-08
 
 ### ⛰️  Features
 
@@ -3129,7 +3127,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.13.0 - ([1368a80](https://github.com/Endymi0n74/Koharu/commit/1368a8007784de2f6308eb37e8c00b2ed9014a57))
 
 
-## [0.12.1](https://github.com/Endymi0n74/Koharu/compare/0.12.0..0.12.1) - 2025-12-07
+## [0.12.1](https://github.com/koharu-rs/koharu/compare/0.12.0..0.12.1) - 2025-12-07
 
 ### ⛰️  Features
 
@@ -3161,7 +3159,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.12.1 - ([96e6059](https://github.com/Endymi0n74/Koharu/commit/96e60593866099c9c45eb8395d42f260a67c6b41))
 
 
-## [0.12.0](https://github.com/Endymi0n74/Koharu/compare/0.11.0..0.12.0) - 2025-12-06
+## [0.12.0](https://github.com/koharu-rs/koharu/compare/0.11.0..0.12.0) - 2025-12-06
 
 ### ⛰️  Features
 
@@ -3184,7 +3182,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.12.0 - ([369cd64](https://github.com/Endymi0n74/Koharu/commit/369cd64a4c252b994dd8f6bb8c26c377c1cc79a1))
 
 
-## [0.11.0](https://github.com/Endymi0n74/Koharu/compare/0.10.1..0.11.0) - 2025-12-04
+## [0.11.0](https://github.com/koharu-rs/koharu/compare/0.10.1..0.11.0) - 2025-12-04
 
 ### ⛰️  Features
 
@@ -3263,7 +3261,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.11.0 - ([ab47678](https://github.com/Endymi0n74/Koharu/commit/ab476788fd0a707df68748628e602fb52688af26))
 
 
-## [0.10.1](https://github.com/Endymi0n74/Koharu/compare/0.10.0..0.10.1) - 2025-11-25
+## [0.10.1](https://github.com/koharu-rs/koharu/compare/0.10.0..0.10.1) - 2025-11-25
 
 ### 🐛 Bug Fixes
 
@@ -3274,7 +3272,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.10.1 - ([a33903e](https://github.com/Endymi0n74/Koharu/commit/a33903e80648f5e8b952f0d3e0a50a0bdd42c01c))
 
 
-## [0.10.0](https://github.com/Endymi0n74/Koharu/compare/0.9.13..0.10.0) - 2025-11-25
+## [0.10.0](https://github.com/koharu-rs/koharu/compare/0.9.13..0.10.0) - 2025-11-25
 
 ### ⛰️  Features
 
@@ -3294,7 +3292,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.10.0 - ([d6c3814](https://github.com/Endymi0n74/Koharu/commit/d6c3814df48cc8fb9354beb396b90c01f592d8c5))
 
 
-## [0.9.13](https://github.com/Endymi0n74/Koharu/compare/0.9.12..0.9.13) - 2025-11-24
+## [0.9.13](https://github.com/koharu-rs/koharu/compare/0.9.12..0.9.13) - 2025-11-24
 
 ### 🐛 Bug Fixes
 
@@ -3305,7 +3303,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.13 - ([1855fd7](https://github.com/Endymi0n74/Koharu/commit/1855fd70d53bc38b6176212058a9d2f21c7c4abe))
 
 
-## [0.9.12](https://github.com/Endymi0n74/Koharu/compare/0.9.11..0.9.12) - 2025-11-24
+## [0.9.12](https://github.com/koharu-rs/koharu/compare/0.9.11..0.9.12) - 2025-11-24
 
 ### 🐛 Bug Fixes
 
@@ -3316,7 +3314,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.12 - ([e43af4c](https://github.com/Endymi0n74/Koharu/commit/e43af4c895d7bb16a8fbf5b1e98c5ee846770b91))
 
 
-## [0.9.11](https://github.com/Endymi0n74/Koharu/compare/0.9.10..0.9.11) - 2025-11-24
+## [0.9.11](https://github.com/koharu-rs/koharu/compare/0.9.10..0.9.11) - 2025-11-24
 
 ### ⛰️  Features
 
@@ -3345,14 +3343,14 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.11 - ([e1c0f09](https://github.com/Endymi0n74/Koharu/commit/e1c0f094ad1fcb069da45b5154f3f6637d75bd5f))
 
 
-## [0.9.10](https://github.com/Endymi0n74/Koharu/compare/0.9.9..0.9.10) - 2025-11-23
+## [0.9.10](https://github.com/koharu-rs/koharu/compare/0.9.9..0.9.10) - 2025-11-23
 
 ### Release
 
 - 0.9.10 - ([4345900](https://github.com/Endymi0n74/Koharu/commit/43459002f3c14f6aa4917b75cf7b2ff1579ec4ab))
 
 
-## [0.9.9](https://github.com/Endymi0n74/Koharu/compare/0.9.8..0.9.9) - 2025-11-23
+## [0.9.9](https://github.com/koharu-rs/koharu/compare/0.9.8..0.9.9) - 2025-11-23
 
 ### ⛰️  Features
 
@@ -3365,7 +3363,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.9-alpha.1 - ([d4275c9](https://github.com/Endymi0n74/Koharu/commit/d4275c9121a6bc7a1d75432e0ca8617cade70512))
 
 
-## [0.9.8](https://github.com/Endymi0n74/Koharu/compare/0.9.7..0.9.8) - 2025-11-23
+## [0.9.8](https://github.com/koharu-rs/koharu/compare/0.9.7..0.9.8) - 2025-11-23
 
 ### Release
 
@@ -3373,28 +3371,28 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.8-alpha.1 - ([42870fd](https://github.com/Endymi0n74/Koharu/commit/42870fd2aec837ae064796a68ce1363067c995d7))
 
 
-## [0.9.7](https://github.com/Endymi0n74/Koharu/compare/0.9.6..0.9.7) - 2025-11-23
+## [0.9.7](https://github.com/koharu-rs/koharu/compare/0.9.6..0.9.7) - 2025-11-23
 
 ### Release
 
 - 0.9.7 - ([2fe9a62](https://github.com/Endymi0n74/Koharu/commit/2fe9a620752569ed5a26ed41d3dcf296d08326b7))
 
 
-## [0.9.6](https://github.com/Endymi0n74/Koharu/compare/0.9.5..0.9.6) - 2025-11-22
+## [0.9.6](https://github.com/koharu-rs/koharu/compare/0.9.5..0.9.6) - 2025-11-22
 
 ### Release
 
 - 0.9.6 - ([00f048c](https://github.com/Endymi0n74/Koharu/commit/00f048c8d6155b738037a29c6ef1ee27cfd57e5a))
 
 
-## [0.9.5](https://github.com/Endymi0n74/Koharu/compare/0.9.4..0.9.5) - 2025-11-22
+## [0.9.5](https://github.com/koharu-rs/koharu/compare/0.9.4..0.9.5) - 2025-11-22
 
 ### Release
 
 - 0.9.5 - ([1dc8515](https://github.com/Endymi0n74/Koharu/commit/1dc85157de618f10c68d704c0fd7d2d34a65cb52))
 
 
-## [0.9.4](https://github.com/Endymi0n74/Koharu/compare/0.9.3..0.9.4) - 2025-11-22
+## [0.9.4](https://github.com/koharu-rs/koharu/compare/0.9.3..0.9.4) - 2025-11-22
 
 ### 🐛 Bug Fixes
 
@@ -3405,7 +3403,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.4 - ([42c1951](https://github.com/Endymi0n74/Koharu/commit/42c1951058167a341b4f09337a7c6bbe030d8a1b))
 
 
-## [0.9.3](https://github.com/Endymi0n74/Koharu/compare/0.9.2..0.9.3) - 2025-11-22
+## [0.9.3](https://github.com/koharu-rs/koharu/compare/0.9.2..0.9.3) - 2025-11-22
 
 ### ⛰️  Features
 
@@ -3425,7 +3423,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.3 - ([565dd8a](https://github.com/Endymi0n74/Koharu/commit/565dd8a277262e73077765009a63fb2a4c83e35e))
 
 
-## [0.9.2](https://github.com/Endymi0n74/Koharu/compare/0.9.1..0.9.2) - 2025-11-22
+## [0.9.2](https://github.com/koharu-rs/koharu/compare/0.9.1..0.9.2) - 2025-11-22
 
 ### 🐛 Bug Fixes
 
@@ -3436,7 +3434,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.2 - ([93dd4ee](https://github.com/Endymi0n74/Koharu/commit/93dd4eeda1d3befecb519af48e12b4fce0764ec6))
 
 
-## [0.9.1](https://github.com/Endymi0n74/Koharu/compare/0.9.0..0.9.1) - 2025-11-22
+## [0.9.1](https://github.com/koharu-rs/koharu/compare/0.9.0..0.9.1) - 2025-11-22
 
 ### ⛰️  Features
 
@@ -3467,7 +3465,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.1 - ([b9b06d5](https://github.com/Endymi0n74/Koharu/commit/b9b06d5da49f31fbe54c902523adae6a56cfa1d6))
 
 
-## [0.9.0](https://github.com/Endymi0n74/Koharu/compare/0.8.0..0.9.0) - 2025-11-21
+## [0.9.0](https://github.com/koharu-rs/koharu/compare/0.8.0..0.9.0) - 2025-11-21
 
 ### ⛰️  Features
 
@@ -3508,7 +3506,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.9.0 - ([9fffbb8](https://github.com/Endymi0n74/Koharu/commit/9fffbb86367c64fe86c2d4eb649b27134751b903))
 
 
-## [0.8.0](https://github.com/Endymi0n74/Koharu/compare/0.7.6..0.8.0) - 2025-11-12
+## [0.8.0](https://github.com/koharu-rs/koharu/compare/0.7.6..0.8.0) - 2025-11-12
 
 ### ⛰️  Features
 
@@ -3567,7 +3565,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.8.0 - ([7493466](https://github.com/Endymi0n74/Koharu/commit/7493466fa51387309c6b8b0f1c409fa9533cd592))
 
 
-## [0.7.6](https://github.com/Endymi0n74/Koharu/compare/0.7.5..0.7.6) - 2025-11-07
+## [0.7.6](https://github.com/koharu-rs/koharu/compare/0.7.5..0.7.6) - 2025-11-07
 
 ### ⛰️  Features
 
@@ -3578,7 +3576,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.7.6 - ([1e2e14c](https://github.com/Endymi0n74/Koharu/commit/1e2e14c68248b36bd0878de7de8477f0b4b23b60))
 
 
-## [0.7.5](https://github.com/Endymi0n74/Koharu/compare/0.7.4..0.7.5) - 2025-11-07
+## [0.7.5](https://github.com/koharu-rs/koharu/compare/0.7.4..0.7.5) - 2025-11-07
 
 ### 🐛 Bug Fixes
 
@@ -3589,7 +3587,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.7.5 - ([eeb4f59](https://github.com/Endymi0n74/Koharu/commit/eeb4f596be60af23c2df795466645e64b59012f9))
 
 
-## [0.7.4](https://github.com/Endymi0n74/Koharu/compare/0.7.3..0.7.4) - 2025-11-07
+## [0.7.4](https://github.com/koharu-rs/koharu/compare/0.7.3..0.7.4) - 2025-11-07
 
 ### 🐛 Bug Fixes
 
@@ -3610,7 +3608,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.7.4 - ([746669e](https://github.com/Endymi0n74/Koharu/commit/746669eede6486bdd1e73ef854e9d0745f6a0709))
 
 
-## [0.7.3](https://github.com/Endymi0n74/Koharu/compare/0.7.2..0.7.3) - 2025-11-06
+## [0.7.3](https://github.com/koharu-rs/koharu/compare/0.7.2..0.7.3) - 2025-11-06
 
 ### ⛰️  Features
 
@@ -3651,14 +3649,14 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.7.3 - ([db7986a](https://github.com/Endymi0n74/Koharu/commit/db7986a665bd681be37a518ef8d30d2420345fd1))
 
 
-## [0.7.2](https://github.com/Endymi0n74/Koharu/compare/0.7.1..0.7.2) - 2025-11-05
+## [0.7.2](https://github.com/koharu-rs/koharu/compare/0.7.1..0.7.2) - 2025-11-05
 
 ### Release
 
 - 0.7.2 - ([4db1618](https://github.com/Endymi0n74/Koharu/commit/4db16186984f4bbda99e9caa24d586cc808072dc))
 
 
-## [0.7.1](https://github.com/Endymi0n74/Koharu/compare/0.7.0..0.7.1) - 2025-11-05
+## [0.7.1](https://github.com/koharu-rs/koharu/compare/0.7.0..0.7.1) - 2025-11-05
 
 ### 🐛 Bug Fixes
 
@@ -3683,7 +3681,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.7.1 - ([5d184ce](https://github.com/Endymi0n74/Koharu/commit/5d184ce0623251f95d36f3cbf1b91c2cb9e613a3))
 
 
-## [0.7.0](https://github.com/Endymi0n74/Koharu/compare/0.6.1..0.7.0) - 2025-11-05
+## [0.7.0](https://github.com/koharu-rs/koharu/compare/0.6.1..0.7.0) - 2025-11-05
 
 ### ⛰️  Features
 
@@ -3730,14 +3728,14 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - Llm crate - ([40f79c7](https://github.com/Endymi0n74/Koharu/commit/40f79c7a7b05e035559926e17585f6081f681634))
 
 
-## [0.6.1](https://github.com/Endymi0n74/Koharu/compare/0.6.0..0.6.1) - 2025-11-03
+## [0.6.1](https://github.com/koharu-rs/koharu/compare/0.6.0..0.6.1) - 2025-11-03
 
 ### Release
 
 - 0.6.1 - ([d64cd79](https://github.com/Endymi0n74/Koharu/commit/d64cd79e92578027a2eee2b13ffeae1ac67cf3b2))
 
 
-## [0.6.0](https://github.com/Endymi0n74/Koharu/compare/0.5.0..0.6.0) - 2025-11-03
+## [0.6.0](https://github.com/koharu-rs/koharu/compare/0.5.0..0.6.0) - 2025-11-03
 
 ### 🐛 Bug Fixes
 
@@ -3784,7 +3782,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 5.0.1 - ([ca9c856](https://github.com/Endymi0n74/Koharu/commit/ca9c856467e2b9a6ac2b8a9f01f6524909767674))
 
 
-## [0.5.0](https://github.com/Endymi0n74/Koharu/compare/0.4.0..0.5.0) - 2025-10-28
+## [0.5.0](https://github.com/koharu-rs/koharu/compare/0.4.0..0.5.0) - 2025-10-28
 
 ### ⛰️  Features
 
@@ -3811,7 +3809,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.5.0 - ([981079e](https://github.com/Endymi0n74/Koharu/commit/981079e29d85499f266e40a9f3ffb1dc2007fb0a))
 
 
-## [0.4.0](https://github.com/Endymi0n74/Koharu/compare/0.3.1..0.4.0) - 2025-10-28
+## [0.4.0](https://github.com/koharu-rs/koharu/compare/0.3.1..0.4.0) - 2025-10-28
 
 ### ⛰️  Features
 
@@ -3832,14 +3830,14 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.4.0 - ([605525f](https://github.com/Endymi0n74/Koharu/commit/605525ffa184665e226fabd031ca4f1f6fc8b5d7))
 
 
-## [0.3.1](https://github.com/Endymi0n74/Koharu/compare/0.3.0..0.3.1) - 2025-10-27
+## [0.3.1](https://github.com/koharu-rs/koharu/compare/0.3.0..0.3.1) - 2025-10-27
 
 ### 🐛 Bug Fixes
 
 - Fix channel - ([0801903](https://github.com/Endymi0n74/Koharu/commit/0801903b14f27dd491384fb0bbc333aacef58c50))
 
 
-## [0.3.0](https://github.com/Endymi0n74/Koharu/compare/0.2.3..0.3.0) - 2025-10-27
+## [0.3.0](https://github.com/koharu-rs/koharu/compare/0.2.3..0.3.0) - 2025-10-27
 
 ### 🐛 Bug Fixes
 
@@ -3855,14 +3853,14 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.3.0 - ([cf07472](https://github.com/Endymi0n74/Koharu/commit/cf0747220cc4aae421adff3fb2c6091937e52fd8))
 
 
-## [0.2.3](https://github.com/Endymi0n74/Koharu/compare/0.2.2..0.2.3) - 2025-10-27
+## [0.2.3](https://github.com/koharu-rs/koharu/compare/0.2.2..0.2.3) - 2025-10-27
 
 ### Release
 
 - 0.2.3 - ([eedd6ea](https://github.com/Endymi0n74/Koharu/commit/eedd6eaa8242b629cf4ab41dd0224b69a4883ecc))
 
 
-## [0.2.2](https://github.com/Endymi0n74/Koharu/compare/0.2.1..0.2.2) - 2025-10-27
+## [0.2.2](https://github.com/koharu-rs/koharu/compare/0.2.1..0.2.2) - 2025-10-27
 
 ### 📚 Documentation
 
@@ -3877,10 +3875,10 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.2.2 - ([e46a02c](https://github.com/Endymi0n74/Koharu/commit/e46a02c9fe7d5166d0112978e4ab6730583cc805))
 
 
-## [0.2.1](https://github.com/Endymi0n74/Koharu/compare/0.2.0..0.2.1) - 2025-10-25
+## [0.2.1](https://github.com/koharu-rs/koharu/compare/0.2.0..0.2.1) - 2025-10-25
 
 
-## [0.2.0](https://github.com/Endymi0n74/Koharu/compare/0.1.11..0.2.0) - 2025-10-25
+## [0.2.0](https://github.com/koharu-rs/koharu/compare/0.1.11..0.2.0) - 2025-10-25
 
 ### ⛰️  Features
 
@@ -3936,7 +3934,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - 0.2.0 - ([ba28a1a](https://github.com/Endymi0n74/Koharu/commit/ba28a1a5d8362c32414d95b8a15ff6b33ef9af40))
 
 
-## [0.1.11](https://github.com/Endymi0n74/Koharu/compare/0.1.10..0.1.11) - 2025-08-06
+## [0.1.11](https://github.com/koharu-rs/koharu/compare/0.1.10..0.1.11) - 2025-08-06
 
 ### 🐛 Bug Fixes
 
@@ -3952,7 +3950,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - Update package versions to 0.1.10 - ([66d24ba](https://github.com/Endymi0n74/Koharu/commit/66d24ba2d66248cfb2ed6d804ebf9999d8796da5))
 
 
-## [0.1.10](https://github.com/Endymi0n74/Koharu/compare/0.1.2..0.1.10) - 2025-08-04
+## [0.1.10](https://github.com/koharu-rs/koharu/compare/0.1.2..0.1.10) - 2025-08-04
 
 ### ⛰️  Features
 
@@ -4017,7 +4015,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - Bump package versions to 0.1.2 - ([63b0fb2](https://github.com/Endymi0n74/Koharu/commit/63b0fb22c0efb72f920fccc8896962e2a4810bc0))
 
 
-## [0.1.2](https://github.com/Endymi0n74/Koharu/compare/0.1.1..0.1.2) - 2025-05-29
+## [0.1.2](https://github.com/koharu-rs/koharu/compare/0.1.1..0.1.2) - 2025-05-29
 
 ### 🐛 Bug Fixes
 
@@ -4044,7 +4042,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - Fix windows - ([3e3ec59](https://github.com/Endymi0n74/Koharu/commit/3e3ec59b79b2d529107715803a10d98be2228c05))
 
 
-## [0.1.1](https://github.com/Endymi0n74/Koharu/compare/v0.1.1..0.1.1) - 2025-05-28
+## [0.1.1](https://github.com/koharu-rs/koharu/compare/v0.1.1..0.1.1) - 2025-05-28
 
 ### ⛰️  Features
 
@@ -4198,7 +4196,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - Add ocr to web - ([a80b61b](https://github.com/Endymi0n74/Koharu/commit/a80b61b54f07926d3b8081105546f178ba22f399))
 
 
-## [0.1.1](https://github.com/Endymi0n74/Koharu/compare/v0.1.0..v0.1.1) - 2025-04-23
+## [0.1.1](https://github.com/koharu-rs/koharu/compare/v0.1.0..v0.1.1) - 2025-04-23
 
 ### ⛰️  Features
 
