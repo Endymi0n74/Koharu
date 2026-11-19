@@ -283,7 +283,7 @@
 - *(ui)* Purge 41 composants morts + 6 deps lourdes (recharts, embla, cmdk, calendar, input-otp) - ([e7f576b](https://github.com/Endymi0n74/Koharu/commit/f890c8ce466438084cd6a9c04e81f8ef0893d822))
 
 
-## [0.83.4] - 2026-09-19
+## [0.83.4](https://github.com/koharu-rs/koharu/compare/0.83.3..0.83.4) - 2026-09-17
 
 ### ⛰️  Features
 
@@ -292,12 +292,6 @@
 ### 🐛 Bug Fixes
 
 - *(ci)* Resolve the release changelog against the fork - ([01c0971](https://github.com/Endymi0n74/Koharu/commit/ac2206bd0760d01c38d8e7852a93be487b332ed7))
-
-
-## [0.83.4](https://github.com/koharu-rs/koharu/compare/0.83.3..0.83.4) - 2026-09-17
-
-### 🐛 Bug Fixes
-
 - *(deps)* Align gpu-allocator Windows bindings - ([19197a7](https://github.com/Endymi0n74/Koharu/commit/19197a77481d4a36e2091dec163014886ff6743f))
 
 
@@ -4039,7 +4033,7 @@ close #65 - ([f3039b6](https://github.com/Endymi0n74/Koharu/commit/f3039b64ff45f
 - Fix windows - ([3e3ec59](https://github.com/Endymi0n74/Koharu/commit/3e3ec59b79b2d529107715803a10d98be2228c05))
 
 
-## [0.1.1](https://github.com/koharu-rs/koharu/compare/v0.1.1..0.1.1) - 2025-05-28
+## [0.1.1] - 2025-05-28
 
 ### ⛰️  Features
 
