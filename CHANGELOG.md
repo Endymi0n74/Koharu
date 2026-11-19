@@ -104,17 +104,6 @@
 
 - *(batch)* Partially offload explicit translation models within VRAM budget - ([d8d86ff](https://github.com/Endymi0n74/Koharu/commit/9b6afd0b17f57db89523060b378353909e2285bc))
 
-## [0.83.5](https://github.com/koharu-rs/koharu/compare/0.83.4..0.83.5) - 2026-09-22
-
-### ⛰️  Features
-
-- Phase-major batch, --no-vision, enriched JA/RU->FR prompt - ([2fd7415](https://github.com/Endymi0n74/Koharu/commit/73908e34d0d079bd6d11472be3d1d58f21aa8e88))
-
-### 🐛 Bug Fixes
-
-- *(ci)* Recover incomplete release asset uploads - ([19430a0](https://github.com/koharu-rs/koharu/commit/19430a0810f83b0eb2f85045968301557c27ea8b))
-
-
 ## [0.83.9] - 2026-10-08
 
 ### ⛰️  Features
@@ -283,6 +272,17 @@
 - *(ui)* Purge 41 composants morts + 6 deps lourdes (recharts, embla, cmdk, calendar, input-otp) - ([e7f576b](https://github.com/Endymi0n74/Koharu/commit/f890c8ce466438084cd6a9c04e81f8ef0893d822))
 
 
+## [0.83.5](https://github.com/koharu-rs/koharu/compare/0.83.4..0.83.5) - 2026-09-22
+
+### ⛰️  Features
+
+- Phase-major batch, --no-vision, enriched JA/RU->FR prompt - ([2fd7415](https://github.com/Endymi0n74/Koharu/commit/73908e34d0d079bd6d11472be3d1d58f21aa8e88))
+
+### 🐛 Bug Fixes
+
+- *(ci)* Recover incomplete release asset uploads - ([19430a0](https://github.com/koharu-rs/koharu/commit/19430a0810f83b0eb2f85045968301557c27ea8b))
+
+
 ## [0.83.4](https://github.com/koharu-rs/koharu/compare/0.83.3..0.83.4) - 2026-09-17
 
 ### ⛰️  Features
@@ -349,7 +349,7 @@
 - *(app)* Default the processing scope to the selection ([#1088](https://github.com/koharu-rs/koharu/issues/1088)) - ([767e4d0](https://github.com/Endymi0n74/Koharu/commit/767e4d0441f986c18e55fc4e1af42f3dddfd860e))
 
 
-## [0.82.0](https://github.com/koharu-rs/koharu/compare/0.81.10..0.82.0) - 2026-09-11
+## [0.82.0](https://github.com/koharu-rs/koharu/compare/0.81.9..0.82.0) - 2026-09-11
 
 ### ⛰️  Features
 
@@ -2687,7 +2687,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Improve dev performance - ([0bc56ed](https://github.com/Endymi0n74/Koharu/commit/0bc56edd3dd6178696be414a8a7d78655d7c80b2))
 
 
-## [0.25.4](https://github.com/koharu-rs/koharu/compare/0.25.3..0.25.4) - 2025-12-24
+## [0.25.4](https://github.com/koharu-rs/koharu/compare/0.25.2..0.25.4) - 2025-12-24
 
 ### ⚙️ Miscellaneous Tasks
 
