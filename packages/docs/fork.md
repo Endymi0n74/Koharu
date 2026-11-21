@@ -47,7 +47,8 @@ A typical local installation layout on Windows:
 
 ```text
 D:\koharu\
-├── koharu.exe              # Tauri application (CEF runtime alongside it)
+├── koharu.exe              # Tauri application
+├── libcef.dll, chrome_elf.dll, *.pak, locales\    # CEF runtime
 ├── uninstall.exe
 └── store\                  # runtime store (see below)
 ```
