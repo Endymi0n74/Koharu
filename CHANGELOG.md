@@ -1,3 +1,34 @@
+## [0.88.2](https://github.com/Endymi0n74/Koharu/compare/v0.88.1..v0.88.2) - 2026-11-21
+
+### 📚 Documentation
+
+- *(changelog)* Rendre la scission 0.14.4 rejouable après un resync - ([0955c37](https://github.com/Endymi0n74/Koharu/commit/0955c3700189dfe18d0861f267c0b8259296245f))
+- *(changelog)* Recréer la section 0.14.4 et borner 0.14.5 - ([3d1ed33](https://github.com/Endymi0n74/Koharu/commit/3d1ed339067520acc41daad0b03776a794b50bdb))
+- *(changelog)* Restaurer les bornes amont 0.81.10 et 0.25.3 - ([810c4f3](https://github.com/Endymi0n74/Koharu/commit/810c4f39cb3b18baa0c7da7fb1599b38ea617316))
+- Alléger le handoff aux seuls éléments durables - ([5d47a72](https://github.com/Endymi0n74/Koharu/commit/5d47a7217905c3e49159a94dd8c8ea3815d651a5))
+- Suivre la nouvelle tête de la PR #2 dans le handoff - ([c3aea0a](https://github.com/Endymi0n74/Koharu/commit/c3aea0a35964e3c1a3d558480ce2c8ee94e6be9a))
+- Corriger le compte de commits non poussés du handoff - ([d2df8f5](https://github.com/Endymi0n74/Koharu/commit/d2df8f543e4e61d784ff5db7dcd1ae51820b3033))
+- Consigner le push et le nouveau tree de la PR #2 - ([a995183](https://github.com/Endymi0n74/Koharu/commit/a99518390f77545d27c4ed93f8ca51c302bf9cf8))
+- Recaler la liste des commits non poussés du handoff - ([049f703](https://github.com/Endymi0n74/Koharu/commit/049f703f9445b41e9f10179fc6cb300f81d0f796))
+- Basculer le handoff sur l'option B pour 0.14.4 - ([ee3d9f8](https://github.com/Endymi0n74/Koharu/commit/ee3d9f86f27e9432ee93be0b318b3f442ab3f94f))
+- Clore la question 0.14.4 dans le handoff - ([9422eb9](https://github.com/Endymi0n74/Koharu/commit/9422eb9e48d5698e944d20fd658be4b3923f07db))
+- Recaler le handoff sur l'état réel du dépôt - ([7b3cc71](https://github.com/Endymi0n74/Koharu/commit/7b3cc71fe1681c14d270ec4ff528682927f39fc0))
+- Ajouter le handoff de reprise en session fraîche - ([a9a584d](https://github.com/Endymi0n74/Koharu/commit/a9a584d3ee585f0b02d3424dcd532be7f8d063e6))
+- Remettre la section 0.83.5 juste sous 0.84.0 - ([08cdd9b](https://github.com/Endymi0n74/Koharu/commit/08cdd9bbbc00a3f621e0dad8177c6ab703f66170))
+- Raccorder les bornes basses et l'ordre des sections du CHANGELOG - ([6525dba](https://github.com/Endymi0n74/Koharu/commit/6525dba1f999110bec4a23b0ac0f08ac48dc4888))
+- Dedupliquer les sections 0.83.4 et 0.1.1 du CHANGELOG - ([ffde708](https://github.com/Endymi0n74/Koharu/commit/ffde708ed7d08ac64d01b9f798cc47a1e61b49f0))
+- Fusionner les deux sections 0.83.5 du CHANGELOG - ([5170f1e](https://github.com/Endymi0n74/Koharu/commit/5170f1e9273ebcce7cbed425e2edde542090b713))
+- Repointer les liens de comparaison vers l'amont - ([1d90e6e](https://github.com/Endymi0n74/Koharu/commit/1d90e6e845777c9b82a911eb05928424894f91d5))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Ignorer l'upload Sentry quand le jeton manque - ([14732df](https://github.com/Endymi0n74/Koharu/commit/14732df485319ac8bf85df5d1c251f2f8d697523))
+- Ne cacher que les dépendances pour koharu-batch - ([5925f1c](https://github.com/Endymi0n74/Koharu/commit/5925f1cec9c31f55ee1d92a986928d0f5dc9a399))
+- Clé stable aussi pour le cache du job Rust de test - ([65e2222](https://github.com/Endymi0n74/Koharu/commit/65e2222db197bec74a1865c94c00b2dc10e6aaa4))
+- Garder les jambes Windows chaudes - ([f9ee925](https://github.com/Endymi0n74/Koharu/commit/f9ee9255654b66bab57aef01ce4198facd2907b8))
+- Ignorer la sonde de decodage speculatif - ([4c744fa](https://github.com/Endymi0n74/Koharu/commit/4c744faf2d33e590f601937181723a8a21930dad))
+- Ignorer les changements qui ne touchent pas le code - ([c206fc9](https://github.com/Endymi0n74/Koharu/commit/c206fc9f9be7709d5db524091c74e58b5cd48570))
+
 ## [0.88.1](https://github.com/Endymi0n74/Koharu/compare/v0.88.0..v0.88.1) - 2026-11-16
 
 ### 🐛 Bug Fixes
