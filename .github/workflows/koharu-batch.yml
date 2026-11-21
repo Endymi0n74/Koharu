@@ -3,9 +3,9 @@ name: koharu-batch
 on:
   push:
     branches: ['main']
-    # Paths that cannot change a build input; both triggers share the list.
+    # Paths that cannot change a build input.
     # Tag pushes still run: GitHub does not evaluate path filters for tags.
-    paths-ignore: &code-irrelevant
+    paths-ignore:
       - '**.md'
       - 'packages/docs/**'
       - '.github/release-please/**'
