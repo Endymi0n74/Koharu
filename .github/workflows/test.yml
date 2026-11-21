@@ -39,6 +39,12 @@ jobs:
             gnome-keyring
       - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
+        with:
+          # Stable key, as in build.yml: a lockfile hash saved a new entry on
+          # every bump and the 10 GB budget evicted this one. It keeps its own
+          # key rather than build.yml's, since these artifacts are the debug
+          # profile and must not be merged into the release cache.
+          add-rust-environment-hash-key: false
       - name: Run headless Rust tests
         run: |
           cargo test --workspace --tests
