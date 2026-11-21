@@ -2986,14 +2986,11 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Format lama code with LF - ([a399564](https://github.com/Endymi0n74/Koharu/commit/a399564f297da75a0072893b7e5617c14ea05387))
 
 
-## [0.14.5](https://github.com/koharu-rs/koharu/compare/0.14.3..0.14.5) - 2025-12-11
+## [0.14.5](https://github.com/koharu-rs/koharu/compare/0.14.4..0.14.5) - 2025-12-11
 
 ### 🐛 Bug Fixes
 
 - Sakura-1.5b-qwen2.5-v1.0 incorrect eos_token_id - ([e10c8ec](https://github.com/Endymi0n74/Koharu/commit/e10c8eca933c167cac457519698346ddcad45c00))
-- Remove unused deserialize - ([8d4a00e](https://github.com/Endymi0n74/Koharu/commit/8d4a00e8c1805e99f0681cf408adfb571adaffc4))
-- Format code and llm example - ([f9ac15c](https://github.com/Endymi0n74/Koharu/commit/f9ac15c030af2044fae9077f58b2b934687032c5))
-- Use templates from gguf file - ([b78f870](https://github.com/Endymi0n74/Koharu/commit/b78f8703272e83019abf83cfe0f3b2e144774a22))
 
 ### 📚 Documentation
 
@@ -3002,6 +2999,15 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 ### ⚙️ Miscellaneous Tasks
 
 - Remove unwrap - ([2be6f04](https://github.com/Endymi0n74/Koharu/commit/2be6f044bdcaf03fa0d78298f9497750a335b8e7))
+
+
+## [0.14.4](https://github.com/koharu-rs/koharu/compare/0.14.3..0.14.4) - 2025-12-11
+
+### 🐛 Bug Fixes
+
+- Use templates from gguf file - ([b78f870](https://github.com/Endymi0n74/Koharu/commit/b78f8703272e83019abf83cfe0f3b2e144774a22))
+- Format code and llm example - ([f9ac15c](https://github.com/Endymi0n74/Koharu/commit/f9ac15c030af2044fae9077f58b2b934687032c5))
+- Remove unused deserialize - ([8d4a00e](https://github.com/Endymi0n74/Koharu/commit/8d4a00e8c1805e99f0681cf408adfb571adaffc4))
 
 
 ## [0.14.3](https://github.com/koharu-rs/koharu/compare/0.14.2..0.14.3) - 2025-12-11
