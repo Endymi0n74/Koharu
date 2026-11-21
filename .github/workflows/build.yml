@@ -49,7 +49,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: koharu-app-${{ matrix.os }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # The ARM leg measured 14.3-21.4 min with or without its entry, so
+          # the ~3.9 GB it saved warmed nothing and is what evicted the
+          # Windows entry. It still restores, but never saves.
+          save-if: ${{ github.ref == 'refs/heads/main' && matrix.os != 'ubuntu-24.04-arm' }}
           # A lockfile hash in the key made every dependency bump save another
           # multi-gigabyte entry; the 10 GB budget then evicted the Windows one,
           # which is why its legs always started cold. One stable key per runner
