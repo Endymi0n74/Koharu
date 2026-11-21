@@ -37,11 +37,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: koharu-batch
-          cache-workspace-crates: true
           save-if: ${{ github.ref == 'refs/heads/main' }}
-          # Without this the lockfile hash made every bump save a second ~1.6 GB
-          # entry, and this workflow's two Windows entries were the ones pushing
-          # the app cache out of the 10 GB budget.
+          # Dependencies only: caching the workspace crates added ~1.6 GB per
+          # entry, and this workflow's Windows entries were what pushed the app
+          # cache out of the 10 GB budget.
           add-rust-environment-hash-key: false
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Build koharu-batch (release)
