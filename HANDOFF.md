@@ -23,15 +23,17 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
   `0.25.3` restaurées : `0.82.0` pointe `0.81.10..0.82.0`, `0.25.4` pointe `0.25.3..0.25.4`, les
   anciennes bornes `0.81.9` / `0.25.2` avalaient leurs releases).
 - Audit des 4 premiers commits : `git diff -U0 1d90e6e8 08cdd9bb` = 6 hunks seulement ; 263 sections
-  (265 avant), **1673 puces avant et après, 0 perdue, 0 ajoutée** ; 1667 commits distincts tous
-  présents.
-- `origin/main` = `810c4f39`, `origin/main..HEAD` = 0 ; la CI de `main` est verte hors jobs ignorés
-  par `paths-ignore`.
+  (265 avant), **1673 puces avant et après, 0 perdue, 0 ajoutée** ; **1673 commits distincts**
+  (un par puce) tous présents dans le dépôt.
+- `origin/main` = `810c4f39` ; les commits de ce fichier (à partir de `a9a584d3`) restent locaux —
+  `git rev-list --count origin/main..HEAD` donne le nombre courant. La CI de `main` est verte hors
+  jobs ignorés par `paths-ignore`.
 
 ## Ce qui est fait mais PAS poussé
 
-- Uniquement le commit de ce fichier (`docs: handoff pour la reprise en session fraîche`).
-  `810c4f39` est désormais sur `origin/main`.
+- Uniquement les commits qui ne touchent que `HANDOFF.md`, à partir de `a9a584d3`
+  (`docs: ajouter le handoff de reprise en session fraîche`). Tout le reste, dont `810c4f39`, est sur
+  `origin/main`.
 
 ## CHANGELOG — état vérifié
 
@@ -72,7 +74,8 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 - Elle ne cite pas `810c4f39`, pourtant sur `main` depuis le 2026-11-21 : release-please n'a pas
   repassé depuis (tête et `updatedAt` du 2026-11-20), donc le commit arrivera après la balise
   `v0.88.2` et n'apparaîtra que dans la release suivante.
-- Fusion simulée (`merge-tree` tree `9279a1f1`) : `0.88.2` en tête, puis `0.88.1`, `0.88.0` ;
+- Fusion simulée (`merge-tree` sur `810c4f39` → tree `ad5e6141`) : `0.88.2` en tête, puis `0.88.1`,
+  `0.88.0` ;
   **1681 puces** = 1673 + 8, **264 en-têtes**, **254 liens** `compare`.
 
 ## Fichiers clés
