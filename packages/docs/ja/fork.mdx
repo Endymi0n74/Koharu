@@ -24,7 +24,11 @@ Windows での一般的なローカルインストール構成:
 ```text
 D:\koharu\
 ├── koharu.exe              # Tauri アプリケーション
-├── libcef.dll, chrome_elf.dll, *.pak, locales\, d3dcompiler_47.dll, dxcompiler.dll, dxil.dll, vk_swiftshader.dll, vk_swiftshader_icd.json, vulkan-1.dll, bootstrap*.exe    # CEF ランタイム
+├── CEF runtime             # 実行ファイルの隣に配置
+│   ├── libcef.dll, chrome_elf.dll, icudtl.dat, v8_context_snapshot.bin
+│   ├── *.pak, locales\
+│   ├── d3dcompiler_47.dll, dxcompiler.dll, dxil.dll
+│   └── vk_swiftshader.dll, vk_swiftshader_icd.json, vulkan-1.dll, bootstrap*.exe
 ├── uninstall.exe
 └── store\                  # ランタイムストア（下記参照）
 ```
