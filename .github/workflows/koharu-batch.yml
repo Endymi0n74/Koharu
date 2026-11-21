@@ -38,9 +38,11 @@ jobs:
         with:
           shared-key: koharu-batch
           save-if: ${{ github.ref == 'refs/heads/main' }}
-          # Dependencies only: caching the workspace crates added ~1.6 GB per
-          # entry, and this workflow's Windows entries were what pushed the app
-          # cache out of the 10 GB budget.
+          # Dependency-only caching measured 22.4 min (5925f1ce) and 23.5 min
+          # (85bb380d) per run; with the workspace crates the same job ran
+          # 9.7-13.9 min, for ~1.6 GB more. The budget absorbs it now that the
+          # 3.9 GB ARM app entry is gone.
+          cache-workspace-crates: true
           add-rust-environment-hash-key: false
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Build koharu-batch (release)
