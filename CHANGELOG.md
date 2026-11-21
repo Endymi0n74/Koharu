@@ -1,3 +1,21 @@
+## [0.88.3](https://github.com/Endymi0n74/Koharu/compare/v0.88.2..v0.88.3) - 2026-11-21
+
+### 📚 Documentation
+
+- Aligner les guides fork sur l'arborescence installée - ([34d79a2](https://github.com/Endymi0n74/Koharu/commit/34d79a2d60e6dda5c513b194448759adf7c184c9))
+
+### ⚙️ Miscellaneous Tasks
+
+- Retirer l'ancre inutilisée de koharu-batch - ([717a53b](https://github.com/Endymi0n74/Koharu/commit/717a53b0fb3ee87d6fb315b43c30c9d2899e0188))
+- Ne plus relancer koharu-batch sur les commits docs - ([08f5077](https://github.com/Endymi0n74/Koharu/commit/08f5077b22daaccf02aea8c4767f98b860dabfc3))
+- Remettre les crates du workspace dans le cache de koharu-batch - ([1c1a857](https://github.com/Endymi0n74/Koharu/commit/1c1a857061978ae9fefdca30d928ad7dc7bec6e2))
+- Ne pas sauvegarder le cache de la jambe ARM - ([72957f3](https://github.com/Endymi0n74/Koharu/commit/72957f3cecea1be86d91264173fa7bab55f5bf92))
+
+### Build
+
+- Remonter les pins tauri vers le correctif de bundling CEF - ([bea5dc5](https://github.com/Endymi0n74/Koharu/commit/bea5dc57289786dfaa102c99de98a1c87169adb4))
+- Supprimer la config Tauri Windows dont la ressource n'existe plus - ([1c599cf](https://github.com/Endymi0n74/Koharu/commit/1c599cfd2497bb6cf49f8ebef0ef8020c7132aa3))
+
 ## [0.88.2](https://github.com/Endymi0n74/Koharu/compare/v0.88.1..v0.88.2) - 2026-11-21
 
 ### 📚 Documentation
