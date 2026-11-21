@@ -25,6 +25,7 @@ jobs:
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
       # The root postinstall compiles the Tauri CLI from git; the docs only need
       # the mint CLI, which ships as plain JavaScript.
       - run: bun install --frozen-lockfile --ignore-scripts

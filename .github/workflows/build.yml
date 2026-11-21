@@ -50,10 +50,18 @@ jobs:
         with:
           shared-key: koharu-app-${{ matrix.os }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A lockfile hash in the key made every dependency bump save another
+          # multi-gigabyte entry; the 10 GB budget then evicted the Windows one,
+          # which is why its legs always started cold. One stable key per runner
+          # keeps the newest target and lets cargo recompile what changed.
+          add-rust-environment-hash-key: false
       - uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: ${{ matrix.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          # A lockfile change must still restore the previous store, otherwise
+          # `bun install` re-downloads everything (7-11 min on Windows).
+          restore-keys: ${{ matrix.os }}-bun-
       - run: bun install
       - run: bun run build
       - name: Upload Artifact
