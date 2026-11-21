@@ -2,7 +2,7 @@
 
 Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après le push des 6 commits locaux
 (`049f703f`), le rebase automatique de la PR #2 (`68384469`) et une fusion simulée propre (tree
-`3bfd359b`).
+`3bfd359b`). Le commit de mise à jour de ce fichier (`a9951839`) reste local.
 
 ## Objectif
 
@@ -28,15 +28,16 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 - Audit des 4 premiers commits : `git diff -U0 1d90e6e8 08cdd9bb` = 6 hunks seulement ; 263 sections
   (265 avant), **1673 puces avant et après, 0 perdue, 0 ajoutée** ; **1673 commits distincts**
   (un par puce) tous présents dans le dépôt.
-- `origin/main` = `049f703f`, `git rev-list --count origin/main..HEAD` = 0 : tout est poussé, y
-  compris les 6 commits du handoff. La CI de `810c4f39` était verte hors jobs ignorés par
-  `paths-ignore` ; `049f703f` (docs seuls) est ignoré par ces mêmes règles.
+- `origin/main` = `049f703f` ; depuis, seules les mises à jour de ce fichier restent locales, et
+  `git rev-list --oneline origin/main..HEAD` en donne la liste exacte. La CI de `810c4f39` était
+  verte hors jobs ignorés par `paths-ignore` ; `049f703f` (docs seuls) est ignoré par ces règles.
 
 ## Ce qui est fait mais PAS poussé
 
-- Rien : `git rev-list --count origin/main..HEAD` = 0 depuis le push `810c4f39..049f703f`. Les 6
-  commits (`a9a584d3`, `7b3cc71f`, `9422eb9e`, `3d1ed339`, `ee3d9f86`, `049f703f`) sont sur
-  `origin/main`.
+- Uniquement des mises à jour de ce fichier : `a9951839` (« docs: consigner le push et le nouveau
+  tree de la PR #2 »), puis les commits suivants de `HANDOFF.md`.
+- Les 6 commits précédents (`a9a584d3`, `7b3cc71f`, `9422eb9e`, `3d1ed339`, `ee3d9f86`, `049f703f`)
+  sont sur `origin/main` (push `810c4f39..049f703f`).
 
 ## CHANGELOG — état vérifié
 
@@ -116,7 +117,7 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
   récupérée localement ; `0.14.3` = `71dbaf47`, `0.14.5` = `9aca5cda`.
 - Hashes `main` : `14732df4` → `c206fc9f` → `4c744faf` → `1d90e6e8` → `5170f1e9` → `ffde708e`
   → `6525dba1` → `08cdd9bb` → `810c4f39` → `a9a584d3` → `7b3cc71f` → `9422eb9e` → `3d1ed339`
-  → `ee3d9f86` → `049f703f` (tous poussés le 2026-11-21).
+  → `ee3d9f86` → `049f703f` (poussés le 2026-11-21) → `a9951839` (local).
 - `gh` cible `koharu-rs/koharu` par défaut : **toujours** `-R Endymi0n74/Koharu` ; `gh api`
   n'accepte pas `-R` et écrit le JSON d'erreur sur stdout → juger sur `returncode`.
 - `git fetch` d'une PR release-please doit être forcé (`--force`) : la branche est rebasée.
