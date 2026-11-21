@@ -1,7 +1,8 @@
 # Handoff — Koharu (fork Endymi0n74/Koharu)
 
-Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après le push de `810c4f39` et la
-tranchage de la question `0.14.4` (option B, section scindée).
+Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après la re-vérification de chaque
+hash et de chaque chiffre cité ici contre le dépôt, les balises et la PR #2 (tous conformes, sauf la
+liste des commits non poussés, corrigée).
 
 ## Objectif
 
@@ -23,6 +24,7 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
   `08cdd9bb` (`0.83.5` remise juste sous `0.84.0`), puis `810c4f39` (bornes amont `0.81.10` /
   `0.25.3` restaurées : `0.82.0` pointe `0.81.10..0.82.0`, `0.25.4` pointe `0.25.3..0.25.4`, les
   anciennes bornes `0.81.9` / `0.25.2` avalaient leurs releases).
+  La scission `0.14.4` (`3d1ed339`) ne fait **pas** partie de cette liste : elle reste locale.
 - Audit des 4 premiers commits : `git diff -U0 1d90e6e8 08cdd9bb` = 6 hunks seulement ; 263 sections
   (265 avant), **1673 puces avant et après, 0 perdue, 0 ajoutée** ; **1673 commits distincts**
   (un par puce) tous présents dans le dépôt.
@@ -32,9 +34,10 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 
 ## Ce qui est fait mais PAS poussé
 
-- Uniquement les commits qui ne touchent que `HANDOFF.md`, à partir de `a9a584d3`
-  (`docs: ajouter le handoff de reprise en session fraîche`). Tout le reste, dont `810c4f39`, est sur
-  `origin/main`.
+- 5 commits locaux (`git rev-list --count origin/main..HEAD` = 5), à partir de `a9a584d3` :
+  - `HANDOFF.md` seul : `a9a584d3`, `7b3cc71f`, `9422eb9e`, `ee3d9f86` ;
+  - `CHANGELOG.md` seul : `3d1ed339` (scission `0.14.4` / `0.14.5`, option B, +10/−4).
+- Tout le reste, dont `810c4f39`, est sur `origin/main` (= `810c4f39`).
 
 ## CHANGELOG — état vérifié
 
