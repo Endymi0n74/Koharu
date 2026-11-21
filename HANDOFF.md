@@ -1,8 +1,8 @@
 # Handoff — Koharu (fork Endymi0n74/Koharu)
 
-Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après la re-vérification de chaque
-hash et de chaque chiffre cité ici contre le dépôt, les balises et la PR #2 (tous conformes, sauf la
-liste des commits non poussés, corrigée).
+Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après le push des 6 commits locaux
+(`049f703f`), le rebase automatique de la PR #2 (`68384469`) et une fusion simulée propre (tree
+`3bfd359b`).
 
 ## Objectif
 
@@ -23,21 +23,20 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
   deux `0.83.4` + suppression du lien bidon de `0.1.1`), `6525dba1` (bornes + ordre des sections),
   `08cdd9bb` (`0.83.5` remise juste sous `0.84.0`), puis `810c4f39` (bornes amont `0.81.10` /
   `0.25.3` restaurées : `0.82.0` pointe `0.81.10..0.82.0`, `0.25.4` pointe `0.25.3..0.25.4`, les
-  anciennes bornes `0.81.9` / `0.25.2` avalaient leurs releases).
-  La scission `0.14.4` (`3d1ed339`) ne fait **pas** partie de cette liste : elle reste locale.
+  anciennes bornes `0.81.9` / `0.25.2` avalaient leurs releases), puis `3d1ed339` (scission
+  `0.14.4` / `0.14.5`, option B).
 - Audit des 4 premiers commits : `git diff -U0 1d90e6e8 08cdd9bb` = 6 hunks seulement ; 263 sections
   (265 avant), **1673 puces avant et après, 0 perdue, 0 ajoutée** ; **1673 commits distincts**
   (un par puce) tous présents dans le dépôt.
-- `origin/main` = `810c4f39` ; les commits de ce fichier (à partir de `a9a584d3`) restent locaux —
-  `git rev-list --count origin/main..HEAD` donne le nombre courant. La CI de `main` est verte hors
-  jobs ignorés par `paths-ignore`.
+- `origin/main` = `049f703f`, `git rev-list --count origin/main..HEAD` = 0 : tout est poussé, y
+  compris les 6 commits du handoff. La CI de `810c4f39` était verte hors jobs ignorés par
+  `paths-ignore` ; `049f703f` (docs seuls) est ignoré par ces mêmes règles.
 
 ## Ce qui est fait mais PAS poussé
 
-- 5 commits locaux (`git rev-list --count origin/main..HEAD` = 5), à partir de `a9a584d3` :
-  - `HANDOFF.md` seul : `a9a584d3`, `7b3cc71f`, `9422eb9e`, `ee3d9f86` ;
-  - `CHANGELOG.md` seul : `3d1ed339` (scission `0.14.4` / `0.14.5`, option B, +10/−4).
-- Tout le reste, dont `810c4f39`, est sur `origin/main` (= `810c4f39`).
+- Rien : `git rev-list --count origin/main..HEAD` = 0 depuis le push `810c4f39..049f703f`. Les 6
+  commits (`a9a584d3`, `7b3cc71f`, `9422eb9e`, `3d1ed339`, `ee3d9f86`, `049f703f`) sont sur
+  `origin/main`.
 
 ## CHANGELOG — état vérifié
 
@@ -80,15 +79,15 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 
 ## PR #2 — « chore(main): release 0.88.2 »
 
-- Tête `8086a4a7` (rebasée par release-please après `810c4f39`), `mergeable` = `MERGEABLE` ;
-  `git merge-tree --write-tree origin/main refs/remotes/origin/pr2` → exit 0.
-- Fichiers : `.github/release-please/manifest.json`, `CHANGELOG.md` (+17), `Cargo.lock`, `Cargo.toml`
+- Tête `68384469` (rebasée par release-please après `049f703f`), `mergeable` = `MERGEABLE` ;
+  `git merge-tree --write-tree origin/main refs/remotes/origin/pr2` → exit 0, tree `3bfd359b`.
+- Fichiers : `.github/release-please/manifest.json`, `CHANGELOG.md` (+23), `Cargo.lock`, `Cargo.toml`
   (`version = "0.88.2"`).
-- L'entrée `0.88.2` (datée 2026-11-21, `compare/v0.88.1..v0.88.2`) liste **9 puces** : 6 docs
-  (`810c4f3`, `08cdd9b`, `6525dba`, `ffde708`, `5170f1e`, `1d90e6e`) et 3 misc (`14732df`, `4c744fa`,
-  `c206fc9`) — le commit du 2026-11-21 est désormais bien cité.
-- Fusion simulée (tree `78ac23cc`) : `0.88.2` en tête, puis `0.88.1`, `0.88.0` ; **1682 puces**
-  = 1673 + 9, **264 en-têtes**, **254 liens** `compare`.
+- L'entrée `0.88.2` (datée 2026-11-21, `compare/v0.88.1..v0.88.2`) liste **15 puces** : 12 docs
+  (`3d1ed33`, `810c4f3`, `049f703`, `ee3d9f8`, `9422eb9`, `7b3cc71`, `a9a584d`, `08cdd9b`,
+  `6525dba`, `ffde708`, `5170f1e`, `1d90e6e`) et 3 misc (`14732df`, `4c744fa`, `c206fc9`).
+- Fusion simulée (tree `3bfd359b`) : `0.88.2` en tête, puis `0.88.1`, `0.88.0` ; **1688 puces**
+  = 1673 + 15, **265 en-têtes** (264 + `0.88.2`), **255 liens** `compare`.
 
 ## Fichiers clés
 
@@ -116,7 +115,8 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 - Balise `0.14.4` = `13e632b9`, **uniquement en amont** (`git ls-remote --tags upstream`), non
   récupérée localement ; `0.14.3` = `71dbaf47`, `0.14.5` = `9aca5cda`.
 - Hashes `main` : `14732df4` → `c206fc9f` → `4c744faf` → `1d90e6e8` → `5170f1e9` → `ffde708e`
-  → `6525dba1` → `08cdd9bb` → `810c4f39` (poussé le 2026-11-21).
+  → `6525dba1` → `08cdd9bb` → `810c4f39` → `a9a584d3` → `7b3cc71f` → `9422eb9e` → `3d1ed339`
+  → `ee3d9f86` → `049f703f` (tous poussés le 2026-11-21).
 - `gh` cible `koharu-rs/koharu` par défaut : **toujours** `-R Endymi0n74/Koharu` ; `gh api`
   n'accepte pas `-R` et écrit le JSON d'erreur sur stdout → juger sur `returncode`.
 - `git fetch` d'une PR release-please doit être forcé (`--force`) : la branche est rebasée.
