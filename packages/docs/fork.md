@@ -48,7 +48,6 @@ A typical local installation layout on Windows:
 ```text
 D:\koharu\
 ├── koharu.exe              # Tauri application (CEF runtime alongside it)
-├── koharu-torch.dll        # native torch runtime
 ├── uninstall.exe
 └── store\                  # runtime store (see below)
 ```
@@ -71,7 +70,7 @@ store\
 │   └── datasets\  ...
 ├── cuda\          # CUDA runtime packages
 ├── llama\         # llama.cpp runtime
-├── torch\         # libtorch
+├── torch\         # libtorch and the koharu-torch shim
 └── diffusion\     # stable-diffusion.cpp runtime
 ```
 

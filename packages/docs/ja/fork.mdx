@@ -24,7 +24,6 @@ Windows での一般的なローカルインストール構成:
 ```text
 D:\koharu\
 ├── koharu.exe              # Tauri アプリケーション（CEF ランタイムが隣にあります）
-├── koharu-torch.dll        # ネイティブ torch ランタイム
 ├── uninstall.exe
 └── store\                  # ランタイムストア（下記参照）
 ```
@@ -44,7 +43,7 @@ store\
 │   └── datasets\  ...
 ├── cuda\          # CUDA ランタイムパッケージ
 ├── llama\         # llama.cpp ランタイム
-├── torch\         # libtorch
+├── torch\         # libtorch と koharu-torch shim
 └── diffusion\     # stable-diffusion.cpp ランタイム
 ```
 

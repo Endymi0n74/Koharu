@@ -24,7 +24,6 @@ Windows 上典型的本地安装布局：
 ```text
 D:\koharu\
 ├── koharu.exe              # Tauri 应用程序（CEF 运行时位于其旁）
-├── koharu-torch.dll        # 原生 torch 运行时
 ├── uninstall.exe
 └── store\                  # 运行时存储（见下文）
 ```
@@ -44,7 +43,7 @@ store\
 │   └── datasets\  ...
 ├── cuda\          # CUDA 运行时包
 ├── llama\         # llama.cpp 运行时
-├── torch\         # libtorch
+├── torch\         # libtorch 与 koharu-torch shim
 └── diffusion\     # stable-diffusion.cpp 运行时
 ```
 
