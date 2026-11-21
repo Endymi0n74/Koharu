@@ -65,7 +65,11 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
   (`b78f870`, `f9ac15c`, `8d4a00e`) et réduire `0.14.5` à `compare/0.14.4..0.14.5`
   (`e10c8ec`, `ee60acf`, `2be6f04`). La plage `0.14.3..0.14.5` couvrait 10 commits ; elle est
   maintenant coupée en deux sans qu'aucune puce ne bouge.
-- **Divergence assumée avec l'amont** : à réappliquer si l'on resynchronise `CHANGELOG.md`.
+- **Divergence assumée avec l'amont**, désormais rejouable : `py -3 scripts/fix-changelog-0.14.4.py`
+  rétablit les deux sections (idempotent, conserve le CRLF, restaure le fichier octet pour octet) ;
+  `--check` échoue si la scission a été perdue, et le script **refuse** de toucher la zone dès
+  qu'elle contient une puce d'un commit autre que les six ci-dessus — c'est le signal d'un vrai
+  changement amont, à traiter à la main. À lancer après toute resynchronisation de `CHANGELOG.md`.
 - Vérifié après coup : 264 en-têtes, **1673 puces identiques à avant** (`set` de différence vide),
   254 liens `compare`, **0 borne haute ≠ titre**, **0 balise citée absente** (union local ∪ `upstream`
   ∪ `origin`), CRLF intégral, et l'ordre `0.15.0` → `0.14.5` → `0.14.4` → `0.14.3` respecté.
