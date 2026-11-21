@@ -349,7 +349,7 @@
 - *(app)* Default the processing scope to the selection ([#1088](https://github.com/koharu-rs/koharu/issues/1088)) - ([767e4d0](https://github.com/Endymi0n74/Koharu/commit/767e4d0441f986c18e55fc4e1af42f3dddfd860e))
 
 
-## [0.82.0](https://github.com/koharu-rs/koharu/compare/0.81.9..0.82.0) - 2026-09-11
+## [0.82.0](https://github.com/koharu-rs/koharu/compare/0.81.10..0.82.0) - 2026-09-11
 
 ### ⛰️  Features
 
@@ -2687,7 +2687,7 @@ Fixes #118 - ([8afb656](https://github.com/Endymi0n74/Koharu/commit/8afb65673af2
 - Improve dev performance - ([0bc56ed](https://github.com/Endymi0n74/Koharu/commit/0bc56edd3dd6178696be414a8a7d78655d7c80b2))
 
 
-## [0.25.4](https://github.com/koharu-rs/koharu/compare/0.25.2..0.25.4) - 2025-12-24
+## [0.25.4](https://github.com/koharu-rs/koharu/compare/0.25.3..0.25.4) - 2025-12-24
 
 ### ⚙️ Miscellaneous Tasks
 
