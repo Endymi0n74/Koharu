@@ -1,6 +1,7 @@
 # Handoff — Koharu (fork Endymi0n74/Koharu)
 
-Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après le push de `810c4f39`.
+Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après le push de `810c4f39` et la
+clôture de la question `0.14.4` (option A, statu quo).
 
 ## Objectif
 
@@ -42,13 +43,26 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
   égale son titre au `v` près.
 - Les trois plages qui enjambent une balise réelle (`0.82.0` → `0.81.10`, `0.25.4` → `0.25.3`,
   `0.14.5` → `0.14.4`) sont désormais **identiques à l'amont** ; aucune de ces trois balises n'a de
-  section, ni ici ni en amont.
+  section, ni ici ni en amont — `0.14.4` compris (voir ci-dessous).
 - `0.81.9` et `0.25.2` gardent leurs propres sections (`0.81.8..0.81.9`, `0.25.1..0.25.2`) :
   aucune entrée orpheline.
 - `0.83.5` est volontairement juste sous `0.84.0` : seule rupture d'ordre décroissant, assumée.
 - Doublons traités : `0.83.5` 2 sections → 1 (2 puces), `0.83.4` 2 → 1 (3 puces). Pour `0.1.1`, les
   deux releases réelles sont conservées (mai : 121 puces ; avril : 25) ; seul le lien bidon
   `v0.1.1..0.1.1` a été retiré, l'en-tête restant sans lien comme chez l'amont.
+
+### `0.14.4` — décision prise : option A (statu quo)
+
+- La section `0.14.5` garde la plage amont `compare/0.14.3..0.14.5` ; aucune modification à faire.
+- Preuve que rien n'est perdu : l'amont a créé `## [0.14.4]` dans `1b848334` puis **a fusionné cette
+  section dans `0.14.5`** dans `9aca5cda` (renommage du titre + 2 puces ajoutées), sans jamais
+  produire de section `0.14.4` dans son état courant.
+- `git rev-list --count 0.14.3..0.14.5` = **10 commits**, tous présents dans le dépôt ; les puces de
+  `0.14.5` (6) sont intactes, et `grep -c '0\.14\.4' CHANGELOG.md` = **0** des deux côtés.
+- La balise `0.14.4` existe bien en amont (`13e632b9`), mais elle n'a jamais eu de section propre :
+  garder `0.14.3..0.14.5` est donc fidèle à l'amont et n'avale aucune release réelle.
+- Corriger l'amont (option B/C : scinder ou borner `0.14.4..0.14.5`) a été écarté : divergence
+  gratuite, et `0.14.4` n'a pas d'artefacts à afficher.
 
 ## Ce qui reste
 
@@ -57,10 +71,7 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
    - run `Release` (`.github/workflows/release.yml`) : c'est lui qui produit les binaires.
      `.github/sentry.sh` est corrigé sur `main` (upload conditionné au jeton + `SENTRY_ORG`), donc
      le build ne doit plus échouer sur l'upload.
-2. **Trou `0.14.4`** : la section `0.14.5` compare `0.14.3..0.14.5`, alors que la balise `0.14.4`
-   existe en amont (absente du clone local). L'amont écrit exactement la même plage : laissé tel
-   quel. Décider seulement si l'on veut corriger l'amont aussi.
-3. **`v0.88.1` reste publiée sans artefacts** : `0.88.2` sera la première release à porter les
+2. **`v0.88.1` reste publiée sans artefacts** : `0.88.2` sera la première release à porter les
    binaires d'un arbre corrigé. Alternative si besoin : `workflow_dispatch` sur `release.yml`.
 
 ## PR #2 — « chore(main): release 0.88.2 »
@@ -96,13 +107,13 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 
 1. **Binaires de `0.88.1`** : les laisser absents (`0.88.2` portera les binaires) ou rebâtir depuis
    `main` via un `workflow_dispatch` sur `release.yml` ?
-2. **Trou `0.14.4`** : garder la plage amont `0.14.3..0.14.5` (statu quo) ou l'aligner sur
-   `0.14.4..0.14.5` en s'écartant de l'amont ?
-3. **Captures d'écran** de l'aperçu d'erreur : dans `target/`, ignorées par Git. Dossier suivi voulu ?
+2. **Captures d'écran** de l'aperçu d'erreur : dans `target/`, ignorées par Git. Dossier suivi voulu ?
 
 ## Notes d'environnement
 
 - Dépôt `D:\Codex\koharu` ; `origin` = Endymi0n74/Koharu, `upstream` = koharu-rs/koharu.
+- Balise `0.14.4` = `13e632b9`, **uniquement en amont** (`git ls-remote --tags upstream`), non
+  récupérée localement ; `0.14.3` = `71dbaf47`, `0.14.5` = `9aca5cda`.
 - Hashes `main` : `14732df4` → `c206fc9f` → `4c744faf` → `1d90e6e8` → `5170f1e9` → `ffde708e`
   → `6525dba1` → `08cdd9bb` → `810c4f39` (poussé le 2026-11-21).
 - `gh` cible `koharu-rs/koharu` par défaut : **toujours** `-R Endymi0n74/Koharu` ; `gh api`
