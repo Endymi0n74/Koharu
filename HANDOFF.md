@@ -1,7 +1,7 @@
 # Handoff — Koharu (fork Endymi0n74/Koharu)
 
 Reprise en session fraîche. Dernière mise à jour : 2026-11-21, après le push de `810c4f39` et la
-clôture de la question `0.14.4` (option A, statu quo).
+tranchage de la question `0.14.4` (option B, section scindée).
 
 ## Objectif
 
@@ -38,12 +38,12 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 
 ## CHANGELOG — état vérifié
 
-- **263 en-têtes**, **1673 puces**, **253 liens `compare`**, 10 en-têtes sans lien.
+- **264 en-têtes**, **1673 puces**, **254 liens `compare`**, 10 en-têtes sans lien.
 - 258 balises distinctes citées, **0 manquante** (`git rev-parse` sur chacune) ; chaque borne haute
   égale son titre au `v` près.
-- Les trois plages qui enjambent une balise réelle (`0.82.0` → `0.81.10`, `0.25.4` → `0.25.3`,
-  `0.14.5` → `0.14.4`) sont désormais **identiques à l'amont** ; aucune de ces trois balises n'a de
-  section, ni ici ni en amont — `0.14.4` compris (voir ci-dessous).
+- Deux plages enjambent encore une balise réelle (`0.82.0` → `0.81.10`, `0.25.4` → `0.25.3`) et
+  sont **identiques à l'amont** : ni ici ni en amont ces balises n'ont de section.
+- `0.14.4` fait exception, volontairement (voir ci-dessous) : il a maintenant sa propre section.
 - `0.81.9` et `0.25.2` gardent leurs propres sections (`0.81.8..0.81.9`, `0.25.1..0.25.2`) :
   aucune entrée orpheline.
 - `0.83.5` est volontairement juste sous `0.84.0` : seule rupture d'ordre décroissant, assumée.
@@ -51,18 +51,19 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
   deux releases réelles sont conservées (mai : 121 puces ; avril : 25) ; seul le lien bidon
   `v0.1.1..0.1.1` a été retiré, l'en-tête restant sans lien comme chez l'amont.
 
-### `0.14.4` — décision prise : option A (statu quo)
+### `0.14.4` — décision prise : option B (section scindée)
 
-- La section `0.14.5` garde la plage amont `compare/0.14.3..0.14.5` ; aucune modification à faire.
-- Preuve que rien n'est perdu : l'amont a créé `## [0.14.4]` dans `1b848334` puis **a fusionné cette
-  section dans `0.14.5`** dans `9aca5cda` (renommage du titre + 2 puces ajoutées), sans jamais
-  produire de section `0.14.4` dans son état courant.
-- `git rev-list --count 0.14.3..0.14.5` = **10 commits**, tous présents dans le dépôt ; les puces de
-  `0.14.5` (6) sont intactes, et `grep -c '0\.14\.4' CHANGELOG.md` = **0** des deux côtés.
-- La balise `0.14.4` existe bien en amont (`13e632b9`), mais elle n'a jamais eu de section propre :
-  garder `0.14.3..0.14.5` est donc fidèle à l'amont et n'avale aucune release réelle.
-- Corriger l'amont (option B/C : scinder ou borner `0.14.4..0.14.5`) a été écarté : divergence
-  gratuite, et `0.14.4` n'a pas d'artefacts à afficher.
+- Contexte : l'amont a créé `## [0.14.4]` dans `1b848334`, puis **a fusionné cette section dans
+  `0.14.5`** dans `9aca5cda` (renommage du titre + 2 puces ajoutées). La balise `0.14.4`
+  (`13e632b9`) existe pourtant bel et bien en amont, d'où le trou dans le chaînage.
+- Choix retenu : recréer la section `0.14.4` (`compare/0.14.3..0.14.4`) avec ses **3 correctifs**
+  (`b78f870`, `f9ac15c`, `8d4a00e`) et réduire `0.14.5` à `compare/0.14.4..0.14.5`
+  (`e10c8ec`, `ee60acf`, `2be6f04`). La plage `0.14.3..0.14.5` couvrait 10 commits ; elle est
+  maintenant coupée en deux sans qu'aucune puce ne bouge.
+- **Divergence assumée avec l'amont** : à réappliquer si l'on resynchronise `CHANGELOG.md`.
+- Vérifié après coup : 264 en-têtes, **1673 puces identiques à avant** (`set` de différence vide),
+  254 liens `compare`, **0 borne haute ≠ titre**, **0 balise citée absente** (union local ∪ `upstream`
+  ∪ `origin`), CRLF intégral, et l'ordre `0.15.0` → `0.14.5` → `0.14.4` → `0.14.3` respecté.
 
 ## Ce qui reste
 
@@ -76,18 +77,15 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 
 ## PR #2 — « chore(main): release 0.88.2 »
 
-- Tête `709bea48`, `mergeable` = `MERGEABLE`, `mergeStateStatus` = `UNSTABLE` (aucun check ne tourne
-  sur la branche release), `git merge-tree --write-tree origin/main refs/remotes/origin/pr2` → exit 0.
-- Fichiers : `.github/release-please/manifest.json`, `CHANGELOG.md` (+16), `Cargo.lock`, `Cargo.toml`.
-- L'entrée `0.88.2` (datée 2026-11-20, `compare/v0.88.1..v0.88.2`) liste maintenant **8 puces** :
-  5 docs (`08cdd9b`, `6525dba`, `ffde708`, `5170f1e`, `1d90e6e`) et 3 misc (`14732df`, `4c744fa`,
-  `c206fc9`) — le rafraîchissement a bien intégré les commits du 2026-11-20.
-- Elle ne cite pas `810c4f39`, pourtant sur `main` depuis le 2026-11-21 : release-please n'a pas
-  repassé depuis (tête et `updatedAt` du 2026-11-20), donc le commit arrivera après la balise
-  `v0.88.2` et n'apparaîtra que dans la release suivante.
-- Fusion simulée (`merge-tree` sur `810c4f39` → tree `ad5e6141`) : `0.88.2` en tête, puis `0.88.1`,
-  `0.88.0` ;
-  **1681 puces** = 1673 + 8, **264 en-têtes**, **254 liens** `compare`.
+- Tête `8086a4a7` (rebasée par release-please après `810c4f39`), `mergeable` = `MERGEABLE` ;
+  `git merge-tree --write-tree origin/main refs/remotes/origin/pr2` → exit 0.
+- Fichiers : `.github/release-please/manifest.json`, `CHANGELOG.md` (+17), `Cargo.lock`, `Cargo.toml`
+  (`version = "0.88.2"`).
+- L'entrée `0.88.2` (datée 2026-11-21, `compare/v0.88.1..v0.88.2`) liste **9 puces** : 6 docs
+  (`810c4f3`, `08cdd9b`, `6525dba`, `ffde708`, `5170f1e`, `1d90e6e`) et 3 misc (`14732df`, `4c744fa`,
+  `c206fc9`) — le commit du 2026-11-21 est désormais bien cité.
+- Fusion simulée (tree `78ac23cc`) : `0.88.2` en tête, puis `0.88.1`, `0.88.0` ; **1682 puces**
+  = 1673 + 9, **264 en-têtes**, **254 liens** `compare`.
 
 ## Fichiers clés
 
@@ -99,7 +97,7 @@ déplacer les balises existantes. Réponses en français, courtes, démarrant pa
 | `.github/sentry.sh` | upload conditionné à jeton + org, strip toujours exécuté |
 | `.github/workflows/{build,test,lint}.yml` | `paths-ignore: &code-irrelevant` partagé |
 | `Cargo.toml` | `[workspace.package] version`, seule source de version (bump par la PR #2) |
-| `CHANGELOG.md` | 263 en-têtes, 253 liens `compare` alignés sur l'amont |
+| `CHANGELOG.md` | 264 en-têtes, 254 liens `compare` ; seul écart voulu à l'amont : la section `0.14.4` |
 | `packages/koharu/public/locales/` | 452 clés × 12 locales |
 | `.gitignore` | `bench-profile/`, `spec_decode_probe.rs`, `/memory.md` |
 
