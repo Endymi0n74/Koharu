@@ -42,25 +42,27 @@ impl Processor {
     /// first batch run, say), the chapter's own OCR text is read once,
     /// described by the translation model, and returned so the caller can
     /// persist it. A failing analysis never fails the page: it is logged, and
-    /// the page is translated with continuity context alone.
+    /// the page is translated with continuity context alone. The run's own
+    /// fixed terms are merged into whichever profile was resolved.
     async fn document_profile(
         &self,
         scene: &koharu_scene::Snapshot,
         source_language: Option<koharu_translator::Language>,
+        glossary: &[ProfileTerm],
     ) -> Result<(Option<TranslationProfile>, Option<DocumentProfile>)> {
         if let Some(stored) = scene.project_component::<DocumentProfile>()? {
-            let profile = to_translation_profile(&stored);
-            return Ok(((!profile.is_empty()).then_some(profile), None));
+            let profile = merge_glossary(Some(to_translation_profile(&stored)), glossary);
+            return Ok((profile.filter(|profile| !profile.is_empty()), None));
         }
         let segments = chapter_segments(scene)?;
         if segments.is_empty() {
-            return Ok((None, None));
+            return Ok((merge_glossary(None, glossary), None));
         }
         let mut request = ProfileRequest::new(segments, self.config.target_language);
         if let Some(language) = source_language {
             request = request.with_source_language(language);
         }
-        match self
+        let learned = match self
             .translator
             .profile(&self.config.model, self.config.generation, request)
             .await
@@ -71,14 +73,16 @@ impl Processor {
                     glossary = profile.glossary.len(),
                     "learned the chapter's document profile"
                 );
-                Ok((Some(profile.clone()), Some(to_document_profile(&profile))))
+                Some(profile)
             }
-            Ok(None) => Ok((None, None)),
+            Ok(None) => None,
             Err(error) => {
                 tracing::warn!(%error, "document profile analysis failed; translating without it");
-                Ok((None, None))
+                None
             }
-        }
+        };
+        let document = learned.as_ref().map(to_document_profile);
+        Ok((merge_glossary(learned, glossary), document))
     }
 }
 
@@ -119,7 +123,9 @@ impl StageProcessor for Processor {
                 }
             }
         }
-        let (profile, learned) = self.document_profile(&input.scene, source_language).await?;
+        let (profile, learned) = self
+            .document_profile(&input.scene, source_language, &input.glossary)
+            .await?;
 
         let mut request = TranslationRequest::new(
             targets.iter().map(|(_, source)| source.clone()),
@@ -261,6 +267,41 @@ fn chapter_segments(scene: &koharu_scene::Snapshot) -> Result<Vec<String>> {
         }
     }
     Ok(segments)
+}
+
+/// Adds the run's fixed terms to the chapter profile the stage resolved.
+///
+/// A pair replaces a learned term of the same source — the command line is the
+/// last word — and the rest of the dossier is kept, so `--glossary` sharpens
+/// the analysis instead of standing in for it. A source repeated on the command
+/// line keeps one entry, its last target. Every term reaches the prompt through
+/// this one profile, never through a second glossary channel.
+fn merge_glossary(
+    profile: Option<TranslationProfile>,
+    glossary: &[ProfileTerm],
+) -> Option<TranslationProfile> {
+    if glossary.is_empty() {
+        return profile;
+    }
+    let mut profile = profile.unwrap_or_default();
+    // Remove any character whose source matches a glossary source (last wins).
+    profile.characters.retain(|term| {
+        !glossary.iter().any(|pair| pair.source.trim() == term.source.trim())
+    });
+    // Deduplicate characters: keep one entry per source, last wins.
+    let mut seen_sources = std::collections::HashSet::new();
+    profile.characters.retain(|term| {
+        let dup = seen_sources.contains(&term.source);
+        seen_sources.insert(term.source.clone());
+        !dup
+    });
+    for pair in glossary {
+        profile
+            .glossary
+            .retain(|term| term.source.trim() != pair.source.trim());
+        profile.glossary.push(pair.clone());
+    }
+    Some(profile)
 }
 
 fn to_translation_profile(profile: &DocumentProfile) -> TranslationProfile {
@@ -494,6 +535,7 @@ mod tests {
             .document_profile(
                 &session.snapshot(),
                 Some(koharu_translator::Language::Japanese),
+                &[],
             )
             .await
             .unwrap();
@@ -502,6 +544,117 @@ mod tests {
         let profile = profile.expect("the stored profile reaches the request");
         assert_eq!(profile.series.as_deref(), Some("Musashino Shijin"));
         assert_eq!(profile.characters[0].target, "Yanagita");
+    }
+
+    #[tokio::test]
+    async fn a_run_glossary_adds_to_the_dossier_and_wins_on_a_shared_source() {
+        // `koharu-batch --glossary` on a chapter that already learned a
+        // dossier: the dossier survives, the pairs fill in the glossary, and
+        // a pair replaces the learned term of the same source.
+        let mut session = Session::memory().await.unwrap();
+        add_page(&mut session, "one", &[line("貴族院", None)]).await;
+        let stored = DocumentProfile {
+            series: Some("Musashino Shijin".to_owned()),
+            characters: vec![SceneProfileTerm {
+                source: "柳田".to_owned(),
+                target: "Yanagita".to_owned(),
+                note: None,
+            }],
+            glossary: vec![SceneProfileTerm {
+                source: "貴族院".to_owned(),
+                target: "la Chambre des nobles".to_owned(),
+                note: Some("institution".to_owned()),
+            }],
+            ..DocumentProfile::default()
+        };
+        let patch = session
+            .snapshot()
+            .patch(|edit| edit.set_project(&stored))
+            .unwrap();
+        session.commit(patch).await.unwrap();
+
+        let glossary = [
+            ProfileTerm::new("貴族院", "la Chambre des pairs"),
+            ProfileTerm::new("王都", "la capitale"),
+        ];
+        let (profile, learned) = processor()
+            .document_profile(&session.snapshot(), None, &glossary)
+            .await
+            .unwrap();
+
+        assert!(learned.is_none(), "the dossier is read, never re-analyzed");
+        let profile = profile.expect("the merged profile reaches the request");
+        assert_eq!(profile.series.as_deref(), Some("Musashino Shijin"));
+        assert_eq!(profile.characters[0].target, "Yanagita");
+        assert_eq!(
+            profile
+                .glossary
+                .iter()
+                .map(|term| (term.source.as_str(), term.target.as_str()))
+                .collect::<Vec<_>>(),
+            [("貴族院", "la Chambre des pairs"), ("王都", "la capitale")],
+            "the command line wins on a shared source and adds the rest"
+        );
+    }
+
+    #[test]
+    fn a_source_repeated_in_the_run_glossary_keeps_its_last_target() {
+        // The flag is a list, not a map: `--glossary 王都=la capitale
+        // --glossary 王都=la Cité` is one term, the later pair winning. The
+        // learned dossier keeps its own terms, minus the overridden sources.
+        let stored = TranslationProfile {
+            series: Some("Musashino Shijin".to_owned()),
+            glossary: vec![
+                ProfileTerm::new("貴族院", "la Chambre des nobles"),
+                ProfileTerm::new("王都", "la capitale du royaume"),
+            ],
+            ..TranslationProfile::default()
+        };
+        let merged = merge_glossary(
+            Some(stored),
+            &[
+                ProfileTerm::new("王都", "la capitale"),
+                ProfileTerm::new("貴族院", "la Chambre des pairs"),
+                ProfileTerm::new("王都", "la Cité"),
+            ],
+        )
+        .expect("a run glossary is a usable profile");
+
+        assert_eq!(
+            merged.glossary,
+            [
+                ProfileTerm::new("貴族院", "la Chambre des pairs"),
+                ProfileTerm::new("王都", "la Cité"),
+            ],
+            "one entry per source, the last command-line target winning"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_glossary_without_a_dossier_is_a_request_profile_of_its_own() {
+        // Nothing to learn from yet: the pairs alone must still reach the
+        // request, through the same profile the analysis would fill — and a
+        // source given twice keeps one entry, its last target.
+        let session = Session::memory().await.unwrap();
+        let (profile, learned) = processor()
+            .document_profile(
+                &session.snapshot(),
+                None,
+                &[
+                    ProfileTerm::new("王都", "la capitale"),
+                    ProfileTerm::new("王都", "la Cité"),
+                ],
+            )
+            .await
+            .unwrap();
+
+        assert!(learned.is_none());
+        let profile = profile.expect("the pairs are a usable profile");
+        assert_eq!(
+            profile.glossary,
+            [ProfileTerm::new("王都", "la Cité")],
+            "a repeated source keeps one line with the last target"
+        );
     }
 
     #[tokio::test]
@@ -515,7 +668,7 @@ mod tests {
         session.commit(patch).await.unwrap();
 
         let (profile, learned) = processor()
-            .document_profile(&session.snapshot(), None)
+            .document_profile(&session.snapshot(), None, &[])
             .await
             .unwrap();
 

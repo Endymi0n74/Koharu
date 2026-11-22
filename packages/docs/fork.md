@@ -18,8 +18,8 @@ On top of upstream Koharu, this fork currently adds:
 - **Batch CLI (`koharu-batch`)** — translate a whole chapter (folder of images or CBZ) — or a
   whole volume, one chapter per subfolder and per archive — in one unattended command, with
   natural page ordering, resume support, per-page fault isolation, retries, a machine-readable
-  `--json` summary, a VRAM budget guard, and a `--llm auto` model picker that scales up with the
-  GPU (see *Batch mode* below).
+  `--json` summary, a VRAM budget guard, and a `--llm auto` model picker that takes the strongest
+  model the budget can run inside the 8 GB class (see *Batch mode* below).
 - **French typography profile** — `fr-FR` output normalization (guillemets, curly apostrophes,
   narrow no-break spaces) applied before rendering, with stylized lettering preserved
   (see *French typography profile* below).
@@ -53,6 +53,7 @@ D:\koharu\
 │   ├── *.pak, locales\
 │   ├── d3dcompiler_47.dll, dxcompiler.dll, dxil.dll
 │   └── vk_swiftshader.dll, vk_swiftshader_icd.json, vulkan-1.dll, bootstrap*.exe
+├── LICENSE-MIT, LICENSE-APACHE  # license files
 ├── uninstall.exe
 └── store\                  # runtime store (see below)
 ```
@@ -110,18 +111,19 @@ Measurements on a Ryzen 7600 / 32 GB RAM / RTX 3070 (8 GB, CUDA, BF16), with a r
 
 Recommendation for an 8 GB card:
 
-- **Default: `hy-mt2-7b` (Q4_K_M)** — Tencent's translation-specialized Hy-MT2 7B, text-only,
-  small enough to fit **whole** on an 8 GB card: ~4.3 GiB of weights plus ~1 GiB of context,
-  no vision projector, so no block is pushed to host memory.
-- **Vision-capable, whole-GPU: `qwen3.5-4b-uncensored` (Q4_K_M)** — ~4.0 GiB, so every page
-  stays on the GPU *and* the model sees the page image. On the reference RTX 3070 a 21-page
-  chapter took 205 s end to end; the split E4B below needed 342 s for the same chapter length.
+- **Default: `hy-mt2-7b` (Q4_K_M)** — Tencent's translation-specialized Hy-MT2 7B, text-only.
+  Measured on the reference RTX 3070 at **5.6 GiB** for the whole page pipeline (model, detection,
+  OCR, inpainting), it fits an 8 GB card **whole**: no vision projector, no block in host memory.
+- **Vision-capable, whole-GPU: `qwen3.5-4b-uncensored` (Q4_K_M)** — measured at 4.9 GiB with the
+  projector, so every page stays on the GPU *and* the model sees the page image. On the reference
+  RTX 3070 a 21-page chapter took 205 s end to end; the split E4B below needed 342 s for the same
+  chapter length.
 - **Quality-first, notably slower: `gemma4-e4b-uncensored` (Q4_K_P)** — uncensored and
   vision-capable, but its ~6.3 GiB peak with the projector does not fit an 8 GB card, so it
   runs as a partial offload (26 of 42 blocks on the GPU). That split is what makes it several
   times slower per page, not its size alone.
 - **Small and fast text-only:** `hy-mt2-1.8b` — the 1.8B member of the same family; an explicit
-  `--llm hy-mt2-1.8b` only (`auto` never picks it, it sits below the 2B quality floor). Every
+  `--llm hy-mt2-1.8b` only (`auto` never picks it: the ladder stops at the 2B class). Every
   Hy-MT2 size limits its targets to the 38 languages it was trained for (no pt-BR, Bulgarian,
   Belarusian, or Hungarian).
 
@@ -183,11 +185,14 @@ verification shifts logits enough to flip a near-tie — which would break the r
 preference list with partial offload, requiring **at least half its blocks on the GPU** (see
 *Partial offload* below). This makes a whole-GPU Qwen 3.5 4B outrank the slower offloaded E4B on
 an 8 GB card: on the reference RTX 3070 and a dense 21-page chapter, that took 98 s versus 342 s
-for the split E4B. The 31B still wins when it fits whole, and remains the first split fallback if
-no model fits whole. The *VRAM* column is the peak the configuration has to fit, reported in GiB
-as in the CLI output. The Qwen row reflects its 4.0 GiB formula estimate; other rows come from the
-parameter/quantization formula until a real run calibrates them, so treat them as planning figures
-and let `--dry-run` confirm the plan.
+for the split E4B. The default path stops at the 8 GB class: a card that reports more VRAM does
+not promote the 12B, 26B-A4B or 31B entries, or the Qwen 9B-and-up sizes, which stay cataloged
+but reachable only through an explicit `--llm <id> --quantization <id>`. The *VRAM* column is the
+peak the whole run has to hold — the model plus the detection, OCR and inpainting stages that load
+around it — reported in GiB as in the CLI output. Rows marked *(measured)* come from a real run on
+the reference card; the others add a 0.9 GiB stage reserve to the parameter/quantization formula,
+the gap measured between the formula and the real peak on every calibrated run, so treat them as
+planning figures and let `--dry-run` confirm the plan.
 
 The preference list leads with the two translation-specialized Hy-MT2 sizes, but they carry no
 vision projector: a run that keeps the page image (`auto` unless `--no-vision`) skips them and
@@ -195,29 +200,33 @@ uses the table below, while `--no-vision --llm auto` picks `hy-mt2-7b` on an 8 G
 
 | Card | Model | Quantization | Split | VRAM peak |
 |---|---|---|---|---|
-| 5 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.0 GiB (estimated) |
-| 6 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.0 GiB (estimated) |
-| 8 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.0 GiB (estimated) |
-| 12 GiB | gemma4-12b-uncensored | Q4_K_M | — (fits whole) | 8.3 GiB (estimated) |
-| 20 GiB | gemma4-26b-a4b-uncensored | Q4_K_M | — (fits whole) | 15.7 GiB (estimated) |
-| 24 GiB and up | gemma4-31b-uncensored | Q4_K_M | — (fits whole) | 18.4 GiB (estimated) |
+| 5 GiB | gemma4-e2b-it | Q4_K_XL | — (fits whole) | 3.9 GiB (measured) |
+| 6 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.9 GiB (measured) |
+| 8 GiB and up | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.9 GiB (measured) |
 
-Below 4 GiB the list keeps stepping down the same way — a split E4B instruct, then the
-measured E2B instruct, the uncensored E2B, the Qwen 2B pair (`qwen3.5-2b-uncensored`,
-then `qwen3.5-2b`, picked from their static estimate until the first run calibrates them) — and
-finally a 0.8B generalist. A card too small for any viable split makes `auto` refuse instead of
-guessing (pass `--llm` explicitly with `--force`, or `--cpu`). An unforced pick is refused as
-well while it stays below the 2B quality floor: a sub-2B model fits a busy card, yet it renders
-dialogue into repetitive filler, so the run stops with the ways out spelled out (free VRAM, an
-explicit `--llm`, `--cpu`, or `--force` accepting the small pick).
+With `--no-vision` the projectorless Hy-MT2 7B leads instead:
+
+| Card | Model | Quantization | Split | VRAM peak |
+|---|---|---|---|---|
+| 5–6 GiB | qwen3.5-4b-uncensored | Q4_K_M | — (fits whole) | 4.0 GiB (measured) |
+| 7 GiB and up | hy-mt2-7b | Q4_K_M | — (fits whole) | 5.6 GiB (measured) |
+
+The tables start at 5 GiB, but the floor sits lower. On a 4 GiB card with vision, `auto` still
+offers a partial offload of `qwen3.5-4b-uncensored` (18 of 32 blocks on the GPU) and refuses below
+that. `--no-vision` goes further: `gemma4-e2b-it` fits whole at 4 GiB, the same 4B split answers at
+3 GiB, and a 2.5 GiB card still runs the E2B split — the last rung, since `auto` refuses once even
+the best split would leave most blocks on the CPU. Pass `--llm` explicitly with `--force`, or
+`--cpu`, to go below that. The ladder stops at the 2B class: a sub-2B model fits a busy card, yet
+it renders dialogue into repetitive filler, so the smaller members (Qwen 3.5 0.8B, Hy-MT2 1.8B)
+answer an explicit `--llm` only.
 
 A candidate whose split would leave **most** of its blocks in host memory is skipped: if no model
 fits whole, the list continues to the next viable split, so `auto` avoids impractically slow runs.
 Explicit `--llm <id>` still overrides the automatic pick when a particular model is preferred.
 
-Because `auto` can now select a model that is not in the store yet, the run prints what it
-picked together with the download it implies, and warns explicitly when the choice needs more
-than 8 GiB — the first page then waits for that one-time download. `koharu-batch models` shows
+Because `auto` can select a model that is not in the store yet, the run prints what it picked
+together with the download it implies, and the first page then waits for that one-time download.
+An explicit `--llm <id>` above the budget is refused unless `--force`; `koharu-batch models` shows
 the same figure for every model and quantization, and `--llm <id> --quantization <id>` always
 overrides the automatic pick.
 
@@ -263,15 +272,15 @@ line report the planned split.
 koharu-batch --input ./chapter-14.cbz --output ./chapter-14-fr.cbz \
   --llm gemma4-31b-uncensored --quantization Q4_K_M \
   --vram-budget-mib 16384 --dry-run
-# warning: estimated 18.4 GiB exceeds the VRAM budget 14.4 GiB; running a partial offload
-#   — 45/60 blocks on the GPU, 4.1 GiB in host memory — expect slower pages
-# translation model: gemma4-31b-uncensored Q4_K_M (18.4 GiB within 14.4 GiB;
-#   45/60 blocks on the GPU, 4.1 GiB in host memory, 17.4 GiB if not already stored)
+# warning: estimated 19.3 GiB exceeds the VRAM budget 14.4 GiB; running a partial offload
+#   — 42/60 blocks on the GPU, 4.9 GiB in host memory — expect slower pages
+# translation model: gemma4-31b-uncensored Q4_K_M (19.3 GiB within 14.4 GiB;
+#   42/60 blocks on the GPU, 4.9 GiB in host memory, 17.4 GiB if not already stored)
 
 # On an 8 GB card, this model would put most of its blocks on the CPU and is refused.
 koharu-batch --input ./chapter-14.cbz --output ./chapter-14-fr.cbz \
   --llm gemma4-31b-uncensored --quantization Q4_K_M --dry-run
-# error: partial offload would leave 41/60 blocks on the CPU ... translation can take minutes per page
+# error: partial offload would leave 44/60 blocks on the CPU ... translation can take minutes per page
 #        Choose a smaller model or use --force to try loading this model whole anyway.
 ```
 
@@ -355,8 +364,8 @@ Key behaviors:
   the VRAM actually free at startup. An explicit model that does not fit can be split between
   GPU and host memory, but only while at least half of its blocks stay on the GPU; a larger
   CPU-side majority refuses before model load with a minutes-per-page explanation and recommends
-  a smaller model. `--force` bypasses that guard and the 2B quality floor, trying to load the
-  model whole (which can fail on allocation). An excess larger than the model's weights also
+  a smaller model. `--force` bypasses that guard, trying to load the model whole (which can
+  fail on allocation). An excess larger than the model's weights also
   refuses. `--llm auto` prefers a model that fits whole (and warns before a large first download).
   An explicit `--vram-budget-mib` is trusted as the budget rather than capped to currently free
   VRAM, so it can still oversubscribe a busy GPU.
@@ -436,7 +445,9 @@ these pages, 1-based, `1-10,15`), `--recursive` (flatten subfolders into one cha
 instead of the volume rule), `--quiet`, `--no-calibration`, `--deterministic` (greedy
 translation), `--torch-fp32` (fp32 Torch models, see *Reproducible sessions*),
 `--ocr-cache <PATH>` / `--no-ocr-cache` (persist OCR text between runs, see *Reproducible
-sessions*), `--qwen-steps <N>` (Qwen Image inpainting sampling steps), `--overwrite`,
+sessions*), `--glossary <SOURCE=TARGET>` (repeatable: a fixed rendering for a recurring term, added to
+the chapter profile the run resolves — a pair replaces a learned term of the same source and the
+rest of the learned dossier is kept; duplicate sources keep one entry with the last target), `--qwen-steps <N>` (Qwen Image inpainting sampling steps), `--overwrite`,
 `--dry-run`, `--cpu`, `--verify` / `--verify-passes <N>` (replay the pipeline and report
 run-to-run drift, see *Verifying run-to-run drift*).
 
@@ -546,7 +557,7 @@ koharu-batch --input ./chapter-12 --output ./chapter-12-fr --deterministic --tor
 ```
 
 No other setup is needed. For a byte-identical PNG comparison across runs, also pin the
-model (`--llm gemma4-e4b-it --quantization Q4_K_XL`): the `auto` picker selects by free
+model (`--llm gemma4-e4b-uncensored --quantization Q4_K_P`): the `auto` picker selects by free
 VRAM, so a different card state can land on a different model. The remaining page-level
 residue (~0.05-2% of pixels, confined to inpainted areas) comes from the raster/encode
 side, never from a detection box, the recognized text, or the translation — every
@@ -642,8 +653,8 @@ runs where some pages failed — so scripts can consume the outcome without pars
   "input": "./chapter-12",
   "output": "./chapter-12-fr",
   "language": "fr-FR",
-  "model": { "id": "gemma4-e4b-it", "quantization": "Q4_K_XL",
-             "vram_estimate": "4.3 GiB (measured)", "device": "NVIDIA GeForce RTX 3070" },
+  "model": { "id": "gemma4-e4b-uncensored", "quantization": "Q4_K_P",
+             "vram_estimate": "6.3 GiB (measured)", "device": "NVIDIA GeForce RTX 3070" },
   "counts": { "translated": 6, "skipped": 0, "failed": 0, "planned": 0 },
   "chapters": [
     { "label": "", "input": "./chapter-12", "output": "./chapter-12-fr",
