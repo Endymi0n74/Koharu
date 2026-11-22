@@ -108,7 +108,70 @@ static HY_MT2_LANGUAGES: &[Language] = &[
     Language::Cantonese,
 ];
 
+/// Target languages PLaMo 3 Translate documents. Its card lists 52 lowercase
+/// codes and leaves out Brazilian Portuguese (a single `pt`), Czech, Ukrainian,
+/// Tibetan, Mongolian, Uyghur, and Cantonese.
+static PLAMO_LANGUAGES: &[Language] = &[
+    Language::ChineseSimplified,
+    Language::ChineseTraditional,
+    Language::English,
+    Language::French,
+    Language::Portuguese,
+    Language::Spanish,
+    Language::Japanese,
+    Language::Turkish,
+    Language::Russian,
+    Language::Arabic,
+    Language::Korean,
+    Language::Thai,
+    Language::Italian,
+    Language::German,
+    Language::Vietnamese,
+    Language::Malay,
+    Language::Indonesian,
+    Language::Filipino,
+    Language::Hindi,
+    Language::Polish,
+    Language::Dutch,
+    Language::Khmer,
+    Language::Burmese,
+    Language::Persian,
+    Language::Gujarati,
+    Language::Urdu,
+    Language::Telugu,
+    Language::Marathi,
+    Language::Hebrew,
+    Language::Bengali,
+    Language::Bulgarian,
+    Language::Tamil,
+    Language::Kazakh,
+    Language::Belarusian,
+    Language::Hungarian,
+];
+
+/// The language code PLaMo's template expects: its cards name plain two-letter
+/// codes (`fr`, `ja`, `tl`), and the Chinese entries are script-tagged
+/// (`zh-hans`, `zh-hant`) rather than the catalog's region tags.
+pub(crate) fn plamo_code(language: Language) -> String {
+    match language {
+        Language::ChineseSimplified => "zh-hans".to_owned(),
+        Language::ChineseTraditional => "zh-hant".to_owned(),
+        // The catalog tags Tagalog as `fil-PH`; PLaMo's trained code is `tl`.
+        Language::Filipino => "tl".to_owned(),
+        other => other
+            .tag()
+            .split('-')
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase(),
+    }
+}
+
 pub(super) static MODELS: &[LocalModelDescriptor] = &[
+    // Gemma 4 E2B Uncensored is deliberately not cataloged: it is a 2B model
+    // like the instruct entry below, so `auto` estimated both at the same
+    // footprint and list order alone broke the tie. The instruct entry is the
+    // one with a measured peak; the uncensored line starts at the 4B.
     LocalModelDescriptor {
         id: "gemma4-e2b-it",
         reasoning: true,
@@ -130,30 +193,6 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         },
         repository: "unsloth/gemma-4-E2B-it-qat-GGUF",
         revision: "66a399f68ddd113b06dff02fca9523e55465d11d",
-        projector: Some("mmproj-F16.gguf"),
-        target_languages: SupportedLanguages::All,
-    },
-    LocalModelDescriptor {
-        id: "gemma4-e4b-it",
-        reasoning: true,
-        name: "Gemma 4 E4B Instruct",
-        layers: 42,
-        quantizations: &[
-            QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf"),
-            QuantizationDefinition::new("Q2_K_XL", "Q2_K XL", "gemma-4-E4B-it-qat-UD-Q2_K_XL.gguf"),
-        ],
-        generation: ModelGeneration {
-            temperature: Some(0.2),
-            top_k: Some(64),
-            top_p: Some(0.9),
-            min_p: Some(0.05),
-            max_tokens: Some(1000),
-            repeat_penalty: Some(1.2),
-            frequency_penalty: None,
-            presence_penalty: None,
-        },
-        repository: "unsloth/gemma-4-E4B-it-qat-GGUF",
-        revision: "8c5a9e4fd5482e2be20fe0bf013b4c262a8f4265",
         projector: Some("mmproj-F16.gguf"),
         target_languages: SupportedLanguages::All,
     },
@@ -232,63 +271,10 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         projector: Some("mmproj-F16.gguf"),
         target_languages: SupportedLanguages::All,
     },
-    LocalModelDescriptor {
-        id: "gemma4-e2b-uncensored",
-        reasoning: true,
-        name: "Gemma 4 E2B Uncensored",
-        layers: 35,
-        quantizations: &[
-            QuantizationDefinition::new(
-                "Q4_K_P",
-                "Q4_K P",
-                "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf",
-            ),
-            QuantizationDefinition::new(
-                "IQ3_M",
-                "IQ3 M",
-                "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-IQ3_M.gguf",
-            ),
-            QuantizationDefinition::new(
-                "Q2_K_P",
-                "Q2_K P",
-                "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q2_K_P.gguf",
-            ),
-            QuantizationDefinition::new(
-                "Q3_K_P",
-                "Q3_K P",
-                "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q3_K_P.gguf",
-            ),
-            QuantizationDefinition::new(
-                "Q5_K_P",
-                "Q5_K P",
-                "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q5_K_P.gguf",
-            ),
-            QuantizationDefinition::new(
-                "Q6_K_P",
-                "Q6_K P",
-                "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q6_K_P.gguf",
-            ),
-            QuantizationDefinition::new(
-                "Q8_K_P",
-                "Q8_K P",
-                "Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
-            ),
-        ],
-        generation: ModelGeneration {
-            temperature: Some(0.2),
-            top_k: Some(64),
-            top_p: Some(0.9),
-            min_p: Some(0.05),
-            max_tokens: Some(1000),
-            repeat_penalty: Some(1.2),
-            frequency_penalty: None,
-            presence_penalty: None,
-        },
-        repository: "HauhauCS/Gemma-4-E2B-Uncensored-HauhauCS-Aggressive",
-        revision: "da8593c3e407afcd3e7da94ff2d69d77e2a28a48",
-        projector: Some("mmproj-Gemma-4-E2B-Uncensored-HauhauCS-Aggressive-f16.gguf"),
-        target_languages: SupportedLanguages::All,
-    },
+    // Gemma 4 E4B Instruct is deliberately not cataloged: it shares the 4B
+    // architecture with the uncensored entry below, so `auto` estimated the two
+    // at the same footprint and list order alone broke the tie. The uncensored
+    // entry is the measured one.
     LocalModelDescriptor {
         id: "gemma4-e4b-uncensored",
         reasoning: true,
@@ -426,37 +412,9 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         projector: Some("mmproj-Gemma4-31B-QAT-Uncensored-HauhauCS-Balanced-BF16.gguf"),
         target_languages: SupportedLanguages::All,
     },
-    LocalModelDescriptor {
-        id: "qwen3.5-0.8b",
-        reasoning: true,
-        name: "Qwen 3.5 0.8B",
-        layers: 24,
-        quantizations: &[
-            QuantizationDefinition::new("Q4_K_XL", "Q4_K XL", "Qwen3.5-0.8B-UD-Q4_K_XL.gguf"),
-            QuantizationDefinition::new("IQ2_M", "IQ2 M", "Qwen3.5-0.8B-UD-IQ2_M.gguf"),
-            QuantizationDefinition::new("IQ2_XXS", "IQ2 XXS", "Qwen3.5-0.8B-UD-IQ2_XXS.gguf"),
-            QuantizationDefinition::new("IQ3_XXS", "IQ3 XXS", "Qwen3.5-0.8B-UD-IQ3_XXS.gguf"),
-            QuantizationDefinition::new("Q2_K_XL", "Q2_K XL", "Qwen3.5-0.8B-UD-Q2_K_XL.gguf"),
-            QuantizationDefinition::new("Q3_K_XL", "Q3_K XL", "Qwen3.5-0.8B-UD-Q3_K_XL.gguf"),
-            QuantizationDefinition::new("Q5_K_XL", "Q5_K XL", "Qwen3.5-0.8B-UD-Q5_K_XL.gguf"),
-            QuantizationDefinition::new("Q6_K_XL", "Q6_K XL", "Qwen3.5-0.8B-UD-Q6_K_XL.gguf"),
-            QuantizationDefinition::new("Q8_K_XL", "Q8_K XL", "Qwen3.5-0.8B-UD-Q8_K_XL.gguf"),
-        ],
-        generation: ModelGeneration {
-            temperature: Some(0.2),
-            top_k: Some(20),
-            top_p: Some(0.9),
-            min_p: Some(0.05),
-            max_tokens: Some(1000),
-            repeat_penalty: Some(1.2),
-            frequency_penalty: None,
-            presence_penalty: None,
-        },
-        repository: "unsloth/Qwen3.5-0.8B-GGUF",
-        revision: "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0",
-        projector: Some("mmproj-F16.gguf"),
-        target_languages: SupportedLanguages::All,
-    },
+    // Qwen 3.5 0.8B is deliberately not cataloged: `auto`'s list stops at the
+    // 2B class, and a sub-2B pick renders dialogue into repetitive filler, so
+    // the entry only ever answered an explicit `--llm`.
     LocalModelDescriptor {
         id: "qwen3.5-2b",
         reasoning: true,
@@ -1083,8 +1041,8 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
     // Tencent's Hy-MT2 family is the catalog's translation-specialized line
     // (Apache-2.0): no projector (the pipeline translates the page's OCR text),
     // no thinking mode (its "fast-thinking" template has none), and each
-    // size's own sampling recipe. The 1.8B sits below the `auto` quality floor,
-    // so only an explicit `--llm hy-mt2-1.8b` reaches it.
+    // size's own sampling recipe. The 1.8B sits below the 2B class `auto`
+    // stops at, so only an explicit `--llm hy-mt2-1.8b` reaches it.
     //
     // The 30B-A3B member (tencent/Hy-MT2-30B-A3B-GGUF) is deliberately absent:
     // its GGUF declares `general.architecture = hy_v3`, and the pinned runtime
@@ -1117,6 +1075,74 @@ pub(super) static MODELS: &[LocalModelDescriptor] = &[
         projector: None,
         target_languages: SupportedLanguages::Limited(HY_MT2_LANGUAGES),
     },
+    // PLaMo 3 Translate (PFN, plamo-community-license) is the catalog's second
+    // translation-specialized line. It is *not* a chat model: its GGUF chat
+    // template renders a `[plamo-translate]` settings block, the source text,
+    // and a `lang=` output tag, so `LocalTranslator` drives it one page per
+    // call, one line per segment (`plamo_translate()`), rather than through the
+    // JSON instruction prompt. The pinned runtime resolves its `plamo3`
+    // architecture.
+    //
+    // Measured here rather than assumed, on the reference RTX 3070 and a real
+    // 19-page volume chapter (pages 1-6, `--no-calibration`, shared OCR cache,
+    // French target). Page-wide calls: the 8B Q4_K_M peaked at 5.5 GiB against
+    // Hy-MT2 7B's 5.8 GiB and spent 18.8 s translating six pages against 36.6 s
+    // — twice as fast as this same model one segment per call (38.2 s) and
+    // faster than Hy-MT2. French is what keeps it out of the automatic pick:
+    // the page call removed the mid-bubble splits the per-segment adapter
+    // caused, but the damage is systematic — `UNE` comes back as `LINE` (`LINE
+    // BONNE COMBINAISON`, `LINE FRAGMENT`), `TU` as `TLI` (`TLI AS BIEN
+    // COMPRIS`), `LIANT` as `GLIANT`, `TROUBLÉ` as `TROUBLEDÉ`, alongside `CE
+    // ESPRIT` and English leaking through (`THIS.`, `SPIRIT`). That quality, not
+    // speed or VRAM, is why it stays absent from `preset::AUTO_PRIORITY`: the
+    // automatic pick chooses on the footprint, which it passes, so the
+    // exclusion has to be stated where the model is cataloged. Keep it
+    // reachable through an explicit `--llm` only.
+    //
+    // The substitutions are decoded, not conditioned: five repeats of the same
+    // pages at temperature 0 are byte-identical, and the same insertion appears
+    // across unrelated sentences — `UNE`→`LINE`, `TU`→`TLI`, but also
+    // `NOUS`→`NOLIS`, `SUR`→`SLIU`, `KUN`→`KLIN` — with stray Arabic, Katakana
+    // and Vietnamese glyphs in the French output. Steering it with a glossary
+    // does not help either: the family maps entries source => target, so
+    // identity entries on the French words bind nothing to the Japanese input,
+    // and a run with them reproduced every corruption unchanged.
+    //
+    // The 2B sibling was measured the same way and reproduced those errors —
+    // `LINE`, `TLI`, `GLIANT`, `TROUBLEDÉ`, `CE ESPRIT` — for a fifth of the
+    // translation time and half the peak, which places the damage in the
+    // family's template handling rather than in its size. It is not cataloged:
+    // a model that must never be picked automatically and trails Hy-MT2 in
+    // French is inventory, not a choice, and the 8B is the one worth measuring
+    // against when the template handling changes.
+    LocalModelDescriptor {
+        id: "plamo-3-translate-8b",
+        reasoning: false,
+        name: "PLaMo 3 Translate 8B",
+        layers: 32,
+        quantizations: &[
+            QuantizationDefinition::new(
+                "Q4_K_M",
+                "Q4_K M",
+                "plamo-3-translate-8b-Q4_K_M.gguf",
+            ),
+            QuantizationDefinition::new("Q2_K", "Q2_K", "plamo-3-translate-8b-Q2_K.gguf"),
+        ],
+        generation: ModelGeneration {
+            temperature: Some(0.0),
+            top_k: None,
+            top_p: None,
+            min_p: None,
+            max_tokens: Some(1024),
+            repeat_penalty: None,
+            frequency_penalty: None,
+            presence_penalty: None,
+        },
+        repository: "pfnet/plamo-3-translate-8b-GGUF",
+        revision: "724c63780fbdbd821c86d7b3378a630b10176246",
+        projector: None,
+        target_languages: SupportedLanguages::Limited(PLAMO_LANGUAGES),
+    },
 ];
 
 pub(crate) struct ResolvedLocalModel {
@@ -1127,6 +1153,12 @@ pub(crate) struct ResolvedLocalModel {
 impl LocalModelDescriptor {
     pub(crate) fn file(self, filename: &'static str) -> HuggingFaceFile<'static> {
         HuggingFaceFile::pinned(self.repository, self.revision, filename)
+    }
+
+    /// Whether this entry's template *is* the translation format, so it takes
+    /// plain source text instead of the catalog's JSON instruction prompt.
+    pub(crate) fn plamo_translate(self) -> bool {
+        self.id.starts_with("plamo-3-translate-")
     }
 
     pub(crate) async fn resolve(
@@ -1174,7 +1206,7 @@ mod tests {
 
     #[test]
     fn local_catalog_has_unique_complete_entries() {
-        assert_eq!(MODELS.len(), 27);
+        assert_eq!(MODELS.len(), 25);
         for (index, model) in MODELS.iter().enumerate() {
             let id = model.id;
             assert!(!model.repository.is_empty());
@@ -1198,16 +1230,31 @@ mod tests {
     #[test]
     fn reasoning_matches_supported_chat_templates() {
         // Every gemma/qwen chat template supports reasoning; the Hy-MT2 family
-        // is "fast-thinking" by design, with no thinking blocks to enable or
-        // strip, so its entries are the catalog's non-reasoning ones.
+        // is "fast-thinking" by design, and PLaMo's template has no thinking
+        // channel either, so those entries are the catalog's non-reasoning ones.
         for model in MODELS {
             assert_eq!(
                 model.reasoning,
-                !model.id.starts_with("hy-mt2-"),
+                !model.id.starts_with("hy-mt2-") && !model.plamo_translate(),
                 "{} should expose reasoning matching its chat template",
                 model.id
             );
         }
+    }
+
+    #[test]
+    fn plamo_codes_follow_its_template() {
+        assert_eq!(plamo_code(Language::French), "fr");
+        assert_eq!(plamo_code(Language::Japanese), "ja");
+        assert_eq!(plamo_code(Language::Filipino), "tl");
+        assert_eq!(plamo_code(Language::ChineseTraditional), "zh-hant");
+        let descriptor = MODELS
+            .iter()
+            .find(|descriptor| descriptor.id == "plamo-3-translate-8b")
+            .expect("PLaMo 8B is cataloged");
+        assert!(descriptor.plamo_translate());
+        assert!(descriptor.projector.is_none(), "PLaMo is text-only");
+        assert!(!descriptor.reasoning);
     }
 
     #[test]

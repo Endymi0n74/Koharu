@@ -32,6 +32,7 @@ pub(crate) struct Execution<'a> {
     base: koharu_scene::Revision,
     started: Instant,
     inpainting_mask: Option<crate::InpaintingMask>,
+    glossary: Vec<koharu_translator::ProfileTerm>,
 }
 
 impl<'a> Execution<'a> {
@@ -85,6 +86,7 @@ impl<'a> Execution<'a> {
             base,
             started,
             inpainting_mask: request.inpainting_mask,
+            glossary: request.glossary,
         })
     }
 
@@ -137,7 +139,8 @@ impl<'a> Execution<'a> {
                     .as_ref()
                     .filter(|mask| stage == Stage::Inpainting && mask.page == page)
                     .cloned(),
-            ),
+            )
+            .with_glossary(self.glossary.clone()),
             self.stop.clone(),
             self.progress.clone(),
         ))

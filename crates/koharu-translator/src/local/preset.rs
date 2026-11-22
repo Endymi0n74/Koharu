@@ -16,24 +16,35 @@ const GIB: u64 = 1024 * 1024 * 1024;
 
 /// Context and compute buffers observed around the measured weights footprint.
 const CONTEXT_OVERHEAD_BYTES: u64 = GIB;
+/// Detection, OCR and inpainting, which load around the LLM on the same card.
+///
+/// Measured against the reference runs: Hy-MT2 7B estimated at 4.7 GiB peaked
+/// at 5.6 GiB for the whole pipeline, and Qwen 3.5 4B estimated at 4.0 GiB
+/// peaked at 4.9 GiB — the same 0.9 GiB both times. Recorded peaks already
+/// include it; an estimated configuration has to add it.
+const PIPELINE_STAGES_BYTES: u64 = (0.9 * GIB as f64) as u64;
 /// Vision projector footprint (mtmd) added on top of the text-only peak.
 const VISION_PROJECTOR_BYTES: u64 = (0.9 * GIB as f64) as u64;
 /// Fraction of the physical VRAM usable before Windows/compositor overhead
 /// makes llama.cpp thrash.
 const BUDGET_MARGIN: f64 = 0.9;
 
-/// No-vision peaks of the fork's reference machine, in mebibytes, keyed by
-/// (model id, quantization id).
+/// Peaks of the fork's reference machine, in mebibytes, keyed by (model id,
+/// quantization id): what the whole pipeline occupied above the desktop
+/// baseline, so the detection and inpainting stages are already inside them.
 ///
-/// The underlying runs were made *with* the vision projector and are recorded
-/// in `~/.koharu/vram-calibration.toml`; each entry here is that measurement
-/// minus [`VISION_PROJECTOR_BYTES`], so the estimator reproduces the raw
-/// measurement once it adds the projector back for a vision configuration.
-/// See `docs/fork.md` ("Choosing a translation model for 8 GB of VRAM").
+/// An entry derived from a run that *used* the vision projector is that
+/// measurement minus [`VISION_PROJECTOR_BYTES`], so the estimator reproduces
+/// the raw measurement once it adds the projector back for a vision
+/// configuration. See `docs/fork.md` ("Choosing a translation model for 8 GB
+/// of VRAM").
 const MEASURED_PEAKS: &[(&str, &str, u64)] = &[
+    // Whole-pipeline peaks above the desktop baseline: the model plus the
+    // detection, OCR and inpainting stages that run on the same card.
+    ("hy-mt2-7b", "Q4_K_M", 5734),
+    ("qwen3.5-4b-uncensored", "Q4_K_M", 4096),
     ("gemma4-e2b-it", "Q4_K_XL", 3100),
     ("gemma4-e4b-uncensored", "Q4_K_P", 5528),
-    ("gemma4-e4b-it", "Q4_K_XL", 3446),
     ("gemma4-12b-it", "Q4_K_XL", 7700),
 ];
 
@@ -201,6 +212,10 @@ pub fn estimate_vram(
 
 /// [`estimate_vram`] against a table of real measurements: a recorded peak
 /// for the exact configuration wins over the built-in reference table.
+///
+/// Whatever the branch, the result is the footprint a budget has to hold for
+/// the whole run — the LLM plus the stages that run around it — never the
+/// weights alone.
 #[must_use]
 pub fn estimate_vram_with(
     descriptor: &LocalModelDescriptor,
@@ -233,6 +248,7 @@ pub fn estimate_vram_with(
     VramEstimate {
         bytes: weights_bytes(descriptor, quantization)
             + CONTEXT_OVERHEAD_BYTES
+            + PIPELINE_STAGES_BYTES
             + projector_bytes(descriptor, vision),
         measured: false,
     }
@@ -286,15 +302,29 @@ pub struct AutoChoice {
 /// Priority order for `--llm auto`, searched first for whole-GPU fits and
 /// then for viable partial offloads. A measured 21-page RTX 3070 run showed
 /// that the E4B split across host memory took 342 s, while the whole-GPU Qwen
-/// 3.5 4B took 98 s on the same chapter. This makes the 4B outrank an E4B split
-/// on an 8 GB card, while larger models still win when they fit whole. If no
-/// model fits whole, the existing largest-first split ladder remains available.
-/// Within a size the uncensored variant comes first, followed by the QAT
-/// instruct variants. Models not listed here remain available through an
-/// explicit `--llm <id> --quantization <id>`.
+/// 3.5 4B took 98 s on the same chapter, so the 4B outranks an E4B split on an
+/// 8 GB card. Within a size the uncensored variant comes first, followed by the
+/// QAT instruct variants.
 ///
-/// The 0.8B tail entry only answers an explicit `--force`: an unforced pick
-/// below [`AUTO_QUALITY_FLOOR_B`] refuses instead of running.
+/// The default path stops at the 8 GB class: every entry below fits a
+/// 3070-class card whole, or through a split that keeps most of its blocks on
+/// the GPU, so `auto` never starts a 12B-class download on a card that cannot
+/// hold it. The 12B, 26B-A4B and 31B members — and the Qwen 9B-and-up sizes —
+/// stay cataloged and stay usable, but only through an explicit
+/// `--llm <id> --quantization <id>`, which is also the only way to reach their
+/// split ladder on a card that reports more VRAM.
+///
+/// PLaMo 3 Translate is deliberately absent even though its 8B Q4_K_M fits that
+/// class: on this fork's reference RTX 3070 it matched Hy-MT2 7B on speed and
+/// VRAM peak but degraded French badly (the measurement sits next to its catalog
+/// entry). The automatic pick chooses on the footprint, so the exclusion has to
+/// live here — `auto_never_selects_the_degraded_translation_specialist` guards
+/// it.
+///
+/// The ladder stops at the 2B class: the smaller members (Qwen 3.5 0.8B,
+/// Hy-MT2 1.8B) answer an explicit `--llm` only. Membership is what keeps a
+/// sub-2B pick out of `auto` — a busy card could otherwise run one, but it
+/// renders dialogue into repetitive filler.
 const AUTO_PRIORITY: &[(&str, &str)] = &[
     // The translation-specialized entry leads: a model trained to translate
     // beats a general instruct model of the same size on the same page (see
@@ -302,27 +332,13 @@ const AUTO_PRIORITY: &[(&str, &str)] = &[
     // asks for the page image (`vision`) skips it and falls through to the
     // vision ladder below; `--no-vision` reaches it.
     ("hy-mt2-7b", "Q4_K_M"),
-    ("gemma4-31b-uncensored", "Q4_K_M"),
-    ("gemma4-26b-a4b-uncensored", "Q4_K_M"),
-    ("gemma4-12b-uncensored", "Q4_K_M"),
     // The measured whole-GPU Qwen replaces an E4B split when it fits.
     ("qwen3.5-4b-uncensored", "Q4_K_M"),
     ("gemma4-e4b-uncensored", "Q4_K_P"),
-    ("gemma4-e4b-it", "Q4_K_XL"),
     ("gemma4-e2b-it", "Q4_K_XL"),
-    ("gemma4-e2b-uncensored", "Q4_K_P"),
     ("qwen3.5-2b-uncensored", "Q4_K_M"),
     ("qwen3.5-2b", "Q4_K_XL"),
-    ("qwen3.5-0.8b", "Q4_K_XL"),
 ];
-
-/// Parameter count below which an unforced `auto` refuses to translate: a
-/// sub-2B pick fits a busy 8 GB card, but it turns manga dialogue into
-/// repetitive filler — a run that silently produces garbage is worse than an
-/// error naming the ways out (free VRAM, an explicit `--llm`, `--cpu`, or
-/// `--force` accepting the small pick). Ids the parameter parser cannot size
-/// stay usable, so an unknown id never trips the floor.
-pub const AUTO_QUALITY_FLOOR_B: f64 = 2.0;
 
 /// Selects the best local model for `budget` (usable bytes, already margin-trimmed).
 ///
@@ -696,14 +712,6 @@ mod tests {
             5528 * 1024 * 1024 + VISION_PROJECTOR_BYTES
         );
 
-        // The instruct E4B peak was measured the same way, on the same card.
-        let e4b_it = estimate_vram(descriptor("gemma4-e4b-it"), Some("Q4_K_XL"), true);
-        assert_eq!(e4b_it.bytes, 3446 * 1024 * 1024 + VISION_PROJECTOR_BYTES);
-        assert!(
-            e4b_it.bytes < budget_from_total(5 * GIB),
-            "the instruct 4B must stay usable on a 5 GiB budget"
-        );
-
         let twelve = estimate_vram(descriptor("gemma4-12b-it"), Some("Q4_K_XL"), true);
         assert_eq!(
             twelve.bytes,
@@ -716,33 +724,32 @@ mod tests {
     fn unmeasured_models_use_the_parameter_formula() {
         let estimate = estimate_vram(descriptor("qwen3.5-4b"), Some("Q4_K_XL"), false);
         assert!(!estimate.measured);
-        let expected = (4.0 * 1_000_000_000.0 * 0.57) as u64 + CONTEXT_OVERHEAD_BYTES;
+        let expected = (4.0 * 1_000_000_000.0 * 0.57) as u64
+            + CONTEXT_OVERHEAD_BYTES
+            + PIPELINE_STAGES_BYTES;
         assert_eq!(estimate.bytes, expected);
     }
 
     #[test]
-    fn auto_grows_with_the_card_up_to_the_strongest_model_it_can_run() {
-        // Any whole-model fit outranks every split; larger whole fits still win
-        // over smaller ones, and split fallback remains largest-first.
-        let expected = [
-            (8, "qwen3.5-4b-uncensored", false),
-            (12, "gemma4-12b-uncensored", false),
-            (20, "gemma4-26b-a4b-uncensored", false),
-            (24, "gemma4-31b-uncensored", false),
-            (48, "gemma4-31b-uncensored", false),
-        ];
-        for (gib, model, split) in expected {
+    fn auto_stays_inside_the_8_gb_class_whatever_the_card() {
+        // A bigger card does not promote the 12B/26B/31B entries: the default
+        // path ends at the 8 GB class, and only an explicit `--llm` goes past
+        // it. Whatever it picks still fits whole on these budgets.
+        for gib in [8, 12, 20, 24, 48] {
             let budget = budget_from_total(gib * GIB);
             let choice = resolve_auto(budget, true)
                 .unwrap_or_else(|| panic!("{gib} GiB can run a vision model"));
             assert_eq!(
-                choice.model, model,
-                "a {gib} GiB card must not settle for a weaker model"
+                choice.model, "qwen3.5-4b-uncensored",
+                "a {gib} GiB card must not reach past the 8 GB class"
             );
             assert_eq!(
-                choice.offload.is_some(),
-                split,
-                "{gib} GiB must split exactly when the pick exceeds the budget"
+                choice.offload, None,
+                "{gib} GiB runs the default pick whole"
+            );
+            assert!(
+                parameters_billion(choice.model).is_some_and(|parameters| parameters <= 9.0),
+                "the default path stays inside the 8 GB class"
             );
             match choice.offload {
                 Some(plan) => {
@@ -788,7 +795,7 @@ mod tests {
     }
 
     #[test]
-    fn auto_prefers_whole_4b_over_the_e4b_split_but_keeps_larger_models_ahead() {
+    fn auto_stays_inside_the_8_gb_class_on_every_budget() {
         // This is the RTX 3070 case: the measured E4B (6.3 GiB) would be split
         // at 8 GiB physical VRAM (7.2 GiB usable), but the 4B fits wholly.
         let choice = resolve_auto(budget_from_total(8 * GIB), true)
@@ -797,43 +804,103 @@ mod tests {
         assert_eq!(choice.quantization, "Q4_K_M");
         assert_eq!(choice.offload, None);
 
-        // Whole 12B fits outrank any split 31B.
+        // More VRAM does not promote the 12B/26B/31B entries: the default path
+        // ends at the 8 GB class, and only an explicit `--llm` goes past it.
+        for total in [10, 24, 48] {
+            let choice = resolve_auto(budget_from_total(total * GIB), true)
+                .expect("a large card still resolves a default pick");
+            assert_eq!(
+                choice.model, "qwen3.5-4b-uncensored",
+                "{total} GiB must not reach a 12B-class model"
+            );
+            assert!(
+                parameters_billion(choice.model).is_some_and(|parameters| parameters <= 9.0),
+                "the default path stays inside the 8 GB class"
+            );
+        }
+
+        // Small cards walk down the ladder instead of up: the run has to hold
+        // the model *and* the detection/OCR/inpainting stages, so a 5 GiB card
+        // reaches the measured E2B, and 4 GiB or less holds nothing whole nor
+        // through a majority-GPU split.
         let choice =
-            resolve_auto(budget_from_total(10 * GIB), true).expect("10 GiB can run the 12B");
-        assert_eq!(choice.model, "gemma4-12b-uncensored");
+            resolve_auto(budget_from_total(5 * GIB), true).expect("5 GiB runs the measured E2B");
+        assert_eq!(choice.model, "gemma4-e2b-it");
         assert_eq!(choice.offload, None);
 
-        let choice =
-            resolve_auto(budget_from_total(24 * GIB), true).expect("24 GiB can run the 31B whole");
-        assert_eq!(choice.model, "gemma4-31b-uncensored");
-        assert_eq!(choice.offload, None);
+        // 4 GiB holds no vision model whole, so the only offer is a split; 3 GiB
+        // or less holds nothing at all.
+        let split = resolve_auto(budget_from_total(4 * GIB), true)
+            .expect("a 4 GiB card can still split the 4B");
+        assert!(split.offload.is_some(), "{} fits no whole", split.estimate.display());
 
-        // With only 4 GiB physical VRAM the 4B cannot be usefully offloaded,
-        // so the fallback is the uncensored E2B.
-        let choice =
-            resolve_auto(budget_from_total(4 * GIB), true).expect("4 GiB can run a smaller model");
-        assert_eq!(choice.model, "gemma4-e2b-uncensored");
-        assert!(choice.estimate.bytes <= budget_from_total(4 * GIB));
+        for card in [3, 2] {
+            assert!(
+                resolve_auto(budget_from_total(card * GIB), true).is_none(),
+                "{card} GiB holds no vision model"
+            );
+        }
 
-        let choice =
-            resolve_auto(budget_from_total(5 * GIB), true).expect("5 GiB can run a vision model");
-        assert_eq!(choice.model, "qwen3.5-4b-uncensored");
-        assert_eq!(choice.offload, None);
-
-        let choice = resolve_auto(budget_from_total(3 * GIB), true)
-            .expect("3 GiB can still run the smallest available model");
-        assert_eq!(choice.model, "qwen3.5-0.8b");
-        assert!(choice.offload.is_none());
-
-        // Below the smallest footprint nothing runs at all: every split
-        // would leave a majority of the blocks in host memory.
-        assert!(resolve_auto(budget_from_total(2 * GIB), true).is_none());
-
-        // Text-only drops the projector and resolves further down the list.
+        // Text-only drops the projector and fits the E2B whole where it split.
         let choice = resolve_auto(budget_from_total(4 * GIB), false)
-            .expect("text-only 4 GiB can run a model");
-        assert_eq!(choice.model, "qwen3.5-4b-uncensored");
+            .expect("text-only 4 GiB can run the E2B");
+        assert_eq!(choice.model, "gemma4-e2b-it");
         assert_eq!(choice.offload, None);
+    }
+
+    #[test]
+    fn auto_fits_a_whole_run_inside_every_card_budget() {
+        // The budget is 90 % of the card; the estimate is the whole run, so a
+        // fit here means detection, OCR and inpainting fit alongside the LLM.
+        // 6 GiB cannot hold Hy-MT2 7B's measured 5.6 GiB and falls through.
+        let expected = [
+            (6, "qwen3.5-4b-uncensored"),
+            (8, "hy-mt2-7b"),
+            (12, "hy-mt2-7b"),
+            (24, "hy-mt2-7b"),
+        ];
+        for (gib, model) in expected {
+            let budget = budget_from_total(gib * GIB);
+            let choice = resolve_auto(budget, false)
+                .unwrap_or_else(|| panic!("{gib} GiB can run a text model"));
+            assert_eq!(choice.model, model, "{gib} GiB");
+            assert_eq!(choice.offload, None, "{gib} GiB fits whole");
+            assert!(
+                choice.estimate.bytes <= budget,
+                "{gib} GiB: {} over {} GiB",
+                choice.estimate.display(),
+                gib
+            );
+        }
+
+        // Hy-MT2 7B is reported at the peak it actually reached, not the 4.7 GiB
+        // the parameter formula gives.
+        let hy = estimate_vram(descriptor("hy-mt2-7b"), Some("Q4_K_M"), false);
+        assert!(hy.measured, "{} is measured", hy.display());
+        assert_eq!(hy.bytes, 5734 * 1024 * 1024);
+    }
+
+    #[test]
+    fn auto_never_selects_the_degraded_translation_specialist() {
+        // PLaMo 3 Translate passes the VRAM budget of the 8 GB class, so keeping
+        // it out of the automatic pick is a quality decision rather than a
+        // footprint one: no budget and either vision mode may reach it.
+        for gib in [2, 4, 5, 6, 8, 12, 24, 48] {
+            for vision in [true, false] {
+                if let Some(choice) = resolve_auto(budget_from_total(gib * GIB), vision) {
+                    assert!(
+                        !choice.model.starts_with("plamo-3-translate-"),
+                        "auto picked {} on {gib} GiB (vision: {vision})",
+                        choice.model
+                    );
+                }
+            }
+        }
+        let choice = resolve_auto(u64::MAX, true).expect("an unlimited budget picks a model");
+        assert!(
+            !choice.model.starts_with("plamo-3-translate-"),
+            "an unlimited budget must not reach it either"
+        );
     }
 
     #[test]
@@ -874,10 +941,13 @@ mod tests {
         let BudgetCheck::Exceeded(error) = error else {
             panic!("expected a budget exceedance")
         };
-        assert!(error.alternatives.iter().any(|alternative| {
-            alternative.starts_with("gemma4-e4b-uncensored")
-                || alternative.starts_with("gemma4-e4b-it")
-        }));
+        assert!(
+            error
+                .alternatives
+                .iter()
+                .any(|alternative| alternative.starts_with("gemma4-e4b-uncensored")),
+            "the alternatives name the 4B that fits"
+        );
     }
 
     #[test]
@@ -958,7 +1028,7 @@ mod tests {
 
     #[test]
     fn a_configuration_that_fits_has_no_plan() {
-        let descriptor = descriptor("gemma4-e4b-it");
+        let descriptor = descriptor("gemma4-e2b-it");
         let budget = budget_from_total(8 * GIB);
         let estimate = estimate_vram(descriptor, Some("Q4_K_XL"), true);
         assert!(estimate.bytes <= budget);
@@ -1000,7 +1070,9 @@ mod tests {
     fn sample_peak(model: &str, vision: bool, bytes: u64) -> MeasuredPeak {
         MeasuredPeak {
             model: model.to_owned(),
-            quantization: "Q4_K_P".to_owned(),
+            // The quantization `auto` picks for the model, which is the one a
+            // measurement has to match to be used.
+            quantization: default_quantization(descriptor(model)).to_owned(),
             vision,
             bytes,
         }
@@ -1099,24 +1171,39 @@ mod tests {
     }
 
     #[test]
-    fn a_calibrated_e2b_over_budget_falls_back_above_the_quality_floor() {
+    fn a_calibration_over_budget_falls_to_the_next_fitting_model() {
         let mut measurements = MeasuredPeaks::new();
-        // The busy 8 GB card: the 4B fits whole after the E2B calibration
-        // pushes the E2B above budget; it stays above the 2B quality floor.
+        // A 6 GiB card whose Qwen 4B recorded a peak above the budget: the
+        // ladder keeps descending instead of splitting a model that no longer
+        // fits whole.
         measurements.record(sample_peak(
-            "gemma4-e2b-uncensored",
+            "qwen3.5-4b-uncensored",
             true,
-            (5.25f64 * GIB as f64) as u64,
+            (5.6f64 * GIB as f64) as u64,
         ));
-        let choice = resolve_auto_with(budget_from_total(4 * GIB), true, &measurements)
+        let budget = budget_from_total(6 * GIB);
+        let choice = resolve_auto_with(budget, true, &measurements)
             .expect("a runnable vision model answers");
-        assert_eq!(choice.model, "qwen3.5-2b-uncensored");
+        assert_eq!(choice.model, "gemma4-e2b-it");
         assert!(choice.offload.is_none(), "the fallback fits whole");
         assert!(
-            parameters_billion(choice.model)
-                .is_some_and(|parameters| parameters >= AUTO_QUALITY_FLOOR_B),
-            "the fallback must stay above the quality floor"
+            choice.estimate.bytes <= budget,
+            "{}",
+            choice.estimate.display()
         );
+    }
+
+    #[test]
+    fn auto_ladder_stops_at_the_2b_class() {
+        // A sub-2B pick fits a busy card but turns manga dialogue into
+        // repetitive filler; the list therefore starts at 2B, and the smaller
+        // catalog entries stay reachable only through an explicit `--llm`.
+        for &(model, _) in AUTO_PRIORITY {
+            assert!(
+                parameters_billion(model).is_some_and(|parameters| parameters >= 2.0),
+                "{model} sits below the 2B class the ladder starts at"
+            );
+        }
     }
 
     #[test]

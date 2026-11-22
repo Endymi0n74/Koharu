@@ -23,6 +23,9 @@ pub(crate) struct StageInput {
     region: Option<Bounds>,
     images: Arc<ImageCache>,
     inpainting_mask: Option<InpaintingMask>,
+    /// Terms the run fixed on the command line; the translation stage merges
+    /// them into the profile it resolves.
+    glossary: Vec<koharu_translator::ProfileTerm>,
 }
 
 impl StageInput {
@@ -41,7 +44,14 @@ impl StageInput {
             region,
             images,
             inpainting_mask,
+            glossary: Vec::new(),
         }
+    }
+
+    /// Carries the run's fixed terms to the translation stage.
+    pub(crate) fn with_glossary(mut self, glossary: Vec<koharu_translator::ProfileTerm>) -> Self {
+        self.glossary = glossary;
+        self
     }
 
     pub(crate) fn page(&self) -> EntityId {

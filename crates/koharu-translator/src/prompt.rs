@@ -5,6 +5,7 @@ use indoc::indoc;
 use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::{Value, json};
 
+use crate::local::plamo_code;
 use crate::{
     Language, ProfileRequest, ProfileTerm, TranslationContext, TranslationProfile,
     TranslationRequest,
@@ -270,6 +271,133 @@ pub(crate) fn output_schema(expected: usize) -> Value {
         "required": ["translations"],
         "additionalProperties": false
     })
+}
+
+/// Collapses a value onto one line: PLaMo's prompt is line-oriented, one
+/// segment or term per line.
+fn one_line(value: &str) -> String {
+    value.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// PLaMo 3 Translate's single page call: the `[plamo-translate]` settings block
+/// its GGUF template parses from the leading system message, the chapter's
+/// reference context, then the page as one line per segment and the line count
+/// it must come back with.
+///
+/// The template owns this format: `target_lang` picks the output language,
+/// `source_lang` is left out when the chapter's source is unknown (the model
+/// then detects it), and the `---` line ends the settings. Text after it is
+/// reference context, never source text — which is also why the line contract
+/// lives there: the model has no schema channel.
+/// The chapter dossier, unless it carries nothing.
+fn chapter_profile(request: &TranslationRequest) -> Option<&TranslationProfile> {
+    request.profile.as_ref().filter(|profile| !profile.is_empty())
+}
+
+pub(crate) fn plamo_prompt(request: &TranslationRequest) -> (String, String) {
+    let mut block = String::from("[plamo-translate]\n");
+    let _ = writeln!(
+        block,
+        "target_lang={}",
+        plamo_code(request.target_language)
+    );
+    if let Some(source) = request.source_language {
+        let _ = writeln!(block, "source_lang={}", plamo_code(source));
+    }
+    // No `glossary=` line here: the template parses those into `sys.glossary +
+    // [term]`, and minijinja turns that sum into a merged iterable, which its
+    // own `is sequence` test rejects — one term aborts the render. The terms
+    // travel as the template's `glossary` variable instead (`plamo_glossary`).
+    let profile = chapter_profile(request);
+    block.push_str("---\n");
+    if let Some(profile) = profile {
+        for line in [
+            &profile.series,
+            &profile.synopsis,
+            &profile.register,
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let line = one_line(line);
+            if !line.is_empty() {
+                let _ = writeln!(block, "{line}");
+            }
+        }
+    }
+    for context in &request.context {
+        let (source, translation) = (one_line(&context.source), one_line(&context.translation));
+        if !source.is_empty() && !translation.is_empty() {
+            let _ = writeln!(block, "{source} => {translation}");
+        }
+    }
+    let _ = writeln!(
+        block,
+        "Translate the input into {}: exactly {} lines, one per input line, in the same order, without numbering or commentary.",
+        request.target_language,
+        request.segments.len()
+    );
+    let payload = request
+        .segments
+        .iter()
+        .map(|segment| one_line(segment))
+        .collect::<Vec<_>>()
+        .join("\n");
+    (block, payload)
+}
+
+/// The chapter's term pairs, handed to the template's `glossary` variable.
+///
+/// PLaMo's template renders `glossary` itself, as a list of `{source, target}`
+/// objects; its `glossary=` settings line is the same channel through text,
+/// which minijinja cannot validate (see `plamo_prompt`). This is where a
+/// chapter glossary reaches the model.
+pub(crate) fn plamo_glossary(request: &TranslationRequest) -> Vec<(String, String)> {
+    let Some(profile) = chapter_profile(request) else {
+        return Vec::new();
+    };
+    profile
+        .characters
+        .iter()
+        .chain(profile.glossary.iter())
+        .map(|term| (one_line(&term.source), one_line(&term.target)))
+        .filter(|(source, target)| !source.is_empty() && !target.is_empty())
+        .collect()
+}
+
+/// Maps a page-wide PLaMo answer back onto its segments.
+///
+/// One bubble per line is the only thing binding a translation to its source, so
+/// a different line count is refused instead of guessed at: padding or trimming
+/// it would attach a translation to the wrong bubble.
+pub(crate) fn plamo_translations(
+    text: &str,
+    request: &TranslationRequest,
+) -> anyhow::Result<Translations> {
+    let lines = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>();
+    let expected = request.segments.len();
+    if lines.len() != expected {
+        anyhow::bail!("PLaMo returned {} lines for {expected} segments", lines.len());
+    }
+    let mut untranslated = Vec::new();
+    let texts = lines
+        .into_iter()
+        .enumerate()
+        .map(|(index, text)| {
+            let source = request.segments.get(index).map_or("", String::as_str);
+            if is_untranslated(source, text, request.target_language) {
+                untranslated.push(index);
+                source.to_owned()
+            } else {
+                text.to_owned()
+            }
+        })
+        .collect();
+    Ok(Translations { texts, untranslated })
 }
 
 fn translation_system_prompt(request: &TranslationRequest) -> String {
@@ -635,6 +763,53 @@ mod tests {
     /// Request around source segments, for the response parsers.
     fn request(segments: &[String], target: Language) -> TranslationRequest {
         TranslationRequest::new(segments.iter().cloned(), target)
+    }
+
+    #[test]
+    fn plamo_prompt_renders_the_template_block_and_the_line_contract() {
+        let mut request = TranslationRequest::new(["こんにちは", "元気？"], Language::French);
+        request.source_language = Some(Language::Japanese);
+        request.profile = Some(TranslationProfile {
+            glossary: vec![ProfileTerm::new("魔王", "Roi demon")],
+            ..TranslationProfile::default()
+        });
+        let (system, payload) = plamo_prompt(&request);
+        assert!(
+            system.starts_with("[plamo-translate]\ntarget_lang=fr\nsource_lang=ja\n---\n"),
+            "{system}"
+        );
+        // The template's own glossary channel aborts the render under
+        // minijinja, so a chapter glossary must not land in this block.
+        assert!(!system.contains("glossary="), "{system}");
+        assert!(system.contains("exactly 2 lines"), "{system}");
+        assert_eq!(payload, "こんにちは\n元気？");
+    }
+
+    #[test]
+    fn plamo_glossary_hands_the_chapter_terms_to_the_template_variable() {
+        let mut request = TranslationRequest::new(["こんにちは"], Language::French);
+        request.profile = Some(TranslationProfile {
+            characters: vec![ProfileTerm::new("ミコト", "Mikoto")],
+            glossary: vec![ProfileTerm::new("魔王", "Roi demon")],
+            ..TranslationProfile::default()
+        });
+        assert_eq!(
+            plamo_glossary(&request),
+            [
+                ("ミコト".to_owned(), "Mikoto".to_owned()),
+                ("魔王".to_owned(), "Roi demon".to_owned()),
+            ]
+        );
+        assert!(plamo_glossary(&TranslationRequest::new(["a"], Language::French)).is_empty());
+    }
+
+    #[test]
+    fn plamo_translations_map_a_page_and_refuse_a_broken_count() {
+        let request = TranslationRequest::new(["おはよう", "元気？"], Language::French);
+        let mapped = plamo_translations("Bonjour\r\n\nÇa va ?\n", &request).expect("two lines");
+        assert_eq!(mapped.texts, ["Bonjour", "Ça va ?"]);
+        assert!(mapped.untranslated.is_empty());
+        assert!(plamo_translations("Bonjour", &request).is_err());
     }
 
     #[test]

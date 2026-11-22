@@ -18,6 +18,35 @@ use crate::{
     PipelineConfig, QwenImageConfig, RoremMixedConfig, TranslationConfig, vram,
 };
 
+/// One `--glossary SOURCE=TARGET` pair: a term whose rendering must not drift
+/// between pages.
+///
+/// Parsed by clap, so a malformed pair is a usage error before the run starts
+/// rather than a silently dropped term.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GlossaryTerm {
+    pub source: String,
+    pub target: String,
+}
+
+impl std::str::FromStr for GlossaryTerm {
+    type Err = String;
+
+    fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
+        let Some((source, target)) = value.split_once('=') else {
+            return Err("expected SOURCE=TARGET".to_owned());
+        };
+        let (source, target) = (source.trim(), target.trim());
+        if source.is_empty() || target.is_empty() {
+            return Err("both sides of SOURCE=TARGET must be non-empty".to_owned());
+        }
+        Ok(Self {
+            source: source.to_owned(),
+            target: target.to_owned(),
+        })
+    }
+}
+
 #[derive(Clone, Debug, Parser)]
 #[command(
     version,
@@ -60,10 +89,10 @@ pub struct Arguments {
     /// Translation model: with `--provider local`, a catalog id or `auto`.
     /// The default is `hy-mt2-7b`, the model that won the Japanese→French
     /// measurement recorded in `bench-profile/ja-quality.md`; `auto` instead
-    /// scans for the strongest model the VRAM budget can run, fitting whole
-    /// or through a partial offload that keeps a majority of blocks on the
-    /// GPU (a big pick is downloaded on the first run; a pick below the 2B
-    /// quality floor refuses unless `--force`). With a hosted provider, its
+    /// scans for the strongest model the VRAM budget can run inside the 8 GB
+    /// class, fitting whole or through a partial offload that keeps a
+    /// majority of blocks on the GPU; 12B and larger are reachable only by
+    /// naming them (the pick is downloaded on the first run). With a hosted provider, its
     /// model id; `auto` asks for the service without one, which only the
     /// model-less providers (DeepL and friends) accept.
     #[arg(long, default_value = "hy-mt2-7b")]
@@ -78,7 +107,7 @@ pub struct Arguments {
     #[arg(long, help_heading = "Model & VRAM")]
     pub no_vision: bool,
 
-    /// Skip the VRAM budget check and `auto`'s quality floor (not recommended).
+    /// Skip the VRAM budget check (not recommended).
     #[arg(long, help_heading = "Model & VRAM")]
     pub force: bool,
 
@@ -144,6 +173,13 @@ pub struct Arguments {
     /// Extra instructions passed to the translator.
     #[arg(long, help_heading = "Pipeline")]
     pub translation_instructions: Option<String>,
+
+    /// Fixed translation for a recurring term, `SOURCE=TARGET` (repeatable).
+    /// The pair is added to the chapter profile the run resolves — replacing
+    /// a learned term of the same source — so every page reuses that rendering
+    /// while the rest of the learned dossier stays.
+    #[arg(long, value_name = "SOURCE=TARGET", help_heading = "Pipeline")]
+    pub glossary: Vec<GlossaryTerm>,
 
     /// Re-translate pages whose output already exists.
     #[arg(long, help_heading = "Run control")]
@@ -415,8 +451,8 @@ impl Resolved {
 }
 
 /// Download size above which an automatic pick warns instead of starting a
-/// multi-gigabyte download silently: `auto` now scales up with the GPU, so a
-/// large card can select a model the user never asked for.
+/// multi-gigabyte download silently: even inside the 8 GB class `auto` can
+/// select a model the user never asked for.
 pub const LARGE_DOWNLOAD_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 
 /// Bytes `model`/`quantization` needs in the store before the first page can be
@@ -479,8 +515,7 @@ pub fn detect_budget(arguments: &Arguments, device: &Device) -> Option<u64> {
 /// budget, no download — its weights live elsewhere), or the local LLM —
 /// `auto` scans the preference list for the strongest model the budget can
 /// run, taking a partial offload when the split keeps at least half its
-/// blocks on the GPU, and refusing a pick below the quality floor unless
-/// `--force`. An explicit id over the VRAM budget is split the same way; a
+/// blocks on the GPU. An explicit id over the VRAM budget is split the same way; a
 /// more CPU-heavy split refuses unless `--force` loads it whole.
 /// Both local paths use the real measurements recorded by previous runs when
 /// available.
@@ -507,28 +542,6 @@ pub fn resolve_model(
                 gib(budget)
             );
         };
-        if let Some(parameters) = preset::parameters_billion(choice.model)
-            && parameters < preset::AUTO_QUALITY_FLOOR_B
-        {
-            if !arguments.force {
-                bail!(
-                    "the strongest model running within the VRAM budget {0} is {1} {2} ({3}B), \
-                     below the {4}B quality floor for usable translations: free VRAM, pass an \
-                     explicit --llm <id> (--force skips its budget check), translate on CPU \
-                     (--cpu with --llm), or --force to accept the small automatic pick",
-                    gib(budget),
-                    choice.model,
-                    choice.quantization,
-                    parameters,
-                    preset::AUTO_QUALITY_FLOOR_B,
-                );
-            }
-            eprintln!(
-                "warning: --force accepts the small automatic pick {} {} ({parameters}B); \
-                 expect repetitive translations until the GPU fits a larger model",
-                choice.model, choice.quantization,
-            );
-        }
         // A split automatic pick is announced like an explicit one: the run
         // is about to be slower than the model's estimate suggests.
         if let Some(plan) = choice.offload {
@@ -856,6 +869,50 @@ mod tests {
     }
 
     #[test]
+    fn glossary_pairs_parse_and_reject_malformed_terms() {
+        let arguments = Arguments::parse_from([
+            "koharu-batch",
+            "--input",
+            "in",
+            "--output",
+            "out",
+            "--glossary",
+            " イヌ = chien ",
+            "--glossary",
+            "猫=chat",
+        ]);
+        assert_eq!(
+            arguments.glossary,
+            [
+                GlossaryTerm {
+                    source: "イヌ".to_owned(),
+                    target: "chien".to_owned(),
+                },
+                GlossaryTerm {
+                    source: "猫".to_owned(),
+                    target: "chat".to_owned(),
+                },
+            ]
+        );
+
+        for malformed in ["no-separator", "=chien", "イヌ="] {
+            assert!(
+                Arguments::try_parse_from([
+                    "koharu-batch",
+                    "--input",
+                    "in",
+                    "--output",
+                    "out",
+                    "--glossary",
+                    malformed,
+                ])
+                .is_err(),
+                "{malformed} must be refused"
+            );
+        }
+    }
+
+    #[test]
     fn deterministic_translates_greedily() {
         let resolved = Resolved {
             provider: Provider::Local,
@@ -1027,59 +1084,6 @@ mod tests {
     }
 
     #[test]
-    fn auto_refuses_a_pick_below_the_quality_floor_unless_forced() {
-        let arguments = Arguments::parse_from([
-            "koharu-batch",
-            "--input",
-            "in",
-            "--output",
-            "out",
-            "--llm",
-            "auto",
-        ]);
-        // 2.25 GiB sits below every 2B configuration's viable split (the
-        // 2B pair needs ≈2.43 GiB for a majority-on-GPU plan) and above the
-        // 0.8B tail pick, so only the sub-floor model can run.
-        let crowded = 2 * 1024 * 1024 * 1024 + 256 * 1024 * 1024;
-        let error = resolve_model(&arguments, Some(crowded), &MeasuredPeaks::new())
-            .expect_err("an automatic pick below the floor refuses without --force");
-        let message = error.to_string();
-        assert!(message.contains("quality floor"), "{message}");
-        assert!(message.contains("qwen3.5-0.8b"), "{message}");
-        assert!(message.contains("--force"), "{message}");
-
-        let forced = Arguments::parse_from([
-            "koharu-batch",
-            "--input",
-            "in",
-            "--output",
-            "out",
-            "--llm",
-            "auto",
-            "--force",
-        ]);
-        let resolved = resolve_model(&forced, Some(crowded), &MeasuredPeaks::new())
-            .expect("--force accepts the small automatic pick");
-        assert_eq!(resolved.model.as_deref(), Some("qwen3.5-0.8b"));
-
-        let resolved = resolve_model(
-            &arguments,
-            Some(6 * 1024 * 1024 * 1024),
-            &MeasuredPeaks::new(),
-        )
-        .expect("6 GiB runs a model above the floor");
-        assert_eq!(
-            resolved.model.as_deref(),
-            Some("qwen3.5-4b-uncensored"),
-            "whole-GPU models win over a bigger one that must be split"
-        );
-        assert!(
-            resolved.offload.is_none(),
-            "the 4B fits 6 GiB whole, so it carries no split"
-        );
-    }
-
-    #[test]
     fn an_explicit_model_over_budget_offloads_part_of_itself_instead_of_refusing() {
         // On a 16 GB card the 31B split still keeps a majority of its blocks
         // on the GPU, so the requested model remains a viable partial offload.
@@ -1143,7 +1147,7 @@ mod tests {
 
     #[test]
     fn an_explicit_model_that_would_leave_the_majority_on_cpu_refuses() {
-        // Even with an 8 GB card, the 31B split leaves 41 of 60 blocks in
+        // Even with an 8 GB card, the 31B split leaves 44 of 60 blocks in
         // host memory. Refuse before loading a run likely to take minutes per
         // page; --force remains an explicit opt-in.
         let budget = preset::budget_from_total(8 * 1024 * 1024 * 1024);
@@ -1162,7 +1166,7 @@ mod tests {
             .expect_err("a split with most blocks on the CPU must refuse");
         let message = error.to_string();
         assert!(message.contains("partial offload would leave"), "{message}");
-        assert!(message.contains("41/60 blocks on the CPU"), "{message}");
+        assert!(message.contains("44/60 blocks on the CPU"), "{message}");
         assert!(message.contains("minutes per page"), "{message}");
         assert!(message.contains("smaller model"), "{message}");
         assert!(message.contains("--force"), "{message}");
@@ -1218,10 +1222,10 @@ mod tests {
             "--output",
             "out",
             "--llm",
-            "gemma4-e4b-it",
+            "gemma4-e2b-it",
         ]);
         let resolved = resolve_model(&arguments, Some(budget), &MeasuredPeaks::new())
-            .expect("the instruct 4B fits 8 GiB");
+            .expect("the measured E2B fits 8 GiB");
         assert_eq!(resolved.offload, None);
         assert_eq!(resolved.offload_label(), None);
         assert_eq!(

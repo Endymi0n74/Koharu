@@ -68,6 +68,12 @@ pub struct Request {
     pub stop: StopToken,
     pub progress: Option<ProgressSink>,
     pub inpainting_mask: Option<InpaintingMask>,
+    /// Terminology this run must honour, merged into the chapter profile the
+    /// translation stage resolves: a pair replaces the term of the same source,
+    /// while everything else the analysis learned stays. It travels on the
+    /// request rather than in the scene so a run's fixed terms never settle
+    /// into the project's dossier.
+    pub glossary: Vec<koharu_translator::ProfileTerm>,
 }
 
 impl Default for Request {
@@ -78,6 +84,7 @@ impl Default for Request {
             stop: StopToken::default(),
             progress: None,
             inpainting_mask: None,
+            glossary: Vec::new(),
         }
     }
 }

@@ -192,6 +192,7 @@ pub(crate) async fn process(
             stop: stop.clone(),
             progress: None,
             inpainting_mask,
+            glossary: Vec::new(),
         };
         request.progress = Some(Arc::new(move |event| {
             let update = match event {

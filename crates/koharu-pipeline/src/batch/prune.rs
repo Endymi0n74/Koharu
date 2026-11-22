@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 /// wheels live under one flat directory per wheel and are versioned by the
 /// pinned `Cargo.toml`, so the whole `cuda` directory survives pruning.
 const RUNTIME_RELEASES: &[(&str, &str)] = &[
-    ("llama", "b10903"),
+    ("llama", "b11642"),
     ("torch", "v2.13.0.7"),
     ("diffusion", "master-920-2f88688"),
 ];
@@ -216,8 +216,8 @@ mod tests {
     #[test]
     fn folding_matches_the_store_layout() {
         assert_eq!(
-            fold_repository("unsloth/gemma-4-E4B-it-qat-GGUF"),
-            "unsloth--gemma-4-E4B-it-qat-GGUF"
+            fold_repository("unsloth/gemma-4-E2B-it-qat-GGUF"),
+            "unsloth--gemma-4-E2B-it-qat-GGUF"
         );
         assert_eq!(
             fold_repository("PaddlePaddle/PaddleOCR-VL-1.6"),
@@ -229,7 +229,7 @@ mod tests {
     fn referenced_repositories_cover_the_real_store_layout() {
         let referenced = referenced_repositories();
         for repository in [
-            "unsloth--gemma-4-E4B-it-qat-GGUF",
+            "unsloth--gemma-4-E2B-it-qat-GGUF",
             "PaddlePaddle--PaddleOCR-VL-1.6",
             "PaddlePaddle--PaddleOCR-VL-1.6-GGUF",
             "mayocream--koharu-layout-rfdetr-seg-2xl-1152",
@@ -248,14 +248,14 @@ mod tests {
         let models = store.path().join("hugging-face").join("models");
         std::fs::create_dir_all(
             models
-                .join("unsloth--gemma-4-E4B-it-qat-GGUF")
+                .join("unsloth--gemma-4-E2B-it-qat-GGUF")
                 .join("snapshots")
                 .join("rev"),
         )
         .unwrap();
         std::fs::write(
             models
-                .join("unsloth--gemma-4-E4B-it-qat-GGUF")
+                .join("unsloth--gemma-4-E2B-it-qat-GGUF")
                 .join("snapshots")
                 .join("rev")
                 .join("m.gguf"),
@@ -322,8 +322,8 @@ mod tests {
     fn orphan_runtimes_keep_only_the_pinned_releases() {
         let store = tempfile::tempdir().unwrap();
         for (family, release) in [
-            ("llama", "b10902"),
             ("llama", "b10903"),
+            ("llama", "b11642"),
             ("torch", "v2.13.0.7"),
             ("torch", "v2.12.0.0"),
             ("diffusion", "master-920-2f88688"),
@@ -344,7 +344,7 @@ mod tests {
             .collect::<BTreeSet<_>>();
         assert_eq!(
             names,
-            BTreeSet::from(["llama/b10902".to_owned(), "torch/v2.12.0.0".to_owned(),]),
+            BTreeSet::from(["llama/b10903".to_owned(), "torch/v2.12.0.0".to_owned(),]),
             "current releases stay, stale ones go, the cuda wheel tree is untouched"
         );
         assert_eq!(orphans.iter().map(|(_, bytes)| *bytes).sum::<u64>(), 16);

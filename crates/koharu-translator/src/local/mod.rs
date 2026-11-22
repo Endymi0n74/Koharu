@@ -10,7 +10,7 @@ pub mod preset;
 
 pub use catalog::LocalConfig;
 pub use catalog::LocalModelDescriptor;
-pub(crate) use catalog::{DEFAULT_MODEL, DEFAULT_QUANTIZATION};
+pub(crate) use catalog::{DEFAULT_MODEL, DEFAULT_QUANTIZATION, plamo_code};
 
 use crate::{
     Device, Error, GenerationConfig, Model, ModelSelection, ProfileRequest, Provider, Quantization,
@@ -85,6 +85,9 @@ impl LocalTranslator {
                 language: request.target_language,
             });
         }
+        if self.descriptor.plamo_translate() {
+            return self.translate_plamo(request, generation).await;
+        }
 
         let image = request.image.clone();
         let prompt = self.render_prompt(
@@ -121,6 +124,50 @@ impl LocalTranslator {
         Ok(prompt::translations("local", &output.text, request)?)
     }
 
+    /// One call for the whole page: PLaMo 3 Translate's template translates a
+    /// single input block, so the page goes in as one block with one line per
+    /// segment and comes back with a promised line per segment. The chapter's
+    /// settings (glossary, profile, context) ride that same system block, so
+    /// every bubble of the page sees the same reference material.
+    ///
+    /// A broken line count fails the page: this adapter is reachable only by
+    /// naming the model, and guessing an alignment would attach a translation
+    /// to the wrong bubble.
+    async fn translate_plamo(
+        &self,
+        request: &TranslationRequest,
+        generation: GenerationConfig,
+    ) -> Result<Translations> {
+        let (system, payload) = prompt::plamo_prompt(request);
+        let glossary = prompt::plamo_glossary(request);
+        let generation = self.descriptor.generation.options(generation);
+        let llm = Arc::clone(&self.llm);
+        let output = tokio_rayon::spawn(move || -> anyhow::Result<String> {
+            let terms = glossary
+                .iter()
+                .map(|(source, target)| (source.as_str(), target.as_str()))
+                .collect::<Vec<_>>();
+            let prompt = llm
+                .render_chat_prompt_with_options(
+                    &[ChatMessage::system(system), ChatMessage::user(payload)],
+                    ChatTemplateOptions {
+                        add_generation_prompt: true,
+                        enable_thinking: false,
+                        glossary: &terms,
+                    },
+                )
+                .context("failed to render PLaMo translation prompt")?;
+            // The template's rendering is the only place the page's terms
+            // become text: logging it separates a term that never reached the
+            // model from one the model ignored.
+            tracing::debug!(prompt = %prompt, "rendered the PLaMo translation prompt");
+            Ok(llm.inference(&Input::new(&prompt), &generation)?.text)
+        })
+        .await?;
+        tracing::debug!(segments = request.segments.len(), "translated a page with PLaMo");
+        Ok(prompt::plamo_translations(&output, request)?)
+    }
+
     /// Reads a chapter and describes it, so its translation can be kept
     /// consistent. One extra model call per chapter, local models only.
     pub(crate) async fn profile(
@@ -128,6 +175,12 @@ impl LocalTranslator {
         request: &ProfileRequest,
         generation: GenerationConfig,
     ) -> Result<TranslationProfile> {
+        if self.descriptor.plamo_translate() {
+            // PLaMo's template has no chat channel for the profile JSON, so the
+            // chapter keeps the glossary the application supplied instead of a
+            // model-derived one.
+            return Ok(TranslationProfile::default());
+        }
         let (system, payload) = prompt::profile_prompt(request);
         let prompt = self
             .llm
@@ -136,6 +189,7 @@ impl LocalTranslator {
                 ChatTemplateOptions {
                     add_generation_prompt: true,
                     enable_thinking: false,
+                    glossary: &[],
                 },
             )
             .context("failed to render local document profile prompt")?;
@@ -164,6 +218,7 @@ impl LocalTranslator {
                 ChatTemplateOptions {
                     add_generation_prompt: true,
                     enable_thinking: reasoning,
+                    glossary: &[],
                 },
             )
             .context("failed to render local translation prompt")?)

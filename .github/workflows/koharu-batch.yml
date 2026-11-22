@@ -27,7 +27,7 @@ env:
   CARGO_TERM_COLOR: always
   # Mirrors crates/koharu-runtime/src/runtime/packages/llama.rs RELEASE: the
   # The prune smoke test keeps exactly this directory in the fake store.
-  LLAMA_RELEASE: b10903
+  LLAMA_RELEASE: b11642
 
 jobs:
   windows:
@@ -106,7 +106,7 @@ jobs:
           foreach ($kept in @(
             'unsloth--gemma-4-E4B-it-qat-GGUF',
             'mayocream--fonts',
-            'b10903'
+            'b11642'
           )) {
             if ($list | Select-String -SimpleMatch $kept) {
               throw "prune lists the referenced $kept"

@@ -409,17 +409,22 @@ impl ChatRole {
 
 /// Options controlling GGUF chat-template application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ChatTemplateOptions {
+pub struct ChatTemplateOptions<'a> {
     pub add_generation_prompt: bool,
     /// Exposes the standard `enable_thinking` variable to compatible templates.
     pub enable_thinking: bool,
+    /// Source → target term pairs for a template that renders its own glossary
+    /// slot (PLaMo 3 Translate reads `glossary` as a list of objects). Empty for
+    /// templates without one.
+    pub glossary: &'a [(&'a str, &'a str)],
 }
 
-impl Default for ChatTemplateOptions {
+impl Default for ChatTemplateOptions<'_> {
     fn default() -> Self {
         Self {
             add_generation_prompt: true,
             enable_thinking: false,
+            glossary: &[],
         }
     }
 }

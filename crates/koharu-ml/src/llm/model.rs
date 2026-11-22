@@ -168,6 +168,11 @@ impl ChatTemplate {
             .get_template(CHAT_TEMPLATE_NAME)
             .map_err(anyhow::Error::msg)
             .context("compiled GGUF chat template is unavailable")?;
+        let glossary = options
+            .glossary
+            .iter()
+            .map(|(source, target)| context! { source => *source, target => *target })
+            .collect::<Vec<_>>();
         template
             .render(context! {
                 messages => messages,
@@ -177,6 +182,7 @@ impl ChatTemplate {
                 enable_thinking => options.enable_thinking,
                 tools => Vec::<()>::new(),
                 documents => Vec::<()>::new(),
+                glossary => glossary,
             })
             .map_err(anyhow::Error::msg)
             .context("failed to render GGUF chat template")
@@ -898,6 +904,43 @@ mod tests {
     use super::*;
 
     #[test]
+    fn chat_template_options_reach_a_glossary_slot() {
+        let mut environment = Environment::new();
+        minijinja_contrib::add_to_environment(&mut environment);
+        environment
+            .set_unknown_method_callback(minijinja_contrib::pycompat::unknown_method_callback);
+        environment
+            .add_template(
+                CHAT_TEMPLATE_NAME,
+                "{%- if glossary is sequence -%}{% for term in glossary %}{{ term.source }}=>{{ term.target }};{% endfor %}{%- endif -%}",
+            )
+            .unwrap();
+        let template = ChatTemplate {
+            environment,
+            bos_token: "<s>".to_owned(),
+            eos_token: "</s>".to_owned(),
+        };
+        let messages = [ChatMessage::user("こんにちは")];
+        // A template that renders its own glossary slot receives the pairs as
+        // the list of objects it validates, not as text in the settings block.
+        let glossary = [("ミコト", "Mikoto"), ("魔王", "Roi demon")];
+        let rendered = template
+            .render(
+                &messages,
+                ChatTemplateOptions {
+                    glossary: &glossary,
+                    ..ChatTemplateOptions::default()
+                },
+            )
+            .unwrap();
+        assert_eq!(rendered, "ミコト=>Mikoto;魔王=>Roi demon;");
+        assert_eq!(
+            template.render(&messages, ChatTemplateOptions::default()).unwrap(),
+            ""
+        );
+    }
+
+    #[test]
     fn chat_template_preserves_messages_and_options() {
         let mut environment = Environment::new();
         minijinja_contrib::add_to_environment(&mut environment);
@@ -932,6 +975,7 @@ mod tests {
                     ChatTemplateOptions {
                         add_generation_prompt: false,
                         enable_thinking: true,
+                        glossary: &[],
                     },
                 )
                 .unwrap(),

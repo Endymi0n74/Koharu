@@ -450,11 +450,11 @@ mod tests {
         assert_eq!(
             flags_of(&selection(
                 Provider::Local,
-                Some("gemma4-e4b-it"),
+                Some("gemma4-e2b-it"),
                 Some("Q4_K_XL"),
                 true
             )),
-            ["--llm", "gemma4-e4b-it", "--quantization", "Q4_K_XL"]
+            ["--llm", "gemma4-e2b-it", "--quantization", "Q4_K_XL"]
         );
         assert!(
             model_arguments(&selection(Provider::Local, None, None, true)).is_empty(),
@@ -513,9 +513,9 @@ mod tests {
     fn the_model_announcement_becomes_the_job_label() {
         assert_eq!(
             parse_model(
-                "translation model: qwen3.5-0.8b Q4_K_XL (2.3 GiB, within 5.0 GiB, 0.6 GiB if not already stored)"
+                "translation model: qwen3.5-2b Q4_K_XL (4.7 GiB, within 5.0 GiB, 3.0 GiB if not already stored)"
             ),
-            Some("qwen3.5-0.8b Q4_K_XL")
+            Some("qwen3.5-2b Q4_K_XL")
         );
         assert_eq!(
             parse_model(

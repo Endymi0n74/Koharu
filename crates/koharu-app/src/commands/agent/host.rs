@@ -154,6 +154,7 @@ impl KoharuHost {
             stop,
             progress: None,
             inpainting_mask: None,
+            glossary: Vec::new(),
         };
         let result = self
             .handle

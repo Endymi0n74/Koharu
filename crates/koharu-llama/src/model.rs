@@ -780,8 +780,9 @@ impl LlamaModel {
             .ok_or(LlamaModelLoadError::PathToStrError(path.to_path_buf()))?;
 
         let cstr = CString::new(path)?;
-        let llama_model =
-            unsafe { koharu_llama_sys::llama_load_model_from_file(cstr.as_ptr(), params.params) };
+        let llama_model = unsafe {
+            koharu_llama_sys::llama_model_load_from_file(cstr.as_ptr(), params.params)
+        };
 
         let model = NonNull::new(llama_model).ok_or(LlamaModelLoadError::NullResult)?;
 

@@ -21,10 +21,10 @@ use koharu_rasterizer::{RasterOptions, Rasterizer};
 use koharu_renderer::Renderer;
 use koharu_scene::{AssetInput, AssetMetadata, AssetRole, At, EntityId, PageDraft, Session};
 use koharu_translator::preset::{MeasuredPeak, MeasuredPeaks};
-use koharu_translator::{Provider, ProvidersConfig, preset};
+use koharu_translator::{ProfileTerm, Provider, ProvidersConfig, preset};
 use serde_json::{Value, json};
 
-use super::cli::{self, Arguments, Command, FormatChoice, gib};
+use super::cli::{self, Arguments, Command, FormatChoice, GlossaryTerm, gib};
 use super::report::{PageOutcome, PageReport, RunReport, Thumbnails};
 use super::{bootstrap, calibration, cbz, pages, prune, report};
 use crate::vram::VramSampler;
@@ -946,6 +946,19 @@ fn prepare_chapters(
     Ok(chapters)
 }
 
+/// The `--glossary` pairs as request terms.
+///
+/// They ride the pipeline request, so the translation stage merges them into
+/// the profile it resolves — the learned dossier stays, and a pair replaces the
+/// term of the same source. One prompt path: the merged terms are the request's
+/// `TranslationProfile`, exactly like the application's own glossary.
+fn glossary_terms(terms: &[GlossaryTerm]) -> Vec<ProfileTerm> {
+    terms
+        .iter()
+        .map(|term| ProfileTerm::new(term.source.clone(), term.target.clone()))
+        .collect()
+}
+
 /// Reads every pending page of the chapter into its own session. A read or
 /// decode failure reports the page and drops it from the run; it never
 /// aborts the chapter (which would cost the report). Each page's decode is
@@ -1421,6 +1434,8 @@ struct Translation<'a> {
     rasterizer: Arc<Rasterizer>,
     vram_sampler: Option<&'a VramSampler>,
     format: FormatChoice,
+    /// Terms fixed by `--glossary`, carried on every translation request.
+    glossary: Vec<ProfileTerm>,
     retries: usize,
     quiet: bool,
     started: Instant,
@@ -1497,6 +1512,7 @@ impl Translation<'_> {
                                             .push((stage.to_string(), elapsed));
                                     }
                                 })),
+                                glossary: self.glossary.clone(),
                                 ..Request::default()
                             },
                             &mut committer,
@@ -2002,6 +2018,7 @@ async fn replay_pass(
             rasterizer: Arc::clone(rasterizer),
             vram_sampler: None,
             format: chapter.format,
+            glossary: glossary_terms(&replay_arguments.glossary),
             retries: replay_arguments.retries,
             quiet: true,
             started: Instant::now(),
@@ -2572,6 +2589,7 @@ pub async fn run(mut arguments: Arguments) -> Result<i32> {
         rasterizer: Arc::clone(&rasterizer),
         vram_sampler: vram_sampler.as_ref(),
         format: arguments.format.unwrap_or(FormatChoice::Png),
+        glossary: glossary_terms(&arguments.glossary),
         retries: arguments.retries,
         quiet: arguments.quiet,
         started,
@@ -3084,7 +3102,7 @@ mod tests {
 
     fn sample_metadata() -> RunMetadata {
         RunMetadata {
-            model: "gemma4-e4b-it".to_owned(),
+            model: "gemma4-e4b-uncensored".to_owned(),
             quantization: "Q4_K_P".to_owned(),
             vram_estimate: Some("5.6 GiB".to_owned()),
             offload: None,
@@ -3157,7 +3175,7 @@ mod tests {
         assert_eq!(document["volume"], true);
         assert_eq!(document["dry_run"], false);
         assert_eq!(document["language"], "fr-FR");
-        assert_eq!(document["model"]["id"], "gemma4-e4b-it");
+        assert_eq!(document["model"]["id"], "gemma4-e4b-uncensored");
         assert_eq!(document["counts"]["translated"], 1);
         assert_eq!(document["counts"]["failed"], 1);
         assert_eq!(document["chapters"].as_array().unwrap().len(), 1);
