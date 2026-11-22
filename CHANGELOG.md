@@ -1,3 +1,19 @@
+## [0.89.0](https://github.com/Endymi0n74/Koharu/compare/v0.88.3..v0.89.0) - 2026-11-22
+
+### ⛰️  Features
+
+- Merge_glossary dedup — characters with same source as --glossary pairs are replaced (last wins) - ([b443934](https://github.com/Endymi0n74/Koharu/commit/b44393484ee87b4f76e51565eb63f3ce87405cf5))
+
+### 📚 Documentation
+
+- Présenter les fichiers CEF en sous-arborescence - ([bd53855](https://github.com/Endymi0n74/Koharu/commit/bd53855796e9d190523ef07ab072f1cb73acc6ec))
+- Compléter la liste des fichiers CEF dans les guides fork - ([03ea1fe](https://github.com/Endymi0n74/Koharu/commit/03ea1fe3668683a4b66bbbb8ce7095ce711ca1a2))
+- Lister les fichiers CEF installés à côté de koharu.exe - ([50bc493](https://github.com/Endymi0n74/Koharu/commit/50bc493faf68b3bd33e34536a29bfe31d564286b))
+
+### Build
+
+- Expliciter la cible des ressources de licence - ([cd070b9](https://github.com/Endymi0n74/Koharu/commit/cd070b92dea129fb30586314bc4511b53e544a56))
+
 ## [0.88.3](https://github.com/Endymi0n74/Koharu/compare/v0.88.2..v0.88.3) - 2026-11-21
 
 ### 📚 Documentation
