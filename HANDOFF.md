@@ -161,6 +161,12 @@ n'est pas revérifié.
   documentées ; le 30B-A3B reste dehors (`hy_v3` que le runtime épinglé ne résout pas).
 - `0138e1c6` `feat(translate)` — défaut `koharu/hy-mt2-7b:Q4_K_M` (6/6 sur six segments japonais,
   contre 3/6 pour le 1.8B et 2/6 pour qwen3.5-4b), tableau du README du pipeline à jour.
+- `e65eb907` `feat(inpaint)` — Qwen Image 2.1 non distillé : `qwen_image::Checkpoint` (Turbo, base
+  `leejet/Qwen-Image-2.1-GGUF` Q4_K, uncensored `abenzerps/…` Q4_K_M) sur l'encodeur Heretic Q4_K_M
+  et le VAE partagé ; `Options.steps`/`sigmas` (vidé = celui du checkpoint) et 20 pas à CFG 6.0 pour
+  les deux nouveaux. `Inpainter::{QwenImageBase, QwenImageUncensored}` (`qwen-image-base`,
+  `qwen-image-uncensored`), `protocol.ts` régénéré et `models.ts`. Hors périmètre, assumé : masque
+  natif, `strength`, `padding_mask_crop` et image de référence.
 
 **Calibration VRAM : non portée ici**, elle n'a pas de propriétaire sur 0.92. `preset.rs`
 (`estimate_vram`, `MEASURED_PEAKS`, `resolve_auto`, `MeasuredPeaks`) et `batch/calibration.rs`
@@ -174,8 +180,8 @@ n'existant pas en 0.92).
 
 1. Socle infra, faible couplage : `KOHARU_STORE`, vérification sha256/taille du store, logs
    llama.cpp, probes `KOHARU_LLM_DEBUG`/`KOHARU_PATCH_HASH`.
-2. Catalogue de modèles (fait), puis Qwen Image 2.1 non-Turbo (base + Uncensored) ; la calibration
-   VRAM part avec le lot 4.
+2. Catalogue de modèles et Qwen Image 2.1 non-Turbo : faits ; la calibration VRAM part avec le
+   lot 4.
 3. Glossaire et fiche de chapitre dans `koharu-llm` + `stages/translate`.
 4. `koharu-batch` (cli, run, report, cbz, prune, calibration) sur le scheduler 0.92.
 5. App : mode dossier, locale `fr-FR`, purge UI, erreurs inline.
