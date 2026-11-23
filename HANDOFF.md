@@ -131,7 +131,7 @@ Vérifiés, rien à changer :
 
 ## Lot 1 porté (2026-11-23)
 
-Quatre commits sur `port/upstream-0.92`, `cargo check --workspace` vert après chacun :
+Sept commits sur `port/upstream-0.92`, `cargo check --workspace` vert après chacun :
 
 - `bec3c4b9` `feat(store)` — `KOHARU_STORE` nomme le store avant le root Windows et le cache OS.
 - `01e9fd42` `feat(llama)` — `koharu_llama::recent_logs()` : anneau des 32 dernières lignes
@@ -142,9 +142,17 @@ Quatre commits sur `port/upstream-0.92`, `cargo check --workspace` vert après c
   télécharger, et vérifie chaque transfert avant le store. Test
   `a_file_must_match_its_published_size_and_digest`.
 - `chore` — `/bench-profile/` et `/projects/` ignorés (les committer par accident a failli arriver).
+- `3f922cd3` `feat(llm)` — sonde `KOHARU_LLM_DEBUG` sur l'engine à séquences parallèles de 0.92 : une
+  ligne `LLMDBG` par séquence (prompt, shape, history, first_token, step=N tok=M, text) ;
+- `92a4120f` `feat(pipeline)` — sonde `KOHARU_PATCH_HASH` dans `Member::apply` (le `SessionCommitter`
+  de 0.92) : contenu des blocs de la page après chaque étage, hash des tiles du masque et du
+  cleanup comprises ;
+- `02c667c5` `feat(pipeline)` — `DETHASH` : digest des détections brutes (`Detected::patch_hash`),
+  logué avant `layout` dans `stages/detect`.
 
-Reste du lot 1 : les archives de `packages/*` (CUDA, ROCm, torch, llama) n'ont pas de digest publié
-en dur, donc elles ne sont pas vérifiées ; un fichier déjà présent dans le store n'est pas revérifié.
+Le lot 1 est clos. Hors couverture : les archives de `packages/*` (CUDA, ROCm, torch, llama) n'ont
+pas de digest publié en dur, donc elles ne sont pas vérifiées ; un fichier déjà présent dans le store
+n'est pas revérifié.
 
 ## Ordre de portage proposé
 
