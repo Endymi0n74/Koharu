@@ -1,6 +1,9 @@
 //! Translation: one conversation per open project, kept in memory, a turn per
-//! page in page order. Changing the model, the target, or the prompt starts a
-//! new one. A page is its texts as a JSON object numbered in reading order, and
+//! page in page order. Before its first page, the conversation asks a local
+//! model to describe the chapter once (its dossier, `koharu_llm::profile`), so a
+//! name's rendering holds from page 1 to page 30; the user's own term pairs
+//! sharpen that dossier. Changing the model, the target, the prompt, or the
+//! terms starts a new one. A page is its texts as a JSON object numbered in reading order, and
 //! its answer must keep the keys, held to a schema; a page that fails never
 //! enters the history, and an answer echoing the page before's is asked again
 //! without the history it copied. A text given back unchanged, such as a
@@ -21,7 +24,10 @@ use icu_experimental::displaynames::{
 use icu_locale::LocaleExpander;
 use icu_locale_core::{LanguageIdentifier, Locale, langid, subtags::language};
 use indoc::formatdoc;
-use koharu_llm::rig::{completion::Reasoning, driver::DynModel};
+use koharu_llm::{
+    profile::{self, Profile, Term},
+    rig::{completion::Reasoning, driver::DynModel},
+};
 use koharu_scene::{Content, LayerId, Op, Project};
 use rayon::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
@@ -60,6 +66,10 @@ pub struct TranslatorConfig {
     #[serde(with = "koharu_llm::reasoning")]
     #[specta(type = Option<String>)]
     pub reasoning: Option<Reasoning>,
+    /// Term pairs the user fixed, such as the spelling of a name: a pair
+    /// replaces the rendering the chapter's dossier learned for the same
+    /// source, on every page.
+    pub glossary: Vec<Term>,
 }
 
 impl Default for TranslatorConfig {
@@ -73,6 +83,7 @@ impl Default for TranslatorConfig {
             instructions: String::new(),
             vision: false,
             reasoning: None,
+            glossary: Vec::new(),
         }
     }
 }
@@ -82,21 +93,22 @@ impl Default for TranslatorConfig {
 /// (93ac63774d1c6939aec05e6f0f191bf90f225365, Apache-2.0), for the JSON the
 /// answer is parsed by; then the user's instructions as they wrote them,
 /// whatever their form.
-fn system(config: &TranslatorConfig) -> Result<String> {
-    let template = formatdoc! {"
+/// `config`'s system prompt: the template, then the chapter's dossier when it
+/// carries something, then the user's instructions as they wrote them.
+fn system(config: &TranslatorConfig, profile: Option<&Profile>) -> Result<String> {
+    let mut system = formatdoc! {"
         Translate the manga text in each message into {target}. Each message is a page's texts as a JSON object, numbered in reading order: translate only the values, and never alter the structure or the keys. Output only the translated JSON, without any explanation.",
         target = name(&config.target)?,
     };
-    Ok(match config.instructions.trim() {
-        "" => template,
-        instructions => formatdoc! {"
-            {template}
-
-            {instructions}",
-            template = template,
-            instructions = instructions,
-        },
-    })
+    if let Some(profile) = profile.filter(|profile| !profile.is_empty()) {
+        system.push_str("\n\n");
+        system.push_str(&profile.block());
+    }
+    if !config.instructions.trim().is_empty() {
+        system.push_str("\n\n");
+        system.push_str(config.instructions.trim());
+    }
+    Ok(system)
 }
 
 fn target<'de, D: Deserializer<'de>>(deserializer: D) -> Result<LanguageIdentifier, D::Error> {
@@ -131,7 +143,11 @@ pub(crate) async fn translate(
     };
     let conversation = &mut *conversation;
     conversation.keep(&translator);
-    let model = match key(Stage::Translate, config) {
+    // The chapter's dossier is one extra model call: the fork made it on local
+    // models alone, a hosted provider keeping the translation-only path.
+    let local = key(Stage::Translate, config);
+    let learning = local.is_some();
+    let model = match local {
         // A local model loads on the GPU thread, which only hands it over:
         // its engine runs on a thread of its own, so the turn waits off the
         // GPU thread, and the other stages' models run meanwhile.
@@ -148,7 +164,20 @@ pub(crate) async fn translate(
             conversation.hosted(&translator).await?
         }
     };
-    let system = system(&translator)?;
+    if learning && !conversation.learned {
+        let (texts, language) = chapter(member)?;
+        let source = language.as_ref().map(name).transpose()?;
+        let target = name(&translator.target)?;
+        let learned = tokio::select! {
+            learned = profile::learn(&model, &texts, source.as_deref(), &target) => learned?,
+            () = member.cancel.cancelled() => return Err(Stopped.into()),
+        };
+        let mut dossier = learned.unwrap_or_default();
+        dossier.merge(&translator.glossary);
+        conversation.profile = (!dossier.is_empty()).then_some(dossier);
+        conversation.learned = true;
+    }
+    let system = system(&translator, conversation.profile.as_ref())?;
     let turn = Turn::new(
         system,
         &page.texts,
@@ -200,6 +229,37 @@ fn page(member: &Member, vision: bool) -> Result<Option<Page>> {
         texts,
         image,
     }))
+}
+
+/// The most of a chapter's text the dossier call reads, in characters: the
+/// whole chapter describes itself better than one page does, and this leaves
+/// the model's window room for the answer.
+const CHAPTER: usize = 16_000;
+
+/// The project's texts in reading order, and the language the first of them is
+/// written in, as the dossier call reads them.
+fn chapter(member: &Member) -> Result<(Vec<String>, Option<LanguageIdentifier>)> {
+    let project = member.session.lock().project();
+    let mut language = None;
+    let mut texts = Vec::new();
+    let mut room = CHAPTER;
+    for page in project.pages() {
+        for (_, block) in project.blocks(page.id)? {
+            let text = block.source.content.text();
+            let text = text.trim();
+            if text.is_empty() {
+                continue;
+            }
+            language.get_or_insert_with(|| block.source.language.clone());
+            let length = text.chars().count();
+            if length > room {
+                return Ok((texts, language));
+            }
+            room -= length;
+            texts.push(text.to_owned());
+        }
+    }
+    Ok((texts, language))
 }
 
 /// The longest side of the page a model sees, in pixels: about 1,120 image
@@ -313,7 +373,7 @@ mod tests {
 
     #[test]
     fn instructions_follow_the_whole_template() {
-        let template = system(&TranslatorConfig::default()).expect("English names it");
+        let template = system(&TranslatorConfig::default(), None).expect("English names it");
         let config = TranslatorConfig {
             instructions: indoc! {"
 
@@ -326,7 +386,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            system(&config).expect("English names it"),
+            system(&config, None).expect("English names it"),
             formatdoc! {"
                 {template}
 

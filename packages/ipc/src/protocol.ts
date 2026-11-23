@@ -870,6 +870,17 @@ export type Target =
     } & { blocks?: never; pages?: never })
 
 /**
+ *  One term: the source form as it appears in the chapter and the rendering
+ *  every page must reuse.
+ */
+export type Term = {
+  source: string
+  target: string
+  /**  A short note in the target language, such as who the character is. */
+  note: string | null
+}
+
+/**
  *  Styled text in a frame. `content` is set when its layer is added; after
  *  that only the text ops change it, except a block's source, whose wording
  *  a patch writes, as OCR does.
@@ -952,6 +963,12 @@ export type TranslatorConfig = {
    *  can't stop reasoning.
    */
   reasoning?: string | null
+  /**
+   *  Term pairs the user fixed, such as the spelling of a name: a pair
+   *  replaces the rendering the chapter's dossier learned for the same
+   *  source, on every page.
+   */
+  glossary?: Term[]
 }
 
 /**  The text being typed into, as the host shows it. */

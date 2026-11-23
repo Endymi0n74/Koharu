@@ -4,6 +4,7 @@ use icu_locale_core::LanguageIdentifier;
 use indoc::indoc;
 use koharu_llm::{
     Context, SummaryPrompts,
+    profile::{Profile, Term},
     rig::{driver::DynModel, operation::Completion},
 };
 use koharu_scene::ProjectId;
@@ -13,13 +14,19 @@ use super::{TranslatorConfig, model};
 
 /// A project's conversation, and what it was written with.
 pub(crate) struct Conversation {
-    /// The model, the target, and the prompt its history was written with.
-    with: Option<(String, LanguageIdentifier, String)>,
+    /// The model, the target, the prompt, and the user's terms its history was
+    /// written with.
+    with: Option<(String, LanguageIdentifier, String, Vec<Term>)>,
     pub(super) context: Context,
     /// A hosted model, connected for its first page.
     hosted: Option<DynModel<Completion>>,
     /// The last page's texts and their translations.
     pub(super) last: Option<(Vec<String>, Vec<String>)>,
+    /// The chapter's dossier, learned once for this conversation and sent with
+    /// every page.
+    pub(super) profile: Option<Profile>,
+    /// Whether the dossier was asked for, even when it came back empty.
+    pub(super) learned: bool,
 }
 
 impl Conversation {
@@ -29,16 +36,19 @@ impl Conversation {
             context: Context::new(prompts()),
             hosted: None,
             last: None,
+            profile: None,
+            learned: false,
         }
     }
 
     /// Starts again unless its history was written with `config`'s model,
-    /// target, and instructions.
+    /// target, instructions, and terms.
     pub(super) fn keep(&mut self, config: &TranslatorConfig) {
         let with = (
             config.model.clone(),
             config.target.clone(),
             config.instructions.clone(),
+            config.glossary.clone(),
         );
         if self.with.as_ref() != Some(&with) {
             *self = Self::new();
