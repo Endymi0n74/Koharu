@@ -75,6 +75,42 @@ Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3
 Régénérer la liste : `git log --no-merges f9c40bdd ^ce01723a --format='%h %s'`, puis retirer les
 commits docs/release et les 28 hash ci-dessus.
 
+## Relecture des commits rejoués (2026-11-23)
+
+Les 12 commits rejoués ont été relus un par un sur 0.92 ; deux ne tenaient pas la route, un était
+incohérent. Il en reste 10.
+
+Retirés :
+
+- `chore(project): remove duplicated install rule from packages/koharu/AGENTS.md` — la cible n'existe
+  pas sur 0.92 : le commit créait `packages/koharu/AGENTS.md` avec le seul bloc `nextjs-agent-rules`,
+  que `next dev` régénère de toute façon (le commentaire du bloc le dit lui-même).
+- `build: expliciter la cible des ressources de licence` — la carte `resources` n'existait que pour
+  fusionner l'overlay Windows du fork (dll torch) ; sans overlay, l'array amont suffit.
+
+Corrigé dans `fix(ci): resolve the release changelog against the fork` :
+
+- `cliff.toml` pointait le fork dans `[remote.github]` mais laissait le postprocessor `<REPO>` sur
+  `koharu-rs/koharu` : les liens d'issues du gabarit seraient allés chez l'amont. Les deux pointent
+  maintenant `Endymi0n74/Koharu`.
+
+Vérifiés, rien à changer :
+
+- **Updater** : clé minisign et endpoint du fork. Le bloc `windows.installMode: "quiet"` de l'amont
+  disparaît au profit du défaut : c'est le « passive » que le fork avait voulu (son tauri.conf
+  n'avait aucun bloc `windows`).
+- **Winget** : l'amont a bien le job ; il est désactivé (pas de `WINGET_TOKEN`, et le paquet
+  `mayocream.koharu` appartient à l'amont), gabarit retiré, note conservée.
+- **Sentry** : l'amont appelle `.github/sentry.sh` via `beforeBundleCommand` ; la garde
+  `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` évite un échec sans secrets, `SENTRY_ORG` venant des variables
+  de dépôt.
+- **`v` dans tags et noms de release** : l'amont était en `false` alors que le fork tague `v0.92.0` ;
+  `cliff.toml` accepte désormais les deux formes de tag.
+- **`CLAUDE.md`** : créé par le fork (canary + règle immuable) ; `AGENTS.md` amont ne porte pas la
+  règle, donc pas de doublon.
+- **`.gitignore`** : `/memory.md` (convention du fork, fichier absent du disque pour l'instant) et la
+  sonde `spec_decode_probe.rs`, présente non suivie dans l'arbre.
+
 ## Lot 1 porté (2026-11-23)
 
 Quatre commits sur `port/upstream-0.92`, `cargo check --workspace` vert après chacun :
