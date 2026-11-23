@@ -27,8 +27,9 @@ Le fork porte 113 commits hors docs/CI/release (`207 - 55 docs - 24 ci - 15 chor
 conflits ne sont pas cosmétiques :
 
 - `crates/koharu-translator` **n'existe plus en amont** : traduction = `crates/koharu-llm`
-  (`hosted/`, `local/`) et `koharu-pipeline/src/stages/translate`. Les ~13,8 k lignes du fork
-  (glossaire, fiche de chapitre, presets, typographie, prompts) doivent être re-hébergées.
+  (`hosted/`, `local/`) et `koharu-pipeline/src/stages/translate`. Les ~13,8 k lignes du fork s'y
+  re-hébergent : glossaire et fiche de chapitre sont faits (lot 3), les presets et la calibration
+  partent avec `koharu-batch`, la typographie et les prompts restent à trancher.
 - `crates/koharu-pipeline` est réécrit : `EntityId`/`Snapshot` → `PageId`/`Session`, stages
   `detection`/`ocr`/`translation` → `detect`/`recognize`/`translate` + `inpaint`, config par stage.
 - Le sous-système batch (7 067 lignes, `crates/koharu-pipeline/src/batch/`) n'a aucun équivalent
@@ -202,13 +203,46 @@ llama.cpp `fit_params` placer les poids et ne publie qu'un échec de chargement 
 soldés par les deux commits ci-dessus (le purge était déjà l'état amont, `qwen3.5-9b-abliterated`
 n'existant pas en 0.92).
 
+## Lot 3 porté (2026-11-23)
+
+La fiche de chapitre et le glossaire, re-hébergés au découpage prévu :
+
+- `bbe5d0d0` `feat(llm)` — `koharu-llm::profile` : `Profile` (série, synopsis, registre,
+  personnages, glossaire), `Term`, `Profile::block` (les blocs « Project context » et « Glossary »
+  du fork), `Profile::merge` (une paire de l'utilisateur remplace l'appris du même source, la
+  dernière gagne), et `profile::learn`, qui porte l'unique appel du fork (`profile_prompt`,
+  `profile_schema`, `profile`) sur rig, schéma en sortie contrainte. Trois tests : fusion, réponse
+  à moitié remplie, dossier vide.
+- `5d2f20ee` `feat(translate)` — `TranslatorConfig.glossary` (`Vec<Term>`) et le stage apprend le
+  dossier une fois par conversation, sur tout le texte du projet en ordre de lecture (plafond
+  16 000 caractères), sur un modèle local seulement ; son bloc entre dans le prompt système de
+  chaque page. `protocol.ts` régénéré : `Term` et `glossary?: Term[]`.
+
+Divergences assumées avec le fork :
+
+- **Persistance** : le fork écrivait le dossier dans un composant de projet
+  (`dev.koharu.document.profile`) et le relisait de la scène ; 0.92 n'a pas de composant pour ça,
+  donc le dossier vit dans la `Conversation` et tombe dès que le modèle, la cible, les consignes ou
+  le glossaire changent. Rien n'est écrit dans le projet : un projet rouvert relance l'appel.
+- **PLaMo** : la branche qui privait PLaMo de fiche (son gabarit GGUF n'a pas de canal JSON) n'a
+  pas d'objet ici — 0.92 ne catalogue aucun PLaMo et laisse rig rendre le gabarit.
+- **Hébergé** : comme le fork, la fiche ne s'applique qu'aux modèles locaux.
+- **Non porté, assumé** : la typographie du fork (`normalize_segment`, espaces françaises après
+  traduction) n'a pas d'équivalent dans le stage 0.92.
+
+Vérifié : `cargo check --workspace` 0, `cargo fmt --all -- --check` 0, 12 tests `stages::translate`
+verts, 46 tests `koharu-llm` verts, `tsc --noEmit` de `packages/koharu` 0. Rien n'a été comparé à
+un modèle chargé : les deux commits sont vérifiés par compilation et tests unitaires, pas par une
+traduction réelle.
+
 ## Ordre de portage proposé
 
 1. Socle infra, faible couplage : `KOHARU_STORE`, vérification sha256/taille du store, logs
    llama.cpp, probes `KOHARU_LLM_DEBUG`/`KOHARU_PATCH_HASH`.
 2. Catalogue de modèles et Qwen Image 2.1 non-Turbo : faits ; la calibration VRAM part avec le
    lot 4.
-3. Glossaire et fiche de chapitre dans `koharu-llm` + `stages/translate`.
+3. Glossaire et fiche de chapitre dans `koharu-llm` + `stages/translate` : faits (lot 3) ; la
+   typographie du fork reste une entrée à part.
 4. `koharu-batch` (cli, run, report, cbz, prune, calibration) sur le scheduler 0.92.
 5. App : mode dossier, locale `fr-FR`, purge UI, erreurs inline.
 6. Renommage KoharuBatch, montée `0.92.0`, tag `v0.92.0`, publication.
