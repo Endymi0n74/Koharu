@@ -147,14 +147,17 @@ Vérifiés, rien à changer :
   `TAURI_SIGNING_PRIVATE_KEY` et sa phrase de passe — le jeton n'existe pas. Les deux commits du fork
   (`b646e34c` puis `71d52db7` : désactivation, puis retrait du gabarit commenté) y sont rejoués en
   un seul.
-- **Sentry** : l'amont appelle `.github/sentry.sh` via `beforeBundleCommand`, que tauri-action passe
-  en `--config` ; le correctif `f7de4fcc` fait sauter l'upload sans `SENTRY_AUTH_TOKEN` et
-  `SENTRY_ORG` et garde le strip, et `release.yml` transmet bien les deux. `matbour/setup-sentry-cli@v3`
-  déclare son jeton `required: false` (« left unauthenticated »), donc l'étape ne casse rien non
-  plus. Ce qui manquait : le dépôt n'a **aucune** variable et, côté secrets, que les deux clés Tauri ;
-  `SENTRY_DSN` est absent lui aussi, donc `option_env!("SENTRY_DSN")` vaut `None` et le client démarre
-  désactivé (`sentry-core` : `None.into_dsn()` rend `Ok(None)`, l'`expect` ne panique pas). Les builds
-  du fork ne remontent donc rien à Sentry ; seule la bande de débogage du binaire reste utile.
+- **Sentry** : retiré du câblage de release. Vérifié d'abord : le dépôt n'a **aucune** variable et,
+  côté secrets, que les deux clés Tauri, donc `matbour/setup-sentry-cli@v3` tournait sans jeton
+  (`required: false`) et `sentry.sh` sautait son upload ; `SENTRY_DSN` manque aussi, donc
+  `option_env!("SENTRY_DSN")` vaut `None` et le client démarre désactivé (`sentry-core` :
+  `None.into_dsn()` rend `Ok(None)`, l'`expect` ne panique pas). Rien n'aurait jamais remonté à Sentry.
+  L'étape `Setup Sentry CLI` et les trois `SENTRY_*` passés à tauri-action sont supprimés, et
+  `sentry.sh` devient `.github/strip.sh` : ce qui restait utile de ce script était le strip, et il
+  perd son `dsymutil`, qui ne servait qu'à donner une bande de symboles à Sentry. Le
+  `beforeBundleCommand` reste pour lui. Côté front, `next.config.ts` garde `withSentryConfig` : sans
+  `SENTRY_AUTH_TOKEN` il saute l'upload sans rien casser, et son sort se tranchera avec le reste du
+  portage du paquet `koharu`.
 - **`v` dans tags et noms de release** : vérifié, `ce01723a` a `include-v-in-tag: false` et
   `include-v-in-release-name: false`, la config de la branche les passe à `true`, les tags du fork
   sont `v0.88.2`, `v0.88.3`, `v0.89.0`, et `cliff.toml` matche `^v?[0-9]+\.[0-9]+\.[0-9]+$`, donc
