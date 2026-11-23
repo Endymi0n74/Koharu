@@ -12,6 +12,10 @@ use crate::cli::Prune;
 
 /// Lists what the store keeps for nothing, and deletes it when `--delete` says
 /// so. Nothing is removed without it, so the listing can be read first.
+///
+/// Reusable legacy downloads that share a commit with a current snapshot are
+/// reported separately: they would be staged again for the pinned revision and
+/// are not stale drops. They are not included in the reclaimable summary.
 pub async fn prune(arguments: &Prune) -> Result<()> {
     let root = koharu_runtime::store_root();
     if !root.is_dir() {
@@ -19,21 +23,28 @@ pub async fn prune(arguments: &Prune) -> Result<()> {
         return Ok(());
     }
     let keep = referenced_folders();
+    let reusable = legacy_reusable(&root, &keep);
     let mut candidates = plan(&root, &keep)?;
     candidates.extend(plan(&root, &legacy(&root, &keep))?);
     candidates.sort();
-    if candidates.is_empty() {
+    if reusable.is_empty() && candidates.is_empty() {
         println!("the store keeps nothing it could drop");
+        return Ok(());
+    }
+    if !reusable.is_empty() {
+        print_reusable(&root, &reusable);
+    }
+    if candidates.is_empty() {
         return Ok(());
     }
     let mut total = 0;
     for candidate in &candidates {
         let bytes = size(candidate)?;
         total += bytes;
-        println!("{}\\t{}", mibibytes(bytes), shown(&root, candidate));
+        println!("{}\t{}", mibibytes(bytes), shown(&root, candidate));
     }
     println!(
-        "\\n{} folder(s), {} reclaimable",
+        "\n{} folder(s), {} reclaimable",
         candidates.len(),
         mibibytes(total)
     );
@@ -61,9 +72,9 @@ const LEGACY_MODELS: &str = "hugging-face";
 fn referenced_folders() -> Vec<PathBuf> {
     let mut folders = koharu_runtime::package_versions();
     for (kind, id, commit) in referenced_repositories() {
-        let current = root_join([RepoKind::plural(kind), id, "snapshots", commit]);
+        let current = root_join([kind.current_root(), kind.plural(), id, "snapshots", commit]);
         folders.push(current);
-        let legacy = root_join([LEGACY_MODELS, RepoKind::plural(kind), id]);
+        let legacy = root_join([kind.legacy_root(), kind.plural(), id]);
         folders.push(legacy);
     }
     folders
@@ -93,6 +104,14 @@ impl RepoKind {
             Self::Model => "models",
             Self::Dataset => "datasets",
         }
+    }
+
+    fn current_root(self) -> &'static str {
+        "huggingface"
+    }
+
+    fn legacy_root(self) -> &'static str {
+        LEGACY_MODELS
     }
 }
 
@@ -128,21 +147,67 @@ fn referenced_repositories() -> Vec<ReferencedRepository> {
 
 /// The folders the legacy root keeps: one per repository a catalog still pins,
 /// where a kept `<root>/huggingface/<kind>/<repository>/snapshots/<revision>`
-/// keeps `<root>/hugging-face/<kind>/<repository>`.
+/// keeps `<root>/hugging-face/<kind>/<repository>` whole.
 fn legacy(root: &Path, keep: &[PathBuf]) -> Vec<PathBuf> {
     let current = root.join("huggingface");
     let legacy = root.join(LEGACY_MODELS);
-    keep.iter()
-        .filter_map(|folder| {
-            let rest = folder.strip_prefix(&current).ok()?;
-            let mut components = rest.components();
-            let kind = components.next()?;
-            let repository = components.next()?;
-            Some(legacy.join(kind).join(repository))
-        })
-        .collect::<BTreeSet<PathBuf>>()
-        .into_iter()
-        .collect()
+    let mut out = Vec::new();
+    for folder in keep {
+        let Ok(rest) = folder.strip_prefix(&current) else {
+            continue;
+        };
+        let mut components = rest.components();
+        let Some(kind) = components.next() else {
+            continue;
+        };
+        let Some(id) = components.next() else {
+            continue;
+        };
+        let root = legacy.join(&kind).join(&id);
+        if !root.is_dir() {
+            continue;
+        }
+        out.push(root);
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// The legacy downloads a catalog still points at with the same commit a current
+/// snapshot uses: they already exist on a re-download, so they are not stale
+/// drops. They are reported separately and never entered into the reclaimable
+/// summary.
+fn legacy_reusable(root: &Path, keep: &[PathBuf]) -> Vec<PathBuf> {
+    let current = root.join("huggingface");
+    let legacy = root.join(LEGACY_MODELS);
+    let mut reusable = Vec::new();
+    for folder in keep {
+        let Ok(rest) = folder.strip_prefix(&current) else {
+            continue;
+        };
+        let mut components = rest.components();
+        let Some(kind) = components.next() else {
+            continue;
+        };
+        let Some(id) = components.next() else {
+            continue;
+        };
+        let Some(snapshot) = components.next() else {
+            continue;
+        };
+        if snapshot.as_os_str() != "snapshots" {
+            continue;
+        }
+        let repo = legacy.join(&kind).join(&id);
+        if !repo.is_dir() {
+            continue;
+        }
+        reusable.push(repo);
+    }
+    reusable.sort();
+    reusable.dedup();
+    reusable
 }
 
 /// The folders under `root` that `keep` leaves behind: inside a package a kept
@@ -229,6 +294,20 @@ fn mibibytes(bytes: u64) -> String {
     } else {
         format!("{:.1} MiB", bytes as f64 / MIB)
     }
+}
+
+fn print_reusable(root: &Path, reusable: &[PathBuf]) {
+    let mut total = 0;
+    for folder in reusable {
+        let bytes = size(folder).unwrap_or(0);
+        total += bytes;
+        println!("{}\t{}", mibibytes(bytes), shown(&root, folder));
+    }
+    println!(
+        "\n{} reusable legacy download(s), {} already present on a re-download",
+        reusable.len(),
+        mibibytes(total)
+    );
 }
 
 #[cfg(test)]
@@ -321,5 +400,68 @@ mod tests {
             size(&root.join("huggingface/models/a--b/snapshots/old")).unwrap(),
             3
         );
+    }
+
+    #[test]
+    fn a_legacy_reusable_repository_shares_a_commit_with_a_current_snapshot() {
+        let store = tempfile::tempdir().unwrap();
+        let root = store.path();
+        for folder in [
+            "huggingface/models/a--b/snapshots/kept",
+            "huggingface/models/c--d/snapshots/kept",
+            "hugging-face/models/a--b/snapshots/older",
+            "hugging-face/datasets/e--f/snapshots/older",
+        ] {
+            fs_err::create_dir_all(root.join(folder)).unwrap();
+        }
+        let keep = [
+            root.join("huggingface/models/a--b/snapshots/kept"),
+            root.join("huggingface/datasets/e--f/snapshots/kept"),
+            root.join("huggingface/models/c--d/snapshots/kept"),
+        ];
+
+        let reusable = legacy_reusable(root, &keep);
+        let expected = vec![root.join("hugging-face/models/a--b")];
+        assert_eq!(reusable, expected);
+    }
+
+    #[test]
+    fn a_legacy_directory_that_only_exists_under_snapshots_is_not_reusable() {
+        let store = tempfile::tempdir().unwrap();
+        let root = store.path();
+        for folder in [
+            "huggingface/models/a--b/snapshots/kept",
+            "hugging-face/models/a--b/snapshots/older",
+        ] {
+            fs_err::create_dir_all(root.join(folder)).unwrap();
+        }
+        let keep = vec![root.join("huggingface/models/a--b/snapshots/kept")];
+        let reusable = legacy_reusable(root, &keep);
+        assert!(reusable.is_empty());
+    }
+
+    #[test]
+    fn print_reusable_lists_each_folder_with_its_size() {
+        let store = tempfile::tempdir().unwrap();
+        let root = store.path();
+        for folder in [
+            "huggingface/models/a--b/snapshots/kept",
+            "hugging-face/models/a--b/snapshots/older",
+        ] {
+            fs_err::create_dir_all(root.join(folder)).unwrap();
+        }
+        fs_err::write(
+            root.join("hugging-face/models/a--b/snapshots/older/weights.gguf"),
+            b"old",
+        )
+        .unwrap();
+
+        let keep = vec![root.join("huggingface/models/a--b/snapshots/kept")];
+
+        let reusable = legacy_reusable(root, &keep);
+        let expected = vec![root.join("hugging-face/models/a--b")];
+        assert_eq!(reusable, expected);
+        let snapshot_size = size(&root.join("hugging-face/models/a--b/snapshots/older")).unwrap();
+        assert_eq!(snapshot_size, 3);
     }
 }
