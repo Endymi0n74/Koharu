@@ -160,8 +160,12 @@ Vérifiés, rien à changer :
   plus de DWARF dans un artefact, sur aucune plateforme, sans script ni branche par OS — la table de
   symboles reste, donc les traces de panique gardent leurs noms. Si un jour la symbolication redevient
   voulue, sa place est `strip = "debuginfo"` ou `debug = true` dans `Cargo.toml`, pas un hook de
-  workflow. Côté front, `next.config.ts` garde `withSentryConfig` : sans `SENTRY_AUTH_TOKEN` il saute
-  l'upload sans rien casser, et son sort se tranchera avec le reste du portage du paquet `koharu`.
+  workflow. Côté front, `withSentryConfig` part aussi : `next.config.ts` rend sa config nue. Cette
+  enveloppe ne travaillait qu'au build — plugin de source maps et `runAfterProductionCompile` qui
+  téléverse — et rien à l'exécution n'en dépendait : Next 16 charge `instrumentation-client.ts` par la
+  convention du fichier. Vérifié en reconstruisant et en retrouvant `plugin:sentry` dans un chunk après
+  retrait. `@sentry/nextjs` reste une dépendance d'exécution (le transport, `lib/sentry`, `global-error`,
+  `TitleBar`).
 - **SignPath** : retiré du câblage, comme Sentry. `crates/koharu/tauri.conf.json` n'a plus de
   `bundle.windows` du tout, donc plus de `signCommand` pour y interpoler un `${SIGNPATH_*}` ; aucun
   workflow ni `package.json` n'appelle `.github/signpath.ts`, seul lecteur de ces variables, et
