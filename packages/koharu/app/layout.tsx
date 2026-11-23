@@ -21,7 +21,7 @@ const notoSansCJK = localFont({
 })
 
 export const metadata: Metadata = {
-  title: 'Koharu',
+  title: 'KoharuBatch',
 }
 
 function RootLayout({

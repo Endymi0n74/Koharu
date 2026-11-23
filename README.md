@@ -1,4 +1,4 @@
-<h1 align="center">Koharu</h1>
+<h1 align="center">KoharuBatch</h1>
 
 <p align="center">ML-powered manga translator, written in <b>Rust</b>.</p>
 
@@ -18,10 +18,10 @@
 <a href="https://koharu.rs/ja" target="_blank">日本語</a> | <a href="https://koharu.rs/zh" target="_blank">简体中文</a>
 </p>
 
-Koharu introduces a local-first workflow for manga translation, utilizing the power of ML to automate the process. It combines the capabilities of object detection, OCR, inpainting, and LLMs to create a seamless translation experience.
+KoharuBatch introduces a local-first workflow for manga translation, utilizing the power of ML to automate the process. It combines the capabilities of object detection, OCR, inpainting, and LLMs to create a seamless translation experience.
 
 > [!NOTE]
-> Koharu runs its vision models and LLMs **locally** on your machine to keep your data private and secure.
+> KoharuBatch runs its vision models and LLMs **locally** on your machine to keep your data private and secure.
 
 ---
 
@@ -46,7 +46,7 @@ Koharu introduces a local-first workflow for manga translation, utilizing the po
 
 ## Hardware Acceleration
 
-Koharu supports CUDA on Windows and Linux, ROCm / HIP on x86-64 Windows and Linux, Metal on Apple silicon, and Vulkan on Windows and Linux out of the box. See [Runtime and hardware requirements](https://koharu.rs/hardware) for model-specific guidance.
+KoharuBatch supports CUDA on Windows and Linux, ROCm / HIP on x86-64 Windows and Linux, Metal on Apple silicon, and Vulkan on Windows and Linux out of the box. See [Runtime and hardware requirements](https://koharu.rs/hardware) for model-specific guidance.
 
 ### CUDA
 
@@ -66,7 +66,7 @@ Vulkan is available on Windows and Linux as an alternative to CUDA and ROCm / HI
 
 ## Machine Learning Models
 
-Koharu uses separate models for detection, OCR, inpainting, and translation. [Vision and inpainting](https://koharu.rs/models/vision) and [translation](https://koharu.rs/models/translation) have separate model settings.
+KoharuBatch uses separate models for detection, OCR, inpainting, and translation. [Vision and inpainting](https://koharu.rs/models/vision) and [translation](https://koharu.rs/models/translation) have separate model settings.
 
 ### Computer Vision Models
 
@@ -76,7 +76,7 @@ Detection, OCR, and inpainting models are selected separately.
 
 The detection model finds panels, speech bubbles, text, and sound effects, with a mask over each text's glyphs.
 
-- [Koharu Layout HighRes](https://huggingface.co/mayocream/koharu-layout-highres)
+- [KoharuBatch Layout HighRes](https://huggingface.co/mayocream/koharu-layout-highres)
 
 #### OCR
 
@@ -151,13 +151,13 @@ brew install --cask koharu
 
 ## Troubleshooting
 
-Startup, runtime, model, and provider errors are covered in [Troubleshooting](https://koharu.rs/reference/troubleshooting). Koharu writes a log file of its INFO messages and above; its location is listed in [Formats and data](https://koharu.rs/reference/data#logs). Set `RUST_LOG` to `debug` or `trace` for verbose logs in a terminal:
+Startup, runtime, model, and provider errors are covered in [Troubleshooting](https://koharu.rs/reference/troubleshooting). KoharuBatch writes a log file of its INFO messages and above; its location is listed in [Formats and data](https://koharu.rs/reference/data#logs). Set `RUST_LOG` to `debug` or `trace` for verbose logs in a terminal:
 
 ```bash
 # macOS / Linux
 RUST_LOG=debug koharu
 # Windows (PowerShell)
-$env:RUST_LOG="debug"; koharu.exe
+$env:RUST_LOG="debug"; koharubatch.exe
 ```
 
 ## Development
@@ -192,7 +192,7 @@ The executable is written to `target/release`.
 
 ## Sponsorship
 
-If Koharu is useful in your workflow, consider sponsoring the project.
+If KoharuBatch is useful in your workflow, consider sponsoring the project.
 
 - [GitHub Sponsors](https://github.com/sponsors/mayocream)
 - [Patreon](https://www.patreon.com/mayocream)
@@ -201,7 +201,7 @@ If Koharu is useful in your workflow, consider sponsoring the project.
 
 ## Contributors ❤️
 
-Thanks to all the contributors who have helped make Koharu better!
+Thanks to all the contributors who have helped make KoharuBatch better!
 
 <a href="https://github.com/koharu-rs/koharu/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=koharu-rs/koharu" />
@@ -209,7 +209,7 @@ Thanks to all the contributors who have helped make Koharu better!
 
 ## License
 
-Copyright 2025-2026 Mayo Takanashi and Koharu contributors.
+Copyright 2025-2026 Mayo Takanashi and KoharuBatch contributors.
 
-Koharu is dual-licensed under the [MIT License](LICENSE-MIT) or the
+KoharuBatch is dual-licensed under the [MIT License](LICENSE-MIT) or the
 [Apache License, Version 2.0](LICENSE-APACHE), at your option.

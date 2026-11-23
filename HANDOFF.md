@@ -1,3 +1,35 @@
+## Renommage affiché et montée 0.92.0
+
+### Décision de renommage (tranchée)
+
+Seul le nom affiché devient KoharuBatch :
+
+- titre de fenêtre (`crates/koharu/tauri.conf.json`),
+- métadonnée et textes de l'app (`packages/koharu/app/layout.tsx`,
+  `packages/koharu/components/app/{AboutDialog,StartupView,TitleBar}.tsx`),
+- README.
+
+Reste en `koharu` : le binaire de l'app et donc `productName`, l'identifiant
+Tauri `Koharu`, le dépôt, les crates, les modèles HuggingFace, les variables
+`KOHARU_*` et les références `koharu/…` du catalogue. Le nom du CLI reste
+`koharu-batch`.
+
+### Montée 0.92.0
+
+`[workspace.package] version` de `Cargo.toml` et l'objet `version` du manifeste
+de release-please sont maintenus à 0.92.0. Le tag `v0.92.0` est une étiquette
+légère posée à la main sur le commit de release du port, puis poussée sur
+`origin`.
+
+### Suivi des fichiers touchés pour le renommage affiché
+
+- `crates/koharu/tauri.conf.json` : `title` `Koharu` → `KoharuBatch`.
+- `packages/koharu/app/layout.tsx` : `title` `Koharu` → `KoharuBatch`.
+- `packages/koharu/components/app/AboutDialog.tsx` : `DialogTitle` `Koharu` → `KoharuBatch`.
+- `packages/koharu/components/app/StartupView.tsx` : texte du titre `Koharu` → `KoharuBatch`.
+- `packages/koharu/components/app/TitleBar.tsx` : `alt` et le texte non-formulaire `Koharu` → `KoharuBatch`.
+- `README.md` : titre, description, menus et références du produit.
+
 ## prune — deux racines de modèles en journaux
 
 `koharu-batch prune` classe les deux racines du store, pas seulement celle que
