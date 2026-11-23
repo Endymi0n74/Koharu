@@ -36,7 +36,8 @@ Le fork porte 111 commits hors docs/CI/release ; les conflits ne sont pas cosmé
 ## Liste de portage révisée (2026-11-23)
 
 109 commits étaient en conflit. Vérifié contre `ce01723a` (lignes ajoutées déjà présentes + lecture du
-code amont) : 13 sont déjà sur la branche, 15 sont écartés, **107 restent à porter**.
+code amont) : 13 sont déjà sur la branche, 13 sont écartés, et **108 restent à porter** (une entrée nouvelle :
+Qwen Image 2.1 non-Turbo).
 
 Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3 5b1b59e9 3606b20c`
 `81c787ba ba047cbd f0793c87 d5ba3602 bff92b26`.
@@ -45,9 +46,7 @@ Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3
 
 | commit | sujet | pourquoi |
 |---|---|---|
-| `bce71ddd` | module Qwen Image 2.1 | `koharu-ml/src/qwen_image` existe en amont (274 l., `references`, sigmas Turbo) |
-| `ed21f4cb` | Qwen Image 2.1 → stage inpaint | `impl Inpaint for QwenImage` dans `stages/inpaint/model.rs` |
-| `ccfbc319` | tuilage VAE Qwen | `vae_tile: Some(512)` dans `qwen_image/model.rs` |
+| `ccfbc319` | tuilage VAE Qwen | `vae_tile: Some(512)` en amont ; `params_backend`/`max_vram` et la résidence au-dessus de 20 Gio sont du réglage perf, non porté (le fit de sd.cpp place les poids) |
 | `9cb311f9` | aligner quatre plages de deps | 0.92 est plus récent que l'alignement du fork (lucide 1.73 > 1.66) |
 | `6e37ffc3` `bd9e9231` `3daa09a6` | Cargo.lock / bun.lock | à régénérer au portage, un lockfile ne se rejoue pas |
 | `08e1daf1` | cargo fmt | `cargo fmt --all -- --check` sort 0 sur la branche |
@@ -68,6 +67,25 @@ Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3
   tampon de lignes récentes du fork → `b10e9390` reste ;
 - aperçu d'erreur dépliable : aucun `showMore`/`showLess`, `detail` reste `truncate` → `ee6cdac8` et
   `4b702c36` restent ;
+- **Qwen Image 2.1 non-Turbo, base et Uncensored** : l'amont ne connaît que le Turbo
+  (`unsloth/…-Turbo-GGUF`, encodeur `Qwen/Qwen3-VL-8B-Instruct-GGUF`, `SIGMAS` figés, pas de
+  `num_inference_steps`, guidage seulement si `true_cfg_scale` > 1). Le fork sélectionnait deux
+  checkpoints non distillés — `leejet/Qwen-Image-2.1-GGUF` Q4_K et
+  `abenzerps/Qwen-Image-2.1-Uncensored-GGUF` Q4_K_M — sur l'encodeur Heretic
+  (`pottokao/…-Heretic-GGUF`, `qwen3vl_8b_heretic` + son mmproj), à `--cfg-scale 6.0` et 20 pas.
+  Rien de tout ça n'existe en amont. `529f67df` (déjà compté dans les 108) apporte lui-même le
+  dépôt UC, `UNCENSORED_DIFFUSION_WEIGHTS` et `load_uncensored`, mais il dépend de tout le reste de
+  `bce71ddd` : `QwenImageInpaint` et son `processor`, l'encodeur Heretic, le chemin CFG 6 / 20 pas.
+  Entrée de portage :
+  - `koharu-ml/src/qwen_image` : les deux dépôts et l'encodeur Heretic, un `load` par checkpoint,
+    et `Options` ouvert à `steps`/`sigmas` (`sigmas` vide garde ceux du scheduler,
+    `cfg: Some(6.0)`) — le Turbo garde `SIGMAS` et `cfg` à 1.0.
+  - `Inpainter` (forme 0.92) : deux variantes (`qwen-image`, `qwen-image-uncensored`) dans l'enum,
+    `load`, `impl Inpaint`, plus `packages/ipc/src/protocol.ts` et `packages/koharu/lib/models.ts`.
+    C'est `ed21f4cb` et `529f67df` réécrits, pas rejoués : t2i et édition sont déjà amont.
+  - Non porté, assumé : masque natif + `strength` + `padding_mask_crop` + image de référence dans
+    l'inpaint Qwen ; l'amont redessine la fenêtre entière et recolore hors masque
+    (`stages/inpaint/tone.rs`).
 - purge UI (`recharts`, `embla`, `cmdk`, `input-otp`, `react-day-picker` toujours dans
   `packages/ui/package.json`), jambes macOS encore actives, `paths-ignore` absent des workflows,
   catalogue sans Hy-MT2 ni `abliterated` : restent.
@@ -132,7 +150,7 @@ en dur, donc elles ne sont pas vérifiées ; un fichier déjà présent dans le 
 
 1. Socle infra, faible couplage : `KOHARU_STORE`, vérification sha256/taille du store, logs
    llama.cpp, probes `KOHARU_LLM_DEBUG`/`KOHARU_PATCH_HASH`.
-2. Catalogue de modèles et calibration VRAM.
+2. Catalogue de modèles et calibration VRAM, puis Qwen Image 2.1 non-Turbo (base + Uncensored).
 3. Glossaire et fiche de chapitre dans `koharu-llm` + `stages/translate`.
 4. `koharu-batch` (cli, run, report, cbz, prune, calibration) sur le scheduler 0.92.
 5. App : mode dossier, locale `fr-FR`, purge UI, erreurs inline.
