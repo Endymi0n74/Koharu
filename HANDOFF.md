@@ -310,6 +310,34 @@ Vérifié : `cargo check --workspace` 0, `cargo fmt --all -- --check` 0, les 3 t
 et le binaire répond (`koharu-batch --help`). Aucun chapitre n'a été traduit par ce chemin : rien
 n'a tourné sur un modèle, donc ni le run ni le rapport n'ont été vus en vrai.
 
+## Lot 5 : app (2026-11-23)
+
+- `9240022f` `chore(ui)` — purge de 34 composants de `packages/ui` qu'aucun fichier n'importe (ni hors
+  de `packages/ui`, ni transitivement entre eux) et de 7 dépendances devenues inutiles : `recharts`,
+  `embla-carousel-react`, `cmdk`, `input-otp`, `react-day-picker`, `date-fns`, `@shadcn/react`.
+  `bun.lock` régénéré ; `tsc` des deux paquets, `next build` et `cargo check --workspace` verts.
+- `feat(app)` — **mode dossier** : `open_folder` (choisit un dossier, le nomme projet via
+  `Library::folder_name`, le crée, y importe ses pages), en réutilisant le chemin d'import existant
+  (`page_files`, `read_pages`, `insert`) plutôt qu'en le dupliquant. Bouton « Open a folder… » sur
+  l'écran de démarrage avec l'échec affiché en ligne (`role="alert"`), et `ActivityCenter` remonté à
+  la racine de l'app pour qu'un job sans éditeur affiche ses phases et son arrêt — c'est la partie
+  « erreurs inline » du fork, limitée aux surfaces qui existent en 0.92. `start.openFolder` sur les
+  douze locales, `protocol.ts` régénéré.
+- **fr-FR** : rien à porter. 0.92 a déjà la locale enregistrée dans `lib/i18n.ts` et complète —
+  parité de 402 clés avec `en-US` vérifiée par script, et `tests/lib/i18n.test.ts` le tient. Le
+  fork l'avait ajoutée parce que sa base ne l'avait pas.
+- **Non porté, assumé** : le fork pilotait le mode dossier en lançant `koharu-batch` en processus
+  fils et en lisant sa progression dans **stderr** (`parse_pending`/`parse_stage_line`). 0.92 sait
+  déjà importer un dossier en projet et lancer le pipeline dedans : un second chemin, qui dépend du
+  format de log d'un binaire, aurait doublé le premier. Le dialogue complet du fork (modèle, langue,
+  sortie, écrasement) reste donc à faire si un vrai traitement par lots en GUI est voulu.
+- **Pas vérifié** : aucune capture de l'app — le shell Tauri/CEF n'a pas été lancé, donc le bouton,
+  l'erreur en ligne et l'ActivityCenter déplacé n'ont pas été vus ; seuls `tsc`, `next build` et les
+  tests de locale ont tourné.
+- **Environnement** : `cargo check -p koharu-desktop` exige `ninja` dans le `PATH` pour `cef-dll-sys`
+  (`…/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja`), sinon le build CEF échoue
+  avant d'atteindre notre code.
+
 ## Ordre de portage proposé
 
 1. Socle infra, faible couplage : `KOHARU_STORE`, vérification sha256/taille du store, logs
