@@ -14,13 +14,14 @@ suivis, dont `Cargo.toml`, `package.json`, `bun.lock`, 20 locales, `crates/kohar
 `crates/koharu-ml`. Rien ne compile ni ne s'installe : ne rien publier depuis `main`, et ne pas
 taguer cette arborescence.
 
-Branche de travail : `port/upstream-0.92` = `ce01723a` + 13 commits du fork rejoués (CI, release,
+Branche de travail : `port/upstream-0.92` = `ce01723a` + 12 commits du fork rejoués (CI, release,
 updater, règles projet). C'est la base du portage ; `main` n'est pas touchée.
 
 ## Replay automatique
 
-Testé commit par commit sur `ce01723a` : **15 passent**, **110 conflitent**. L'un des 15
-(`45a9ad0e`) a été retiré depuis : sa suppression de `clamp` casse `ToolBar.tsx` en 0.92.
+Testé commit par commit sur `ce01723a` : **15 passent**, **110 conflitent**. Deux des 15 ont été
+retirés depuis : `45a9ad0e` (sa suppression de `clamp` casse `ToolBar.tsx` en 0.92) et `d149fc04`
+(`scripts/release.ts`, absent de l'amont et appelé par personne).
 Le fork porte 111 commits hors docs/CI/release ; les conflits ne sont pas cosmétiques :
 
 - `crates/koharu-translator` **n'existe plus en amont** : traduction = `crates/koharu-llm`
@@ -37,8 +38,8 @@ Le fork porte 111 commits hors docs/CI/release ; les conflits ne sont pas cosmé
 109 commits étaient en conflit. Vérifié contre `ce01723a` (lignes ajoutées déjà présentes + lecture du
 code amont) : 13 sont déjà sur la branche, 15 sont écartés, **107 restent à porter**.
 
-Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 d149fc04 16b404e3 5b1b59e9`
-`3606b20c 81c787ba ba047cbd f0793c87 d5ba3602 bff92b26`.
+Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3 5b1b59e9 3606b20c`
+`81c787ba ba047cbd f0793c87 d5ba3602 bff92b26`.
 
 Écartés, avec la preuve :
 
@@ -57,6 +58,7 @@ Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 d149fc04
 | `4376a67e` | retirer le MSI des READMEs | doc ; la partie updater est déjà dans le commit rejoué |
 | `cad84861` | clippy sur `llama/log.rs` | corrige du code introduit par `b10e9390`, porté avec lui |
 | `abec9737` | clamp `ToolBar` + doublon `fr-FR` | `clamp` est requis en 0.92, le doublon n'existe pas |
+| `d149fc04` | `scripts/release.ts` (préfixe `v` de git-cliff) | fichier absent de l'amont, aucun appelant ; la release passe par `.github/release-please/` |
 
 **Vérifié comme non couvert** (l'hypothèse inverse était fausse) :
 
