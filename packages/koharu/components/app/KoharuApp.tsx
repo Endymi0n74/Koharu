@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { TitleBar } from '@/components/app/TitleBar'
+import { ActivityCenter } from '@/components/editor/ActivityCenter'
 import { Editor } from '@/components/editor/Editor'
 import { SettingsPage } from '@/components/preferences/SettingsPage'
 import { StartView } from '@/components/start/StartView'
@@ -36,6 +37,9 @@ export function KoharuApp() {
       )}
     >
       <TitleBar />
+      {/* Outside the editor, so a job that runs without one, such as opening a folder, still
+          shows its phases, progress, and stop button. */}
+      <ActivityCenter />
       {settingsOpen ? (
         <SettingsPage />
       ) : project === undefined ? (

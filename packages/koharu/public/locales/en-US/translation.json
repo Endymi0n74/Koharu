@@ -444,6 +444,7 @@
     "noResults": "No projects match this search.",
     "projectKind": "Koharu project",
     "projectList": "Projects",
+    "openFolder": "Open a folder…",
     "projectName": "Project name",
     "projectNamePlaceholder": "My new project",
     "search": "Search projects",

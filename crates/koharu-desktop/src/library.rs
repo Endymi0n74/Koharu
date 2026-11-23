@@ -1,6 +1,9 @@
 //! The projects the start view lists: `.khr` files in one folder.
 
-use std::{path::PathBuf, time::SystemTime};
+use std::{
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 
 use anyhow::{Context as _, Result, bail, ensure};
 use koharu_scene::{EXTENSION, Session};
@@ -58,6 +61,38 @@ impl Library {
     pub fn delete(&self, name: &str) -> Result<()> {
         let path = self.path(name)?;
         Session::remove(&path).with_context(|| format!("failed to delete {}", path.display()))
+    }
+
+    /// A folder's name as a project name: its own, with what a file name
+    /// cannot hold replaced, and a number when a project already has it.
+    pub fn folder_name(&self, folder: &Path) -> String {
+        let base: String = folder
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default()
+            .chars()
+            .map(|character| {
+                if character.is_control() || r#"<>:"/\|?*"#.contains(character) {
+                    '-'
+                } else {
+                    character
+                }
+            })
+            .collect();
+        let base = base.trim_matches(['.', ' ']);
+        // A folder called nothing, or something Windows reserves, still opens.
+        let base = if base.is_empty() || self.path(base).is_err() {
+            "Imported folder".to_owned()
+        } else {
+            base.to_owned()
+        };
+        let mut name = base.clone();
+        let mut suffix = 2;
+        while self.path(&name).is_ok_and(|path| path.exists()) {
+            name = format!("{base}-{suffix}");
+            suffix += 1;
+        }
+        name
     }
 
     /// A project's file, for a name that is a file name on every platform.

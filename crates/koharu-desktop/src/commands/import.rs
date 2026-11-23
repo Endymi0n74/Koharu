@@ -95,6 +95,67 @@ fn reader(path: &Path) -> Option<Reader> {
     }
 }
 
+/// The page files directly in `folder`, in name order, numbers by value.
+fn page_files(folder: &Path) -> anyhow::Result<Vec<PathBuf>> {
+    let mut paths: Vec<PathBuf> = fs_err::read_dir(folder)?
+        .filter_map(|entry| Some(entry.ok()?.path()))
+        .filter(|path| path.is_file() && reader(path).is_some())
+        .collect();
+    alphanumeric_sort::sort_slice_by_os_str_key(&mut paths, |path| {
+        path.file_name().unwrap_or(path.as_os_str())
+    });
+    Ok(paths)
+}
+
+/// The pages `paths` holds, an archive's or a PDF's own pages included, read
+/// side by side.
+fn read_pages(paths: &[PathBuf]) -> anyhow::Result<Vec<Vec<u8>>> {
+    Ok(paths
+        .par_iter()
+        .map(|path| {
+            let read = reader(path).with_context(|| {
+                format!("{} isn't an image, an archive, or a PDF", path.display())
+            })?;
+            read(path)
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
+        .collect())
+}
+
+/// Appends `pages` after the open project's last, as one edit.
+fn insert(app: &Arc<App>, pages: Vec<Vec<u8>>) -> anyhow::Result<()> {
+    let session = app.session()?;
+    let start = session.lock().project().pages().count();
+    let mut ops = Vec::with_capacity(pages.len() * 2);
+    for (index, bytes) in pages.into_iter().enumerate() {
+        let background = Some(Hash::of(&bytes));
+        ops.push(Op::AddFile { bytes });
+        ops.push(Op::AddPage {
+            id: None,
+            index: start + index,
+            size: None,
+            background,
+        });
+    }
+    app.edit(Edit {
+        label: "import".to_owned(),
+        ops,
+    })?;
+    Ok(())
+}
+
+/// Adds `paths`' pages to the open project, off the async runtime.
+async fn add(app: &State<'_, Arc<App>>, paths: Vec<PathBuf>) -> Result<()> {
+    let app = Arc::clone(app);
+    Ok(tokio::task::spawn_blocking(move || {
+        let pages = read_pages(&paths)?;
+        insert(&app, pages)
+    })
+    .await??)
+}
+
 /// Picks files or a folder and adds their pages after the project's last: the
 /// files in name order, numbers by value, an archive's or a PDF's own pages in
 /// theirs.
@@ -106,56 +167,48 @@ pub async fn import(
     source: ImportSource,
 ) -> Result<()> {
     let dialog = rfd::AsyncFileDialog::new().set_parent(&window);
-    let mut paths: Vec<PathBuf> = match source {
+    let paths: Vec<PathBuf> = match source {
         ImportSource::Files => match dialog.add_filter("Pages", &EXTENSIONS).pick_files().await {
             Some(files) => files.iter().map(|file| file.path().to_owned()).collect(),
             None => return Ok(()),
         },
         ImportSource::Folder => match dialog.pick_folder().await {
-            Some(folder) => fs_err::read_dir(folder.path())?
-                .filter_map(|entry| Some(entry.ok()?.path()))
-                .filter(|path| path.is_file() && reader(path).is_some())
-                .collect(),
+            Some(folder) => page_files(folder.path())?,
             None => return Ok(()),
         },
     };
-    alphanumeric_sort::sort_slice_by_os_str_key(&mut paths, |path| {
-        path.file_name().unwrap_or(path.as_os_str())
-    });
+    add(&app, paths).await
+}
+
+/// A folder of pages as a project of its own: named after the folder, created,
+/// then filled with the folder's pages. A dismissed dialog creates nothing.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn open_folder(
+    app: State<'_, Arc<App>>,
+    window: Window<CefRuntime>,
+) -> Result<Option<String>> {
+    let dialog = rfd::AsyncFileDialog::new().set_parent(&window);
+    let Some(folder) = dialog.pick_folder().await else {
+        return Ok(None);
+    };
+    let folder = folder.path().to_owned();
+    let paths = page_files(&folder)?;
+    if paths.is_empty() {
+        return Err(anyhow::anyhow!("{} holds no pages", folder.display()).into());
+    }
     let app = Arc::clone(&app);
-    Ok(tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
-        let pages: Vec<Vec<u8>> = paths
-            .into_par_iter()
-            .map(|path| {
-                let read = reader(&path).with_context(|| {
-                    format!("{} isn't an image, an archive, or a PDF", path.display())
-                })?;
-                read(&path)
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?
-            .into_iter()
-            .flatten()
-            .collect();
-        let session = app.session()?;
-        let start = session.lock().project().pages().count();
-        let mut ops = Vec::with_capacity(pages.len() * 2);
-        for (index, bytes) in pages.into_iter().enumerate() {
-            let background = Some(Hash::of(&bytes));
-            ops.push(Op::AddFile { bytes });
-            ops.push(Op::AddPage {
-                id: None,
-                index: start + index,
-                size: None,
-                background,
-            });
-        }
-        app.edit(Edit {
-            label: "import".to_owned(),
-            ops,
-        })?;
-        Ok(())
-    })
-    .await??)
+    Ok(Some(
+        tokio::task::spawn_blocking(move || -> anyhow::Result<String> {
+            let name = app.library.folder_name(&folder);
+            let session = app.library.create(&name)?;
+            app.open(name.clone(), session)?;
+            let pages = read_pages(&paths)?;
+            insert(&app, pages)?;
+            Ok(name)
+        })
+        .await??,
+    ))
 }
 
 /// An archive's images in name order, numbers by value.

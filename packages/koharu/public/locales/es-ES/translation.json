@@ -444,6 +444,7 @@
     "noResults": "Ningún proyecto coincide con esta búsqueda.",
     "projectKind": "Proyecto de Koharu",
     "projectList": "Proyectos",
+    "openFolder": "Abrir una carpeta…",
     "projectName": "Nombre del proyecto",
     "projectNamePlaceholder": "Mi nuevo proyecto",
     "search": "Buscar proyectos",

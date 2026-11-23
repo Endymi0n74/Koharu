@@ -1,7 +1,6 @@
 'use client'
 
 import { ColorSamplingProvider } from '@/components/controls/ColorSampling'
-import { ActivityCenter } from '@/components/editor/ActivityCenter'
 import { CanvasWorkspace } from '@/components/editor/CanvasWorkspace'
 import { PageRail } from '@/components/editor/PageRail'
 import { RightSidebar } from '@/components/editor/RightSidebar'
@@ -24,7 +23,6 @@ export function Editor() {
   return (
     <ColorSamplingProvider>
       <div className='relative min-h-0 flex-1 bg-transparent'>
-        <ActivityCenter />
         <ResizablePanelGroup
           id='editor'
           orientation='horizontal'

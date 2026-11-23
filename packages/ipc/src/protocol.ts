@@ -1082,6 +1082,9 @@ export const commands = {
   /** Picks files or a folder and adds their pages after the project's last: the files in name order, numbers by value, an archive's or a PDF's own pages in theirs. */
   import: (source: ImportSource) =>
     runner('import', (options) => invoke<null>('import', { source }, options)),
+  /** A folder of pages as a project of its own: named after the folder, created, then filled with the folder's pages. A dismissed dialog creates nothing. */
+  openFolder: () =>
+    runner('open_folder', (options) => invoke<string | null>('open_folder', {}, options)),
   /** Picks where the open project's pages go, and writes them there. `labels` names a PSD's layers the scene names nothing, in the interface's language. */
   export: (format: ExportFormat, labels: Labels) =>
     runner('export', (options) => invoke<null>('export', { format, labels }, options)),

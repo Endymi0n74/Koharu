@@ -2,7 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Folder, FolderPlus, Plus, Settings, Trash2 } from 'lucide-react'
+import { Folder, FolderOpen, FolderPlus, Plus, Settings, Trash2 } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -56,6 +56,24 @@ export function StartView() {
     },
   })
   const busy = list.isFetching || creation.isPending || opening.isPending || deletion.isPending
+  const [folderBusy, setFolderBusy] = useState(false)
+  const [failure, setFailure] = useState<string | null>(null)
+
+  // The folder becomes a project of its own, named after it; a failure says why here rather
+  // than leaving the button with nothing to show.
+  const openFolder = async () => {
+    setFolderBusy(true)
+    setFailure(null)
+    try {
+      if ((await commands.openFolder()) !== null) {
+        await refresh(projectKey, pageKey, projectsKey)
+      }
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : String(error))
+    } finally {
+      setFolderBusy(false)
+    }
+  }
 
   const createProject = (event: FormEvent) => {
     event.preventDefault()
@@ -143,6 +161,25 @@ export function StartView() {
                   {t('start.create')}
                 </Button>
               </form>
+
+              <Button
+                type='button'
+                size='sm'
+                variant='outline'
+                className='mt-2 h-9 justify-center gap-1.5 text-[11px]'
+                disabled={busy || folderBusy}
+                aria-busy={folderBusy}
+                onClick={() => void openFolder()}
+              >
+                <FolderOpen className='size-3.5' />
+                {t('start.openFolder')}
+              </Button>
+
+              {failure && (
+                <p role='alert' className='mt-2 text-[10px] leading-4 text-destructive'>
+                  {failure}
+                </p>
+              )}
 
               <p className='mt-auto pt-8 text-[10px] leading-4 text-muted-foreground'>
                 {t('start.storageHint')}

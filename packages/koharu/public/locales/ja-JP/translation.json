@@ -444,6 +444,7 @@
     "noResults": "この検索に一致するプロジェクトはありません。",
     "projectKind": "Koharuプロジェクト",
     "projectList": "プロジェクト",
+    "openFolder": "フォルダを開く…",
     "projectName": "プロジェクト名",
     "projectNamePlaceholder": "新しいプロジェクト",
     "search": "プロジェクトを検索",
