@@ -35,6 +35,51 @@ use super::{Sampling, Size, template::Template};
 use picker::Picker;
 use reuse::Checkpoint;
 
+/// Returns `true` when `KOHARU_LLM_DEBUG` requests nondeterminism probes.
+fn debug_enabled() -> bool {
+    std::env::var_os("KOHARU_LLM_DEBUG").is_some()
+}
+
+/// Prints a tag + hash of `tokens` when `KOHARU_LLM_DEBUG` is set, to bisect
+/// run-to-run generation drift: `history` (the prompt as tokenized) →
+/// `first_token` (the prefill's logits through the sampler — differs ⇒ the
+/// multimodal evaluation or the prompt prefill kernels drift) → `step`/`text`
+/// (the decoded output — differs while `first_token` matches ⇒ the incremental
+/// decode loop drifts).
+fn debug_hash_tokens(tag: &str, tokens: &[LlamaToken]) {
+    use std::hash::{Hash, Hasher as _};
+
+    let mut hasher = std::hash::DefaultHasher::new();
+    for token in tokens {
+        token.0.hash(&mut hasher);
+    }
+    eprintln!("LLMDBG {tag} {:016x}", hasher.finish());
+}
+
+fn debug_hash_text(tag: &str, text: &str) {
+    use std::hash::{Hash, Hasher as _};
+
+    let mut hasher = std::hash::DefaultHasher::new();
+    text.hash(&mut hasher);
+    eprintln!("LLMDBG {tag} {:016x}", hasher.finish());
+}
+
+/// Prints a reply's text digest and length when `KOHARU_LLM_DEBUG` is set, to
+/// compare two runs' output the way the token-level lines compare theirs.
+fn debug_end(sequence: &Sequence) {
+    use std::hash::Hasher as _;
+
+    let Some(debug) = sequence.debug.as_ref() else {
+        return;
+    };
+    eprintln!(
+        "LLMDBG seq={} text {:016x} tokens={}",
+        sequence.id,
+        debug.finish(),
+        sequence.output_tokens
+    );
+}
+
 pub(super) struct Files {
     pub(super) model: PathBuf,
     pub(super) projector: Option<PathBuf>,
@@ -148,6 +193,8 @@ struct Sequence {
     pending: Vec<u8>,
     /// Whether `held` records this sequence's tokens: not past an image.
     tracked: bool,
+    /// A digest of the reply's text so far, when `KOHARU_LLM_DEBUG` is set.
+    debug: Option<std::hash::DefaultHasher>,
 }
 
 impl Sequence {
@@ -308,6 +355,14 @@ impl<'m> Engine<'m> {
             .copied()
             .chain(chunks.map(text_tokens).unwrap_or_default())
             .collect();
+        if debug_enabled() {
+            debug_hash_text("prompt", &job.prompt);
+            eprintln!(
+                "LLMDBG seq={id} shape prompt_tokens={prompt_tokens} prompt_positions={position} images={}",
+                chunks.is_some()
+            );
+            debug_hash_tokens("history", &history);
+        }
         let mut sequence = Sequence {
             id,
             frames: job.frames.clone(),
@@ -319,8 +374,12 @@ impl<'m> Engine<'m> {
             output_tokens: 0,
             pending: Vec::new(),
             tracked: chunks.is_none(),
+            debug: debug_enabled().then(std::hash::DefaultHasher::new),
         };
         let token = sequence.picker.pick(self.model, &self.context, -1);
+        if debug_enabled() {
+            eprintln!("LLMDBG seq={id} first_token tok={}", token.0);
+        }
         Ok(self.take(&mut sequence, token)?.then_some(sequence))
     }
 
@@ -382,10 +441,17 @@ impl<'m> Engine<'m> {
                 sequence.pending.is_empty(),
                 "the answer ends inside a UTF-8 character"
             );
+            debug_end(sequence);
             let _ = sequence.frames.send(Ok(sequence.end(false)));
             return Ok(false);
         }
         sequence.output_tokens += 1;
+        if debug_enabled() {
+            eprintln!(
+                "LLMDBG seq={} step={} tok={}",
+                sequence.id, sequence.output_tokens, token.0
+            );
+        }
         sequence
             .pending
             .extend(vocab.token_to_piece(token, true, None));
@@ -397,6 +463,11 @@ impl<'m> Engine<'m> {
         if valid > 0 {
             let text = String::from_utf8_lossy(&sequence.pending[..valid]).into_owned();
             sequence.pending.drain(..valid);
+            if let Some(debug) = sequence.debug.as_mut() {
+                use std::hash::Hash as _;
+
+                text.hash(debug);
+            }
             if sequence.frames.send(Ok(Step::Text(text))).is_err() {
                 return Ok(false);
             }
@@ -405,6 +476,7 @@ impl<'m> Engine<'m> {
             .max_tokens
             .is_some_and(|max| sequence.output_tokens >= max);
         if limit || sequence.position >= self.size.context as i32 {
+            debug_end(sequence);
             let _ = sequence.frames.send(Ok(sequence.end(true)));
             return Ok(false);
         }
