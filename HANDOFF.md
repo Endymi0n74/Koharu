@@ -32,6 +32,47 @@ Le fork porte 111 commits hors docs/CI/release ; les conflits ne sont pas cosmé
   amont : il doit être ré-implémenté sur le scheduler de 0.92.
 - `bun.lock`/`package.json` : purge UI du fork contre les dépendances amont.
 
+## Liste de portage révisée (2026-11-23)
+
+109 commits étaient en conflit. Vérifié contre `ce01723a` (lignes ajoutées déjà présentes + lecture du
+code amont) : 13 sont déjà sur la branche, 15 sont écartés, **107 restent à porter**.
+
+Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 d149fc04 16b404e3 5b1b59e9`
+`3606b20c 81c787ba ba047cbd f0793c87 d5ba3602 bff92b26`.
+
+Écartés, avec la preuve :
+
+| commit | sujet | pourquoi |
+|---|---|---|
+| `bce71ddd` | module Qwen Image 2.1 | `koharu-ml/src/qwen_image` existe en amont (274 l., `references`, sigmas Turbo) |
+| `ed21f4cb` | Qwen Image 2.1 → stage inpaint | `impl Inpaint for QwenImage` dans `stages/inpaint/model.rs` |
+| `ccfbc319` | tuilage VAE Qwen | `vae_tile: Some(512)` dans `qwen_image/model.rs` |
+| `9cb311f9` | aligner quatre plages de deps | 0.92 est plus récent que l'alignement du fork (lucide 1.73 > 1.66) |
+| `6e37ffc3` `bd9e9231` `3daa09a6` | Cargo.lock / bun.lock | à régénérer au portage, un lockfile ne se rejoue pas |
+| `08e1daf1` | cargo fmt | `cargo fmt --all -- --check` sort 0 sur la branche |
+| `b02f8826` | réparer les fichiers du rebase | répare une corruption propre au fork |
+| `13a994f0` | fusionner deux `[profile.release]` | 0.92 n'en a qu'une |
+| `6b3cf080` | `as_chunks` dans `diffusion/image.rs` | fichier absent en amont |
+| `74b87651` | retirer la signature Windows | aucun `signCommand`/signpath dans 0.92 ni ses workflows |
+| `4376a67e` | retirer le MSI des READMEs | doc ; la partie updater est déjà dans le commit rejoué |
+| `cad84861` | clippy sur `llama/log.rs` | corrige du code introduit par `b10e9390`, porté avec lui |
+| `abec9737` | clamp `ToolBar` + doublon `fr-FR` | `clamp` est requis en 0.92, le doublon n'existe pas |
+
+**Vérifié comme non couvert** (l'hypothèse inverse était fausse) :
+
+- vérification sha256/taille du téléchargement : `koharu-runtime/src/transfer/download.rs` ne lit que
+  `content_length` pour la progression, aucun digest → `b19691d7` et `02d54c89` restent ;
+- logs llama.cpp sur échec de chargement : `koharu-llama/src/log.rs` est un pont tracing, sans le
+  tampon de lignes récentes du fork → `b10e9390` reste ;
+- aperçu d'erreur dépliable : aucun `showMore`/`showLess`, `detail` reste `truncate` → `ee6cdac8` et
+  `4b702c36` restent ;
+- purge UI (`recharts`, `embla`, `cmdk`, `input-otp`, `react-day-picker` toujours dans
+  `packages/ui/package.json`), jambes macOS encore actives, `paths-ignore` absent des workflows,
+  catalogue sans Hy-MT2 ni `abliterated` : restent.
+
+Régénérer la liste : `git log --no-merges f9c40bdd ^ce01723a --format='%h %s'`, puis retirer les
+commits docs/release et les 28 hash ci-dessus.
+
 ## Ordre de portage proposé
 
 1. Socle infra, faible couplage : `KOHARU_STORE`, vérification sha256/taille du store, logs
