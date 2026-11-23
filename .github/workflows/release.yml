@@ -117,9 +117,7 @@ jobs:
           tauriScript: cargo tauri
           releaseId: ${{ steps.release.outputs.id }}
           releaseBody: ${{ steps.release.outputs.body }}
-          args: >-
-            ${{ matrix.args }}
-            --config '{"build":{"beforeBundleCommand":"bash .github/strip.sh"}}'
+          args: ${{ matrix.args }}
 
 # Winget publishing is intentionally not maintained on this fork (the
 # mayocream.koharu package belongs to upstream); the old job template is

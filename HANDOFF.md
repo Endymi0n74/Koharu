@@ -152,12 +152,16 @@ Vérifiés, rien à changer :
   (`required: false`) et `sentry.sh` sautait son upload ; `SENTRY_DSN` manque aussi, donc
   `option_env!("SENTRY_DSN")` vaut `None` et le client démarre désactivé (`sentry-core` :
   `None.into_dsn()` rend `Ok(None)`, l'`expect` ne panique pas). Rien n'aurait jamais remonté à Sentry.
-  L'étape `Setup Sentry CLI` et les trois `SENTRY_*` passés à tauri-action sont supprimés, et
-  `sentry.sh` devient `.github/strip.sh` : ce qui restait utile de ce script était le strip, et il
-  perd son `dsymutil`, qui ne servait qu'à donner une bande de symboles à Sentry. Le
-  `beforeBundleCommand` reste pour lui. Côté front, `next.config.ts` garde `withSentryConfig` : sans
-  `SENTRY_AUTH_TOKEN` il saute l'upload sans rien casser, et son sort se tranchera avec le reste du
-  portage du paquet `koharu`.
+  L'étape `Setup Sentry CLI`, les trois `SENTRY_*`, le `beforeBundleCommand` et son `--config` sont
+  partis, et `.github/sentry.sh` avec eux : son strip ne retirait que la bande de débogage que
+  `[profile.release] debug = true` ajoutait aux binaires, une ligne posée par le même commit que le
+  Sentry natif (`23bed3f1`, « add frontend Sentry and upload release debug files »). Cette section
+  `[profile.release]` est donc supprimée aussi, et le profil `release` reprend le défaut de Cargo :
+  plus de DWARF dans un artefact, sur aucune plateforme, sans script ni branche par OS — la table de
+  symboles reste, donc les traces de panique gardent leurs noms. Si un jour la symbolication redevient
+  voulue, sa place est `strip = "debuginfo"` ou `debug = true` dans `Cargo.toml`, pas un hook de
+  workflow. Côté front, `next.config.ts` garde `withSentryConfig` : sans `SENTRY_AUTH_TOKEN` il saute
+  l'upload sans rien casser, et son sort se tranchera avec le reste du portage du paquet `koharu`.
 - **`v` dans tags et noms de release** : vérifié, `ce01723a` a `include-v-in-tag: false` et
   `include-v-in-release-name: false`, la config de la branche les passe à `true`, les tags du fork
   sont `v0.88.2`, `v0.88.3`, `v0.89.0`, et `cliff.toml` matche `^v?[0-9]+\.[0-9]+\.[0-9]+$`, donc
