@@ -1,0 +1,25 @@
+[package]
+name = "koharu-batch"
+version.workspace = true
+edition.workspace = true
+description = "Translate a manga chapter from the command line"
+license.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+
+[dependencies]
+alphanumeric-sort = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+fs-err = { workspace = true }
+koharu-llm = { workspace = true }
+koharu-pipeline = { workspace = true }
+koharu-scene = { workspace = true }
+parking_lot = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
