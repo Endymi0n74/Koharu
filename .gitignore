@@ -66,3 +66,7 @@ test-results/
 
 # Model store, when KOHARU_STORE names a folder in the repository
 /store/
+
+# Sorties de banc et projets locaux, propres a la machine
+/bench-profile/
+/projects/
