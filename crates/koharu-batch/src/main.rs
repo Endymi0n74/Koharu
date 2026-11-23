@@ -1,10 +1,13 @@
 //! `koharu-batch`: one chapter, end to end, from a terminal.
 
 mod cli;
+mod report;
 mod run;
 
 use anyhow::Result;
 use clap::Parser;
+
+use crate::cli::Command;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -17,5 +20,8 @@ async fn main() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
     let arguments = cli::Arguments::parse();
-    run::run(&arguments).await
+    match arguments.command {
+        Command::Run(run) => run::run(&run).await,
+        Command::Report(report) => report::report(&report),
+    }
 }

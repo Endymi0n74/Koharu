@@ -1,17 +1,31 @@
-//! The command line: a chapter in, a project out, the way the app would run it.
+//! The command line: a chapter in, a project out, a report about either.
 
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 
 /// `koharu-batch`: a chapter through Koharu's stages, without the window.
 #[derive(Debug, Parser)]
 #[command(name = "koharu-batch", version, about, long_about = None)]
 pub struct Arguments {
-    /// A folder of page images, in name order.
-    #[arg(short, long, value_name = "DIR")]
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Command {
+    /// Translate a chapter: a folder of page images, one image, or a `.cbz`.
+    Run(Run),
+    /// Write what a project holds: Markdown, and JSON when asked.
+    Report(Report),
+}
+
+#[derive(Debug, Args)]
+pub struct Run {
+    /// A folder of page images, in name order, an image, or a `.cbz`.
+    #[arg(short, long, value_name = "PATH")]
     pub input: PathBuf,
-    /// The project file to write, such as `chapter.khr`.
+    /// The project file to write, such as `chapter.khr`; it must not exist.
     #[arg(short, long, value_name = "PATH")]
     pub output: PathBuf,
     /// The target language, as a tag CLDR names: `fr-FR`, `en-US`, `ja-JP`.
@@ -46,4 +60,18 @@ pub struct Arguments {
     /// How long to wait for the run before reporting it as it is, in seconds.
     #[arg(long, default_value_t = 3_600)]
     pub wait: u64,
+}
+
+#[derive(Debug, Args)]
+pub struct Report {
+    /// The project to read, such as `chapter.khr`.
+    #[arg(short, long, value_name = "PATH")]
+    pub project: PathBuf,
+    /// Where to write the JSON summary; the Markdown goes to stdout unless
+    /// `--markdown` names a file.
+    #[arg(long, value_name = "PATH")]
+    pub json: Option<PathBuf>,
+    /// Where to write the Markdown instead of stdout.
+    #[arg(long, value_name = "PATH")]
+    pub markdown: Option<PathBuf>,
 }

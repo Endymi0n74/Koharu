@@ -3,6 +3,7 @@
 
 use std::{
     collections::BTreeSet,
+    io::Read as _,
     path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
@@ -16,12 +17,12 @@ use koharu_scene::{Edit, Hash, Op, PageId, Session};
 use parking_lot::Mutex;
 use serde_json::json;
 
-use crate::cli::Arguments;
+use crate::cli::Run;
 
-/// What a folder's page images end with.
+/// What a page image ends with.
 const EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
 
-pub async fn run(arguments: &Arguments) -> Result<()> {
+pub async fn run(arguments: &Run) -> Result<()> {
     let config = config(arguments)?;
     let session = import(&arguments.input, &arguments.output)?;
     let pages: Vec<PageId> = session
@@ -52,7 +53,7 @@ pub async fn run(arguments: &Arguments) -> Result<()> {
 }
 
 /// What the run told, as the terminal's last word on it.
-fn report(history: &[Event], arguments: &Arguments) -> Result<()> {
+fn report(history: &[Event], arguments: &Run) -> Result<()> {
     let finished = history
         .iter()
         .filter(|event| matches!(event, Event::Finished { .. }))
@@ -97,7 +98,7 @@ async fn progress(mut events: tokio::sync::broadcast::Receiver<Event>) {
 
 /// The app's pipeline settings, as the flags name them. A model or a language
 /// the pipeline doesn't know fails here, before any page is read.
-fn config(arguments: &Arguments) -> Result<PipelineConfig> {
+fn config(arguments: &Run) -> Result<PipelineConfig> {
     let glossary = arguments
         .glossary
         .iter()
@@ -186,24 +187,18 @@ fn page(pages: &[PageId], index: usize) -> Result<PageId> {
         .with_context(|| format!("there is no page {index}"))
 }
 
-/// A session holding `input`'s pages, written at `output`, whose pages were
-/// added in name order.
+/// A session holding `input`'s pages, written at `output`, its pages added in
+/// reading order.
 fn import(input: &Path, output: &Path) -> Result<Arc<Mutex<Session>>> {
-    let mut files = if input.is_dir() {
-        page_files(input)?
-    } else {
-        vec![input.to_owned()]
-    };
-    files.sort_by(|left, right| compare_path(left, right));
-    ensure!(!files.is_empty(), "{} holds no page image", input.display());
+    let pages = pages(input)?;
+    ensure!(!pages.is_empty(), "{} holds no page image", input.display());
     if output.exists() {
         bail!("{} exists; remove it first", output.display());
     }
     let mut session =
         Session::create(output).with_context(|| format!("couldn't create {}", output.display()))?;
-    let mut ops = Vec::with_capacity(files.len() * 2);
-    for (index, file) in files.iter().enumerate() {
-        let bytes = fs_err::read(file)?;
+    let mut ops = Vec::with_capacity(pages.len() * 2);
+    for (index, bytes) in pages.into_iter().enumerate() {
         let background = Some(Hash::of(&bytes));
         ops.push(Op::AddFile { bytes });
         ops.push(Op::AddPage {
@@ -222,6 +217,43 @@ fn import(input: &Path, output: &Path) -> Result<Arc<Mutex<Session>>> {
     Ok(Arc::new(Mutex::new(session)))
 }
 
+/// The chapter's pages, in reading order: a folder's images, a `.cbz` or
+/// `.zip` of them, or one image.
+fn pages(input: &Path) -> Result<Vec<Vec<u8>>> {
+    if input.is_dir() {
+        let mut files = page_files(input)?;
+        files.sort_by(|left, right| compare_path(left, right));
+        return files.iter().map(|file| Ok(fs_err::read(file)?)).collect();
+    }
+    if matches!(extension(input).as_str(), "cbz" | "zip") {
+        return archive(input);
+    }
+    Ok(vec![fs_err::read(input)?])
+}
+
+/// The page images a `.cbz` holds, in reading order.
+fn archive(input: &Path) -> Result<Vec<Vec<u8>>> {
+    let file = fs_err::File::open(input)?;
+    let mut archive = zip::ZipArchive::new(file)
+        .with_context(|| format!("{} isn't a readable archive", input.display()))?;
+    let mut entries = Vec::new();
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        if entry.is_dir() {
+            continue;
+        }
+        let name = entry.name()?.to_string();
+        if !EXTENSIONS.contains(&extension(Path::new(&name)).as_str()) {
+            continue;
+        }
+        let mut bytes = Vec::new();
+        entry.read_to_end(&mut bytes)?;
+        entries.push((name, bytes));
+    }
+    entries.sort_by(|(left, _), (right, _)| compare_path(Path::new(left), Path::new(right)));
+    Ok(entries.into_iter().map(|(_, bytes)| bytes).collect())
+}
+
 /// Every page image directly in `folder`, unordered.
 fn page_files(folder: &Path) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
@@ -230,14 +262,16 @@ fn page_files(folder: &Path) -> Result<Vec<PathBuf>> {
         if path.is_dir() {
             continue;
         }
-        let extension = path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .unwrap_or_default()
-            .to_ascii_lowercase();
-        if EXTENSIONS.contains(&extension.as_str()) {
+        if EXTENSIONS.contains(&extension(&path).as_str()) {
             files.push(path);
         }
     }
     Ok(files)
+}
+
+fn extension(path: &Path) -> String {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
 }
