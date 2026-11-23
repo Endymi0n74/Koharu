@@ -6,6 +6,7 @@ mod context;
 mod hosted;
 mod local;
 mod model;
+pub mod profile;
 pub mod reasoning;
 
 use anyhow::{Context as _, Result};
