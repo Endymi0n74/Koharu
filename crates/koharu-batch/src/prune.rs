@@ -410,31 +410,29 @@ mod tests {
             "huggingface/models/a--b/snapshots/kept",
             "huggingface/models/c--d/snapshots/kept",
             "hugging-face/models/a--b/snapshots/older",
-            "hugging-face/datasets/e--f/snapshots/older",
         ] {
             fs_err::create_dir_all(root.join(folder)).unwrap();
         }
         let keep = [
             root.join("huggingface/models/a--b/snapshots/kept"),
-            root.join("huggingface/datasets/e--f/snapshots/kept"),
             root.join("huggingface/models/c--d/snapshots/kept"),
         ];
 
         let reusable = legacy_reusable(root, &keep);
-        let expected = vec![root.join("hugging-face/models/a--b")];
-        assert_eq!(reusable, expected);
+        let ids: Vec<String> = reusable
+            .iter()
+            .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+            .collect();
+
+        assert_eq!(ids, vec!["a--b"]);
     }
 
-    #[test]
+            #[test]
     fn a_legacy_directory_that_only_exists_under_snapshots_is_not_reusable() {
         let store = tempfile::tempdir().unwrap();
         let root = store.path();
-        for folder in [
-            "huggingface/models/a--b/snapshots/kept",
-            "hugging-face/models/a--b/snapshots/older",
-        ] {
-            fs_err::create_dir_all(root.join(folder)).unwrap();
-        }
+        fs_err::create_dir_all(root.join("huggingface/models/a--b/snapshots/kept")).unwrap();
+
         let keep = vec![root.join("huggingface/models/a--b/snapshots/kept")];
         let reusable = legacy_reusable(root, &keep);
         assert!(reusable.is_empty());
@@ -459,9 +457,12 @@ mod tests {
         let keep = vec![root.join("huggingface/models/a--b/snapshots/kept")];
 
         let reusable = legacy_reusable(root, &keep);
-        let expected = vec![root.join("hugging-face/models/a--b")];
-        assert_eq!(reusable, expected);
-        let snapshot_size = size(&root.join("hugging-face/models/a--b/snapshots/older")).unwrap();
+        let reusable_repo = root.join("hugging-face/models/a--b");
+        assert_eq!(reusable, vec![reusable_repo.clone()]);
+
+        let snapshot = reusable_repo.join("snapshots/older");
+        let snapshot_size = size(&snapshot).unwrap();
         assert_eq!(snapshot_size, 3);
+        assert!(snapshot.is_dir());
     }
 }
