@@ -63,6 +63,22 @@ fn packages(backend: Backend) -> Vec<Box<dyn Package>> {
     packages
 }
 
+/// The version folders this build's packages keep in the store, whatever the
+/// GPU: a prune keeps exactly these, and forgets the tags beside them.
+pub(crate) fn versions() -> Vec<PathBuf> {
+    let mut versions = Vec::new();
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    versions.extend(cuda::versions());
+    #[cfg(all(
+        target_arch = "x86_64",
+        any(target_os = "linux", target_os = "windows")
+    ))]
+    versions.extend(rocm::versions());
+    versions.extend(torch::versions());
+    versions.extend(ggml::versions());
+    versions
+}
+
 /// Downloads what `gpu` needs and loads it. Everything downloads before anything
 /// loads, so a transfer that fails leaves nothing loaded. Old versions go in
 /// the background, so models don't wait for them. Returns `gpu` as its packages

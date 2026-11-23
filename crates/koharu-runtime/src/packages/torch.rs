@@ -37,6 +37,11 @@ static SHIM: Release = Release {
     files: LIBRARIES,
 };
 
+/// The version folders libtorch and the shim keep in the store.
+pub(super) fn versions() -> Vec<PathBuf> {
+    vec![LIBTORCH.version(), SHIM.version()]
+}
+
 /// libtorch's own libraries for a GPU's `backend`, in load order, before the
 /// shim. libtorch has no Vulkan build, so a Vulkan GPU's models run on its
 /// CPU one. On macOS the root goes first, so dyld resolves libtorch's weak

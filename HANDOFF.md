@@ -288,10 +288,16 @@ Trois commits sur `port/upstream-0.92`, `cargo check --workspace` vert après ch
 
 Non porté, assumé :
 
-- **`prune`** : il supprime des fichiers, et l'inventaire qui décide de ce qui est encore référencé
-  n'a pas de propriétaire sur 0.92 — les pins vivent dans les crates `*-sys` et les catalogues, sans
-  accesseur. À faire quand cet inventaire en aura un, pas en devinant : une mauvaise liste efface
-  des modèles déjà téléchargés.
+- **`prune`** : porté, avec l'inventaire que ce lot disait manquant. Chaque propriétaire expose ce
+  qu'il télécharge : `koharu_runtime::package_versions()` (les dossiers de version des paquets
+  natifs, par leurs `Release`), `Repository::folder()` (le dossier d'un commit épinglé), et
+  `repositories()` dans `koharu-llm`, `koharu-ml` (les 16 dépôts des sept modèles) et
+  `koharu-renderer::fonts` (le dataset des polices). `koharu-batch prune` en déduit les dossiers
+  référencés, liste les autres avec leur taille — dry-run par défaut — et ne supprime qu'avec
+  `--delete`, par `koharu_runtime::remove_from_store`, qui prend le verrou d'un téléchargement en
+  cours. Un dossier de premier niveau qu'aucun paquet ne revendique n'est pas touché : un dossier
+  inconnu n'est pas un téléchargement périmé. La granularité est le dossier de version, donc un
+  dépôt garde ses quantizations téléchargées une à une.
 - **Le fichier de calibration mesurée** : 0.92 n'expose aucun pic VRAM (llama.cpp place les poids,
   la mémoire libre n'est publiée qu'en cas d'échec de chargement, `gpu.rs`), donc aucun run ne
   pourrait l'écrire. Seule l'estimation, avec la table mesurée du fork, est portée.

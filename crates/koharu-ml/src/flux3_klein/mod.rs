@@ -13,16 +13,16 @@ use koharu_runtime::Repository;
 
 use self::model::{Model, ModelPaths};
 
-const TRANSFORMER: Repository = Repository::model(
+pub(crate) const TRANSFORMER: Repository = Repository::model(
     "unsloth/flux-3-image-klein-GGUF",
     "12ef13ce920d53f45fe805093910c899668b9e76",
 );
 /// FLUX.3 encodes and decodes with the FLUX.2 autoencoder.
-const DECODER: Repository = Repository::model(
+pub(crate) const DECODER: Repository = Repository::model(
     "black-forest-labs/FLUX.2-small-decoder",
     "a3efc24f613ef42d9428af62fdbd6f5fd8856c4a",
 );
-const TEXT_ENCODER: Repository = Repository::model(
+pub(crate) const TEXT_ENCODER: Repository = Repository::model(
     "Qwen/Qwen3-VL-4B-Instruct-GGUF",
     "1cd86afb9a95c410a6038ab3b40d8b578c892266",
 );

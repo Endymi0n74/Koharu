@@ -31,6 +31,11 @@ static DIFFUSION: Release = Release {
     files: LIBRARIES,
 };
 
+/// The version folders llama.cpp and stable-diffusion.cpp keep in the store.
+pub(super) fn versions() -> Vec<PathBuf> {
+    vec![LLAMA.version(), DIFFUSION.version()]
+}
+
 impl Package for Llama {
     fn download(&self, host: Host, backend: Backend) -> BoxFuture<'_, Result<()>> {
         Box::pin(LLAMA.download(host, backend, |_| true))

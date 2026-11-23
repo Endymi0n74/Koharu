@@ -91,6 +91,11 @@ fn version() -> PathBuf {
     store::root().join("rocm").join(VERSION)
 }
 
+/// The version folder ROCm keeps in the store.
+pub(super) fn versions() -> Vec<PathBuf> {
+    vec![version()]
+}
+
 impl Package for Rocm {
     /// Downloads ROCm with the target's kernels. Libraries come with their data
     /// files, such as rocBLAS's kernels, so each wheel's tree is kept whole.
@@ -152,7 +157,7 @@ impl Package for Rocm {
     }
 
     fn versions(&self) -> Vec<PathBuf> {
-        vec![version()]
+        versions()
     }
 }
 

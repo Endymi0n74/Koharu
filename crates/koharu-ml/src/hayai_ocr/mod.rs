@@ -23,7 +23,7 @@ use self::{
     processor::{ImageProcessor, Tokenizer},
 };
 
-const REPOSITORY: Repository = Repository::model(
+pub(crate) const REPOSITORY: Repository = Repository::model(
     "JustANormalTinkerer/hayai-ocr-v2.7-supernova",
     "b00317ed69fccee5f787187d913fcf8a96f37f65",
 );

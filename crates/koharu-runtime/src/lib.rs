@@ -18,6 +18,7 @@ use tokio::sync::OnceCell;
 
 pub use device::{Backend, Device, Memory};
 pub use huggingface::Repository;
+pub use store::root as store_root;
 pub use transfer::{State, Transfer, transfers};
 
 /// Koharu's root: the folder setup put it in, in Windows release builds, where
@@ -36,6 +37,18 @@ pub fn root() -> Option<&'static Path> {
         }
     });
     ROOT.as_deref()
+}
+
+/// The version folders this build's native packages keep in the store, which a
+/// prune holds on to and leaves the tags beside them behind.
+pub fn package_versions() -> Vec<PathBuf> {
+    packages::versions()
+}
+
+/// Removes one version folder from the store, taking the lock a download holds
+/// on it so a running transfer is never cut open.
+pub async fn remove_from_store(folder: &Path) -> anyhow::Result<()> {
+    store::remove(folder).await
 }
 
 /// Where every model runs: the best GPU, once what it needs is downloaded and

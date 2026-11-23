@@ -23,39 +23,39 @@ use self::model::{Model, ModelPaths};
 
 /// unsloth's GGUF of Qwen-Image 2.1 Turbo, whose text encoder, vision
 /// projector, and VAE are 2.1's.
-const TRANSFORMER: Repository = Repository::model(
+pub(crate) const TRANSFORMER: Repository = Repository::model(
     "unsloth/Qwen-Image-2.1-Turbo-GGUF",
     "bd53e520a64472adaff780da0b2f2d7eb1605e30",
 );
 /// Qwen-Image 2.1's own VAE, which stable-diffusion.cpp's guide names; the
 /// earlier Qwen-Image and Wan 2.2 VAEs don't stand in for it.
-const VAE: Repository = Repository::model(
+pub(crate) const VAE: Repository = Repository::model(
     "Comfy-Org/Qwen-Image-2.1",
     "aacf31a6d48e707f352ecba714cee0680da3479b",
 );
 /// Qwen's own GGUF of the Qwen3-VL 8B text encoder, with the vision projector
 /// that reads condition images.
-const TEXT_ENCODER: Repository = Repository::model(
+pub(crate) const TEXT_ENCODER: Repository = Repository::model(
     "Qwen/Qwen3-VL-8B-Instruct-GGUF",
     "f982a07559d4a2f6c8744d840bf6fccab30eea96",
 );
 /// leejet's GGUF of Qwen-Image 2.1 itself, not the distilled Turbo: the full
 /// checkpoint, converted for stable-diffusion.cpp.
-const BASE_TRANSFORMER: Repository = Repository::model(
+pub(crate) const BASE_TRANSFORMER: Repository = Repository::model(
     "leejet/Qwen-Image-2.1-GGUF",
     "cc11433936a06e9765f7c0c0b1f0436cfd2b9856",
 );
 /// The uncensored conversion of the full checkpoint, made with
 /// stable-diffusion.cpp upstream: the same architecture, so only the diffusion
 /// weights swap between the two.
-const UNCENSORED_TRANSFORMER: Repository = Repository::model(
+pub(crate) const UNCENSORED_TRANSFORMER: Repository = Repository::model(
     "abenzerps/Qwen-Image-2.1-Uncensored-GGUF",
     "6b34e59458d3eb7ba6a6f86a116aed5253dc02c3",
 );
 /// The Heretic text encoder the base and the uncensored checkpoints run with:
 /// Qwen3-VL 8B with its refusals ablated, and the vision projector that reads
 /// their condition images.
-const HERETIC_TEXT_ENCODER: Repository = Repository::model(
+pub(crate) const HERETIC_TEXT_ENCODER: Repository = Repository::model(
     "pottokao/Qwen-Image-2.1-Text-Encoder-Heretic-GGUF",
     "23813717f7f9282b372c23c7207468a7a168fa68",
 );

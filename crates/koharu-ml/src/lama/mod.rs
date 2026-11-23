@@ -16,7 +16,7 @@ use koharu_torch::{Device, Kind, Tensor};
 
 use self::{config::FFCResNetGeneratorConfig, model::Model};
 
-const REPOSITORY: Repository = Repository::model(
+pub(crate) const REPOSITORY: Repository = Repository::model(
     "mayocream/lama-manga",
     "f91c85b26913b3e83f9877867b4c336da3675238",
 );

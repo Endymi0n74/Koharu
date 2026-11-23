@@ -2,6 +2,7 @@
 
 mod cli;
 mod preset;
+mod prune;
 mod report;
 mod run;
 
@@ -24,5 +25,6 @@ async fn main() -> Result<()> {
     match arguments.command {
         Command::Run(run) => run::run(&run).await,
         Command::Report(report) => report::report(&report),
+        Command::Prune(prune) => prune::prune(&prune).await,
     }
 }

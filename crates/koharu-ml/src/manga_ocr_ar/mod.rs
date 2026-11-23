@@ -21,7 +21,7 @@ use self::{
     processor::{Vocabulary, preprocess},
 };
 
-const REPOSITORY: Repository = Repository::model(
+pub(crate) const REPOSITORY: Repository = Repository::model(
     "muscgab/manga-ocr-ar-experimental",
     "20208154a8d34dc6e5fc13ba81bc35f0a2f1a26e",
 );

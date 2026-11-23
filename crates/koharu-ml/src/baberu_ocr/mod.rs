@@ -20,11 +20,11 @@ use self::{
 };
 
 /// The `v1.2` tag.
-const BABERU: Repository = Repository::model(
+pub(crate) const BABERU: Repository = Repository::model(
     "genshiai-daichi/baberu-ocr",
     "a0e3d4b1f98a8c5d0aba66ded831fe7b52bbf2fa",
 );
-const DINOV2: Repository = Repository::model(
+pub(crate) const DINOV2: Repository = Repository::model(
     "facebook/dinov2-base",
     "f9e44c814b77203eaa57a6bdbbd535f21ede1415",
 );

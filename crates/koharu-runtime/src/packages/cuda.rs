@@ -181,6 +181,11 @@ impl Wheel {
     }
 }
 
+/// The version folders NVIDIA's wheels keep in the store, one per project.
+pub(super) fn versions() -> Vec<PathBuf> {
+    WHEELS.iter().map(Wheel::folder).collect()
+}
+
 impl Package for Cuda {
     fn download(&self, host: Host, _: Backend) -> BoxFuture<'_, Result<()>> {
         Box::pin(async move {
@@ -218,6 +223,6 @@ impl Package for Cuda {
     }
 
     fn versions(&self) -> Vec<PathBuf> {
-        WHEELS.iter().map(Wheel::folder).collect()
+        versions()
     }
 }

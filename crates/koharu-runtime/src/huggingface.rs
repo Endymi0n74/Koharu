@@ -160,13 +160,20 @@ impl Repository {
     }
 
     fn path(&self, name: &str) -> PathBuf {
+        self.folder().join(name)
+    }
+
+    /// The store folder this repository's pinned commit's files sit in, whether
+    /// or not any of them was ever downloaded. A prune keeps it and drops the
+    /// commits beside it that no catalog pins any more.
+    #[must_use]
+    pub fn folder(&self) -> PathBuf {
         store::root()
             .join("huggingface")
             .join(self.kind.plural())
             .join(self.id.replace(['/', '\\'], "--"))
             .join("snapshots")
             .join(self.commit)
-            .join(name)
     }
 }
 

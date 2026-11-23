@@ -181,6 +181,12 @@ pub(crate) fn specs() -> Vec<ModelSpec> {
     catalog::MODELS.iter().map(catalog::Entry::spec).collect()
 }
 
+/// Every repository the catalog fetches from, so a prune knows which folders
+/// the store must keep.
+pub fn repositories() -> impl Iterator<Item = koharu_runtime::Repository> {
+    catalog::MODELS.iter().map(|entry| entry.repository)
+}
+
 /// What rig and a conversation's context know of one of Koharu's models. A
 /// model of a specialized `kind`, such as translation, calls no tools,
 /// whatever markup its template writes; it reasons when its template does, as

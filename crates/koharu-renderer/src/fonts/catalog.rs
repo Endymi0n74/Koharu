@@ -12,7 +12,7 @@ use serde::Deserialize;
 use super::{FontFace, FontFamily, library, normalize};
 
 // The catalog and every referenced face or preview must come from one immutable snapshot.
-const DATASET: Repository = Repository::dataset(
+pub(super) const DATASET: Repository = Repository::dataset(
     "mayocream/fonts",
     "304901a868bebd5f31f95664a462e5839873d939",
 );

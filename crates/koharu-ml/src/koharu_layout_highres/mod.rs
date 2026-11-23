@@ -34,7 +34,7 @@ use self::{
     processor::{Detection, ImageProcessor},
 };
 
-const REPOSITORY: Repository = Repository::model(
+pub(crate) const REPOSITORY: Repository = Repository::model(
     "mayocream/koharu-layout-highres",
     "68077eb09401a46e548190ff2786bd405113ea8b",
 );

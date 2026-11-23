@@ -20,6 +20,12 @@ use self::library::Request;
 pub use self::preview::preview;
 pub(crate) use self::{font::Font, library::Library};
 
+/// The repository the bundled catalog's faces come from, so a prune keeps it.
+#[must_use]
+pub fn repositories() -> Vec<koharu_runtime::Repository> {
+    vec![catalog::DATASET]
+}
+
 /// Families a text falls back on after the platform's fallback for its
 /// scripts, for the symbols and emoji that one lacks.
 const SYMBOL_FAMILIES: &[&str] = &[

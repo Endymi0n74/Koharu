@@ -12,13 +12,13 @@ use std::{
 use anyhow::{Context, Result, ensure};
 
 use lock::lock;
-pub(crate) use remove::remove_others;
+pub(crate) use remove::{remove, remove_others};
 
 /// The one store everything downloads into: `KOHARU_STORE` when it names a
 /// folder, Koharu's root's `store` when the executable's folder is writable,
 /// and the OS cache folder's `koharu/store` otherwise, which is a per-user
 /// install's store too.
-pub(crate) fn root() -> &'static Path {
+pub fn root() -> &'static Path {
     static ROOT: LazyLock<PathBuf> = LazyLock::new(|| {
         if let Some(folder) = std::env::var_os("KOHARU_STORE").filter(|folder| !folder.is_empty()) {
             return PathBuf::from(folder);

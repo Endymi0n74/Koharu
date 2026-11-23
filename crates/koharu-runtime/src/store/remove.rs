@@ -37,7 +37,7 @@ fn beside(version: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-async fn remove(folder: &Path) -> Result<()> {
+pub(crate) async fn remove(folder: &Path) -> Result<()> {
     let _lock = lock(folder).await?;
     let path = folder.to_owned();
     tokio::task::spawn_blocking(move || fs_err::remove_dir_all(path)).await??;

@@ -18,6 +18,8 @@ pub enum Command {
     Run(Run),
     /// Write what a project holds: Markdown, and JSON when asked.
     Report(Report),
+    /// List what the store holds for nothing, and delete it with `--delete`.
+    Prune(Prune),
 }
 
 #[derive(Debug, Args)]
@@ -66,6 +68,13 @@ pub struct Run {
     /// How long to wait for the run before reporting it as it is, in seconds.
     #[arg(long, default_value_t = 3_600)]
     pub wait: u64,
+}
+
+#[derive(Debug, Args)]
+pub struct Prune {
+    /// Delete what the listing shows instead of only showing it.
+    #[arg(long)]
+    pub delete: bool,
 }
 
 #[derive(Debug, Args)]
