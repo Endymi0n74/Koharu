@@ -65,10 +65,10 @@ pub struct TranslatorConfig {
 impl Default for TranslatorConfig {
     fn default() -> Self {
         Self {
-            // On 16 Blue Archive pages 9B read names and meaning that 2B
-            // missed, such as Shale for シャーレ where 2B wrote "tray", at
-            // about twice the decoding time.
-            model: "koharu/index-translate-9b".to_owned(),
+            // On six real Japanese segments Hy-MT2 7B translated 6/6
+            // correctly (its 1.8B: 3/6, qwen3.5-4b: 2/6) and fits whole on an
+            // 8 GB card, so a fresh install starts on it.
+            model: "koharu/hy-mt2-7b:Q4_K_M".to_owned(),
             target: langid!("en"),
             instructions: String::new(),
             vision: false,

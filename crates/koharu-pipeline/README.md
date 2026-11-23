@@ -174,7 +174,7 @@ is a language CLDR doesn't name in English.
 | `inpainter.model` | `lama`, or `flux3-klein` or `qwen-image` |
 | `inpainter.fill` | `flux3-klein`, or another inpainter, the one Generative Fill's bar picks and keeps, as Photoshop's Generative Fill keeps its own model [Photoshop Generative Fill] |
 | `inpainter.prompt` | asks the model to remove all text and keep everything else, for a run that brings none |
-| `translator.model` | `koharu/index-translate-9b` |
+| `translator.model` | `koharu/hy-mt2-7b:Q4_K_M` |
 | `translator.target` | `en` |
 | `translator.instructions` | none |
 | `translator.vision` | `false` |
