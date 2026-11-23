@@ -74,6 +74,9 @@ pub(crate) async fn detect(task: &Task, config: &PipelineConfig) -> anyhow::Resu
         })
         .await?;
     let page = member.page;
+    if std::env::var_os("KOHARU_PATCH_HASH").is_some() {
+        tracing::info!("DETHASH page={page} {:016x}", detected.patch_hash());
+    }
     let name = config.model.to_string();
     let additions = tokio::task::spawn_blocking(move || {
         let pixels = scan.to_rgb8();

@@ -121,6 +121,31 @@ impl KoharuLayoutHighres {
 pub struct Detected(Vec<Detection>);
 
 impl Detected {
+    /// A digest of the raw detections, before the page's pixels turn them
+    /// into its layout: with `KOHARU_PATCH_HASH`, a digest identical across
+    /// two runs whose stage digests differ exonerates the layout and names
+    /// the network, and a differing one localizes the drift in the inference.
+    #[must_use]
+    pub fn patch_hash(&self) -> u64 {
+        use std::hash::{Hash, Hasher as _};
+
+        let mut hasher = std::hash::DefaultHasher::new();
+        for detection in &self.0 {
+            detection.label.hash(&mut hasher);
+            detection.score.to_bits().hash(&mut hasher);
+            detection.bbox.map(f32::to_bits).hash(&mut hasher);
+            detection.mask.pixels.hash(&mut hasher);
+            (
+                detection.mask.x,
+                detection.mask.y,
+                detection.mask.width,
+                detection.mask.height,
+            )
+                .hash(&mut hasher);
+        }
+        hasher.finish()
+    }
+
     /// The layout on `page`, the image `inference` ran on: its text and
     /// onomatopoeia in reading order, its bubbles with the room each of
     /// their texts has, and its panels.
