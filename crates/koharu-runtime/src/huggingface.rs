@@ -20,6 +20,13 @@ pub struct Repository {
     commit: &'static str,
 }
 
+/// A repository together with the kind that decides its store path.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum RepositoryKind {
+    Model(&'static str, &'static str),
+    Dataset(&'static str, &'static str),
+}
+
 impl Repository {
     #[must_use]
     pub const fn model(id: &'static str, commit: &'static str) -> Self {
@@ -45,6 +52,16 @@ impl Repository {
             index += 1;
         }
         Self { kind, id, commit }
+    }
+
+    pub const fn kind(&self) -> RepositoryKind {
+        match self.kind {
+            RepoTypeAny::Model => RepositoryKind::Model(self.id, self.commit),
+            RepoTypeAny::Dataset => RepositoryKind::Dataset(self.id, self.commit),
+            RepoTypeAny::Space | RepoTypeAny::Kernel => {
+                panic!("a curated model never lives on a space or kernel repo")
+            }
+        }
     }
 
     /// The paths of the files `names` names, in the same order, each fetched

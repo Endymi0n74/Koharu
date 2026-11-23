@@ -17,7 +17,7 @@ use anyhow::Context;
 use tokio::sync::OnceCell;
 
 pub use device::{Backend, Device, Memory};
-pub use huggingface::Repository;
+pub use huggingface::{Repository, RepositoryKind};
 pub use store::root as store_root;
 pub use transfer::{State, Transfer, transfers};
 
@@ -43,6 +43,12 @@ pub fn root() -> Option<&'static Path> {
 /// prune holds on to and leaves the tags beside them behind.
 pub fn package_versions() -> Vec<PathBuf> {
     packages::versions()
+}
+
+/// Every repository a release's packages still reference, with the kind that
+/// decides its store path.
+pub fn package_repositories() -> Vec<RepositoryKind> {
+    packages::repositories()
 }
 
 /// Removes one version folder from the store, taking the lock a download holds

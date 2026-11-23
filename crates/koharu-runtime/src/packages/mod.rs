@@ -79,6 +79,12 @@ pub(crate) fn versions() -> Vec<PathBuf> {
     versions
 }
 
+/// The repositories a release's packages still reference, with the kind that
+/// decides their store path. A prune keeps the whole legacy repository for each.
+pub(crate) fn repositories() -> Vec<super::RepositoryKind> {
+    Vec::new()
+}
+
 /// Downloads what `gpu` needs and loads it. Everything downloads before anything
 /// loads, so a transfer that fails leaves nothing loaded. Old versions go in
 /// the background, so models don't wait for them. Returns `gpu` as its packages
