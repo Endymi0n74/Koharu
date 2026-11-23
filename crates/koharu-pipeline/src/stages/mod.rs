@@ -96,10 +96,58 @@ impl Member {
                     ops,
                 })?;
             }
+            if std::env::var_os("KOHARU_PATCH_HASH").is_some() {
+                log_patch_hash(&session, member.page, stage);
+            }
             Ok(())
         })
         .await?
     }
+}
+
+/// Logs a per-stage digest of the page the stage committed when
+/// `KOHARU_PATCH_HASH` is set, to bisect the pipeline's PNG residue: identical
+/// digests across two runs prove the inference stages committed the same scene
+/// and pin any output-image difference on the render side, while a digest that
+/// starts differing names the stage.
+///
+/// The digest covers, for the page's blocks in reading order, the role, the
+/// source's text, its frame and transform, the translation's text, and the
+/// hash of the mask's and the clean-up's pixels, which the session takes from
+/// the tiles without reading them. Layer ids are excluded (they are generated
+/// per run); the page's place in the project keys its blocks.
+fn log_patch_hash(session: &Session, page: PageId, stage: Stage) {
+    use std::hash::{Hash, Hasher as _};
+
+    let project = session.project();
+    let Ok(blocks) = project.blocks(page) else {
+        tracing::warn!("PATCHHASH page {page} is gone");
+        return;
+    };
+    let mut hasher = std::hash::DefaultHasher::new();
+    format!("{stage:?}").hash(&mut hasher);
+    project
+        .pages()
+        .position(|candidate| candidate.id == page)
+        .hash(&mut hasher);
+    let mut entries = 0usize;
+    for (_, block) in blocks {
+        format!("{:?}", block.role).hash(&mut hasher);
+        block.source.content.text().hash(&mut hasher);
+        format!("{:?}", block.source.frame).hash(&mut hasher);
+        format!("{:?}", block.source.transform).hash(&mut hasher);
+        if let Some(translation) = &block.translation {
+            "translation".hash(&mut hasher);
+            translation.content.text().hash(&mut hasher);
+        }
+        for part in [block.mask.id, block.cleanup.id] {
+            if let Ok(hash) = session.tiles_hash(part) {
+                hash.hash(&mut hasher);
+            }
+            entries += 1;
+        }
+    }
+    tracing::info!(entries, "PATCHHASH {:016x}", hasher.finish());
 }
 
 /// A stage on one or more pages at once, recognition's on several, and what
