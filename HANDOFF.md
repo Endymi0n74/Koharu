@@ -28,8 +28,8 @@ conflits ne sont pas cosmétiques :
 
 - `crates/koharu-translator` **n'existe plus en amont** : traduction = `crates/koharu-llm`
   (`hosted/`, `local/`) et `koharu-pipeline/src/stages/translate`. Les ~13,8 k lignes du fork s'y
-  re-hébergent : glossaire et fiche de chapitre sont faits (lot 3), les presets et la calibration
-  partent avec `koharu-batch`, la typographie et les prompts restent à trancher.
+  re-hébergent : glossaire et fiche de chapitre sont faits (lot 3), les presets et l'estimation
+  VRAM avec `koharu-batch` (lot 4), la typographie et les prompts restent à trancher.
 - `crates/koharu-pipeline` est réécrit : `EntityId`/`Snapshot` → `PageId`/`Session`, stages
   `detection`/`ocr`/`translation` → `detect`/`recognize`/`translate` + `inpaint`, config par stage.
 - Le sous-système batch (7 067 lignes, `crates/koharu-pipeline/src/batch/`) n'a aucun équivalent
@@ -250,6 +250,41 @@ verts, 46 tests `koharu-llm` verts, `tsc --noEmit` de `packages/koharu` 0. Rien 
 un modèle chargé : les deux commits sont vérifiés par compilation et tests unitaires, pas par une
 traduction réelle.
 
+## Lot 4 : `koharu-batch` (2026-11-23)
+
+Trois commits sur `port/upstream-0.92`, `cargo check --workspace` vert après chacun :
+
+- `dee7bfc1` `feat(batch)` — la crate et le binaire `koharu-batch` (nom du CLI tranché au lot 3) :
+  import d'un dossier en ordre naturel du nom, ou d'une image, en projet (`AddFile` + `AddPage`),
+  config des quatre stages depuis les drapeaux — un modèle ou une langue inconnus échouent avant la
+  première page —, `--glossary SOURCE=TARGET` qui remplit le glossaire du lot 3, `--pages 1-10,15`,
+  `--stages`, puis le scheduler 0.92 et son dénouement (`Done`, `Failed`, `Stopped`, étapes finies).
+- `445b6b92` `feat(batch)` — `report` : Markdown sur la sortie standard ou `--markdown`, JSON avec
+  `--json`, chaque texte source et sa traduction page par page plus les comptes ; et l'entrée
+  `.cbz`/`.zip`, lue dans l'archive même, sans dossier temporaire.
+- `fde50397` `feat(batch)` — `preset.rs` : les pics mesurés du fork (Hy-MT2 7B Q4_K_M à 5 734 Mio,
+  pipeline complet), l'estimation sinon (paramètres × quantization + contexte + stages +
+  projecteur), `--translator auto` et `--vram-budget MIB`, qui refuse avant la première page un
+  modèle dont le pic estime dépasse le budget.
+
+Non porté, assumé :
+
+- **`prune`** : il supprime des fichiers, et l'inventaire qui décide de ce qui est encore référencé
+  n'a pas de propriétaire sur 0.92 — les pins vivent dans les crates `*-sys` et les catalogues, sans
+  accesseur. À faire quand cet inventaire en aura un, pas en devinant : une mauvaise liste efface
+  des modèles déjà téléchargés.
+- **Le fichier de calibration mesurée** : 0.92 n'expose aucun pic VRAM (llama.cpp place les poids,
+  la mémoire libre n'est publiée qu'en cas d'échec de chargement, `gpu.rs`), donc aucun run ne
+  pourrait l'écrire. Seule l'estimation, avec la table mesurée du fork, est portée.
+- **Les vignettes avant/après du rapport** : il faut le rendu d'une page (`koharu-renderer`), pas
+  encore branché côté CLI ; le rapport est textuel.
+- **Du fork, non portés** : `--overwrite`, le cache OCR, `--deterministic`, `--drift`, `--calibrate`,
+  et les providers hébergés du lot traduction.
+
+Vérifié : `cargo check --workspace` 0, `cargo fmt --all -- --check` 0, les 3 tests de `preset` verts,
+et le binaire répond (`koharu-batch --help`). Aucun chapitre n'a été traduit par ce chemin : rien
+n'a tourné sur un modèle, donc ni le run ni le rapport n'ont été vus en vrai.
+
 ## Ordre de portage proposé
 
 1. Socle infra, faible couplage : `KOHARU_STORE`, vérification sha256/taille du store, logs
@@ -258,7 +293,8 @@ traduction réelle.
    lot 4.
 3. Glossaire et fiche de chapitre dans `koharu-llm` + `stages/translate` : faits (lot 3) ; la
    typographie du fork reste une entrée à part.
-4. `koharu-batch` (cli, run, report, cbz, prune, calibration) sur le scheduler 0.92.
+4. `koharu-batch` : faits `run`, `report`, l'entrée `.cbz` et les presets VRAM ; `prune`, la
+   calibration mesurée et les vignettes du rapport restent.
 5. App : mode dossier, locale `fr-FR`, purge UI, erreurs inline.
 6. Renommage KoharuBatch (nom affiché seul, cf. décision 1), montée `0.92.0`, tag `v0.92.0`,
    publication.
