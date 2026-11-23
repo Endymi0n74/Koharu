@@ -17,7 +17,7 @@ use koharu_scene::{Edit, Hash, Op, PageId, Session};
 use parking_lot::Mutex;
 use serde_json::json;
 
-use crate::cli::Run;
+use crate::{cli::Run, preset};
 
 /// What a page image ends with.
 const EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
@@ -99,6 +99,7 @@ async fn progress(mut events: tokio::sync::broadcast::Receiver<Event>) {
 /// The app's pipeline settings, as the flags name them. A model or a language
 /// the pipeline doesn't know fails here, before any page is read.
 fn config(arguments: &Run) -> Result<PipelineConfig> {
+    let translator = translator(arguments)?;
     let glossary = arguments
         .glossary
         .iter()
@@ -109,7 +110,7 @@ fn config(arguments: &Run) -> Result<PipelineConfig> {
         "recognizer": { "model": arguments.ocr },
         "inpainter": { "model": arguments.inpainting },
         "translator": {
-            "model": arguments.translator,
+            "model": translator,
             "target": arguments.target,
             "instructions": arguments.instructions.clone().unwrap_or_default(),
             "glossary": glossary,
@@ -117,6 +118,45 @@ fn config(arguments: &Run) -> Result<PipelineConfig> {
     });
     serde_json::from_value(settings)
         .context("a flag names a model or a language the pipeline doesn't know")
+}
+
+/// The translation model to load: the flag's reference, or `auto`'s strongest
+/// model that fits the budget; and the budget's refusal of a model that cannot.
+fn translator(arguments: &Run) -> Result<String> {
+    let budget = arguments
+        .vram_budget
+        .map(|mebibytes| mebibytes * 1024 * 1024);
+    let reference = match arguments.translator.as_str() {
+        "auto" => {
+            // No GPU query here: 0.92 publishes free memory only when a load
+            // fails, so `auto` budgets 8 GiB unless the flags say otherwise.
+            let budget = budget.unwrap_or(preset::budget_from_total(8 * 1024 * 1024 * 1024));
+            let choice = preset::resolve(budget, false).with_context(|| {
+                format!(
+                    "no catalog model fits the {} MiB budget",
+                    budget / 1024 / 1024
+                )
+            })?;
+            eprintln!(
+                "{} estimated at {}",
+                choice.reference,
+                choice.estimate.display()
+            );
+            choice.reference
+        }
+        reference => reference.to_owned(),
+    };
+    if let Some(budget) = budget
+        && let Some((model, quantization, estimate)) = preset::of_reference(&reference, false)
+        && estimate.bytes > budget
+    {
+        bail!(
+            "{model} at {quantization} is estimated at {}, over the {} MiB budget: name a smaller --translator or raise --vram-budget",
+            estimate.display(),
+            budget / 1024 / 1024
+        );
+    }
+    Ok(reference)
 }
 
 /// A `SOURCE=TARGET` pair of the command line.

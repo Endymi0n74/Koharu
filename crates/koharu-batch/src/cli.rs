@@ -31,9 +31,15 @@ pub struct Run {
     /// The target language, as a tag CLDR names: `fr-FR`, `en-US`, `ja-JP`.
     #[arg(long, default_value = "fr-FR")]
     pub target: String,
-    /// The translation model, `vendor/model` with an optional `:QUANTIZATION`.
+    /// The translation model, `vendor/model` with an optional `:QUANTIZATION`,
+    /// or `auto` for the strongest local one a VRAM budget holds (8 GiB when
+    /// none is given).
     #[arg(long, default_value = "koharu/hy-mt2-7b:Q4_K_M")]
     pub translator: String,
+    /// The VRAM a run may use, in MiB: a model whose estimated peak is larger
+    /// is refused before any page is read.
+    #[arg(long, value_name = "MIB")]
+    pub vram_budget: Option<u64>,
     /// The layout model, by its configuration name.
     #[arg(long, default_value = "koharu_layout_highres")]
     pub detector: String,

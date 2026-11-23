@@ -1,6 +1,7 @@
 //! `koharu-batch`: one chapter, end to end, from a terminal.
 
 mod cli;
+mod preset;
 mod report;
 mod run;
 
