@@ -14,13 +14,14 @@ suivis, dont `Cargo.toml`, `package.json`, `bun.lock`, 20 locales, `crates/kohar
 `crates/koharu-ml`. Rien ne compile ni ne s'installe : ne rien publier depuis `main`, et ne pas
 taguer cette arborescence.
 
-Branche de travail : `port/upstream-0.92` = `ce01723a` + 15 commits du fork rejoués (CI, release,
+Branche de travail : `port/upstream-0.92` = `ce01723a` + 13 commits du fork rejoués (CI, release,
 updater, règles projet). C'est la base du portage ; `main` n'est pas touchée.
 
 ## Replay automatique
 
-Testé commit par commit sur `ce01723a` : **15 passent**, **110 conflitent**. Le fork porte 111
-commits hors docs/CI/release ; les conflits ne sont pas cosmétiques :
+Testé commit par commit sur `ce01723a` : **15 passent**, **110 conflitent**. L'un des 15
+(`45a9ad0e`) a été retiré depuis : sa suppression de `clamp` casse `ToolBar.tsx` en 0.92.
+Le fork porte 111 commits hors docs/CI/release ; les conflits ne sont pas cosmétiques :
 
 - `crates/koharu-translator` **n'existe plus en amont** : traduction = `crates/koharu-llm`
   (`hosted/`, `local/`) et `koharu-pipeline/src/stages/translate`. Les ~13,8 k lignes du fork
@@ -51,10 +52,23 @@ commits hors docs/CI/release ; les conflits ne sont pas cosmétiques :
 2. Référence de version : `[workspace.package] version` de `Cargo.toml` reste la seule source,
    tag et nom de release préfixés `v` par release-please.
 
+## Chaîne de build validée (2026-11-23)
+
+- `bun install --frozen-lockfile --ignore-scripts` : 149 paquets, `bun.lock` (v2) intact.
+- `cargo check --workspace` : OK (`Finished dev profile` en 1 min 07).
+- `tsc --noEmit` sur `packages/koharu` : OK, après suppression du `.next` hérité de `main`.
+- Commit rejoué `45a9ad0e` (« deux séquelles du rebase ») **retiré** : sa suppression de `clamp`
+  dans `ToolBar.tsx` casse `BrushSize` en 0.92, et sa correction `fr-FR` est déjà en amont.
+- `bun install` complet lance le `postinstall` (`cargo install tauri-cli --git … --locked`), installé
+  sous `D:\codex\tools\cargo` via `CARGO_INSTALL_ROOT`.
+
 ## Environnement
 
-- `cargo` et `bun` ne sont pas dans le PATH du shell :
-  `C:\Users\endymion\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin`, `C:\Users\endymion\.bun\bin`.
+- Aucun outil Rust/JS dans le PATH du shell ; utiliser :
+  `C:\Users\endymion\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin`,
+  `D:\codex\tools\bun\bun-windows-x64\bun.exe` (1.4.5 : le 1.3.14 de `~/.bun` ne lit pas
+  `bun.lock` v2 et le réécrit en v1),
+  `D:\codex\tools\ninja` (`cef-dll-sys` configure CMake avec `-G Ninja`).
 - `rg` absent : chercher avec `git grep` ou l'outil de recherche de l'agent.
 - `gh` authentifié (Endymi0n74, scopes `repo` + `workflow`) ; toujours `-R Endymi0n74/Koharu`.
 - Le tag `v0.89.0` est propre (aucun marqueur) : c'est l'état de référence qui buildait.
