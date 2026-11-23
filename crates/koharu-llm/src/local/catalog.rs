@@ -95,6 +95,16 @@ impl Entry {
     }
 }
 
+/// The target languages Hy-MT2 documents, in the interface's tags: 38 of its
+/// 42, leaving out Brazilian Portuguese (its cards list a single `pt`),
+/// Bulgarian, Belarusian, and Hungarian. One list for every size, so a new one
+/// cannot drift from the family it belongs to.
+static HY_MT2_LANGUAGES: &[&str] = &[
+    "ar", "bn", "bo", "cs", "de", "en", "es", "fa", "fil", "fr", "gu", "he", "hi", "id", "it",
+    "ja", "kk", "km", "ko", "mn", "mr", "ms", "my", "nl", "pl", "pt", "ru", "ta", "te", "th", "tr",
+    "ug", "uk", "ur", "vi", "yue", "zh-Hans", "zh-Hant",
+];
+
 pub(crate) fn entry(id: &str) -> anyhow::Result<&'static Entry> {
     MODELS
         .iter()
@@ -901,6 +911,61 @@ pub(crate) static MODELS: &[Entry] = &[
         kind: None,
         sampling: sampling(0.2, 20, 0.8),
         languages: None,
+    },
+    // Tencent's Hy-MT2 family is the catalog's translation-specialized line
+    // (Apache-2.0): no projector, because the pipeline translates the page's
+    // OCR text, and no markup, because its "fast-thinking" chat template writes
+    // neither a tool call nor a reasoning block. The 30B-A3B member
+    // (tencent/Hy-MT2-30B-A3B-GGUF) is deliberately absent: its GGUF declares
+    // `general.architecture = hy_v3`, which the pinned llama.cpp resolves
+    // nowhere in its `llama-arch.cpp` nor in the `llama.dll` the store ships, so
+    // a load can only fail. Re-add it only with a runtime that resolves it.
+    Entry {
+        id: "hy-mt2-7b",
+        name: "Hy-MT2 7B",
+        repository: Repository::model(
+            "tencent/Hy-MT2-7B-GGUF",
+            "ab8472660ac61fac25f1af43fac2599d52a8a775",
+        ),
+        quantizations: &[
+            Quantization::new("Q4_K_M", "Q4_K M", "Hy-MT2-7B-Q4_K_M.gguf"),
+            // The repository spells two of its own files with a capital `HY`
+            // and the third with `Hy`; both are pinned as published.
+            Quantization::new("Q6_K", "Q6_K", "HY-MT2-7B-Q6_K.gguf"),
+            Quantization::new("Q8_0", "Q8_0", "HY-MT2-7B-Q8_0.gguf"),
+        ],
+        projector: None,
+        markup: None,
+        kind: Some(TRANSLATION),
+        // The card's recipe, which names no min-p.
+        sampling: Sampling {
+            min_p: None,
+            repeat_penalty: Some(1.05),
+            ..sampling(0.7, 20, 0.6)
+        },
+        languages: Some(HY_MT2_LANGUAGES),
+    },
+    Entry {
+        id: "hy-mt2-1.8b",
+        name: "Hy-MT2 1.8B",
+        repository: Repository::model(
+            "tencent/Hy-MT2-1.8B-GGUF",
+            "a0c709d9fac510f2c807aa3af52872340dc37a4a",
+        ),
+        quantizations: &[
+            Quantization::new("Q4_K_M", "Q4_K M", "Hy-MT2-1.8B-Q4_K_M.gguf"),
+            Quantization::new("Q6_K", "Q6_K", "Hy-MT2-1.8B-Q6_K.gguf"),
+            Quantization::new("Q8_0", "Q8_0", "Hy-MT2-1.8B-Q8_0.gguf"),
+        ],
+        projector: None,
+        markup: None,
+        kind: Some(TRANSLATION),
+        sampling: Sampling {
+            min_p: None,
+            repeat_penalty: Some(1.05),
+            ..sampling(0.7, 20, 0.6)
+        },
+        languages: Some(HY_MT2_LANGUAGES),
     },
     Entry {
         id: "index-translate-2b",
