@@ -135,7 +135,11 @@ Vérifiés, rien à changer :
 
 - **Updater** : clé minisign et endpoint du fork. Le bloc `windows.installMode: "quiet"` de l'amont
   disparaît au profit du défaut : c'est le « passive » que le fork avait voulu (son tauri.conf
-  n'avait aucun bloc `windows`).
+  n'avait aucun bloc `windows`). Défaut vérifié dans la version réellement compilée —
+  `tauri-plugin-updater` 3.0.0-alpha.3 @ `14ed4c4f`, `plugins/updater/src/config.rs` :
+  `WindowsUpdateInstallMode::Passive` est `#[default]`, et `WindowsConfig::install_mode` est
+  `#[serde(default)]`. Ni le Rust ni le TS ne posent d'`install_mode`, donc rien à écrire dans
+  `tauri.conf.json`.
 - **Winget** : l'amont a bien le job ; le fork le retire (pas de `WINGET_TOKEN`, et le paquet
   `mayocream.koharu` appartient à l'amont) et ne laisse qu'une note à sa place. Les deux commits du
   fork (`b646e34c` puis `71d52db7` : désactivation, puis retrait du gabarit commenté) y sont rejoués
