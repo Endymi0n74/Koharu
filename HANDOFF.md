@@ -162,6 +162,14 @@ Vérifiés, rien à changer :
   voulue, sa place est `strip = "debuginfo"` ou `debug = true` dans `Cargo.toml`, pas un hook de
   workflow. Côté front, `next.config.ts` garde `withSentryConfig` : sans `SENTRY_AUTH_TOKEN` il saute
   l'upload sans rien casser, et son sort se tranchera avec le reste du portage du paquet `koharu`.
+- **SignPath** : retiré du câblage, comme Sentry. `crates/koharu/tauri.conf.json` n'a plus de
+  `bundle.windows` du tout, donc plus de `signCommand` pour y interpoler un `${SIGNPATH_*}` ; aucun
+  workflow ni `package.json` n'appelle `.github/signpath.ts`, seul lecteur de ces variables, et
+  tauri-action ne les connaît pas. Le dépôt n'en a d'ailleurs aucune : `gh secret list -R
+  Endymi0n74/Koharu` ne rend que les deux clés Tauri et `gh variable list` est vide, donc les trois
+  `vars.SIGNPATH_*` valaient déjà la chaîne vide. Reste `.github/signpath.ts`, une implémentation
+  complète que rien n'appelle : à supprimer, ou à rebrancher avec une vraie signature Windows — pas à
+  laisser ainsi.
 - **`v` dans tags et noms de release** : vérifié, `ce01723a` a `include-v-in-tag: false` et
   `include-v-in-release-name: false`, la config de la branche les passe à `true`, les tags du fork
   sont `v0.88.2`, `v0.88.3`, `v0.89.0`, et `cliff.toml` matche `^v?[0-9]+\.[0-9]+\.[0-9]+$`, donc
