@@ -141,17 +141,32 @@ Vérifiés, rien à changer :
   `WindowsUpdateInstallMode::Passive` est `#[default]`, et `WindowsConfig::install_mode` est
   `#[serde(default)]`. Ni le Rust ni le TS ne posent d'`install_mode`, donc rien à écrire dans
   `tauri.conf.json`.
-- **Winget** : l'amont a bien le job ; le fork le retire (pas de `WINGET_TOKEN`, et le paquet
-  `mayocream.koharu` appartient à l'amont) et ne laisse qu'une note à sa place. Les deux commits du
-  fork (`b646e34c` puis `71d52db7` : désactivation, puis retrait du gabarit commenté) y sont rejoués
-  en un seul.
-- **Sentry** : l'amont appelle `.github/sentry.sh` via `beforeBundleCommand` ; la garde
-  `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` évite un échec sans secrets, `SENTRY_ORG` venant des variables
-  de dépôt.
-- **`v` dans tags et noms de release** : l'amont était en `false` alors que le fork tague `v0.92.0` ;
-  `cliff.toml` accepte désormais les deux formes de tag.
-- **`CLAUDE.md`** : créé par le fork (canary + règle immuable) ; `AGENTS.md` amont ne porte pas la
-  règle, donc pas de doublon.
+- **Winget** : l'amont a bien le job ; le fork le retire et ne laisse qu'une note à sa place. Vérifié
+  plutôt que supposé : `ce01723a` porte le job `vedantmgoyal9/winget-releaser` avec
+  `identifier: mayocream.koharu` et `secrets.WINGET_TOKEN`, et `gh secret list` du dépôt ne rend que
+  `TAURI_SIGNING_PRIVATE_KEY` et sa phrase de passe — le jeton n'existe pas. Les deux commits du fork
+  (`b646e34c` puis `71d52db7` : désactivation, puis retrait du gabarit commenté) y sont rejoués en
+  un seul.
+- **Sentry** : l'amont appelle `.github/sentry.sh` via `beforeBundleCommand`, que tauri-action passe
+  en `--config` ; le correctif `f7de4fcc` fait sauter l'upload sans `SENTRY_AUTH_TOKEN` et
+  `SENTRY_ORG` et garde le strip, et `release.yml` transmet bien les deux. `matbour/setup-sentry-cli@v3`
+  déclare son jeton `required: false` (« left unauthenticated »), donc l'étape ne casse rien non
+  plus. Ce qui manquait : le dépôt n'a **aucune** variable et, côté secrets, que les deux clés Tauri ;
+  `SENTRY_DSN` est absent lui aussi, donc `option_env!("SENTRY_DSN")` vaut `None` et le client démarre
+  désactivé (`sentry-core` : `None.into_dsn()` rend `Ok(None)`, l'`expect` ne panique pas). Les builds
+  du fork ne remontent donc rien à Sentry ; seule la bande de débogage du binaire reste utile.
+- **`v` dans tags et noms de release** : vérifié, `ce01723a` a `include-v-in-tag: false` et
+  `include-v-in-release-name: false`, la config de la branche les passe à `true`, les tags du fork
+  sont `v0.88.2`, `v0.88.3`, `v0.89.0`, et `cliff.toml` matche `^v?[0-9]+\.[0-9]+\.[0-9]+$`, donc
+  les deux formes. Deux pièges pour le tag à venir, que cette phrase masquait :
+  `.github/release-please/manifest.json` dit **déjà** `0.92.0` (hérité du commit de release amont
+  `ce01723a`) alors que le fork n'a aucun tag au-delà de `v0.89.0`, donc release-please proposerait
+  0.93.0 ; et l'amont a tagué `0.92.0` nu, tag présent en local, donc `v0.92.0` sera une seconde
+  étiquette pour la même version. À trancher au moment du tag : manifest ramené à 0.89.0 ou bump
+  manuel, et tags amont purgés en local.
+- **`CLAUDE.md`** : vérifié — le fichier porte le canary (réponse « Stephane, », handoff `HANDOFF.md`)
+  et la règle immuable marquée `<!-- regle-immuable-installation -->` ; `AGENTS.md` n'en contient ni
+  le marqueur ni aucune occurrence (`-i "immuable|D:\codex"` : rien), donc pas de doublon.
 - **`.gitignore`** : la sonde `spec_decode_probe.rs`, présente non suivie dans l'arbre. La règle
   `/memory.md` du fork a été retirée : aucun fichier de ce nom, aucun commit qui l'ait jamais suivi
   sur 0.92, et plus aucune règle qui le documente.
