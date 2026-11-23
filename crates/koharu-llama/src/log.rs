@@ -3,6 +3,53 @@ use tracing_core::{Interest, Kind, Metadata, callsite, field, identify_callsite}
 
 static FIELD_NAMES: &[&str] = &["message", "module"];
 
+/// How many of the most recent WARN and ERROR lines are kept.
+const RECENT_LIMIT: usize = 32;
+/// The longest of those lines a single entry keeps.
+const RECENT_LINE_LIMIT: usize = 512;
+
+/// The most recent WARN and ERROR lines llama.cpp and ggml logged, so a failed
+/// native call can explain itself to the caller.
+static RECENT: std::sync::Mutex<std::collections::VecDeque<String>> =
+    std::sync::Mutex::new(std::collections::VecDeque::new());
+
+/// Keeps a WARN or ERROR line, dropping the oldest past `RECENT_LIMIT` and a
+/// repeat of the line just before it.
+fn record_recent(level: koharu_llama_sys::ggml_log_level, text: &str) {
+    if !matches!(
+        level,
+        koharu_llama_sys::GGML_LOG_LEVEL_WARN | koharu_llama_sys::GGML_LOG_LEVEL_ERROR
+    ) {
+        return;
+    }
+    let line: String = text
+        .trim_end_matches(['\n', '\r'])
+        .chars()
+        .take(RECENT_LINE_LIMIT)
+        .collect();
+    if line.is_empty() {
+        return;
+    }
+    let mut recent = RECENT
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if recent.back().map(String::as_str) != Some(line.as_str()) {
+        recent.push_back(line);
+        while recent.len() > RECENT_LIMIT {
+            recent.pop_front();
+        }
+    }
+}
+
+/// The most recent WARN and ERROR lines llama.cpp and ggml logged, oldest
+/// first, joined with newlines.
+pub(super) fn recent_logs() -> String {
+    let recent = RECENT
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    recent.iter().cloned().collect::<Vec<_>>().join("\n")
+}
+
 struct OverridableFields {
     message: tracing::field::Field,
     target: tracing::field::Field,
@@ -169,6 +216,7 @@ impl State {
             if buffer.ends_with('\n') {
                 self.is_buffering
                     .store(false, std::sync::atomic::Ordering::Release);
+                record_recent(previous_log_level, buffer.as_str());
                 Self::generate_log(self.module, previous_log_level, buffer.as_str());
             } else {
                 *lock = Some((previous_log_level, buffer));
@@ -243,6 +291,7 @@ impl State {
 
         let (text, newline) = text.split_at(text.len() - 1);
         debug_assert_eq!(newline, "\n");
+        record_recent(level, text);
 
         match level {
             koharu_llama_sys::GGML_LOG_LEVEL_NONE => {

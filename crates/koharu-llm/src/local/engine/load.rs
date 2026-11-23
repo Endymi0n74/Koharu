@@ -39,8 +39,18 @@ fn backend() -> Result<&'static LlamaBackend> {
 /// The model, loaded to fit, and the `size` it fits.
 pub(super) fn model(files: &Files, size: Size) -> Result<(LlamaModel, Size)> {
     let (params, context) = fit(files, size)?;
-    let model = LlamaModel::load_from_file(backend()?, &files.model, &params)
-        .with_context(|| format!("couldn't load {}", files.model.display()))?;
+    let model = LlamaModel::load_from_file(backend()?, &files.model, &params).map_err(|error| {
+        // llama.cpp reports the concrete reason (unknown architecture or
+        // quantization, a corrupt file, a GPU that can't take it) through its
+        // log callback; the captured lines make the error actionable.
+        let mut context = format!("couldn't load {}", files.model.display());
+        let logs = koharu_llama::recent_logs();
+        if !logs.is_empty() {
+            context.push_str("\nllama.cpp logs:\n");
+            context.push_str(&logs);
+        }
+        anyhow::Error::new(error).context(context)
+    })?;
     Ok((model, Size { context, ..size }))
 }
 

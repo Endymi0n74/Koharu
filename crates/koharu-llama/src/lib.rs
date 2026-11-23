@@ -514,6 +514,16 @@ extern "C" fn logs_to_trace(
     }
 }
 
+/// The most recent WARN and ERROR lines llama.cpp and ggml logged, oldest
+/// first, joined with newlines, or an empty string once none was captured.
+///
+/// A native call that fails (a model file that doesn't load, say) returns only
+/// an error code; these lines carry the reason llama.cpp logged for it.
+#[must_use]
+pub fn recent_logs() -> String {
+    log::recent_logs()
+}
+
 /// Redirect llama.cpp logs into tracing.
 pub fn send_logs_to_tracing(options: LogOptions) {
     // TODO: Reinitialize the state to support calling send_logs_to_tracing multiple times.
