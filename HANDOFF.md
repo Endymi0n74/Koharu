@@ -280,8 +280,20 @@ traduction réelle.
    dépendant des redirections GitHub. Si le nom technique doit suivre un jour, c'est `productName`
    + déplacement du `store/` (ou `KOHARU_STORE`) + dépôt et endpoint dans la même release — pas à
    0.92.0.
-2. Référence de version : `[workspace.package] version` de `Cargo.toml` reste la seule source,
-   tag et nom de release préfixés `v` par release-please.
+2. **Tag `v0.92.0` : tranché (2026-11-23).** Étiquette **légère** `v0.92.0`, posée à la main sur le
+   commit de release du port, puis poussée sur `origin` : `release.yml` se déclenche sur
+   `push: tags: '*'`. Légère parce que tous les tags du dépôt le sont (`%(objecttype)` rend `commit`
+   pour `v0.88.2`, `v0.88.3`, `v0.89.0`).
+   Pas par release-please : son `buildReleaseNotes` exige le tag de la release précédente et compare
+   HEAD au merge commit de `main` ; depuis `v0.89.0` il ne voit que les commits du fork et
+   proposerait 0.90.0, jamais 0.92.0. Une fois `v0.92.0` posé, son manifest (déjà 0.92.0) et le tag
+   se répondent, et il reprend son rôle pour la suite (0.93.0).
+   Le tag amont `0.92.0` nu reste en place : il pointe un ancêtre, `cliff.toml` matche `^v?`, et
+   notre étiquette est sur HEAD — le supprimer ne ferait perdre que le point de comparaison avec la
+   release amont.
+   Appliqué : cette décision. Non appliqué : le tag lui-même, qui attend le commit de release
+   (lots 4 et 5, renommage) — la branche n'est pas une release aujourd'hui.
+   `[workspace.package] version` de `Cargo.toml` reste la seule source de version.
 
 ## Chaîne de build validée (2026-11-23)
 
