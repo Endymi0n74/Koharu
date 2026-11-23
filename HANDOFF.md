@@ -154,11 +154,28 @@ Le lot 1 est clos. Hors couverture : les archives de `packages/*` (CUDA, ROCm, t
 pas de digest publié en dur, donc elles ne sont pas vérifiées ; un fichier déjà présent dans le store
 n'est pas revérifié.
 
+## Lot 2 (2026-11-23)
+
+- `07c10834` `feat(llm)` — catalogue : `hy-mt2-7b` et `hy-mt2-1.8b` (texte seul, `markup: None`,
+  `kind: TRANSLATION`), quantizations Q4_K_M/Q6_K/Q8_0 aux noms de fichiers des dépôts, 38 langues
+  documentées ; le 30B-A3B reste dehors (`hy_v3` que le runtime épinglé ne résout pas).
+- `0138e1c6` `feat(translate)` — défaut `koharu/hy-mt2-7b:Q4_K_M` (6/6 sur six segments japonais,
+  contre 3/6 pour le 1.8B et 2/6 pour qwen3.5-4b), tableau du README du pipeline à jour.
+
+**Calibration VRAM : non portée ici**, elle n'a pas de propriétaire sur 0.92. `preset.rs`
+(`estimate_vram`, `MEASURED_PEAKS`, `resolve_auto`, `MeasuredPeaks`) et `batch/calibration.rs`
+servent `koharu-batch` (`--llm auto`, `--vram-budget`, `--reset-calibration`) ; l'app 0.92 laisse
+llama.cpp `fit_params` placer les poids et ne publie qu'un échec de chargement avec la mémoire libre
+(`gpu.rs`). `9f935abd` et `112ee4ba` vont donc avec le lot 4 ; `1b95e34b`/`94cfa4af`/`5b8eb60c` sont
+soldés par les deux commits ci-dessus (le purge était déjà l'état amont, `qwen3.5-9b-abliterated`
+n'existant pas en 0.92).
+
 ## Ordre de portage proposé
 
 1. Socle infra, faible couplage : `KOHARU_STORE`, vérification sha256/taille du store, logs
    llama.cpp, probes `KOHARU_LLM_DEBUG`/`KOHARU_PATCH_HASH`.
-2. Catalogue de modèles et calibration VRAM, puis Qwen Image 2.1 non-Turbo (base + Uncensored).
+2. Catalogue de modèles (fait), puis Qwen Image 2.1 non-Turbo (base + Uncensored) ; la calibration
+   VRAM part avec le lot 4.
 3. Glossaire et fiche de chapitre dans `koharu-llm` + `stages/translate`.
 4. `koharu-batch` (cli, run, report, cbz, prune, calibration) sur le scheduler 0.92.
 5. App : mode dossier, locale `fr-FR`, purge UI, erreurs inline.
