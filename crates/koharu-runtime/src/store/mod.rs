@@ -34,6 +34,63 @@ pub(crate) fn root() -> &'static Path {
     &ROOT
 }
 
+/// What a downloaded file must be: the size and SHA-256 its publisher lists,
+/// either of which may be unknown. A file that doesn't match never reaches the
+/// store.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Expectation {
+    pub(crate) size: Option<u64>,
+    pub(crate) sha256: Option<String>,
+}
+
+impl Expectation {
+    /// Checks `path` against what's known of it: the size from its metadata,
+    /// the digest by reading it once.
+    pub(crate) async fn verify(&self, path: &Path) -> Result<()> {
+        if let Some(expected) = self.size {
+            let size = fs_err::tokio::metadata(path).await?.len();
+            ensure!(
+                size == expected,
+                "{} is {size} bytes, not the {expected} its publisher lists",
+                path.display()
+            );
+        }
+        if let Some(expected) = &self.sha256 {
+            let digest = sha256(path).await?;
+            ensure!(
+                digest.eq_ignore_ascii_case(expected),
+                "{} has SHA-256 {digest}, not the {expected} its publisher lists",
+                path.display()
+            );
+        }
+        Ok(())
+    }
+}
+
+/// The file's SHA-256, in lowercase hexadecimal.
+async fn sha256(path: &Path) -> Result<String> {
+    use std::fmt::Write as _;
+
+    use sha2::{Digest as _, Sha256};
+    use tokio::io::AsyncReadExt as _;
+
+    let mut file = fs_err::tokio::File::open(path).await?;
+    let mut hasher = Sha256::new();
+    let mut buffer = vec![0; 1 << 20];
+    loop {
+        let read = file.read(&mut buffer).await?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    let mut digest = String::with_capacity(64);
+    for byte in hasher.finalize() {
+        write!(digest, "{byte:02x}")?;
+    }
+    Ok(digest)
+}
+
 /// Puts `target`, a file or a folder, in the store once: `write` fills a
 /// staging folder on the store's own volume and returns what it wrote there,
 /// which moves into place once `valid` says it's complete. A lock on `scope`,
@@ -89,6 +146,33 @@ mod tests {
     use fs_err::OpenOptions;
 
     use super::*;
+
+    #[tokio::test]
+    async fn a_file_must_match_its_published_size_and_digest() {
+        let root = tempfile::tempdir().unwrap();
+        let file = root.path().join("weights.gguf");
+        fs_err::tokio::write(&file, b"abc").await.unwrap();
+
+        // "abc"'s SHA-256, as every publisher lists it.
+        let digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+        let exact = Expectation {
+            size: Some(3),
+            sha256: Some(digest.to_owned()),
+        };
+        exact.verify(&file).await.unwrap();
+
+        let short = Expectation {
+            size: Some(4),
+            sha256: None,
+        };
+        assert!(short.verify(&file).await.is_err());
+
+        let wrong = Expectation {
+            size: None,
+            sha256: Some("00".repeat(32)),
+        };
+        assert!(wrong.verify(&file).await.is_err());
+    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn one_download_wins_for_a_shared_target() {

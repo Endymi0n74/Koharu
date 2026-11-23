@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
 use hf_hub::{
@@ -8,7 +8,7 @@ use hf_hub::{
 use tokio::sync::OnceCell;
 
 use crate::{
-    store,
+    store::{self, Expectation},
     transfer::{self, Activity, USER_AGENT},
 };
 
@@ -52,12 +52,27 @@ impl Repository {
     #[tracing::instrument(skip_all, fields(repository = self.id))]
     pub async fn resolve<const N: usize>(&self, names: [&str; N]) -> Result<[PathBuf; N]> {
         let paths = names.map(|name| self.path(name));
+        let mut expectations = None;
         for (name, path) in names.iter().zip(&paths) {
+            // A file the store already has isn't transferred, so its listing
+            // isn't read either.
+            let expectation = if path.is_file() {
+                Expectation::default()
+            } else {
+                if expectations.is_none() {
+                    expectations = Some(self.expectations().await?);
+                }
+                expectations
+                    .as_ref()
+                    .and_then(|files| files.get(*name))
+                    .cloned()
+                    .unwrap_or_default()
+            };
             store::put(
                 path,
                 path.clone(),
                 |path| path.is_file(),
-                |folder| self.fetch(name, folder),
+                |folder| self.fetch(name, folder, expectation),
             )
             .await?;
         }
@@ -71,14 +86,14 @@ impl Repository {
     }
 
     /// Fetches `name` into `folder` through the Hub's client and returns where
-    /// it put it. The client's local-folder download follows the Hub's
-    /// redirect before it reads the Xet hash on it, so it never takes Xet's
-    /// chunks: the file comes as one plain stream.
-    async fn fetch(&self, name: &str, folder: PathBuf) -> Result<PathBuf> {
+    /// it put it, once it matches `expected`. The client's local-folder
+    /// download follows the Hub's redirect before it reads the Xet hash on it,
+    /// so it never takes Xet's chunks: the file comes as one plain stream.
+    async fn fetch(&self, name: &str, folder: PathBuf, expected: Expectation) -> Result<PathBuf> {
         let (owner, repository) = hf_hub::split_id(self.id);
         let activity = Arc::new(Activity::start(name.rsplit('/').next().unwrap_or(name)));
         let fetched = async {
-            Ok(client()
+            let path = client()
                 .await?
                 .repository(self.kind, owner, repository)
                 .download_file()
@@ -87,9 +102,61 @@ impl Repository {
                 .local_dir(folder)
                 .progress(Arc::clone(&activity))
                 .send()
-                .await?)
+                .await?;
+            expected.verify(&path).await?;
+            Ok(path)
         };
         activity.finish(fetched.await)
+    }
+
+    /// The size and SHA-256 the Hub lists for each file of this repository at
+    /// its pinned commit, from its tree listing. A transfer that doesn't match
+    /// them never reaches the store.
+    async fn expectations(&self) -> Result<HashMap<String, Expectation>> {
+        /// One file's entry in the Hub's tree listing.
+        #[derive(serde::Deserialize)]
+        struct Entry {
+            #[serde(rename = "type")]
+            kind: String,
+            path: String,
+            size: Option<u64>,
+            lfs: Option<Lfs>,
+        }
+
+        /// The digest the Hub keeps for a file it stores in LFS, which is the
+        /// file's SHA-256.
+        #[derive(serde::Deserialize)]
+        struct Lfs {
+            oid: String,
+            size: Option<u64>,
+        }
+
+        let url = format!(
+            "https://huggingface.co/api/{}/{}/tree/{}?recursive=1",
+            self.kind.plural(),
+            self.id,
+            self.commit
+        );
+        let entries: Vec<Entry> = transfer::client()
+            .await?
+            .get(&url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await
+            .context("the Hub's tree listing is malformed")?;
+        Ok(entries
+            .into_iter()
+            .filter(|entry| entry.kind == "file")
+            .map(|entry| {
+                let size = entry
+                    .size
+                    .or_else(|| entry.lfs.as_ref().and_then(|lfs| lfs.size));
+                let sha256 = entry.lfs.map(|lfs| lfs.oid);
+                (entry.path, Expectation { size, sha256 })
+            })
+            .collect())
     }
 
     fn path(&self, name: &str) -> PathBuf {
