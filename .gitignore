@@ -58,9 +58,6 @@ test-results/
 /packages/docs/.mintlify/
 /packages/docs/site/
 
-# Memoire de projet du fork (notes locales, pas du contenu amont)
-/memory.md
-
 # Sonde locale de decodage speculatif : entrees dans bench-profile/ et le store, non versionnees
 /crates/koharu-ml/examples/spec_decode_probe.rs
 

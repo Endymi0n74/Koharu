@@ -84,7 +84,7 @@ Rejoués sur la branche (12) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3 5b1
   tampon de lignes récentes du fork → `b10e9390` reste ;
 - aperçu d'erreur dépliable : aucun `showMore`/`showLess`, `detail` reste `truncate` → `ee6cdac8` et
   `4b702c36` restent ;
-- **Qwen Image 2.1 non-Turbo, base et Uncensored** (porté par `e65eb907`) : l'amont ne connaît que le Turbo
+- **Qwen Image 2.1 non-Turbo, base et Uncensored** (porté par `8581e575`) : l'amont ne connaît que le Turbo
   (`unsloth/…-Turbo-GGUF`, encodeur `Qwen/Qwen3-VL-8B-Instruct-GGUF`, `SIGMAS` figés, pas de
   `num_inference_steps`, guidage seulement si `true_cfg_scale` > 1). Le fork sélectionnait deux
   checkpoints non distillés — `leejet/Qwen-Image-2.1-GGUF` Q4_K et
@@ -136,8 +136,10 @@ Vérifiés, rien à changer :
 - **Updater** : clé minisign et endpoint du fork. Le bloc `windows.installMode: "quiet"` de l'amont
   disparaît au profit du défaut : c'est le « passive » que le fork avait voulu (son tauri.conf
   n'avait aucun bloc `windows`).
-- **Winget** : l'amont a bien le job ; il est désactivé (pas de `WINGET_TOKEN`, et le paquet
-  `mayocream.koharu` appartient à l'amont), gabarit retiré, note conservée.
+- **Winget** : l'amont a bien le job ; le fork le retire (pas de `WINGET_TOKEN`, et le paquet
+  `mayocream.koharu` appartient à l'amont) et ne laisse qu'une note à sa place. Les deux commits du
+  fork (`b646e34c` puis `71d52db7` : désactivation, puis retrait du gabarit commenté) y sont rejoués
+  en un seul.
 - **Sentry** : l'amont appelle `.github/sentry.sh` via `beforeBundleCommand` ; la garde
   `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` évite un échec sans secrets, `SENTRY_ORG` venant des variables
   de dépôt.
@@ -145,28 +147,29 @@ Vérifiés, rien à changer :
   `cliff.toml` accepte désormais les deux formes de tag.
 - **`CLAUDE.md`** : créé par le fork (canary + règle immuable) ; `AGENTS.md` amont ne porte pas la
   règle, donc pas de doublon.
-- **`.gitignore`** : `/memory.md` (convention du fork, fichier absent du disque pour l'instant) et la
-  sonde `spec_decode_probe.rs`, présente non suivie dans l'arbre.
+- **`.gitignore`** : la sonde `spec_decode_probe.rs`, présente non suivie dans l'arbre. La règle
+  `/memory.md` du fork a été retirée : aucun fichier de ce nom, aucun commit qui l'ait jamais suivi
+  sur 0.92, et plus aucune règle qui le documente.
 
 ## Lot 1 porté (2026-11-23)
 
 Sept commits sur `port/upstream-0.92`, `cargo check --workspace` vert après chacun :
 
-- `bec3c4b9` `feat(store)` — `KOHARU_STORE` nomme le store avant le root Windows et le cache OS.
-- `01e9fd42` `feat(llama)` — `koharu_llama::recent_logs()` : anneau des 32 dernières lignes
+- `1be3109b` `feat(store)` — `KOHARU_STORE` nomme le store avant le root Windows et le cache OS.
+- `e46112d3` `feat(llama)` — `koharu_llama::recent_logs()` : anneau des 32 dernières lignes
   WARN/ERROR de llama.cpp et ggml, jointes à l'erreur de chargement GGUF dans
   `koharu-llm/src/local/engine/load.rs`.
-- `d31fa511` `feat(runtime)` — `store::Expectation` (taille + SHA-256) vérifiée avant publication ;
+- `340d20e6` `feat(runtime)` — `store::Expectation` (taille + SHA-256) vérifiée avant publication ;
   `Repository::resolve` lit le tree du Hub (`/api/…/tree/<commit>?recursive=1`) pour les fichiers à
   télécharger, et vérifie chaque transfert avant le store. Test
   `a_file_must_match_its_published_size_and_digest`.
 - `chore` — `/bench-profile/` et `/projects/` ignorés (les committer par accident a failli arriver).
-- `3f922cd3` `feat(llm)` — sonde `KOHARU_LLM_DEBUG` sur l'engine à séquences parallèles de 0.92 : une
+- `e800961c` `feat(llm)` — sonde `KOHARU_LLM_DEBUG` sur l'engine à séquences parallèles de 0.92 : une
   ligne `LLMDBG` par séquence (prompt, shape, history, first_token, step=N tok=M, text) ;
-- `92a4120f` `feat(pipeline)` — sonde `KOHARU_PATCH_HASH` dans `Member::apply` (le `SessionCommitter`
+- `3d908bf9` `feat(pipeline)` — sonde `KOHARU_PATCH_HASH` dans `Member::apply` (le `SessionCommitter`
   de 0.92) : contenu des blocs de la page après chaque étage, hash des tiles du masque et du
   cleanup comprises ;
-- `02c667c5` `feat(pipeline)` — `DETHASH` : digest des détections brutes (`Detected::patch_hash`),
+- `6050ba87` `feat(pipeline)` — `DETHASH` : digest des détections brutes (`Detected::patch_hash`),
   logué avant `layout` dans `stages/detect`.
 
 Le lot 1 est clos. Hors couverture : les archives de `packages/*` (CUDA, ROCm, torch, llama) n'ont
@@ -175,12 +178,12 @@ n'est pas revérifié.
 
 ## Lot 2 (2026-11-23)
 
-- `07c10834` `feat(llm)` — catalogue : `hy-mt2-7b` et `hy-mt2-1.8b` (texte seul, `markup: None`,
+- `586ebeb8` `feat(llm)` — catalogue : `hy-mt2-7b` et `hy-mt2-1.8b` (texte seul, `markup: None`,
   `kind: TRANSLATION`), quantizations Q4_K_M/Q6_K/Q8_0 aux noms de fichiers des dépôts, 38 langues
   documentées ; le 30B-A3B reste dehors (`hy_v3` que le runtime épinglé ne résout pas).
-- `0138e1c6` `feat(translate)` — défaut `koharu/hy-mt2-7b:Q4_K_M` (6/6 sur six segments japonais,
+- `afd70fd2` `feat(translate)` — défaut `koharu/hy-mt2-7b:Q4_K_M` (6/6 sur six segments japonais,
   contre 3/6 pour le 1.8B et 2/6 pour qwen3.5-4b), tableau du README du pipeline à jour.
-- `e65eb907` `feat(inpaint)` — Qwen Image 2.1 non distillé : `qwen_image::Checkpoint` (Turbo, base
+- `8581e575` `feat(inpaint)` — Qwen Image 2.1 non distillé : `qwen_image::Checkpoint` (Turbo, base
   `leejet/Qwen-Image-2.1-GGUF` Q4_K, uncensored `abenzerps/…` Q4_K_M) sur l'encodeur Heretic Q4_K_M
   et le VAE partagé ; `Options.steps`/`sigmas` (vidé = celui du checkpoint) et 20 pas à CFG 6.0 pour
   les deux nouveaux. `Inpainter::{QwenImageBase, QwenImageUncensored}` (`qwen-image-base`,
