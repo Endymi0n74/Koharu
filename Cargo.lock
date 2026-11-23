@@ -5520,6 +5520,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "koharu-batch"
+version = "0.92.0"
+dependencies = [
+ "alphanumeric-sort",
+ "anyhow",
+ "clap",
+ "fs-err",
+ "koharu-llm",
+ "koharu-pipeline",
+ "koharu-scene",
+ "parking_lot 0.13.0",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "zip 9.7.3",
+]
+
+[[package]]
 name = "koharu-bindgen"
 version = "0.92.0"
 dependencies = [
