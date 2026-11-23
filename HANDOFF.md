@@ -19,10 +19,12 @@ updater, règles projet). C'est la base du portage ; `main` n'est pas touchée.
 
 ## Replay automatique
 
-Testé commit par commit sur `ce01723a` : **15 passent**, **110 conflitent**. Deux des 15 ont été
-retirés depuis : `45a9ad0e` (sa suppression de `clamp` casse `ToolBar.tsx` en 0.92) et `d149fc04`
+Testé commit par commit sur `ce01723a` : **15 passent**, **110 conflitent** (relevé de cet essai, qui
+ne couvre pas la plage entière : la répartition vérifiée est plus bas). Deux des 15 ont été retirés
+depuis : `45a9ad0e` (sa suppression de `clamp` casse `ToolBar.tsx` en 0.92) et `d149fc04`
 (`scripts/release.ts`, absent de l'amont et appelé par personne).
-Le fork porte 111 commits hors docs/CI/release ; les conflits ne sont pas cosmétiques :
+Le fork porte 113 commits hors docs/CI/release (`207 - 55 docs - 24 ci - 15 chore(release)`) ; les
+conflits ne sont pas cosmétiques :
 
 - `crates/koharu-translator` **n'existe plus en amont** : traduction = `crates/koharu-llm`
   (`hosted/`, `local/`) et `koharu-pipeline/src/stages/translate`. Les ~13,8 k lignes du fork
@@ -35,14 +37,29 @@ Le fork porte 111 commits hors docs/CI/release ; les conflits ne sont pas cosmé
 
 ## Liste de portage révisée (2026-11-23)
 
-109 commits étaient en conflit. Vérifié contre `ce01723a` (lignes ajoutées déjà présentes + lecture du
-code amont) : 13 sont déjà sur la branche, 13 sont écartés, et **108 restent à porter** (une entrée nouvelle :
-Qwen Image 2.1 non-Turbo).
+La plage `git log --no-merges f9c40bdd ^ce01723a` fait **207 commits**, et ceux-ci se répartissent
+exactement, sans recouvrement :
 
-Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3 5b1b59e9 3606b20c`
+| sort | commits |
+|---|---|
+| rejoués sur `port/upstream-0.92` (10 gardés, 2 retirés à la relecture) | 12 |
+| écartés, preuve ci-dessous | 14 |
+| restants : `docs(…)` | 55 |
+| restants : `ci(…)` | 20 |
+| restants : `chore(release)` | 15 |
+| restants : autres `chore`/`build`/`test`/`refactor` | 13 |
+| restants : `feat`/`fix`/`perf` | 78 |
+| **total** | **207** |
+
+La liste de portage se lit dans les 78 `feat`/`fix`/`perf`, mais ce n'est pas un décompte de commits :
+une entrée peut en réécrire plusieurs (Qwen Image 2.1 non-Turbo n'en a aucun sur la plage), et 0.92 en
+couvre déjà certains, vérifié commit par commit contre `ce01723a` (lignes ajoutées déjà présentes +
+lecture du code amont). Les lots ci-dessous disent ce qui est soldé.
+
+Rejoués sur la branche (12) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3 5b1b59e9 3606b20c`
 `81c787ba ba047cbd f0793c87 d5ba3602 bff92b26`.
 
-Écartés, avec la preuve :
+Écartés, avec la preuve (14 commits) :
 
 | commit | sujet | pourquoi |
 |---|---|---|
@@ -67,13 +84,14 @@ Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3
   tampon de lignes récentes du fork → `b10e9390` reste ;
 - aperçu d'erreur dépliable : aucun `showMore`/`showLess`, `detail` reste `truncate` → `ee6cdac8` et
   `4b702c36` restent ;
-- **Qwen Image 2.1 non-Turbo, base et Uncensored** : l'amont ne connaît que le Turbo
+- **Qwen Image 2.1 non-Turbo, base et Uncensored** (porté par `e65eb907`) : l'amont ne connaît que le Turbo
   (`unsloth/…-Turbo-GGUF`, encodeur `Qwen/Qwen3-VL-8B-Instruct-GGUF`, `SIGMAS` figés, pas de
   `num_inference_steps`, guidage seulement si `true_cfg_scale` > 1). Le fork sélectionnait deux
   checkpoints non distillés — `leejet/Qwen-Image-2.1-GGUF` Q4_K et
   `abenzerps/Qwen-Image-2.1-Uncensored-GGUF` Q4_K_M — sur l'encodeur Heretic
   (`pottokao/…-Heretic-GGUF`, `qwen3vl_8b_heretic` + son mmproj), à `--cfg-scale 6.0` et 20 pas.
-  Rien de tout ça n'existe en amont. `529f67df` (déjà compté dans les 108) apporte lui-même le
+  Rien de tout ça n'existe en amont. `529f67df` (l'un des 78 `feat`/`fix`/`perf` de la plage) apporte
+  lui-même le
   dépôt UC, `UNCENSORED_DIFFUSION_WEIGHTS` et `load_uncensored`, mais il dépend de tout le reste de
   `bce71ddd` : `QwenImageInpaint` et son `processor`, l'encodeur Heretic, le chemin CFG 6 / 20 pas.
   Entrée de portage :
@@ -91,7 +109,8 @@ Déjà sur la branche (rejoués) : `3dc204bf d1f02e70 b646e34c 71d52db7 16b404e3
   catalogue sans Hy-MT2 ni `abliterated` : restent.
 
 Régénérer la liste : `git log --no-merges f9c40bdd ^ce01723a --format='%h %s'`, puis retirer les
-commits docs/release et les 28 hash ci-dessus.
+26 hash ci-dessus (12 rejoués, 14 écartés) et les commits `docs`/`ci`/`chore(release)`/`chore` ; il
+reste les 78 `feat`/`fix`/`perf`.
 
 ## Relecture des commits rejoués (2026-11-23)
 
