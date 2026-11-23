@@ -245,15 +245,26 @@ traduction réelle.
    typographie du fork reste une entrée à part.
 4. `koharu-batch` (cli, run, report, cbz, prune, calibration) sur le scheduler 0.92.
 5. App : mode dossier, locale `fr-FR`, purge UI, erreurs inline.
-6. Renommage KoharuBatch, montée `0.92.0`, tag `v0.92.0`, publication.
+6. Renommage KoharuBatch (nom affiché seul, cf. décision 1), montée `0.92.0`, tag `v0.92.0`,
+   publication.
 
 ## Décisions ouvertes
 
-1. **Périmètre du renommage.** Retenu pour l'instant : identité produit (nom affiché, fenêtre,
-   README/docs, métadonnées) ; les crates `koharu-*` et les modèles HuggingFace gardent leur nom.
-   Reste à trancher : binaires (`koharu.exe`, `koharu-batch.exe`), identifiant Tauri `Koharu`,
-   dépôt GitHub. Les binaires changent les noms d'assets, l'endpoint updater et les commandes
-   documentées ; l'identifiant Tauri casse la continuité de mise à jour depuis 0.89.
+1. **Périmètre du renommage : tranché (2026-11-23).** Seul le nom affiché devient « KoharuBatch » :
+   titre de fenêtre (`crates/koharu/tauri.conf.json`), métadonnée et textes de l'app
+   (`app/layout.tsx`, `components/app/{AboutDialog,StartupView,TitleBar}.tsx`), README. Restent en
+   `koharu` : le binaire de l'app et donc `productName`, l'identifiant Tauri `Koharu`, le dépôt
+   `Endymi0n74/Koharu`, les crates, les modèles HuggingFace, les variables `KOHARU_*` et les
+   références `koharu/…` du catalogue. Le nom du CLI est libre et fixé à `koharu-batch` : la crate
+   naît au lot 4, rien à migrer.
+   Les trois refus, par coût : le store vit dans le dossier de l'exe (installation par utilisateur
+   dans `%LOCALAPPDATA%\<productName>`) et retombe sur `cache/koharu/store` sinon
+   (`koharu-runtime/src/store/mod.rs`), donc changer `productName` fait retélécharger tous les
+   modèles et laisse l'ancienne installation en place ; l'identifiant décide de `projects/` et du
+   WebView ; l'endpoint des binaires déjà publiés porte l'URL du dépôt, qui ne bougerait qu'en
+   dépendant des redirections GitHub. Si le nom technique doit suivre un jour, c'est `productName`
+   + déplacement du `store/` (ou `KOHARU_STORE`) + dépôt et endpoint dans la même release — pas à
+   0.92.0.
 2. Référence de version : `[workspace.package] version` de `Cargo.toml` reste la seule source,
    tag et nom de release préfixés `v` par release-please.
 
