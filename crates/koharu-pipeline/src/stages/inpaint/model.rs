@@ -29,6 +29,10 @@ pub enum Inpainter {
     Flux3Klein,
     #[strum(to_string = "Qwen-Image 2.1 Turbo")]
     QwenImage,
+    #[strum(to_string = "Qwen-Image 2.1")]
+    QwenImageBase,
+    #[strum(to_string = "Qwen-Image 2.1 Uncensored")]
+    QwenImageUncensored,
 }
 
 /// An inpainter, loaded.
@@ -109,10 +113,12 @@ impl Inpaint for Flux3Klein {
 }
 
 impl Inpaint for QwenImage {
-    /// An edit of the window, its one condition image, on Turbo's 8 sigmas,
-    /// as Qwen publishes the model's editing; it has no inpainting pipeline.
-    /// It edits the window at its own size, at most a megapixel, as FLUX.3
-    /// does and as ComfyUI's Qwen-Image 2.1 edit template keeps a reference.
+    /// An edit of the window, its one condition image, as Qwen publishes the
+    /// model's editing; it has no inpainting pipeline. The checkpoint's own
+    /// recipe runs it: Turbo on its 8 sigmas without guidance, the full
+    /// checkpoints on 20 steps at upstream's CFG 6.0. It edits the window at
+    /// its own size, at most a megapixel, as FLUX.3 does and as ComfyUI's
+    /// Qwen-Image 2.1 edit template keeps a reference.
     fn inference(
         &self,
         image: &RgbImage,
@@ -132,7 +138,7 @@ impl Inpaint for QwenImage {
         )?
         .into_iter()
         .next()
-        .context("Qwen-Image 2.1 Turbo returned no image")?;
+        .with_context(|| format!("{} returned no image", self.name()))?;
         Ok(matched(
             DynamicImage::ImageRgba8(edited).into_rgb8(),
             image,
@@ -166,5 +172,7 @@ pub(super) async fn load(model: Inpainter, device: &'static Device) -> anyhow::R
         Inpainter::Lama => Box::new(Lama::load(device).await?),
         Inpainter::Flux3Klein => Box::new(Flux3Klein::load(device).await?),
         Inpainter::QwenImage => Box::new(QwenImage::load(device).await?),
+        Inpainter::QwenImageBase => Box::new(QwenImage::load_base(device).await?),
+        Inpainter::QwenImageUncensored => Box::new(QwenImage::load_uncensored(device).await?),
     })
 }

@@ -1,4 +1,5 @@
-//! Qwen-Image 2.1 Turbo generation and editing.
+//! Qwen-Image 2.1 generation and editing, on its distilled Turbo checkpoint
+//! or on the full one.
 //!
 //! Follows diffusers' `QwenImage21Pipeline` as the Turbo checkpoint configures
 //! it: flow-matching Euler steps through the 8 sigmas it saves, which set the
@@ -38,6 +39,26 @@ const TEXT_ENCODER: Repository = Repository::model(
     "Qwen/Qwen3-VL-8B-Instruct-GGUF",
     "f982a07559d4a2f6c8744d840bf6fccab30eea96",
 );
+/// leejet's GGUF of Qwen-Image 2.1 itself, not the distilled Turbo: the full
+/// checkpoint, converted for stable-diffusion.cpp.
+const BASE_TRANSFORMER: Repository = Repository::model(
+    "leejet/Qwen-Image-2.1-GGUF",
+    "cc11433936a06e9765f7c0c0b1f0436cfd2b9856",
+);
+/// The uncensored conversion of the full checkpoint, made with
+/// stable-diffusion.cpp upstream: the same architecture, so only the diffusion
+/// weights swap between the two.
+const UNCENSORED_TRANSFORMER: Repository = Repository::model(
+    "abenzerps/Qwen-Image-2.1-Uncensored-GGUF",
+    "6b34e59458d3eb7ba6a6f86a116aed5253dc02c3",
+);
+/// The Heretic text encoder the base and the uncensored checkpoints run with:
+/// Qwen3-VL 8B with its refusals ablated, and the vision projector that reads
+/// their condition images.
+const HERETIC_TEXT_ENCODER: Repository = Repository::model(
+    "pottokao/Qwen-Image-2.1-Text-Encoder-Heretic-GGUF",
+    "23813717f7f9282b372c23c7207468a7a168fa68",
+);
 
 /// The VAE's 16× downscale by the transformer's 2×2 patches: sizes are
 /// multiples of it.
@@ -51,15 +72,44 @@ const SIGMAS: [f32; 9] = [
 ];
 /// The steps `SIGMAS` make.
 const STEPS: usize = SIGMAS.len() - 1;
+/// The guidance upstream's guide runs the full checkpoints with
+/// (`--cfg-scale 6.0`).
+const CFG_SCALE: f32 = 6.0;
+/// The steps the full checkpoints sample, as that guide runs them; the Turbo's
+/// are its sigmas.
+const BASE_STEPS: u32 = 20;
 
-/// `QwenImage21Pipeline.__call__`'s parameters and defaults, but the steps,
-/// which Turbo's sigmas set.
+/// Which checkpoint a loaded model runs: the distilled Turbo, the full model,
+/// or its uncensored conversion.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Checkpoint {
+    Turbo,
+    Base,
+    Uncensored,
+}
+
+impl Checkpoint {
+    /// What the checkpoint is called in the app and in errors.
+    #[must_use]
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Turbo => "Qwen-Image 2.1 Turbo",
+            Self::Base => "Qwen-Image 2.1",
+            Self::Uncensored => "Qwen-Image 2.1 Uncensored",
+        }
+    }
+}
+
+/// `QwenImage21Pipeline.__call__`'s parameters, each checkpoint's own steps and
+/// guidance filling what it leaves unset.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Options {
-    /// Steers away with classifier-free guidance, when `true_cfg_scale` is
+    /// Steers away from it, which the Turbo checkpoint does only with a scale
     /// above 1.
     pub negative_prompt: Option<String>,
-    pub true_cfg_scale: f32,
+    /// Classifier-free guidance's scale; unset keeps the checkpoint's own: none
+    /// for Turbo, `CFG_SCALE` for the full checkpoints.
+    pub true_cfg_scale: Option<f32>,
     /// Unset, `output_resolution`'s side, or the last condition image's
     /// aspect ratio at its area; rounded down to a multiple of 32.
     pub height: Option<u32>,
@@ -69,18 +119,26 @@ pub struct Options {
     pub seed: i64,
     /// The side the output and every condition image are sized to the area of.
     pub output_resolution: u32,
+    /// The step count; unset keeps the checkpoint's own: Turbo's eight sigmas,
+    /// `BASE_STEPS` for the full checkpoints.
+    pub steps: Option<u32>,
+    /// A sigma schedule; empty keeps the checkpoint's, which for the full
+    /// checkpoints is the one its steps give.
+    pub sigmas: &'static [f32],
 }
 
 impl Default for Options {
     fn default() -> Self {
         Self {
             negative_prompt: None,
-            true_cfg_scale: 1.0,
+            true_cfg_scale: None,
             height: None,
             width: None,
             num_images_per_prompt: 1,
             seed: -1,
             output_resolution: 1024,
+            steps: None,
+            sigmas: &[],
         }
     }
 }
@@ -88,6 +146,7 @@ impl Default for Options {
 #[derive(Debug)]
 pub struct QwenImage {
     model: Model,
+    checkpoint: Checkpoint,
 }
 
 impl QwenImage {
@@ -96,23 +155,71 @@ impl QwenImage {
         self.model.canceller.clone()
     }
 
-    /// Loads the model once for generation and editing, its weights placed by
-    /// stable-diffusion.cpp's own fit to the device's free memory.
+    /// What the loaded checkpoint is called.
+    #[must_use]
+    pub fn name(&self) -> &'static str {
+        self.checkpoint.name()
+    }
+
+    /// Loads the Turbo checkpoint once for generation and editing, its weights
+    /// placed by stable-diffusion.cpp's own fit to the device's free memory.
     pub async fn load(device: &crate::Device) -> Result<Self> {
+        Self::load_checkpoint(device, Checkpoint::Turbo).await
+    }
+
+    /// Loads the full Qwen-Image 2.1 checkpoint, with the Heretic text encoder.
+    pub async fn load_base(device: &crate::Device) -> Result<Self> {
+        Self::load_checkpoint(device, Checkpoint::Base).await
+    }
+
+    /// Loads the uncensored conversion of the full checkpoint: the diffusion
+    /// weights drop the base model's content refusals, while the Heretic text
+    /// encoder and the shared VAE stay.
+    pub async fn load_uncensored(device: &crate::Device) -> Result<Self> {
+        Self::load_checkpoint(device, Checkpoint::Uncensored).await
+    }
+
+    async fn load_checkpoint(device: &crate::Device, checkpoint: Checkpoint) -> Result<Self> {
         let paths = async {
-            // 4-bit, as Koharu's other diffusion models load.
-            let [transformer] = TRANSFORMER
-                .resolve(["qwen-image-2.1-turbo-Q4_K_M.gguf"])
-                .await?;
             let [vae] = VAE
                 .resolve(["vae/qwen_image_2.1_vae_bf16.safetensors"])
                 .await?;
-            let [text_encoder, vision] = TEXT_ENCODER
-                .resolve([
-                    "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
-                    "mmproj-Qwen3VL-8B-Instruct-F16.gguf",
-                ])
-                .await?;
+            // 4-bit, as Koharu's other diffusion models load.
+            let [transformer] = match checkpoint {
+                Checkpoint::Turbo => {
+                    TRANSFORMER
+                        .resolve(["qwen-image-2.1-turbo-Q4_K_M.gguf"])
+                        .await?
+                }
+                Checkpoint::Base => {
+                    BASE_TRANSFORMER
+                        .resolve(["qwen_image_2.1-Q4_K.gguf"])
+                        .await?
+                }
+                Checkpoint::Uncensored => {
+                    UNCENSORED_TRANSFORMER
+                        .resolve(["qwen-image-2.1-UC-Q4_K_M.gguf"])
+                        .await?
+                }
+            };
+            let [text_encoder, vision] = match checkpoint {
+                Checkpoint::Turbo => {
+                    TEXT_ENCODER
+                        .resolve([
+                            "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+                            "mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+                        ])
+                        .await?
+                }
+                Checkpoint::Base | Checkpoint::Uncensored => {
+                    HERETIC_TEXT_ENCODER
+                        .resolve([
+                            "qwen3vl_8b_heretic-Q4_K_M.gguf",
+                            "mmproj-qwen3vl_8b_heretic-f16.gguf",
+                        ])
+                        .await?
+                }
+            };
             anyhow::Ok(ModelPaths {
                 transformer,
                 text_encoder,
@@ -121,9 +228,9 @@ impl QwenImage {
             })
         }
         .await
-        .context("failed to resolve Qwen-Image 2.1 Turbo's files")?;
+        .with_context(|| format!("failed to resolve {}'s files", checkpoint.name()))?;
         let model = Model::new(device, &paths)?;
-        Ok(Self { model })
+        Ok(Self { model, checkpoint })
     }
 
     /// Images of `prompt`, conditioned on `images` when there are any. They
@@ -143,7 +250,7 @@ impl QwenImage {
             "num_images_per_prompt and output_resolution must be greater than zero"
         );
         ensure!(
-            options.true_cfg_scale.is_finite(),
+            options.true_cfg_scale.is_none_or(f32::is_finite),
             "true_cfg_scale must be finite"
         );
         let area = options.output_resolution * options.output_resolution;
@@ -176,18 +283,31 @@ impl QwenImage {
                 crate::image::resize(&image.to_rgb8(), width, height, RESIZE)
             })
             .collect::<Result<Vec<RgbImage>>>()?;
-        let negative_prompt = options.negative_prompt.as_deref();
-        let guided = options.true_cfg_scale > 1.0 && negative_prompt.is_some();
+        let cfg = options.true_cfg_scale.unwrap_or(match self.checkpoint {
+            Checkpoint::Turbo => 1.0,
+            Checkpoint::Base | Checkpoint::Uncensored => CFG_SCALE,
+        });
+        let steps = options.steps.unwrap_or(match self.checkpoint {
+            Checkpoint::Turbo => STEPS as u32,
+            Checkpoint::Base | Checkpoint::Uncensored => BASE_STEPS,
+        });
+        let sigmas: &[f32] = match options.sigmas.is_empty() {
+            false => options.sigmas,
+            true => match self.checkpoint {
+                Checkpoint::Turbo => &SIGMAS,
+                Checkpoint::Base | Checkpoint::Uncensored => &[],
+            },
+        };
         self.model.forward(&ImageParams {
             prompt,
-            negative_prompt: negative_prompt.unwrap_or_default(),
+            negative_prompt: options.negative_prompt.as_deref().unwrap_or_default(),
             width: Some(width),
             height: Some(height),
             references: &references,
-            cfg: Some(if guided { options.true_cfg_scale } else { 1.0 }),
+            cfg: Some(cfg),
             sample_method: Some(SampleMethod::Euler),
-            steps: Some(STEPS as u32),
-            sigmas: &SIGMAS,
+            steps: Some(steps),
+            sigmas,
             seed: Some(options.seed),
             count: Some(options.num_images_per_prompt),
             ..ImageParams::default()

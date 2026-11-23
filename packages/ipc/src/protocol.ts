@@ -388,7 +388,12 @@ export type ImportSource =
   | 'folder'
 
 /**  The inpainters, by id in the section and by name. */
-export type Inpainter = 'lama' | 'flux3-klein' | 'qwen-image'
+export type Inpainter =
+  | 'lama'
+  | 'flux3-klein'
+  | 'qwen-image'
+  | 'qwen-image-base'
+  | 'qwen-image-uncensored'
 
 export type InpainterConfig = {
   /**  What cleans pages and the Remove brush's areas. */

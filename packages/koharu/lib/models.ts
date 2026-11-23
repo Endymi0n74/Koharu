@@ -15,6 +15,8 @@ export const inpainters: Record<Inpainter, string> = {
   lama: 'LaMa',
   'flux3-klein': 'FLUX.3 Klein',
   'qwen-image': 'Qwen-Image 2.1 Turbo',
+  'qwen-image-base': 'Qwen-Image 2.1',
+  'qwen-image-uncensored': 'Qwen-Image 2.1 Uncensored',
 }
 
 /** Off, then rig's portable reasoning levels, lowest first, as the settings write them. */

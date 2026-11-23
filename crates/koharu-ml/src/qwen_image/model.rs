@@ -1,4 +1,4 @@
-//! Native Qwen-Image 2.1 Turbo model assembly.
+//! Native Qwen-Image 2.1 model assembly, whichever checkpoint its weights are.
 //!
 //! Component mapping follows stable-diffusion.cpp at:
 //! https://github.com/leejet/stable-diffusion.cpp/blob/532d2c15/docs/models/qwen_image_2.1.md
@@ -39,7 +39,7 @@ impl Model {
             mmap: true,
             ..ContextParams::default()
         })
-        .context("failed to load Qwen-Image 2.1 Turbo components")?;
+        .context("failed to load Qwen-Image 2.1 components")?;
         Ok(Self {
             canceller: context.canceller(),
             context: Mutex::new(context),
@@ -51,7 +51,7 @@ impl Model {
         let mut context = self
             .context
             .lock()
-            .map_err(|_| anyhow!("Qwen-Image 2.1 Turbo context lock was poisoned"))?;
+            .map_err(|_| anyhow!("Qwen-Image 2.1 context lock was poisoned"))?;
         let images = context
             .generate_image(&ImageParams {
                 // No step cache: on a megapixel edit EasyCache saved a tenth of
@@ -62,7 +62,7 @@ impl Model {
                 vae_tile: Some(512),
                 ..params.clone()
             })
-            .context("Qwen-Image 2.1 Turbo inference failed")?;
+            .context("Qwen-Image 2.1 inference failed")?;
         Ok(images.into_iter().map(DynamicImage::into_rgba8).collect())
     }
 }
