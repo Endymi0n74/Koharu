@@ -38,6 +38,20 @@
                   "using":  "正在用 {{tool}}",
                   "working":  "来勒处理任务…"
               },
+    "batch":  {
+                  "choose":  "选…",
+                  "description":  "用 koharu-batch 勒项目外头翻译文件夹里个每一页。",
+                  "deterministic":  "确定性",
+                  "folder":  "要翻译个文件夹",
+                  "model":  "模型",
+                  "modelAuto":  "自动",
+                  "noneSelected":  "呒没选",
+                  "output":  "输出项目",
+                  "overwrite":  "覆盖",
+                  "start":  "开始",
+                  "starting":  "来勒开始…",
+                  "title":  "批量翻译文件夹"
+              },
     "canvas":  {
                    "empty":  "先选一页，就好开始。",
                    "notice":  {

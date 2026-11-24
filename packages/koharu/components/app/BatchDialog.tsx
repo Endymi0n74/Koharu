@@ -2,6 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { usePreferences } from '@/lib/queries'
 import { commands } from '@koharu/ipc/protocol'
@@ -33,6 +34,7 @@ export function BatchDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation()
   const target = usePreferences().data?.pipeline.translator?.target ?? 'en'
   const [source, setSource] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
@@ -74,7 +76,7 @@ export function BatchDialog({
         <Input
           readOnly
           value={path ?? ''}
-          placeholder='None selected'
+          placeholder={t('batch.noneSelected')}
           className='h-8 flex-1 text-[11px]'
         />
         <Button
@@ -84,7 +86,7 @@ export function BatchDialog({
           className='h-8 shrink-0 text-[11px]'
           onClick={() => pick.mutate(setPath)}
         >
-          Choose…
+          {t('batch.choose')}
         </Button>
       </span>
     </label>
@@ -94,23 +96,21 @@ export function BatchDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='max-w-md gap-4 p-5'>
         <DialogHeader className='gap-1'>
-          <DialogTitle className='text-[15px]'>Batch translate a folder</DialogTitle>
-          <DialogDescription className='text-[11px]'>
-            Translate every page of a folder with koharu-batch, outside any project.
-          </DialogDescription>
+          <DialogTitle className='text-[15px]'>{t('batch.title')}</DialogTitle>
+          <DialogDescription className='text-[11px]'>{t('batch.description')}</DialogDescription>
         </DialogHeader>
 
         <div className='grid gap-3'>
-          {folderRow('Folder to translate', source, setSource)}
-          {folderRow('Output project', output, setOutput)}
+          {folderRow(t('batch.folder'), source, setSource)}
+          {folderRow(t('batch.output'), output, setOutput)}
 
           <label className='grid gap-1.5'>
             <span className='text-[11px] font-medium text-muted-foreground'>
-              Model
+              {t('batch.model')}
             </span>
             <Input
               value={translator}
-              placeholder='Auto'
+              placeholder={t('batch.modelAuto')}
               className='h-8 flex-1 text-[11px]'
               onChange={(event) => setTranslator(event.target.value)}
             />
@@ -118,11 +118,11 @@ export function BatchDialog({
 
           <div className='grid gap-2 border-t border-border/70 pt-3'>
             <label className='flex items-center justify-between gap-3'>
-              <span className='text-[11px]'>Deterministic</span>
+              <span className='text-[11px]'>{t('batch.deterministic')}</span>
               <Switch checked={deterministic} onCheckedChange={setDeterministic} />
             </label>
             <label className='flex items-center justify-between gap-3'>
-              <span className='text-[11px]'>Overwrite</span>
+              <span className='text-[11px]'>{t('batch.overwrite')}</span>
               <Switch checked={overwrite} onCheckedChange={setOverwrite} />
             </label>
           </div>
@@ -137,7 +137,7 @@ export function BatchDialog({
             aria-busy={start.isPending}
             onClick={() => start.mutate()}
           >
-            {start.isPending ? 'Starting…' : 'Start'}
+            {start.isPending ? t('batch.starting') : t('batch.start')}
           </Button>
         </DialogFooter>
       </DialogContent>

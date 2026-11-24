@@ -38,6 +38,20 @@
                   "using":  "Utilise {{tool}}",
                   "working":  "Travail en cours…"
               },
+    "batch":  {
+                  "choose":  "Choisir…",
+                  "description":  "Traduit chaque page d’un dossier avec koharu-batch, hors de tout projet.",
+                  "deterministic":  "Déterministe",
+                  "folder":  "Dossier à traduire",
+                  "model":  "Modèle",
+                  "modelAuto":  "Auto",
+                  "noneSelected":  "Aucun",
+                  "output":  "Projet de sortie",
+                  "overwrite":  "Écraser",
+                  "start":  "Démarrer",
+                  "starting":  "Démarrage…",
+                  "title":  "Traduire un dossier par lot"
+              },
     "canvas":  {
                    "empty":  "Sélectionnez une page pour commencer.",
                    "notice":  {

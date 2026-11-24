@@ -38,6 +38,20 @@
                   "using":  "{{tool}} を使用中",
                   "working":  "作業中…"
               },
+    "batch":  {
+                  "choose":  "選択…",
+                  "description":  "フォルダー内のすべてのページを、プロジェクトの外で koharu-batch により翻訳します。",
+                  "deterministic":  "決定的",
+                  "folder":  "翻訳するフォルダー",
+                  "model":  "モデル",
+                  "modelAuto":  "自動",
+                  "noneSelected":  "未選択",
+                  "output":  "出力プロジェクト",
+                  "overwrite":  "上書き",
+                  "start":  "開始",
+                  "starting":  "開始中…",
+                  "title":  "フォルダーを一括翻訳"
+              },
     "canvas":  {
                    "empty":  "ページを選択して開始します。",
                    "notice":  {

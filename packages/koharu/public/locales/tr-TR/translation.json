@@ -38,6 +38,20 @@
                   "using":  "{{tool}} kullanılıyor",
                   "working":  "Çalışıyor…"
               },
+    "batch":  {
+                  "choose":  "Seç…",
+                  "description":  "koharu-batch ile bir klasördeki her sayfayı, herhangi bir proje dışında çevirir.",
+                  "deterministic":  "Deterministik",
+                  "folder":  "Çevrilecek klasör",
+                  "model":  "Model",
+                  "modelAuto":  "Otomatik",
+                  "noneSelected":  "Seçilmedi",
+                  "output":  "Çıktı projesi",
+                  "overwrite":  "Üzerine yaz",
+                  "start":  "Başlat",
+                  "starting":  "Başlatılıyor…",
+                  "title":  "Klasörü toplu çevir"
+              },
     "canvas":  {
                    "empty":  "Başlamak için bir sayfa seçin.",
                    "notice":  {
