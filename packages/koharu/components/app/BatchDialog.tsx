@@ -1,7 +1,9 @@
 'use client'
 
+import { useMutation } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 
+import { usePreferences } from '@/lib/queries'
 import { commands } from '@koharu/ipc/protocol'
 import { Button } from '@koharu/ui/components/button'
 import {
@@ -31,33 +33,35 @@ export function BatchDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const target = usePreferences().data?.pipeline.translator?.target ?? 'en'
   const [source, setSource] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
   const [translator, setTranslator] = useState<string>('')
   const [deterministic, setDeterministic] = useState(true)
   const [overwrite, setOverwrite] = useState(false)
-  const [busy, setBusy] = useState(false)
 
-  const ready = Boolean(source && output) && !busy
+  // A failed start shows its reason through the mutation cache's toast.
+  const start = useMutation({
+    mutationFn: () =>
+      commands.startBatch(
+        source ?? '',
+        output ?? '',
+        target,
+        translator || undefined,
+        deterministic,
+        overwrite,
+      ),
+    onSuccess: () => onOpenChange(false),
+  })
 
-  const pick = (setPath: (path: string) => void) => {
-    void commands.pickBatchFolder().then((path) => {
-      if (path) setPath(path)
-    })
-  }
+  const ready = Boolean(source && output) && !start.isPending
 
-  const start = async () => {
-    if (!source || !output) return
-    setBusy(true)
-    try {
-      await commands.startBatch(source, output, 'fr-FR', translator || undefined, deterministic, overwrite)
-      onOpenChange(false)
-    } catch {
-      // error is surfaced by Tauri as a toast via send in queries.ts
-    } finally {
-      setBusy(false)
-    }
-  }
+  const pick = useMutation({
+    mutationFn: (setPath: (path: string) => void) =>
+      commands.pickBatchFolder().then((path) => {
+        if (path) setPath(path)
+      }),
+  })
 
   const folderRow = (
     label: string,
@@ -78,7 +82,7 @@ export function BatchDialog({
           variant='outline'
           size='sm'
           className='h-8 shrink-0 text-[11px]'
-          onClick={() => pick(setPath)}
+          onClick={() => pick.mutate(setPath)}
         >
           Choose…
         </Button>
@@ -130,10 +134,10 @@ export function BatchDialog({
             size='sm'
             className='h-8 text-[11px]'
             disabled={!ready}
-            aria-busy={busy}
-            onClick={start}
+            aria-busy={start.isPending}
+            onClick={() => start.mutate()}
           >
-            {busy ? 'Starting…' : 'Start'}
+            {start.isPending ? 'Starting…' : 'Start'}
           </Button>
         </DialogFooter>
       </DialogContent>

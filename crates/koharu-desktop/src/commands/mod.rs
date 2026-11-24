@@ -90,6 +90,7 @@ pub fn handler() -> impl Fn(Invoke<CefRuntime>) -> bool + Send + Sync + 'static 
         import::import,
         import::open_folder,
         batch::pick_batch_folder,
+        batch::start_batch,
         export::export,
         canvas::set_viewport,
         canvas::set_tool,

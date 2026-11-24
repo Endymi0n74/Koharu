@@ -7,7 +7,7 @@
 use std::path::Path;
 use std::process::Stdio;
 
-use tauri::{WebviewWindow};
+use tauri::Window;
 use tauri_runtime_cef::CefRuntime;
 use tokio::io::{AsyncBufReadExt as _, BufReader};
 
@@ -17,7 +17,7 @@ use super::{Error, Result};
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn pick_batch_folder(
-    window: WebviewWindow<CefRuntime>,
+    window: Window<CefRuntime>,
 ) -> std::result::Result<Option<String>, Error> {
     let dialog = rfd::AsyncFileDialog::new().set_parent(&window);
     Ok(dialog
