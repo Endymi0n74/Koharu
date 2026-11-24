@@ -1,513 +1,514 @@
 {
-  "about": {
-    "author": "Autor",
-    "description": "Ferramentas de tradução de mangá",
-    "unavailable": "Indisponível",
-    "version": "Versão"
-  },
-  "activity": {
-    "dismiss": "Dispensar",
-    "downloadFailed": "Falha no download.",
-    "downloadingFiles": "Baixando {{count}} arquivos",
-    "downloadingFiles_one": "Baixando {{count}} arquivos",
-    "downloadingFiles_other": "Baixando {{count}} arquivos",
-    "modelDownload": "Download do modelo",
-    "processing": "Processando",
-    "processingFailed": "Falha no processamento.",
-    "stop": "Parar",
-    "title": "Atividade"
-  },
-  "agent": {
-    "cancel": "Cancelar",
-    "cancelled": "Cancelado.",
-    "emptyDescription": "Peça ao agente para inspecionar, traduzir, editar ou processar este projeto. Ele verá as imagens das páginas somente quando necessário.",
-    "emptyTitle": "O que o KoharuBatch deve fazer?",
-    "failed": "A solicitação do agente falhou.",
-    "loading": "Carregando o agente…",
-    "message": "Enviar mensagem ao agente do KoharuBatch",
-    "model": "Modelo",
-    "newChat": "Novo chat",
-    "placeholder": "Peça ao KoharuBatch para trabalhar neste projeto…",
-    "reasoning": "Raciocínio",
-    "send": "Enviar",
-    "thinking": "Pensando…",
-    "thought": "Pensou por {{seconds}} s",
-    "title": "Agente",
-    "toolFailed": "{{tool}} falhou",
-    "used": "Usou {{tool}}",
-    "using": "Usando {{tool}}",
-    "working": "Trabalhando…"
-  },
-  "canvas": {
-    "empty": "Selecione uma página para começar.",
-    "notice": {
-      "eraser_needs_raster": "Selecione uma camada raster para apagar."
-    }
-  },
-  "colorPicker": {
-    "brushColor": "Cor do pincel",
-    "hexCode": "Código hexadecimal da cor",
-    "recent": "Cores recentes",
-    "recentColor": "Cor recente {{color}}",
-    "sampleCanvas": "Escolher cor da tela",
-    "transparent": "Transparente"
-  },
-  "common": {
-    "back": "Voltar",
-    "cancel": "Cancelar",
-    "clearSearch": "Limpar busca",
-    "loading": "Carregando…"
-  },
-  "errors": {
-    "actionFailed": "Não foi possível concluir a ação",
-    "fatalTitle": "O KoharuBatch não pôde continuar",
-    "tryAgain": "Tentar novamente",
-    "unknown": "O aplicativo nativo retornou um erro desconhecido."
-  },
-  "feedback": {
-    "addScreenshot": "Adicionar captura de tela",
-    "cancel": "Cancelar",
-    "confirm": "Confirmar",
-    "email": "E-mail",
-    "emailPlaceholder": "seu.email@example.org",
-    "emptyMessage": "Descreva o que aconteceu.",
-    "failed": "Não foi possível enviar o feedback. Tente novamente.",
-    "forbidden": "Esta versão não pode enviar feedback.",
-    "hide": "Ocultar",
-    "highlight": "Destacar",
-    "message": "Descrição",
-    "messagePlaceholder": "O que aconteceu? O que você esperava?",
-    "name": "Nome",
-    "namePlaceholder": "Seu nome",
-    "noClient": "O feedback não está disponível agora.",
-    "removeHighlight": "Remover",
-    "removeScreenshot": "Remover captura de tela",
-    "required": "(obrigatório)",
-    "sent": "Obrigado pelo seu feedback!",
-    "submit": "Enviar",
-    "timeout": "O envio expirou. Tente novamente.",
-    "title": "Enviar feedback"
-  },
-  "fill": {
-    "deselect": "Desmarcar",
-    "generate": "Gerar",
-    "model": "Modelo de preenchimento",
-    "prompt": "Descreva o que adicionar (opcional)",
-    "title": "Preenchimento generativo"
-  },
-  "fontPicker": {
-    "addFavorite": "Adicionar {{name}} aos favoritos",
-    "choose": "Escolher uma fonte",
-    "favoritesOnly": "Mostrar fontes favoritas",
-    "fontCount": "{{count}} fontes",
-    "fontCount_one": "{{count}} fonte",
-    "fontCount_other": "{{count}} fontes",
-    "fonts": "Fontes",
-    "noFavorites": "Ainda não há fontes favoritas",
-    "noResults": "Nenhuma fonte corresponde à busca",
-    "removeFavorite": "Remover {{name}} dos favoritos",
-    "search": "Buscar fontes"
-  },
-  "history": {
-    "close": "Fechar histórico",
-    "opened": "Ao abrir",
-    "steps": {
-      "add_text": "Adicionar texto",
-      "delete_layers": "Excluir camadas",
-      "delete_pages": "Excluir páginas",
-      "detect": "Detecção",
-      "edit_frame": "Editar quadro",
-      "erase": "Apagar",
-      "import": "Importar páginas",
-      "inpaint": "Preenchimento",
-      "move": "Mover",
-      "move_layer": "Mover camadas",
-      "move_page": "Mover página",
-      "paint": "Pintar",
-      "recognize": "OCR",
-      "resize": "Redimensionar",
-      "rotate": "Girar",
-      "set_locked": "Bloquear ou desbloquear",
-      "set_source_text": "Editar texto original",
-      "set_style": "Alterar estilo do texto",
-      "set_text": "Editar texto",
-      "set_visibility": "Mostrar ou ocultar",
-      "translate": "Tradução",
-      "update_layer": "Alterar camada"
-    },
-    "title": "Histórico"
-  },
-  "inference": {
-    "entireProject": "Projeto inteiro",
-    "entireProjectDescription": "Processa todas as páginas deste projeto.",
-    "model": "Modelo",
-    "noModel": "Sem modelo",
-    "notSet": "Não definido",
-    "output": "Saída",
-    "pipelineStages": "Etapas do pipeline",
-    "providerDefault": "Padrão do provedor",
-    "run": "Executar",
-    "runProcessing": "Executar processamento",
-    "scope": "Escopo",
-    "scopeShort": {
-      "project": "Projeto",
-      "selected-pages": "Seleção"
-    },
-    "selectPagesFirst": "Selecione páginas primeiro",
-    "selectedCount": "{{count}} páginas selecionadas",
-    "selectedCount_one": "{{count}} páginas selecionadas",
-    "selectedCount_other": "{{count}} páginas selecionadas",
-    "selectedPages": "Páginas selecionadas",
-    "selector": "Configurações de processamento",
-    "shortcuts": "Opções de processamento",
-    "stageCount": "{{count}} etapas",
-    "stageCount_one": "{{count}} etapas",
-    "stageCount_other": "{{count}} etapas",
-    "stages": "Etapas",
-    "stop": "Parar",
-    "stopProcessing": "Parar processamento"
-  },
-  "inspector": {
-    "alignBottom": "Alinhar embaixo",
-    "alignCenter": "Centralizar",
-    "alignLeft": "Alinhar à esquerda",
-    "alignMiddle": "Alinhar ao meio",
-    "alignRight": "Alinhar à direita",
-    "alignTop": "Alinhar em cima",
-    "alignment": "Alinhamento",
-    "auto": "Automático",
-    "border": "Contorno",
-    "borderColor": "Cor do contorno",
-    "borderWidth": "Largura do contorno",
-    "chooseBorderWidth": "Escolher largura do contorno",
-    "chooseFontSize": "Escolher tamanho da fonte",
-    "font": "Fonte",
-    "fontSize": "Tamanho da fonte",
-    "fontStyles": {
-      "italic": "Itálico",
-      "oblique": "Oblíquo"
-    },
-    "fontWeight": "Peso da fonte",
-    "horizontal": "Horizontal",
-    "opacity": "Opacidade",
-    "selectPage": "Selecione uma página para inspecionar suas camadas.",
-    "source": "Texto original",
-    "text": "Texto",
-    "textColor": "Cor do texto",
-    "textDirection": "Direção do texto",
-    "translation": "Tradução",
-    "type": "Tipografia",
-    "vertical": "Vertical"
-  },
-  "layers": {
-    "delete": "Excluir {{name}}",
-    "edit": "Editar {{name}}",
-    "empty": "Não há camadas nesta página.",
-    "hide": "Ocultar {{name}}",
-    "kinds": {
-      "balloon": "Balão",
-      "block": "Bloco de texto",
-      "group": "Grupo",
-      "image": "Imagem",
-      "mask": "Máscara",
-      "panel": "Quadro",
-      "raster": "Raster",
-      "shape": "Forma",
-      "text": "Texto"
-    },
-    "lock": "Bloquear {{name}}",
-    "locked": "Bloqueada",
-    "opacityLabel": "Opacidade de {{name}}",
-    "parts": {
-      "cleanup": "Limpeza",
-      "mask": "Máscara",
-      "pick": "{{part}} de {{name}}",
-      "toggle": "Shift+clique para mostrar ou ocultar"
-    },
-    "show": "Mostrar {{name}}",
-    "sourceLabel": "Texto de origem de {{name}}",
-    "textLabel": "Texto de {{name}}",
-    "textName": "Texto {{index}}",
-    "title": "Camadas",
-    "translationLabel": "Tradução de {{name}}",
-    "unlock": "Desbloquear {{name}}",
-    "unlocked": "Desbloqueada"
-  },
-  "menu": {
-    "about": "Sobre",
-    "closeProject": "Fechar projeto",
-    "delete": "Excluir seleção",
-    "discord": "Discord",
-    "donate": "Doar",
-    "edit": "Editar",
-    "export": "Exportar projeto",
-    "feedback": "Enviar feedback",
-    "file": "Arquivo",
-    "fit": "Ajustar à janela",
-    "github": "GitHub",
-    "help": "Ajuda",
-    "history": "Histórico",
-    "import": "Importar páginas",
-    "redo": "Refazer",
-    "selectAllLayers": "Selecionar todas as camadas",
-    "settings": "Configurações",
-    "undo": "Desfazer",
-    "unloadModels": "Descarregar modelos",
-    "view": "Exibir"
-  },
-  "model": {
-    "baseUrl": "URL base",
-    "default": "Padrão",
-    "targetLanguage": "Idioma de destino"
-  },
-  "modelPicker": {
-    "empty": "Nenhum modelo disponível.",
-    "loading": "Carregando modelos…",
-    "noResults": "Nenhum modelo corresponde à busca.",
-    "search": "Buscar modelos",
-    "title": "Escolher um modelo",
-    "useModel": "Usar {{model}} de {{provider}}"
-  },
-  "navigator": {
-    "actionsFor": "Ações para {{page}}",
-    "delete": "Excluir",
-    "deleteDescription": "Isso exclui “{{page}}” e suas camadas. Você pode desfazer.",
-    "deleteTitle": "Excluir página?",
-    "emptyDescription": "Importe arquivos de imagem ou uma pasta para adicionar páginas.",
-    "emptyTitle": "Ainda não há páginas",
-    "importAction": "Importar",
-    "importFiles": "Arquivos…",
-    "importFolder": "Pasta…",
-    "importing": "Importando páginas…",
-    "importingAction": "Importando…",
-    "noImage": "Sem imagem",
-    "pageNumber": "Página {{number}}",
-    "pages": "Páginas",
-    "run": {
-      "detect": "Detectar",
-      "inpaint": "Preencher",
-      "recognize": "Reconhecer",
-      "translate": "Traduzir"
-    },
-    "selected": "{{count}} selecionadas",
-    "translated": "{{translated}} de {{total}} traduzidos"
-  },
-  "outputPicker": {
-    "noResults": "Nenhum idioma corresponde a esta pesquisa.",
-    "search": "Pesquisar idiomas",
-    "targetLanguage": "Idioma de destino",
-    "title": "Saída da tradução"
-  },
-  "phase": {
-    "detect": "Detecção",
-    "inpaint": "Preenchimento",
-    "recognize": "OCR",
-    "translate": "Tradução"
-  },
-  "phaseDescription": {
-    "detect": "Localiza o texto na página.",
-    "inpaint": "Reconstrói a arte após remover o texto.",
-    "recognize": "Lê o texto dentro de cada região.",
-    "translate": "Converte o texto original para o idioma de destino."
-  },
-  "psd": {
-    "background": "Plano de fundo",
-    "cleanup": "Limpeza",
-    "outline": "Contorno"
-  },
-  "reasoning": {
-    "high": "Alto",
-    "low": "Baixo",
-    "max": "Máximo",
-    "medium": "Médio",
-    "minimal": "Mínimo",
-    "off": "Desativado",
-    "xhigh": "Muito alto"
-  },
-  "settings": {
-    "appearance": {
-      "description": "Adapte o espaço de trabalho ao ambiente sem alterar a renderização da arte.",
-      "interface": "Interface",
-      "language": "Idioma",
-      "theme": "Tema",
-      "themeDescription": "Sistema segue a configuração do sistema operacional.",
-      "themes": {
-        "dark": "Escuro",
-        "light": "Claro",
-        "system": "Sistema"
-      },
-      "title": "Aparência"
-    },
-    "backToEditor": "Voltar ao editor",
-    "loading": "Carregando preferências…",
-    "pipeline": {
-      "description": "Escolha os modelos e opções usados para processar cada página.",
-      "model": "Modelo",
-      "modelLabel": "Modelo de {{stage}}",
-      "options": {
-        "bubbleThreshold": "Limite de balão",
-        "onomatopoeiaThreshold": "Limite de onomatopeias",
-        "panelThreshold": "Limite de quadro",
-        "prompt": "Prompt",
-        "promptDescription": "Aplica-se apenas a modelos generativos.",
-        "textThreshold": "Limite de texto"
-      },
-      "stages": {
-        "detect": {
-          "description": "Encontra texto, balões e quadros.",
-          "title": "Detector"
-        },
-        "inpaint": {
-          "description": "Reconstrói a arte sob o texto removido.",
-          "title": "Preenchedor"
-        },
-        "recognize": {
-          "description": "Lê o texto de origem nas regiões detectadas.",
-          "title": "Reconhecedor"
-        },
-        "translate": {
-          "description": "Traduz o texto de origem para o idioma de destino.",
-          "title": "Tradutor"
-        }
-      },
-      "thresholds": "Limites",
-      "title": "Pipeline",
-      "translator": {
-        "instructions": "Instruções adicionais",
-        "instructionsDescription": "Opcionais, em qualquer idioma e formato, como a grafia de um nome ou o tom. O KoharuBatch as acrescenta como estão após o próprio prompt de sistema.",
-        "reasoning": "Raciocínio",
-        "reasoningDescription": "Usa o raciocínio do modelo durante a tradução.",
-        "targetLanguageDescription": "Escolha o idioma para o qual o texto será traduzido.",
-        "vision": "Visão",
-        "visionDescription": "Fornece imagens das páginas ao LLM durante a tradução."
-      }
-    },
-    "providers": {
-      "browserHint": "Conclua o login na página que seu navegador abriu.",
-      "clearCredential": "Limpar credencial de {{provider}}",
-      "configured": "Configurado",
-      "connections": "Conexões",
-      "connectionsDescription": "As credenciais são armazenadas com segurança neste dispositivo.",
-      "contextWindow": "Tamanho do contexto (tokens)",
-      "credential": "Credencial",
-      "credentialLabel": "Credencial de {{provider}}",
-      "description": "Conecte provedores de tradução e modelos de linguagem.",
-      "deviceCodeHint": "Digite este código na página que seu navegador abriu.",
-      "notConfigured": "Não configurado",
-      "openPage": "Abrir a página de login",
-      "openaiCompatible": "Compatível com OpenAI",
-      "signIn": "Entrar",
-      "signInLabel": "Entrar em {{provider}}",
-      "signOut": "Sair",
-      "signOutLabel": "Sair de {{provider}}",
-      "signingIn": "Aguardando o login…",
-      "subscription": "Assinatura",
-      "title": "Provedores"
-    },
-    "tabs": {
-      "appearance": "Aparência",
-      "pipeline": "Pipeline",
-      "providers": "Provedores",
-      "typesetting": "Renderizador"
-    },
-    "title": "Configurações",
-    "typesetting": {
-      "addFallback": "Adicionar uma alternativa",
-      "addFamily": "Adicionar família de fontes",
-      "description": "Defina a pilha ordenada de fontes usada quando uma camada de texto não tem família atribuída.",
-      "empty": "Nenhuma família padrão. O KoharuBatch usará a alternativa do sistema.",
-      "fallbacks": "Alternativas",
-      "fallbacksDescription": "Usadas em ordem para os caracteres que faltam na principal. Arraste para reordenar, ou sobre Principal para trocar.",
-      "familyLabel": "Família de fontes padrão {{index}}",
-      "fontFallback": "Fontes preferidas",
-      "fontFallbackDescription": "O KoharuBatch usa a primeira família disponível compatível com o texto.",
-      "loadError": "Não foi possível carregar as fontes. As famílias existentes ainda podem ser removidas.",
-      "loadingFonts": "Carregando fontes…",
-      "primary": "Principal",
-      "removeFamily": "Remover {{family}}",
-      "title": "Renderizador"
-    }
-  },
-  "start": {
-    "create": "Criar",
-    "deleteAction": "Excluir projeto",
-    "deleteDescription": "Isso exclui permanentemente “{{name}}” e todas as suas páginas. Esta ação não pode ser desfeita.",
-    "deleteLabel": "Excluir {{name}}",
-    "deleteTitle": "Excluir projeto?",
-    "deleting": "Excluindo…",
-    "description": "Abra um espaço de trabalho ou inicie uma nova tradução.",
-    "emptyDescription": "Crie seu primeiro projeto para começar a importar páginas.",
-    "emptyTitle": "Ainda não há projetos",
-    "loadingProjects": "Carregando projetos…",
-    "newDescription": "Crie um espaço de trabalho limpo para suas páginas, traduções e exportações.",
-    "newProject": "Novo projeto",
-    "noResults": "Nenhum projeto corresponde a esta pesquisa.",
-    "projectKind": "Projeto do KoharuBatch",
-    "projectList": "Projetos",
-    "openFolder": "Abrir uma pasta…",
-    "projectName": "Nome do projeto",
-    "projectNamePlaceholder": "Meu novo projeto",
-    "search": "Pesquisar projetos",
-    "storageHint": "Os projetos são armazenados localmente neste computador.",
-    "title": "Projetos",
-    "yourProjects": "Seus projetos"
-  },
-  "startup": {
-    "description": "Carregando os runtimes locais de IA e preparando o espaço de trabalho. A primeira inicialização pode levar alguns instantes.",
-    "opening": "Abrindo o KoharuBatch…",
-    "status": "Inicializando runtimes locais",
-    "title": "Preparando o KoharuBatch"
-  },
-  "status": {
-    "zoom": "Zoom"
-  },
-  "story": {
-    "noText": "Não há texto nesta página.",
-    "sfx": "Efeito sonoro",
-    "title": "História",
-    "translate": "Traduzir {{name}}"
-  },
-  "tools": {
-    "brushSize": "Tamanho do pincel",
-    "brushSizeInput": "Tamanho do pincel",
-    "brushSizePixels": "Tamanho do pincel: {{size}} pixels",
-    "brushSizeShort": "{{size}} px",
-    "color_picker": "Seletor de cores",
-    "decreaseBrushSize": "Diminuir tamanho do pincel",
-    "direct_select": "Seleção direta",
-    "draw": "Desenhar",
-    "eraser": "Borracha",
-    "increaseBrushSize": "Aumentar tamanho do pincel",
-    "lasso": "Laço",
-    "marquee": "Letreiro retangular",
-    "pan": "Mover",
-    "remove": "Remover",
-    "select": "Selecionar",
-    "text": "Texto"
-  },
-  "updater": {
-    "available": {
-      "description": "KoharuBatch <strong>{{version}}</strong> está pronto para instalar",
-      "title": "Atualização disponível"
-    },
-    "close": "Fechar",
-    "downloading": {
-      "subtitle": "KoharuBatch {{version}}",
-      "title": "Baixando atualização…"
-    },
-    "error": {
-      "description": "Algo deu errado durante a atualização",
-      "title": "Falha na atualização"
-    },
-    "later": "Mais tarde",
-    "noNotes": "Nenhuma nota de versão fornecida.",
-    "retry": "Tentar novamente",
-    "update": "Atualizar"
-  },
-  "window": {
-    "close": "Fechar",
-    "maximize": "Maximizar",
-    "minimize": "Minimizar",
-    "restore": "Restaurar"
-  }
+    "about":  {
+                  "author":  "Autor",
+                  "description":  "Ferramentas de tradução de mangá",
+                  "unavailable":  "Indisponível",
+                  "version":  "Versão"
+              },
+    "activity":  {
+                     "dismiss":  "Dispensar",
+                     "downloadFailed":  "Falha no download.",
+                     "downloadingFiles":  "Baixando {{count}} arquivos",
+                     "downloadingFiles_one":  "Baixando {{count}} arquivos",
+                     "downloadingFiles_other":  "Baixando {{count}} arquivos",
+                     "modelDownload":  "Download do modelo",
+                     "processing":  "Processando",
+                     "processingFailed":  "Falha no processamento.",
+                     "stop":  "Parar",
+                     "title":  "Atividade"
+                 },
+    "agent":  {
+                  "cancel":  "Cancelar",
+                  "cancelled":  "Cancelado.",
+                  "emptyDescription":  "Peça ao agente para inspecionar, traduzir, editar ou processar este projeto. Ele verá as imagens das páginas somente quando necessário.",
+                  "emptyTitle":  "O que o KoharuBatch deve fazer?",
+                  "failed":  "A solicitação do agente falhou.",
+                  "loading":  "Carregando o agente…",
+                  "message":  "Enviar mensagem ao agente do KoharuBatch",
+                  "model":  "Modelo",
+                  "newChat":  "Novo chat",
+                  "placeholder":  "Peça ao KoharuBatch para trabalhar neste projeto…",
+                  "reasoning":  "Raciocínio",
+                  "send":  "Enviar",
+                  "thinking":  "Pensando…",
+                  "thought":  "Pensou por {{seconds}} s",
+                  "title":  "Agente",
+                  "toolFailed":  "{{tool}} falhou",
+                  "used":  "Usou {{tool}}",
+                  "using":  "Usando {{tool}}",
+                  "working":  "Trabalhando…"
+              },
+    "canvas":  {
+                   "empty":  "Selecione uma página para começar.",
+                   "notice":  {
+                                  "eraser_needs_raster":  "Selecione uma camada raster para apagar."
+                              }
+               },
+    "colorPicker":  {
+                        "brushColor":  "Cor do pincel",
+                        "hexCode":  "Código hexadecimal da cor",
+                        "recent":  "Cores recentes",
+                        "recentColor":  "Cor recente {{color}}",
+                        "sampleCanvas":  "Escolher cor da tela",
+                        "transparent":  "Transparente"
+                    },
+    "common":  {
+                   "back":  "Voltar",
+                   "cancel":  "Cancelar",
+                   "clearSearch":  "Limpar busca",
+                   "loading":  "Carregando…"
+               },
+    "errors":  {
+                   "actionFailed":  "Não foi possível concluir a ação",
+                   "fatalTitle":  "O KoharuBatch não pôde continuar",
+                   "tryAgain":  "Tentar novamente",
+                   "unknown":  "O aplicativo nativo retornou um erro desconhecido."
+               },
+    "feedback":  {
+                     "addScreenshot":  "Adicionar captura de tela",
+                     "cancel":  "Cancelar",
+                     "confirm":  "Confirmar",
+                     "email":  "E-mail",
+                     "emailPlaceholder":  "seu.email@example.org",
+                     "emptyMessage":  "Descreva o que aconteceu.",
+                     "failed":  "Não foi possível enviar o feedback. Tente novamente.",
+                     "forbidden":  "Esta versão não pode enviar feedback.",
+                     "hide":  "Ocultar",
+                     "highlight":  "Destacar",
+                     "message":  "Descrição",
+                     "messagePlaceholder":  "O que aconteceu? O que você esperava?",
+                     "name":  "Nome",
+                     "namePlaceholder":  "Seu nome",
+                     "noClient":  "O feedback não está disponível agora.",
+                     "removeHighlight":  "Remover",
+                     "removeScreenshot":  "Remover captura de tela",
+                     "required":  "(obrigatório)",
+                     "sent":  "Obrigado pelo seu feedback!",
+                     "submit":  "Enviar",
+                     "timeout":  "O envio expirou. Tente novamente.",
+                     "title":  "Enviar feedback"
+                 },
+    "fill":  {
+                 "deselect":  "Desmarcar",
+                 "generate":  "Gerar",
+                 "model":  "Modelo de preenchimento",
+                 "prompt":  "Descreva o que adicionar (opcional)",
+                 "title":  "Preenchimento generativo"
+             },
+    "fontPicker":  {
+                       "addFavorite":  "Adicionar {{name}} aos favoritos",
+                       "choose":  "Escolher uma fonte",
+                       "favoritesOnly":  "Mostrar fontes favoritas",
+                       "fontCount":  "{{count}} fontes",
+                       "fontCount_one":  "{{count}} fonte",
+                       "fontCount_other":  "{{count}} fontes",
+                       "fonts":  "Fontes",
+                       "noFavorites":  "Ainda não há fontes favoritas",
+                       "noResults":  "Nenhuma fonte corresponde à busca",
+                       "removeFavorite":  "Remover {{name}} dos favoritos",
+                       "search":  "Buscar fontes"
+                   },
+    "history":  {
+                    "close":  "Fechar histórico",
+                    "opened":  "Ao abrir",
+                    "steps":  {
+                                  "add_text":  "Adicionar texto",
+                                  "delete_layers":  "Excluir camadas",
+                                  "delete_pages":  "Excluir páginas",
+                                  "detect":  "Detecção",
+                                  "edit_frame":  "Editar quadro",
+                                  "erase":  "Apagar",
+                                  "import":  "Importar páginas",
+                                  "inpaint":  "Preenchimento",
+                                  "move":  "Mover",
+                                  "move_layer":  "Mover camadas",
+                                  "move_page":  "Mover página",
+                                  "paint":  "Pintar",
+                                  "recognize":  "OCR",
+                                  "resize":  "Redimensionar",
+                                  "rotate":  "Girar",
+                                  "set_locked":  "Bloquear ou desbloquear",
+                                  "set_source_text":  "Editar texto original",
+                                  "set_style":  "Alterar estilo do texto",
+                                  "set_text":  "Editar texto",
+                                  "set_visibility":  "Mostrar ou ocultar",
+                                  "translate":  "Tradução",
+                                  "update_layer":  "Alterar camada"
+                              },
+                    "title":  "Histórico"
+                },
+    "inference":  {
+                      "entireProject":  "Projeto inteiro",
+                      "entireProjectDescription":  "Processa todas as páginas deste projeto.",
+                      "model":  "Modelo",
+                      "noModel":  "Sem modelo",
+                      "notSet":  "Não definido",
+                      "output":  "Saída",
+                      "pipelineStages":  "Etapas do pipeline",
+                      "providerDefault":  "Padrão do provedor",
+                      "run":  "Executar",
+                      "runProcessing":  "Executar processamento",
+                      "scope":  "Escopo",
+                      "scopeShort":  {
+                                         "project":  "Projeto",
+                                         "selected-pages":  "Seleção"
+                                     },
+                      "selectPagesFirst":  "Selecione páginas primeiro",
+                      "selectedCount":  "{{count}} páginas selecionadas",
+                      "selectedCount_one":  "{{count}} páginas selecionadas",
+                      "selectedCount_other":  "{{count}} páginas selecionadas",
+                      "selectedPages":  "Páginas selecionadas",
+                      "selector":  "Configurações de processamento",
+                      "shortcuts":  "Opções de processamento",
+                      "stageCount":  "{{count}} etapas",
+                      "stageCount_one":  "{{count}} etapas",
+                      "stageCount_other":  "{{count}} etapas",
+                      "stages":  "Etapas",
+                      "stop":  "Parar",
+                      "stopProcessing":  "Parar processamento"
+                  },
+    "inspector":  {
+                      "alignBottom":  "Alinhar embaixo",
+                      "alignCenter":  "Centralizar",
+                      "alignLeft":  "Alinhar à esquerda",
+                      "alignMiddle":  "Alinhar ao meio",
+                      "alignRight":  "Alinhar à direita",
+                      "alignTop":  "Alinhar em cima",
+                      "alignment":  "Alinhamento",
+                      "auto":  "Automático",
+                      "border":  "Contorno",
+                      "borderColor":  "Cor do contorno",
+                      "borderWidth":  "Largura do contorno",
+                      "chooseBorderWidth":  "Escolher largura do contorno",
+                      "chooseFontSize":  "Escolher tamanho da fonte",
+                      "font":  "Fonte",
+                      "fontSize":  "Tamanho da fonte",
+                      "fontStyles":  {
+                                         "italic":  "Itálico",
+                                         "oblique":  "Oblíquo"
+                                     },
+                      "fontWeight":  "Peso da fonte",
+                      "horizontal":  "Horizontal",
+                      "opacity":  "Opacidade",
+                      "selectPage":  "Selecione uma página para inspecionar suas camadas.",
+                      "source":  "Texto original",
+                      "text":  "Texto",
+                      "textColor":  "Cor do texto",
+                      "textDirection":  "Direção do texto",
+                      "translation":  "Tradução",
+                      "type":  "Tipografia",
+                      "vertical":  "Vertical"
+                  },
+    "layers":  {
+                   "delete":  "Excluir {{name}}",
+                   "edit":  "Editar {{name}}",
+                   "empty":  "Não há camadas nesta página.",
+                   "hide":  "Ocultar {{name}}",
+                   "kinds":  {
+                                 "balloon":  "Balão",
+                                 "block":  "Bloco de texto",
+                                 "group":  "Grupo",
+                                 "image":  "Imagem",
+                                 "mask":  "Máscara",
+                                 "panel":  "Quadro",
+                                 "raster":  "Raster",
+                                 "shape":  "Forma",
+                                 "text":  "Texto"
+                             },
+                   "lock":  "Bloquear {{name}}",
+                   "locked":  "Bloqueada",
+                   "opacityLabel":  "Opacidade de {{name}}",
+                   "parts":  {
+                                 "cleanup":  "Limpeza",
+                                 "mask":  "Máscara",
+                                 "pick":  "{{part}} de {{name}}",
+                                 "toggle":  "Shift+clique para mostrar ou ocultar"
+                             },
+                   "show":  "Mostrar {{name}}",
+                   "sourceLabel":  "Texto de origem de {{name}}",
+                   "textLabel":  "Texto de {{name}}",
+                   "textName":  "Texto {{index}}",
+                   "title":  "Camadas",
+                   "translationLabel":  "Tradução de {{name}}",
+                   "unlock":  "Desbloquear {{name}}",
+                   "unlocked":  "Desbloqueada"
+               },
+    "menu":  {
+                 "about":  "Sobre",
+                 "closeProject":  "Fechar projeto",
+                 "delete":  "Excluir seleção",
+                 "discord":  "Discord",
+                 "donate":  "Doar",
+                 "edit":  "Editar",
+                 "export":  "Exportar projeto",
+                 "feedback":  "Enviar feedback",
+                 "file":  "Arquivo",
+                 "fit":  "Ajustar à janela",
+                 "github":  "GitHub",
+                 "help":  "Ajuda",
+                 "history":  "Histórico",
+                 "import":  "Importar páginas",
+                 "redo":  "Refazer",
+                 "selectAllLayers":  "Selecionar todas as camadas",
+                 "settings":  "Configurações",
+                 "undo":  "Desfazer",
+                 "unloadModels":  "Descarregar modelos",
+                 "view":  "Exibir"
+             },
+    "model":  {
+                  "baseUrl":  "URL base",
+                  "default":  "Padrão",
+                  "targetLanguage":  "Idioma de destino"
+              },
+    "modelPicker":  {
+                        "empty":  "Nenhum modelo disponível.",
+                        "loading":  "Carregando modelos…",
+                        "noResults":  "Nenhum modelo corresponde à busca.",
+                        "search":  "Buscar modelos",
+                        "title":  "Escolher um modelo",
+                        "useModel":  "Usar {{model}} de {{provider}}"
+                    },
+    "navigator":  {
+                      "actionsFor":  "Ações para {{page}}",
+                      "delete":  "Excluir",
+                      "deleteDescription":  "Isso exclui “{{page}}” e suas camadas. Você pode desfazer.",
+                      "deleteTitle":  "Excluir página?",
+                      "emptyDescription":  "Importe arquivos de imagem ou uma pasta para adicionar páginas.",
+                      "emptyTitle":  "Ainda não há páginas",
+                      "importAction":  "Importar",
+                      "importFiles":  "Arquivos…",
+                      "importFolder":  "Pasta…",
+                      "importing":  "Importando páginas…",
+                      "importingAction":  "Importando…",
+                      "noImage":  "Sem imagem",
+                      "pageNumber":  "Página {{number}}",
+                      "pages":  "Páginas",
+                      "run":  {
+                                  "detect":  "Detectar",
+                                  "inpaint":  "Preencher",
+                                  "recognize":  "Reconhecer",
+                                  "translate":  "Traduzir"
+                              },
+                      "selected":  "{{count}} selecionadas",
+                      "translated":  "{{translated}} de {{total}} traduzidos",
+                      "importFolderBatch":  "Batch translate folder"
+                  },
+    "outputPicker":  {
+                         "noResults":  "Nenhum idioma corresponde a esta pesquisa.",
+                         "search":  "Pesquisar idiomas",
+                         "targetLanguage":  "Idioma de destino",
+                         "title":  "Saída da tradução"
+                     },
+    "phase":  {
+                  "detect":  "Detecção",
+                  "inpaint":  "Preenchimento",
+                  "recognize":  "OCR",
+                  "translate":  "Tradução"
+              },
+    "phaseDescription":  {
+                             "detect":  "Localiza o texto na página.",
+                             "inpaint":  "Reconstrói a arte após remover o texto.",
+                             "recognize":  "Lê o texto dentro de cada região.",
+                             "translate":  "Converte o texto original para o idioma de destino."
+                         },
+    "psd":  {
+                "background":  "Plano de fundo",
+                "cleanup":  "Limpeza",
+                "outline":  "Contorno"
+            },
+    "reasoning":  {
+                      "high":  "Alto",
+                      "low":  "Baixo",
+                      "max":  "Máximo",
+                      "medium":  "Médio",
+                      "minimal":  "Mínimo",
+                      "off":  "Desativado",
+                      "xhigh":  "Muito alto"
+                  },
+    "settings":  {
+                     "appearance":  {
+                                        "description":  "Adapte o espaço de trabalho ao ambiente sem alterar a renderização da arte.",
+                                        "interface":  "Interface",
+                                        "language":  "Idioma",
+                                        "theme":  "Tema",
+                                        "themeDescription":  "Sistema segue a configuração do sistema operacional.",
+                                        "themes":  {
+                                                       "dark":  "Escuro",
+                                                       "light":  "Claro",
+                                                       "system":  "Sistema"
+                                                   },
+                                        "title":  "Aparência"
+                                    },
+                     "backToEditor":  "Voltar ao editor",
+                     "loading":  "Carregando preferências…",
+                     "pipeline":  {
+                                      "description":  "Escolha os modelos e opções usados para processar cada página.",
+                                      "model":  "Modelo",
+                                      "modelLabel":  "Modelo de {{stage}}",
+                                      "options":  {
+                                                      "bubbleThreshold":  "Limite de balão",
+                                                      "onomatopoeiaThreshold":  "Limite de onomatopeias",
+                                                      "panelThreshold":  "Limite de quadro",
+                                                      "prompt":  "Prompt",
+                                                      "promptDescription":  "Aplica-se apenas a modelos generativos.",
+                                                      "textThreshold":  "Limite de texto"
+                                                  },
+                                      "stages":  {
+                                                     "detect":  {
+                                                                    "description":  "Encontra texto, balões e quadros.",
+                                                                    "title":  "Detector"
+                                                                },
+                                                     "inpaint":  {
+                                                                     "description":  "Reconstrói a arte sob o texto removido.",
+                                                                     "title":  "Preenchedor"
+                                                                 },
+                                                     "recognize":  {
+                                                                       "description":  "Lê o texto de origem nas regiões detectadas.",
+                                                                       "title":  "Reconhecedor"
+                                                                   },
+                                                     "translate":  {
+                                                                       "description":  "Traduz o texto de origem para o idioma de destino.",
+                                                                       "title":  "Tradutor"
+                                                                   }
+                                                 },
+                                      "thresholds":  "Limites",
+                                      "title":  "Pipeline",
+                                      "translator":  {
+                                                         "instructions":  "Instruções adicionais",
+                                                         "instructionsDescription":  "Opcionais, em qualquer idioma e formato, como a grafia de um nome ou o tom. O KoharuBatch as acrescenta como estão após o próprio prompt de sistema.",
+                                                         "reasoning":  "Raciocínio",
+                                                         "reasoningDescription":  "Usa o raciocínio do modelo durante a tradução.",
+                                                         "targetLanguageDescription":  "Escolha o idioma para o qual o texto será traduzido.",
+                                                         "vision":  "Visão",
+                                                         "visionDescription":  "Fornece imagens das páginas ao LLM durante a tradução."
+                                                     }
+                                  },
+                     "providers":  {
+                                       "browserHint":  "Conclua o login na página que seu navegador abriu.",
+                                       "clearCredential":  "Limpar credencial de {{provider}}",
+                                       "configured":  "Configurado",
+                                       "connections":  "Conexões",
+                                       "connectionsDescription":  "As credenciais são armazenadas com segurança neste dispositivo.",
+                                       "contextWindow":  "Tamanho do contexto (tokens)",
+                                       "credential":  "Credencial",
+                                       "credentialLabel":  "Credencial de {{provider}}",
+                                       "description":  "Conecte provedores de tradução e modelos de linguagem.",
+                                       "deviceCodeHint":  "Digite este código na página que seu navegador abriu.",
+                                       "notConfigured":  "Não configurado",
+                                       "openPage":  "Abrir a página de login",
+                                       "openaiCompatible":  "Compatível com OpenAI",
+                                       "signIn":  "Entrar",
+                                       "signInLabel":  "Entrar em {{provider}}",
+                                       "signOut":  "Sair",
+                                       "signOutLabel":  "Sair de {{provider}}",
+                                       "signingIn":  "Aguardando o login…",
+                                       "subscription":  "Assinatura",
+                                       "title":  "Provedores"
+                                   },
+                     "tabs":  {
+                                  "appearance":  "Aparência",
+                                  "pipeline":  "Pipeline",
+                                  "providers":  "Provedores",
+                                  "typesetting":  "Renderizador"
+                              },
+                     "title":  "Configurações",
+                     "typesetting":  {
+                                         "addFallback":  "Adicionar uma alternativa",
+                                         "addFamily":  "Adicionar família de fontes",
+                                         "description":  "Defina a pilha ordenada de fontes usada quando uma camada de texto não tem família atribuída.",
+                                         "empty":  "Nenhuma família padrão. O KoharuBatch usará a alternativa do sistema.",
+                                         "fallbacks":  "Alternativas",
+                                         "fallbacksDescription":  "Usadas em ordem para os caracteres que faltam na principal. Arraste para reordenar, ou sobre Principal para trocar.",
+                                         "familyLabel":  "Família de fontes padrão {{index}}",
+                                         "fontFallback":  "Fontes preferidas",
+                                         "fontFallbackDescription":  "O KoharuBatch usa a primeira família disponível compatível com o texto.",
+                                         "loadError":  "Não foi possível carregar as fontes. As famílias existentes ainda podem ser removidas.",
+                                         "loadingFonts":  "Carregando fontes…",
+                                         "primary":  "Principal",
+                                         "removeFamily":  "Remover {{family}}",
+                                         "title":  "Renderizador"
+                                     }
+                 },
+    "start":  {
+                  "create":  "Criar",
+                  "deleteAction":  "Excluir projeto",
+                  "deleteDescription":  "Isso exclui permanentemente “{{name}}” e todas as suas páginas. Esta ação não pode ser desfeita.",
+                  "deleteLabel":  "Excluir {{name}}",
+                  "deleteTitle":  "Excluir projeto?",
+                  "deleting":  "Excluindo…",
+                  "description":  "Abra um espaço de trabalho ou inicie uma nova tradução.",
+                  "emptyDescription":  "Crie seu primeiro projeto para começar a importar páginas.",
+                  "emptyTitle":  "Ainda não há projetos",
+                  "loadingProjects":  "Carregando projetos…",
+                  "newDescription":  "Crie um espaço de trabalho limpo para suas páginas, traduções e exportações.",
+                  "newProject":  "Novo projeto",
+                  "noResults":  "Nenhum projeto corresponde a esta pesquisa.",
+                  "projectKind":  "Projeto do KoharuBatch",
+                  "projectList":  "Projetos",
+                  "openFolder":  "Abrir uma pasta…",
+                  "projectName":  "Nome do projeto",
+                  "projectNamePlaceholder":  "Meu novo projeto",
+                  "search":  "Pesquisar projetos",
+                  "storageHint":  "Os projetos são armazenados localmente neste computador.",
+                  "title":  "Projetos",
+                  "yourProjects":  "Seus projetos"
+              },
+    "startup":  {
+                    "description":  "Carregando os runtimes locais de IA e preparando o espaço de trabalho. A primeira inicialização pode levar alguns instantes.",
+                    "opening":  "Abrindo o KoharuBatch…",
+                    "status":  "Inicializando runtimes locais",
+                    "title":  "Preparando o KoharuBatch"
+                },
+    "status":  {
+                   "zoom":  "Zoom"
+               },
+    "story":  {
+                  "noText":  "Não há texto nesta página.",
+                  "sfx":  "Efeito sonoro",
+                  "title":  "História",
+                  "translate":  "Traduzir {{name}}"
+              },
+    "tools":  {
+                  "brushSize":  "Tamanho do pincel",
+                  "brushSizeInput":  "Tamanho do pincel",
+                  "brushSizePixels":  "Tamanho do pincel: {{size}} pixels",
+                  "brushSizeShort":  "{{size}} px",
+                  "color_picker":  "Seletor de cores",
+                  "decreaseBrushSize":  "Diminuir tamanho do pincel",
+                  "direct_select":  "Seleção direta",
+                  "draw":  "Desenhar",
+                  "eraser":  "Borracha",
+                  "increaseBrushSize":  "Aumentar tamanho do pincel",
+                  "lasso":  "Laço",
+                  "marquee":  "Letreiro retangular",
+                  "pan":  "Mover",
+                  "remove":  "Remover",
+                  "select":  "Selecionar",
+                  "text":  "Texto"
+              },
+    "updater":  {
+                    "available":  {
+                                      "description":  "KoharuBatch \u003cstrong\u003e{{version}}\u003c/strong\u003e está pronto para instalar",
+                                      "title":  "Atualização disponível"
+                                  },
+                    "close":  "Fechar",
+                    "downloading":  {
+                                        "subtitle":  "KoharuBatch {{version}}",
+                                        "title":  "Baixando atualização…"
+                                    },
+                    "error":  {
+                                  "description":  "Algo deu errado durante a atualização",
+                                  "title":  "Falha na atualização"
+                              },
+                    "later":  "Mais tarde",
+                    "noNotes":  "Nenhuma nota de versão fornecida.",
+                    "retry":  "Tentar novamente",
+                    "update":  "Atualizar"
+                },
+    "window":  {
+                   "close":  "Fechar",
+                   "maximize":  "Maximizar",
+                   "minimize":  "Minimizar",
+                   "restore":  "Restaurar"
+               }
 }

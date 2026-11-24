@@ -1,513 +1,514 @@
 {
-  "about": {
-    "author": "作者",
-    "description": "漫画翻译工具",
-    "unavailable": "不可用",
-    "version": "版本"
-  },
-  "activity": {
-    "dismiss": "关闭",
-    "downloadFailed": "下载失败。",
-    "downloadingFiles": "正在下载 {{count}} 个文件",
-    "downloadingFiles_one": "正在下载 {{count}} 个文件",
-    "downloadingFiles_other": "正在下载 {{count}} 个文件",
-    "modelDownload": "模型下载",
-    "processing": "正在处理",
-    "processingFailed": "处理失败。",
-    "stop": "停止",
-    "title": "活动"
-  },
-  "agent": {
-    "cancel": "取消",
-    "cancelled": "已取消。",
-    "emptyDescription": "让智能体检查、翻译、编辑或处理此项目。它只会在需要时查看页面图像。",
-    "emptyTitle": "需要 KoharuBatch 做什么？",
-    "failed": "智能体请求失败。",
-    "loading": "正在加载智能体…",
-    "message": "向 KoharuBatch 智能体发送消息",
-    "model": "模型",
-    "newChat": "新对话",
-    "placeholder": "让 KoharuBatch 处理此项目…",
-    "reasoning": "推理",
-    "send": "发送",
-    "thinking": "正在思考…",
-    "thought": "思考了 {{seconds}} 秒",
-    "title": "智能体",
-    "toolFailed": "{{tool}} 失败",
-    "used": "已使用 {{tool}}",
-    "using": "正在使用 {{tool}}",
-    "working": "正在工作…"
-  },
-  "canvas": {
-    "empty": "请选择页面以开始。",
-    "notice": {
-      "eraser_needs_raster": "请先选择栅格图层再擦除。"
-    }
-  },
-  "colorPicker": {
-    "brushColor": "笔刷颜色",
-    "hexCode": "十六进制颜色代码",
-    "recent": "最近使用的颜色",
-    "recentColor": "最近使用的颜色 {{color}}",
-    "sampleCanvas": "从画布拾取颜色",
-    "transparent": "透明"
-  },
-  "common": {
-    "back": "返回",
-    "cancel": "取消",
-    "clearSearch": "清除搜索",
-    "loading": "正在加载…"
-  },
-  "errors": {
-    "actionFailed": "无法完成该操作",
-    "fatalTitle": "KoharuBatch 无法继续运行",
-    "tryAgain": "重试",
-    "unknown": "原生应用返回了未知错误。"
-  },
-  "feedback": {
-    "addScreenshot": "添加截图",
-    "cancel": "取消",
-    "confirm": "确认",
-    "email": "邮箱",
-    "emailPlaceholder": "your.email@example.org",
-    "emptyMessage": "请描述发生了什么。",
-    "failed": "反馈发送失败，请重试。",
-    "forbidden": "此版本无法发送反馈。",
-    "hide": "隐藏",
-    "highlight": "高亮",
-    "message": "描述",
-    "messagePlaceholder": "发生了什么？你原本期望怎样？",
-    "name": "姓名",
-    "namePlaceholder": "你的名字",
-    "noClient": "反馈功能暂不可用。",
-    "removeHighlight": "移除",
-    "removeScreenshot": "移除截图",
-    "required": "（必填）",
-    "sent": "感谢你的反馈！",
-    "submit": "发送",
-    "timeout": "发送超时，请重试。",
-    "title": "发送反馈"
-  },
-  "fill": {
-    "deselect": "取消选择",
-    "generate": "生成",
-    "model": "填充模型",
-    "prompt": "描述要添加的内容（可选）",
-    "title": "创成式填充"
-  },
-  "fontPicker": {
-    "addFavorite": "将 {{name}} 添加到收藏",
-    "choose": "选择字体",
-    "favoritesOnly": "显示收藏的字体",
-    "fontCount": "{{count}} 种字体",
-    "fontCount_one": "{{count}} 种字体",
-    "fontCount_other": "{{count}} 种字体",
-    "fonts": "字体",
-    "noFavorites": "还没有收藏的字体",
-    "noResults": "没有与此搜索匹配的字体",
-    "removeFavorite": "将 {{name}} 从收藏中移除",
-    "search": "搜索字体"
-  },
-  "history": {
-    "close": "关闭历史记录",
-    "opened": "打开时",
-    "steps": {
-      "add_text": "添加文字",
-      "delete_layers": "删除图层",
-      "delete_pages": "删除页面",
-      "detect": "检测",
-      "edit_frame": "编辑文本框",
-      "erase": "擦除",
-      "import": "导入页面",
-      "inpaint": "修补",
-      "move": "移动",
-      "move_layer": "移动图层",
-      "move_page": "移动页面",
-      "paint": "绘画",
-      "recognize": "OCR",
-      "resize": "调整大小",
-      "rotate": "旋转",
-      "set_locked": "锁定或解锁",
-      "set_source_text": "编辑原文",
-      "set_style": "更改文字样式",
-      "set_text": "编辑文字",
-      "set_visibility": "显示或隐藏",
-      "translate": "翻译",
-      "update_layer": "更改图层"
-    },
-    "title": "历史记录"
-  },
-  "inference": {
-    "entireProject": "整个项目",
-    "entireProjectDescription": "处理此项目中的每个页面。",
-    "model": "模型",
-    "noModel": "无模型",
-    "notSet": "未设置",
-    "output": "输出",
-    "pipelineStages": "处理流程阶段",
-    "providerDefault": "提供商默认值",
-    "run": "运行",
-    "runProcessing": "运行处理",
-    "scope": "范围",
-    "scopeShort": {
-      "project": "项目",
-      "selected-pages": "所选内容"
-    },
-    "selectPagesFirst": "请先选择页面",
-    "selectedCount": "已选择 {{count}} 个页面",
-    "selectedCount_one": "已选择 {{count}} 个页面",
-    "selectedCount_other": "已选择 {{count}} 个页面",
-    "selectedPages": "所选页面",
-    "selector": "处理设置",
-    "shortcuts": "处理选项",
-    "stageCount": "{{count}} 个阶段",
-    "stageCount_one": "{{count}} 个阶段",
-    "stageCount_other": "{{count}} 个阶段",
-    "stages": "阶段",
-    "stop": "停止",
-    "stopProcessing": "停止处理"
-  },
-  "inspector": {
-    "alignBottom": "底端对齐",
-    "alignCenter": "居中对齐",
-    "alignLeft": "左对齐",
-    "alignMiddle": "居中对齐",
-    "alignRight": "右对齐",
-    "alignTop": "顶端对齐",
-    "alignment": "对齐",
-    "auto": "自动",
-    "border": "描边",
-    "borderColor": "描边颜色",
-    "borderWidth": "描边宽度",
-    "chooseBorderWidth": "选择描边宽度",
-    "chooseFontSize": "选择字体大小",
-    "font": "字体",
-    "fontSize": "字体大小",
-    "fontStyles": {
-      "italic": "斜体",
-      "oblique": "倾斜"
-    },
-    "fontWeight": "字体粗细",
-    "horizontal": "横排",
-    "opacity": "不透明度",
-    "selectPage": "选择一个页面以检查其图层。",
-    "source": "原文",
-    "text": "文本",
-    "textColor": "文本颜色",
-    "textDirection": "文本方向",
-    "translation": "译文",
-    "type": "排版",
-    "vertical": "竖排"
-  },
-  "layers": {
-    "delete": "删除 {{name}}",
-    "edit": "编辑 {{name}}",
-    "empty": "此页面上没有图层。",
-    "hide": "隐藏 {{name}}",
-    "kinds": {
-      "balloon": "对白框",
-      "block": "文本块",
-      "group": "组",
-      "image": "图像",
-      "mask": "蒙版",
-      "panel": "分格",
-      "raster": "栅格",
-      "shape": "形状",
-      "text": "文本"
-    },
-    "lock": "锁定 {{name}}",
-    "locked": "已锁定",
-    "opacityLabel": "{{name}} 不透明度",
-    "parts": {
-      "cleanup": "清理",
-      "mask": "蒙版",
-      "pick": "{{name}}的{{part}}",
-      "toggle": "按住 Shift 单击以显示或隐藏"
-    },
-    "show": "显示 {{name}}",
-    "sourceLabel": "{{name}} 的原文",
-    "textLabel": "{{name}} 的文本",
-    "textName": "文本 {{index}}",
-    "title": "图层",
-    "translationLabel": "{{name}} 的译文",
-    "unlock": "解锁 {{name}}",
-    "unlocked": "未锁定"
-  },
-  "menu": {
-    "about": "关于",
-    "closeProject": "关闭项目",
-    "delete": "删除所选项",
-    "discord": "Discord",
-    "donate": "捐赠",
-    "edit": "编辑",
-    "export": "导出项目",
-    "feedback": "发送反馈",
-    "file": "文件",
-    "fit": "适应窗口",
-    "github": "GitHub",
-    "help": "帮助",
-    "history": "历史记录",
-    "import": "导入页面",
-    "redo": "重做",
-    "selectAllLayers": "选择所有图层",
-    "settings": "设置",
-    "undo": "撤销",
-    "unloadModels": "卸载模型",
-    "view": "视图"
-  },
-  "model": {
-    "baseUrl": "基础 URL",
-    "default": "默认",
-    "targetLanguage": "目标语言"
-  },
-  "modelPicker": {
-    "empty": "没有可用模型。",
-    "loading": "正在加载模型…",
-    "noResults": "没有与此搜索匹配的模型。",
-    "search": "搜索模型",
-    "title": "选择模型",
-    "useModel": "使用 {{provider}} 的 {{model}}"
-  },
-  "navigator": {
-    "actionsFor": "{{page}} 的操作",
-    "delete": "删除",
-    "deleteDescription": "这将删除“{{page}}”及其图层。此操作可以撤销。",
-    "deleteTitle": "删除页面？",
-    "emptyDescription": "导入图像文件或文件夹以添加页面。",
-    "emptyTitle": "还没有页面",
-    "importAction": "导入",
-    "importFiles": "文件…",
-    "importFolder": "文件夹…",
-    "importing": "正在导入页面…",
-    "importingAction": "正在导入…",
-    "noImage": "无图像",
-    "pageNumber": "第 {{number}} 页",
-    "pages": "页面",
-    "run": {
-      "detect": "检测",
-      "inpaint": "修补",
-      "recognize": "识别",
-      "translate": "翻译"
-    },
-    "selected": "已选择 {{count}}",
-    "translated": "已翻译 {{translated}}/{{total}}"
-  },
-  "outputPicker": {
-    "noResults": "没有与此搜索匹配的语言。",
-    "search": "搜索语言",
-    "targetLanguage": "目标语言",
-    "title": "翻译输出"
-  },
-  "phase": {
-    "detect": "检测",
-    "inpaint": "修补",
-    "recognize": "OCR",
-    "translate": "翻译"
-  },
-  "phaseDescription": {
-    "detect": "定位页面上的文本。",
-    "inpaint": "重建移除文字后的画面。",
-    "recognize": "读取每个区域中的文本。",
-    "translate": "将原文翻译为目标语言。"
-  },
-  "psd": {
-    "background": "背景",
-    "cleanup": "清理",
-    "outline": "轮廓"
-  },
-  "reasoning": {
-    "high": "高",
-    "low": "低",
-    "max": "最大",
-    "medium": "中",
-    "minimal": "最少",
-    "off": "关闭",
-    "xhigh": "超高"
-  },
-  "settings": {
-    "appearance": {
-      "description": "调整工作区外观，而不改变图稿的渲染方式。",
-      "interface": "界面",
-      "language": "语言",
-      "theme": "主题",
-      "themeDescription": "“系统”会跟随操作系统设置。",
-      "themes": {
-        "dark": "深色",
-        "light": "浅色",
-        "system": "系统"
-      },
-      "title": "外观"
-    },
-    "backToEditor": "返回编辑器",
-    "loading": "正在加载偏好设置…",
-    "pipeline": {
-      "description": "选择用于处理每个页面的模型和选项。",
-      "model": "模型",
-      "modelLabel": "{{stage}}模型",
-      "options": {
-        "bubbleThreshold": "气泡阈值",
-        "onomatopoeiaThreshold": "拟声词阈值",
-        "panelThreshold": "分镜阈值",
-        "prompt": "提示词",
-        "promptDescription": "仅适用于生成式模型。",
-        "textThreshold": "文本阈值"
-      },
-      "stages": {
-        "detect": {
-          "description": "查找文本、气泡和分镜。",
-          "title": "检测器"
-        },
-        "inpaint": {
-          "description": "重建已删除文本下方的图稿。",
-          "title": "修补器"
-        },
-        "recognize": {
-          "description": "读取检测区域内的原文。",
-          "title": "识别器"
-        },
-        "translate": {
-          "description": "将原文翻译为目标语言。",
-          "title": "翻译器"
-        }
-      },
-      "thresholds": "阈值",
-      "title": "流水线",
-      "translator": {
-        "instructions": "附加指示",
-        "instructionsDescription": "可选，可用任何语言和形式填写，例如名字的写法或语气。KoharuBatch 会按原样把它们附加在自己的系统提示词之后。",
-        "reasoning": "推理",
-        "reasoningDescription": "翻译时使用模型推理。",
-        "targetLanguageDescription": "选择文本要翻译成的语言。",
-        "vision": "视觉",
-        "visionDescription": "翻译时将页面图像输入给 LLM。"
-      }
-    },
-    "providers": {
-      "browserHint": "请在浏览器打开的页面上完成登录。",
-      "clearCredential": "清除 {{provider}} 凭据",
-      "configured": "已配置",
-      "connections": "连接",
-      "connectionsDescription": "凭据安全地存储在此设备上。",
-      "contextWindow": "上下文长度（token）",
-      "credential": "凭据",
-      "credentialLabel": "{{provider}} 凭据",
-      "description": "连接翻译和语言模型提供商。",
-      "deviceCodeHint": "请在浏览器打开的页面上输入此代码。",
-      "notConfigured": "未配置",
-      "openPage": "打开登录页面",
-      "openaiCompatible": "OpenAI 兼容",
-      "signIn": "登录",
-      "signInLabel": "登录 {{provider}}",
-      "signOut": "退出登录",
-      "signOutLabel": "退出 {{provider}} 登录",
-      "signingIn": "正在等待登录…",
-      "subscription": "订阅",
-      "title": "提供商"
-    },
-    "tabs": {
-      "appearance": "外观",
-      "pipeline": "流水线",
-      "providers": "提供商",
-      "typesetting": "渲染器"
-    },
-    "title": "设置",
-    "typesetting": {
-      "addFallback": "添加备用字体",
-      "addFamily": "添加字体系列",
-      "description": "设置文本图层未指定字体系列时使用的有序字体堆栈。",
-      "empty": "没有默认字体系列。KoharuBatch 将使用系统后备字体。",
-      "fallbacks": "备用字体",
-      "fallbacksDescription": "主字体缺少的字符按顺序使用备用字体。拖动可调整顺序，拖到主字体上即可互换。",
-      "familyLabel": "默认字体系列 {{index}}",
-      "fontFallback": "首选字体",
-      "fontFallbackDescription": "KoharuBatch 使用第一个支持该文本的可用字体系列。",
-      "loadError": "无法加载字体。仍可删除现有字体系列。",
-      "loadingFonts": "正在加载字体…",
-      "primary": "主字体",
-      "removeFamily": "删除 {{family}}",
-      "title": "渲染器"
-    }
-  },
-  "start": {
-    "create": "创建",
-    "deleteAction": "删除项目",
-    "deleteDescription": "这将永久删除“{{name}}”及其所有页面。此操作无法撤销。",
-    "deleteLabel": "删除 {{name}}",
-    "deleteTitle": "删除项目？",
-    "deleting": "正在删除…",
-    "description": "打开工作区或开始新的翻译。",
-    "emptyDescription": "创建第一个项目以开始导入页面。",
-    "emptyTitle": "还没有项目",
-    "loadingProjects": "正在加载项目…",
-    "newDescription": "为页面、翻译和导出创建一个干净的工作区。",
-    "newProject": "新建项目",
-    "noResults": "没有与此搜索匹配的项目。",
-    "projectKind": "KoharuBatch 项目",
-    "projectList": "项目",
-    "openFolder": "打开文件夹…",
-    "projectName": "项目名称",
-    "projectNamePlaceholder": "我的新项目",
-    "search": "搜索项目",
-    "storageHint": "项目存储在这台电脑上。",
-    "title": "项目",
-    "yourProjects": "你的项目"
-  },
-  "startup": {
-    "description": "正在加载本地 AI 运行时并准备工作区。首次启动可能需要一些时间。",
-    "opening": "正在打开 KoharuBatch…",
-    "status": "正在初始化本地运行时",
-    "title": "正在准备 KoharuBatch"
-  },
-  "status": {
-    "zoom": "缩放"
-  },
-  "story": {
-    "noText": "此页面上没有文字。",
-    "sfx": "音效",
-    "title": "故事",
-    "translate": "翻译 {{name}}"
-  },
-  "tools": {
-    "brushSize": "画笔大小",
-    "brushSizeInput": "画笔大小",
-    "brushSizePixels": "画笔大小：{{size}} 像素",
-    "brushSizeShort": "{{size}} 像素",
-    "color_picker": "取色器",
-    "decreaseBrushSize": "减小画笔大小",
-    "direct_select": "直接选择",
-    "draw": "绘画",
-    "eraser": "橡皮擦",
-    "increaseBrushSize": "增大画笔大小",
-    "lasso": "套索",
-    "marquee": "矩形选框",
-    "pan": "平移",
-    "remove": "移除",
-    "select": "选择",
-    "text": "文本"
-  },
-  "updater": {
-    "available": {
-      "description": "KoharuBatch <strong>{{version}}</strong> 已准备好安装",
-      "title": "有可用更新"
-    },
-    "close": "关闭",
-    "downloading": {
-      "subtitle": "KoharuBatch {{version}}",
-      "title": "正在下载更新…"
-    },
-    "error": {
-      "description": "更新过程中出现问题",
-      "title": "更新失败"
-    },
-    "later": "稍后",
-    "noNotes": "未提供发行说明。",
-    "retry": "重试",
-    "update": "更新"
-  },
-  "window": {
-    "close": "关闭",
-    "maximize": "最大化",
-    "minimize": "最小化",
-    "restore": "还原"
-  }
+    "about":  {
+                  "author":  "作者",
+                  "description":  "漫画翻译工具",
+                  "unavailable":  "不可用",
+                  "version":  "版本"
+              },
+    "activity":  {
+                     "dismiss":  "关闭",
+                     "downloadFailed":  "下载失败。",
+                     "downloadingFiles":  "正在下载 {{count}} 个文件",
+                     "downloadingFiles_one":  "正在下载 {{count}} 个文件",
+                     "downloadingFiles_other":  "正在下载 {{count}} 个文件",
+                     "modelDownload":  "模型下载",
+                     "processing":  "正在处理",
+                     "processingFailed":  "处理失败。",
+                     "stop":  "停止",
+                     "title":  "活动"
+                 },
+    "agent":  {
+                  "cancel":  "取消",
+                  "cancelled":  "已取消。",
+                  "emptyDescription":  "让智能体检查、翻译、编辑或处理此项目。它只会在需要时查看页面图像。",
+                  "emptyTitle":  "需要 KoharuBatch 做什么？",
+                  "failed":  "智能体请求失败。",
+                  "loading":  "正在加载智能体…",
+                  "message":  "向 KoharuBatch 智能体发送消息",
+                  "model":  "模型",
+                  "newChat":  "新对话",
+                  "placeholder":  "让 KoharuBatch 处理此项目…",
+                  "reasoning":  "推理",
+                  "send":  "发送",
+                  "thinking":  "正在思考…",
+                  "thought":  "思考了 {{seconds}} 秒",
+                  "title":  "智能体",
+                  "toolFailed":  "{{tool}} 失败",
+                  "used":  "已使用 {{tool}}",
+                  "using":  "正在使用 {{tool}}",
+                  "working":  "正在工作…"
+              },
+    "canvas":  {
+                   "empty":  "请选择页面以开始。",
+                   "notice":  {
+                                  "eraser_needs_raster":  "请先选择栅格图层再擦除。"
+                              }
+               },
+    "colorPicker":  {
+                        "brushColor":  "笔刷颜色",
+                        "hexCode":  "十六进制颜色代码",
+                        "recent":  "最近使用的颜色",
+                        "recentColor":  "最近使用的颜色 {{color}}",
+                        "sampleCanvas":  "从画布拾取颜色",
+                        "transparent":  "透明"
+                    },
+    "common":  {
+                   "back":  "返回",
+                   "cancel":  "取消",
+                   "clearSearch":  "清除搜索",
+                   "loading":  "正在加载…"
+               },
+    "errors":  {
+                   "actionFailed":  "无法完成该操作",
+                   "fatalTitle":  "KoharuBatch 无法继续运行",
+                   "tryAgain":  "重试",
+                   "unknown":  "原生应用返回了未知错误。"
+               },
+    "feedback":  {
+                     "addScreenshot":  "添加截图",
+                     "cancel":  "取消",
+                     "confirm":  "确认",
+                     "email":  "邮箱",
+                     "emailPlaceholder":  "your.email@example.org",
+                     "emptyMessage":  "请描述发生了什么。",
+                     "failed":  "反馈发送失败，请重试。",
+                     "forbidden":  "此版本无法发送反馈。",
+                     "hide":  "隐藏",
+                     "highlight":  "高亮",
+                     "message":  "描述",
+                     "messagePlaceholder":  "发生了什么？你原本期望怎样？",
+                     "name":  "姓名",
+                     "namePlaceholder":  "你的名字",
+                     "noClient":  "反馈功能暂不可用。",
+                     "removeHighlight":  "移除",
+                     "removeScreenshot":  "移除截图",
+                     "required":  "（必填）",
+                     "sent":  "感谢你的反馈！",
+                     "submit":  "发送",
+                     "timeout":  "发送超时，请重试。",
+                     "title":  "发送反馈"
+                 },
+    "fill":  {
+                 "deselect":  "取消选择",
+                 "generate":  "生成",
+                 "model":  "填充模型",
+                 "prompt":  "描述要添加的内容（可选）",
+                 "title":  "创成式填充"
+             },
+    "fontPicker":  {
+                       "addFavorite":  "将 {{name}} 添加到收藏",
+                       "choose":  "选择字体",
+                       "favoritesOnly":  "显示收藏的字体",
+                       "fontCount":  "{{count}} 种字体",
+                       "fontCount_one":  "{{count}} 种字体",
+                       "fontCount_other":  "{{count}} 种字体",
+                       "fonts":  "字体",
+                       "noFavorites":  "还没有收藏的字体",
+                       "noResults":  "没有与此搜索匹配的字体",
+                       "removeFavorite":  "将 {{name}} 从收藏中移除",
+                       "search":  "搜索字体"
+                   },
+    "history":  {
+                    "close":  "关闭历史记录",
+                    "opened":  "打开时",
+                    "steps":  {
+                                  "add_text":  "添加文字",
+                                  "delete_layers":  "删除图层",
+                                  "delete_pages":  "删除页面",
+                                  "detect":  "检测",
+                                  "edit_frame":  "编辑文本框",
+                                  "erase":  "擦除",
+                                  "import":  "导入页面",
+                                  "inpaint":  "修补",
+                                  "move":  "移动",
+                                  "move_layer":  "移动图层",
+                                  "move_page":  "移动页面",
+                                  "paint":  "绘画",
+                                  "recognize":  "OCR",
+                                  "resize":  "调整大小",
+                                  "rotate":  "旋转",
+                                  "set_locked":  "锁定或解锁",
+                                  "set_source_text":  "编辑原文",
+                                  "set_style":  "更改文字样式",
+                                  "set_text":  "编辑文字",
+                                  "set_visibility":  "显示或隐藏",
+                                  "translate":  "翻译",
+                                  "update_layer":  "更改图层"
+                              },
+                    "title":  "历史记录"
+                },
+    "inference":  {
+                      "entireProject":  "整个项目",
+                      "entireProjectDescription":  "处理此项目中的每个页面。",
+                      "model":  "模型",
+                      "noModel":  "无模型",
+                      "notSet":  "未设置",
+                      "output":  "输出",
+                      "pipelineStages":  "处理流程阶段",
+                      "providerDefault":  "提供商默认值",
+                      "run":  "运行",
+                      "runProcessing":  "运行处理",
+                      "scope":  "范围",
+                      "scopeShort":  {
+                                         "project":  "项目",
+                                         "selected-pages":  "所选内容"
+                                     },
+                      "selectPagesFirst":  "请先选择页面",
+                      "selectedCount":  "已选择 {{count}} 个页面",
+                      "selectedCount_one":  "已选择 {{count}} 个页面",
+                      "selectedCount_other":  "已选择 {{count}} 个页面",
+                      "selectedPages":  "所选页面",
+                      "selector":  "处理设置",
+                      "shortcuts":  "处理选项",
+                      "stageCount":  "{{count}} 个阶段",
+                      "stageCount_one":  "{{count}} 个阶段",
+                      "stageCount_other":  "{{count}} 个阶段",
+                      "stages":  "阶段",
+                      "stop":  "停止",
+                      "stopProcessing":  "停止处理"
+                  },
+    "inspector":  {
+                      "alignBottom":  "底端对齐",
+                      "alignCenter":  "居中对齐",
+                      "alignLeft":  "左对齐",
+                      "alignMiddle":  "居中对齐",
+                      "alignRight":  "右对齐",
+                      "alignTop":  "顶端对齐",
+                      "alignment":  "对齐",
+                      "auto":  "自动",
+                      "border":  "描边",
+                      "borderColor":  "描边颜色",
+                      "borderWidth":  "描边宽度",
+                      "chooseBorderWidth":  "选择描边宽度",
+                      "chooseFontSize":  "选择字体大小",
+                      "font":  "字体",
+                      "fontSize":  "字体大小",
+                      "fontStyles":  {
+                                         "italic":  "斜体",
+                                         "oblique":  "倾斜"
+                                     },
+                      "fontWeight":  "字体粗细",
+                      "horizontal":  "横排",
+                      "opacity":  "不透明度",
+                      "selectPage":  "选择一个页面以检查其图层。",
+                      "source":  "原文",
+                      "text":  "文本",
+                      "textColor":  "文本颜色",
+                      "textDirection":  "文本方向",
+                      "translation":  "译文",
+                      "type":  "排版",
+                      "vertical":  "竖排"
+                  },
+    "layers":  {
+                   "delete":  "删除 {{name}}",
+                   "edit":  "编辑 {{name}}",
+                   "empty":  "此页面上没有图层。",
+                   "hide":  "隐藏 {{name}}",
+                   "kinds":  {
+                                 "balloon":  "对白框",
+                                 "block":  "文本块",
+                                 "group":  "组",
+                                 "image":  "图像",
+                                 "mask":  "蒙版",
+                                 "panel":  "分格",
+                                 "raster":  "栅格",
+                                 "shape":  "形状",
+                                 "text":  "文本"
+                             },
+                   "lock":  "锁定 {{name}}",
+                   "locked":  "已锁定",
+                   "opacityLabel":  "{{name}} 不透明度",
+                   "parts":  {
+                                 "cleanup":  "清理",
+                                 "mask":  "蒙版",
+                                 "pick":  "{{name}}的{{part}}",
+                                 "toggle":  "按住 Shift 单击以显示或隐藏"
+                             },
+                   "show":  "显示 {{name}}",
+                   "sourceLabel":  "{{name}} 的原文",
+                   "textLabel":  "{{name}} 的文本",
+                   "textName":  "文本 {{index}}",
+                   "title":  "图层",
+                   "translationLabel":  "{{name}} 的译文",
+                   "unlock":  "解锁 {{name}}",
+                   "unlocked":  "未锁定"
+               },
+    "menu":  {
+                 "about":  "关于",
+                 "closeProject":  "关闭项目",
+                 "delete":  "删除所选项",
+                 "discord":  "Discord",
+                 "donate":  "捐赠",
+                 "edit":  "编辑",
+                 "export":  "导出项目",
+                 "feedback":  "发送反馈",
+                 "file":  "文件",
+                 "fit":  "适应窗口",
+                 "github":  "GitHub",
+                 "help":  "帮助",
+                 "history":  "历史记录",
+                 "import":  "导入页面",
+                 "redo":  "重做",
+                 "selectAllLayers":  "选择所有图层",
+                 "settings":  "设置",
+                 "undo":  "撤销",
+                 "unloadModels":  "卸载模型",
+                 "view":  "视图"
+             },
+    "model":  {
+                  "baseUrl":  "基础 URL",
+                  "default":  "默认",
+                  "targetLanguage":  "目标语言"
+              },
+    "modelPicker":  {
+                        "empty":  "没有可用模型。",
+                        "loading":  "正在加载模型…",
+                        "noResults":  "没有与此搜索匹配的模型。",
+                        "search":  "搜索模型",
+                        "title":  "选择模型",
+                        "useModel":  "使用 {{provider}} 的 {{model}}"
+                    },
+    "navigator":  {
+                      "actionsFor":  "{{page}} 的操作",
+                      "delete":  "删除",
+                      "deleteDescription":  "这将删除“{{page}}”及其图层。此操作可以撤销。",
+                      "deleteTitle":  "删除页面？",
+                      "emptyDescription":  "导入图像文件或文件夹以添加页面。",
+                      "emptyTitle":  "还没有页面",
+                      "importAction":  "导入",
+                      "importFiles":  "文件…",
+                      "importFolder":  "文件夹…",
+                      "importing":  "正在导入页面…",
+                      "importingAction":  "正在导入…",
+                      "noImage":  "无图像",
+                      "pageNumber":  "第 {{number}} 页",
+                      "pages":  "页面",
+                      "run":  {
+                                  "detect":  "检测",
+                                  "inpaint":  "修补",
+                                  "recognize":  "识别",
+                                  "translate":  "翻译"
+                              },
+                      "selected":  "已选择 {{count}}",
+                      "translated":  "已翻译 {{translated}}/{{total}}",
+                      "importFolderBatch":  "Batch translate folder"
+                  },
+    "outputPicker":  {
+                         "noResults":  "没有与此搜索匹配的语言。",
+                         "search":  "搜索语言",
+                         "targetLanguage":  "目标语言",
+                         "title":  "翻译输出"
+                     },
+    "phase":  {
+                  "detect":  "检测",
+                  "inpaint":  "修补",
+                  "recognize":  "OCR",
+                  "translate":  "翻译"
+              },
+    "phaseDescription":  {
+                             "detect":  "定位页面上的文本。",
+                             "inpaint":  "重建移除文字后的画面。",
+                             "recognize":  "读取每个区域中的文本。",
+                             "translate":  "将原文翻译为目标语言。"
+                         },
+    "psd":  {
+                "background":  "背景",
+                "cleanup":  "清理",
+                "outline":  "轮廓"
+            },
+    "reasoning":  {
+                      "high":  "高",
+                      "low":  "低",
+                      "max":  "最大",
+                      "medium":  "中",
+                      "minimal":  "最少",
+                      "off":  "关闭",
+                      "xhigh":  "超高"
+                  },
+    "settings":  {
+                     "appearance":  {
+                                        "description":  "调整工作区外观，而不改变图稿的渲染方式。",
+                                        "interface":  "界面",
+                                        "language":  "语言",
+                                        "theme":  "主题",
+                                        "themeDescription":  "“系统”会跟随操作系统设置。",
+                                        "themes":  {
+                                                       "dark":  "深色",
+                                                       "light":  "浅色",
+                                                       "system":  "系统"
+                                                   },
+                                        "title":  "外观"
+                                    },
+                     "backToEditor":  "返回编辑器",
+                     "loading":  "正在加载偏好设置…",
+                     "pipeline":  {
+                                      "description":  "选择用于处理每个页面的模型和选项。",
+                                      "model":  "模型",
+                                      "modelLabel":  "{{stage}}模型",
+                                      "options":  {
+                                                      "bubbleThreshold":  "气泡阈值",
+                                                      "onomatopoeiaThreshold":  "拟声词阈值",
+                                                      "panelThreshold":  "分镜阈值",
+                                                      "prompt":  "提示词",
+                                                      "promptDescription":  "仅适用于生成式模型。",
+                                                      "textThreshold":  "文本阈值"
+                                                  },
+                                      "stages":  {
+                                                     "detect":  {
+                                                                    "description":  "查找文本、气泡和分镜。",
+                                                                    "title":  "检测器"
+                                                                },
+                                                     "inpaint":  {
+                                                                     "description":  "重建已删除文本下方的图稿。",
+                                                                     "title":  "修补器"
+                                                                 },
+                                                     "recognize":  {
+                                                                       "description":  "读取检测区域内的原文。",
+                                                                       "title":  "识别器"
+                                                                   },
+                                                     "translate":  {
+                                                                       "description":  "将原文翻译为目标语言。",
+                                                                       "title":  "翻译器"
+                                                                   }
+                                                 },
+                                      "thresholds":  "阈值",
+                                      "title":  "流水线",
+                                      "translator":  {
+                                                         "instructions":  "附加指示",
+                                                         "instructionsDescription":  "可选，可用任何语言和形式填写，例如名字的写法或语气。KoharuBatch 会按原样把它们附加在自己的系统提示词之后。",
+                                                         "reasoning":  "推理",
+                                                         "reasoningDescription":  "翻译时使用模型推理。",
+                                                         "targetLanguageDescription":  "选择文本要翻译成的语言。",
+                                                         "vision":  "视觉",
+                                                         "visionDescription":  "翻译时将页面图像输入给 LLM。"
+                                                     }
+                                  },
+                     "providers":  {
+                                       "browserHint":  "请在浏览器打开的页面上完成登录。",
+                                       "clearCredential":  "清除 {{provider}} 凭据",
+                                       "configured":  "已配置",
+                                       "connections":  "连接",
+                                       "connectionsDescription":  "凭据安全地存储在此设备上。",
+                                       "contextWindow":  "上下文长度（token）",
+                                       "credential":  "凭据",
+                                       "credentialLabel":  "{{provider}} 凭据",
+                                       "description":  "连接翻译和语言模型提供商。",
+                                       "deviceCodeHint":  "请在浏览器打开的页面上输入此代码。",
+                                       "notConfigured":  "未配置",
+                                       "openPage":  "打开登录页面",
+                                       "openaiCompatible":  "OpenAI 兼容",
+                                       "signIn":  "登录",
+                                       "signInLabel":  "登录 {{provider}}",
+                                       "signOut":  "退出登录",
+                                       "signOutLabel":  "退出 {{provider}} 登录",
+                                       "signingIn":  "正在等待登录…",
+                                       "subscription":  "订阅",
+                                       "title":  "提供商"
+                                   },
+                     "tabs":  {
+                                  "appearance":  "外观",
+                                  "pipeline":  "流水线",
+                                  "providers":  "提供商",
+                                  "typesetting":  "渲染器"
+                              },
+                     "title":  "设置",
+                     "typesetting":  {
+                                         "addFallback":  "添加备用字体",
+                                         "addFamily":  "添加字体系列",
+                                         "description":  "设置文本图层未指定字体系列时使用的有序字体堆栈。",
+                                         "empty":  "没有默认字体系列。KoharuBatch 将使用系统后备字体。",
+                                         "fallbacks":  "备用字体",
+                                         "fallbacksDescription":  "主字体缺少的字符按顺序使用备用字体。拖动可调整顺序，拖到主字体上即可互换。",
+                                         "familyLabel":  "默认字体系列 {{index}}",
+                                         "fontFallback":  "首选字体",
+                                         "fontFallbackDescription":  "KoharuBatch 使用第一个支持该文本的可用字体系列。",
+                                         "loadError":  "无法加载字体。仍可删除现有字体系列。",
+                                         "loadingFonts":  "正在加载字体…",
+                                         "primary":  "主字体",
+                                         "removeFamily":  "删除 {{family}}",
+                                         "title":  "渲染器"
+                                     }
+                 },
+    "start":  {
+                  "create":  "创建",
+                  "deleteAction":  "删除项目",
+                  "deleteDescription":  "这将永久删除“{{name}}”及其所有页面。此操作无法撤销。",
+                  "deleteLabel":  "删除 {{name}}",
+                  "deleteTitle":  "删除项目？",
+                  "deleting":  "正在删除…",
+                  "description":  "打开工作区或开始新的翻译。",
+                  "emptyDescription":  "创建第一个项目以开始导入页面。",
+                  "emptyTitle":  "还没有项目",
+                  "loadingProjects":  "正在加载项目…",
+                  "newDescription":  "为页面、翻译和导出创建一个干净的工作区。",
+                  "newProject":  "新建项目",
+                  "noResults":  "没有与此搜索匹配的项目。",
+                  "projectKind":  "KoharuBatch 项目",
+                  "projectList":  "项目",
+                  "openFolder":  "打开文件夹…",
+                  "projectName":  "项目名称",
+                  "projectNamePlaceholder":  "我的新项目",
+                  "search":  "搜索项目",
+                  "storageHint":  "项目存储在这台电脑上。",
+                  "title":  "项目",
+                  "yourProjects":  "你的项目"
+              },
+    "startup":  {
+                    "description":  "正在加载本地 AI 运行时并准备工作区。首次启动可能需要一些时间。",
+                    "opening":  "正在打开 KoharuBatch…",
+                    "status":  "正在初始化本地运行时",
+                    "title":  "正在准备 KoharuBatch"
+                },
+    "status":  {
+                   "zoom":  "缩放"
+               },
+    "story":  {
+                  "noText":  "此页面上没有文字。",
+                  "sfx":  "音效",
+                  "title":  "故事",
+                  "translate":  "翻译 {{name}}"
+              },
+    "tools":  {
+                  "brushSize":  "画笔大小",
+                  "brushSizeInput":  "画笔大小",
+                  "brushSizePixels":  "画笔大小：{{size}} 像素",
+                  "brushSizeShort":  "{{size}} 像素",
+                  "color_picker":  "取色器",
+                  "decreaseBrushSize":  "减小画笔大小",
+                  "direct_select":  "直接选择",
+                  "draw":  "绘画",
+                  "eraser":  "橡皮擦",
+                  "increaseBrushSize":  "增大画笔大小",
+                  "lasso":  "套索",
+                  "marquee":  "矩形选框",
+                  "pan":  "平移",
+                  "remove":  "移除",
+                  "select":  "选择",
+                  "text":  "文本"
+              },
+    "updater":  {
+                    "available":  {
+                                      "description":  "KoharuBatch \u003cstrong\u003e{{version}}\u003c/strong\u003e 已准备好安装",
+                                      "title":  "有可用更新"
+                                  },
+                    "close":  "关闭",
+                    "downloading":  {
+                                        "subtitle":  "KoharuBatch {{version}}",
+                                        "title":  "正在下载更新…"
+                                    },
+                    "error":  {
+                                  "description":  "更新过程中出现问题",
+                                  "title":  "更新失败"
+                              },
+                    "later":  "稍后",
+                    "noNotes":  "未提供发行说明。",
+                    "retry":  "重试",
+                    "update":  "更新"
+                },
+    "window":  {
+                   "close":  "关闭",
+                   "maximize":  "最大化",
+                   "minimize":  "最小化",
+                   "restore":  "还原"
+               }
 }

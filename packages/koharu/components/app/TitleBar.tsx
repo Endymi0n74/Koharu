@@ -154,6 +154,11 @@ export function TitleBar() {
                 </MenubarSubContent>
               </MenubarSub>
               <MenubarSeparator />
+              <MenubarItem onClick={() => send(commands.openFolder)}>
+                <FolderOpen />
+                {t('navigator.importFolderBatch')}
+              </MenubarItem>
+              <MenubarSeparator />
               <MenubarItem disabled={!project} onClick={() => send(commands.close)}>
                 {t('menu.closeProject')}
               </MenubarItem>

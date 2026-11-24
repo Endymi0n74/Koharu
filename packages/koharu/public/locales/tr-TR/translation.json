@@ -1,513 +1,514 @@
 {
-  "about": {
-    "author": "Yazar",
-    "description": "Manga çeviri araçları",
-    "unavailable": "Kullanılamıyor",
-    "version": "Sürüm"
-  },
-  "activity": {
-    "dismiss": "Kapat",
-    "downloadFailed": "İndirme başarısız oldu.",
-    "downloadingFiles": "{{count}} dosya indiriliyor",
-    "downloadingFiles_one": "{{count}} dosya indiriliyor",
-    "downloadingFiles_other": "{{count}} dosya indiriliyor",
-    "modelDownload": "Model indirme",
-    "processing": "İşleniyor",
-    "processingFailed": "İşleme başarısız oldu.",
-    "stop": "Durdur",
-    "title": "Etkinlik"
-  },
-  "agent": {
-    "cancel": "İptal",
-    "cancelled": "İptal edildi.",
-    "emptyDescription": "Ajandan bu projeyi incelemesini, çevirmesini, düzenlemesini veya işlemesini isteyin. Sayfa görüntülerini yalnızca gerektiğinde görür.",
-    "emptyTitle": "KoharuBatch ne yapsın?",
-    "failed": "Ajan isteği başarısız oldu.",
-    "loading": "Ajan yükleniyor…",
-    "message": "KoharuBatch Ajanına mesaj gönder",
-    "model": "Model",
-    "newChat": "Yeni sohbet",
-    "placeholder": "KoharuBatch’dan bu proje üzerinde çalışmasını isteyin…",
-    "reasoning": "Akıl yürütme",
-    "send": "Gönder",
-    "thinking": "Düşünüyor…",
-    "thought": "{{seconds}} sn düşündü",
-    "title": "Ajan",
-    "toolFailed": "{{tool}} başarısız",
-    "used": "{{tool}} kullanıldı",
-    "using": "{{tool}} kullanılıyor",
-    "working": "Çalışıyor…"
-  },
-  "canvas": {
-    "empty": "Başlamak için bir sayfa seçin.",
-    "notice": {
-      "eraser_needs_raster": "Silmek için bir raster katman seçin."
-    }
-  },
-  "colorPicker": {
-    "brushColor": "Fırça rengi",
-    "hexCode": "Onaltılık renk kodu",
-    "recent": "Son kullanılan renkler",
-    "recentColor": "Son kullanılan renk {{color}}",
-    "sampleCanvas": "Tuvalden renk seç",
-    "transparent": "Şeffaf"
-  },
-  "common": {
-    "back": "Geri",
-    "cancel": "İptal",
-    "clearSearch": "Aramayı temizle",
-    "loading": "Yükleniyor…"
-  },
-  "errors": {
-    "actionFailed": "İşlem tamamlanamadı",
-    "fatalTitle": "KoharuBatch devam edemedi",
-    "tryAgain": "Tekrar dene",
-    "unknown": "Yerel uygulama bilinmeyen bir hata döndürdü."
-  },
-  "feedback": {
-    "addScreenshot": "Ekran görüntüsü ekle",
-    "cancel": "İptal",
-    "confirm": "Onayla",
-    "email": "E-posta",
-    "emailPlaceholder": "your.email@example.org",
-    "emptyMessage": "Lütfen ne olduğunu açıklayın.",
-    "failed": "Geri bildirim gönderilemedi. Lütfen tekrar deneyin.",
-    "forbidden": "Bu sürüm geri bildirim gönderemez.",
-    "hide": "Gizle",
-    "highlight": "Vurgula",
-    "message": "Açıklama",
-    "messagePlaceholder": "Ne oldu? Ne olmasını bekliyordunuz?",
-    "name": "Ad",
-    "namePlaceholder": "Adınız",
-    "noClient": "Geri bildirim şu anda kullanılamıyor.",
-    "removeHighlight": "Kaldır",
-    "removeScreenshot": "Ekran görüntüsünü kaldır",
-    "required": "(zorunlu)",
-    "sent": "Geri bildiriminiz için teşekkürler!",
-    "submit": "Gönder",
-    "timeout": "Gönderim zaman aşımına uğradı. Lütfen tekrar deneyin.",
-    "title": "Geri bildirim gönder"
-  },
-  "fill": {
-    "deselect": "Seçimi Kaldır",
-    "generate": "Oluştur",
-    "model": "Dolgu modeli",
-    "prompt": "Ne ekleneceğini açıklayın (isteğe bağlı)",
-    "title": "Üretken Dolgu"
-  },
-  "fontPicker": {
-    "addFavorite": "{{name}} yazı tipini favorilere ekle",
-    "choose": "Yazı tipi seç",
-    "favoritesOnly": "Favori yazı tiplerini göster",
-    "fontCount": "{{count}} yazı tipi",
-    "fontCount_one": "{{count}} yazı tipi",
-    "fontCount_other": "{{count}} yazı tipi",
-    "fonts": "Yazı tipleri",
-    "noFavorites": "Henüz favori yazı tipi yok",
-    "noResults": "Bu aramayla eşleşen yazı tipi yok",
-    "removeFavorite": "{{name}} yazı tipini favorilerden çıkar",
-    "search": "Yazı tipi ara"
-  },
-  "history": {
-    "close": "Geçmişi kapat",
-    "opened": "Açıldığında",
-    "steps": {
-      "add_text": "Metin ekle",
-      "delete_layers": "Katmanları sil",
-      "delete_pages": "Sayfaları sil",
-      "detect": "Algılama",
-      "edit_frame": "Çerçeveyi düzenle",
-      "erase": "Sil",
-      "import": "Sayfaları içe aktar",
-      "inpaint": "Doldurma",
-      "move": "Taşı",
-      "move_layer": "Katmanları taşı",
-      "move_page": "Sayfayı taşı",
-      "paint": "Boya",
-      "recognize": "OCR",
-      "resize": "Yeniden boyutlandır",
-      "rotate": "Döndür",
-      "set_locked": "Kilitle veya kilidi aç",
-      "set_source_text": "Kaynak metni düzenle",
-      "set_style": "Metin stilini değiştir",
-      "set_text": "Metni düzenle",
-      "set_visibility": "Göster veya gizle",
-      "translate": "Çeviri",
-      "update_layer": "Katmanı değiştir"
-    },
-    "title": "Geçmiş"
-  },
-  "inference": {
-    "entireProject": "Tüm proje",
-    "entireProjectDescription": "Bu projedeki tüm sayfaları işler.",
-    "model": "Model",
-    "noModel": "Model yok",
-    "notSet": "Ayarlanmadı",
-    "output": "Çıktı",
-    "pipelineStages": "İşlem hattı aşamaları",
-    "providerDefault": "Sağlayıcı varsayılanı",
-    "run": "Çalıştır",
-    "runProcessing": "İşlemeyi çalıştır",
-    "scope": "Kapsam",
-    "scopeShort": {
-      "project": "Proje",
-      "selected-pages": "Seçim"
-    },
-    "selectPagesFirst": "Önce sayfaları seçin",
-    "selectedCount": "{{count}} sayfa seçildi",
-    "selectedCount_one": "{{count}} sayfa seçildi",
-    "selectedCount_other": "{{count}} sayfa seçildi",
-    "selectedPages": "Seçili sayfalar",
-    "selector": "İşleme ayarları",
-    "shortcuts": "İşleme seçenekleri",
-    "stageCount": "{{count}} aşama",
-    "stageCount_one": "{{count}} aşama",
-    "stageCount_other": "{{count}} aşama",
-    "stages": "Aşamalar",
-    "stop": "Durdur",
-    "stopProcessing": "İşlemeyi durdur"
-  },
-  "inspector": {
-    "alignBottom": "Alta hizala",
-    "alignCenter": "Ortala",
-    "alignLeft": "Sola hizala",
-    "alignMiddle": "Ortaya hizala",
-    "alignRight": "Sağa hizala",
-    "alignTop": "Üste hizala",
-    "alignment": "Hizalama",
-    "auto": "Otomatik",
-    "border": "Kenarlık",
-    "borderColor": "Kenarlık rengi",
-    "borderWidth": "Kenarlık genişliği",
-    "chooseBorderWidth": "Kenarlık genişliğini seç",
-    "chooseFontSize": "Yazı tipi boyutunu seç",
-    "font": "Yazı tipi",
-    "fontSize": "Yazı tipi boyutu",
-    "fontStyles": {
-      "italic": "İtalik",
-      "oblique": "Eğik"
-    },
-    "fontWeight": "Yazı tipi kalınlığı",
-    "horizontal": "Yatay",
-    "opacity": "Opaklık",
-    "selectPage": "Katmanlarını incelemek için bir sayfa seçin.",
-    "source": "Kaynak metin",
-    "text": "Metin",
-    "textColor": "Metin rengi",
-    "textDirection": "Metin yönü",
-    "translation": "Çeviri",
-    "type": "Tipografi",
-    "vertical": "Dikey"
-  },
-  "layers": {
-    "delete": "{{name}} öğesini sil",
-    "edit": "{{name}} öğesini düzenle",
-    "empty": "Bu sayfada katman yok.",
-    "hide": "{{name}} öğesini gizle",
-    "kinds": {
-      "balloon": "Balon",
-      "block": "Metin bloğu",
-      "group": "Grup",
-      "image": "Görüntü",
-      "mask": "Maske",
-      "panel": "Panel",
-      "raster": "Raster",
-      "shape": "Şekil",
-      "text": "Metin"
-    },
-    "lock": "{{name}} öğesini kilitle",
-    "locked": "Kilitli",
-    "opacityLabel": "{{name}} opaklığı",
-    "parts": {
-      "cleanup": "Temizleme",
-      "mask": "Maske",
-      "pick": "{{name}} {{part}}",
-      "toggle": "Göstermek veya gizlemek için Shift+tıklayın"
-    },
-    "show": "{{name}} öğesini göster",
-    "sourceLabel": "{{name}} kaynak metni",
-    "textLabel": "{{name}} metni",
-    "textName": "Metin {{index}}",
-    "title": "Katmanlar",
-    "translationLabel": "{{name}} çevirisi",
-    "unlock": "{{name}} öğesinin kilidini aç",
-    "unlocked": "Kilitsiz"
-  },
-  "menu": {
-    "about": "Hakkında",
-    "closeProject": "Projeyi Kapat",
-    "delete": "Seçilenleri Sil",
-    "discord": "Discord",
-    "donate": "Bağış yap",
-    "edit": "Düzenle",
-    "export": "Projeyi Dışa Aktar",
-    "feedback": "Geri bildirim gönder",
-    "file": "Dosya",
-    "fit": "Pencereye Sığdır",
-    "github": "GitHub",
-    "help": "Yardım",
-    "history": "Geçmiş",
-    "import": "Sayfaları İçe Aktar",
-    "redo": "Yinele",
-    "selectAllLayers": "Tüm Katmanları Seç",
-    "settings": "Ayarlar",
-    "undo": "Geri Al",
-    "unloadModels": "Modelleri bellekten kaldır",
-    "view": "Görünüm"
-  },
-  "model": {
-    "baseUrl": "Temel URL",
-    "default": "Varsayılan",
-    "targetLanguage": "Hedef dil"
-  },
-  "modelPicker": {
-    "empty": "Kullanılabilir model yok.",
-    "loading": "Modeller yükleniyor…",
-    "noResults": "Bu aramayla eşleşen model yok.",
-    "search": "Model ara",
-    "title": "Model seç",
-    "useModel": "{{provider}} sağlayıcısından {{model}} kullan"
-  },
-  "navigator": {
-    "actionsFor": "{{page}} için eylemler",
-    "delete": "Sil",
-    "deleteDescription": "“{{page}}” ve katmanları silinir. Bu işlemi geri alabilirsiniz.",
-    "deleteTitle": "Sayfa silinsin mi?",
-    "emptyDescription": "Sayfa eklemek için görüntü dosyalarını veya bir klasörü içe aktarın.",
-    "emptyTitle": "Henüz sayfa yok",
-    "importAction": "İçe Aktar",
-    "importFiles": "Dosyalar…",
-    "importFolder": "Klasör…",
-    "importing": "Sayfalar içe aktarılıyor…",
-    "importingAction": "İçe aktarılıyor…",
-    "noImage": "Görüntü yok",
-    "pageNumber": "Sayfa {{number}}",
-    "pages": "Sayfalar",
-    "run": {
-      "detect": "Algıla",
-      "inpaint": "Doldur",
-      "recognize": "Tanı",
-      "translate": "Çevir"
-    },
-    "selected": "{{count}} seçili",
-    "translated": "{{translated}}/{{total}} çevrildi"
-  },
-  "outputPicker": {
-    "noResults": "Bu aramayla eşleşen dil yok.",
-    "search": "Dil ara",
-    "targetLanguage": "Hedef dil",
-    "title": "Çeviri çıktısı"
-  },
-  "phase": {
-    "detect": "Algılama",
-    "inpaint": "Doldurma",
-    "recognize": "OCR",
-    "translate": "Çeviri"
-  },
-  "phaseDescription": {
-    "detect": "Sayfadaki metni bulur.",
-    "inpaint": "Metin kaldırıldıktan sonra çizimi yeniden oluşturur.",
-    "recognize": "Her bölgenin içindeki metni okur.",
-    "translate": "Kaynak metni hedef dile çevirir."
-  },
-  "psd": {
-    "background": "Arka plan",
-    "cleanup": "Temizleme",
-    "outline": "Dış hat"
-  },
-  "reasoning": {
-    "high": "Yüksek",
-    "low": "Düşük",
-    "max": "Maksimum",
-    "medium": "Orta",
-    "minimal": "Minimal",
-    "off": "Kapalı",
-    "xhigh": "Çok yüksek"
-  },
-  "settings": {
-    "appearance": {
-      "description": "Çizimin işlenişini değiştirmeden çalışma alanını ortamınıza uyarlayın.",
-      "interface": "Arayüz",
-      "language": "Dil",
-      "theme": "Tema",
-      "themeDescription": "Sistem, işletim sistemi ayarını izler.",
-      "themes": {
-        "dark": "Koyu",
-        "light": "Açık",
-        "system": "Sistem"
-      },
-      "title": "Görünüm"
-    },
-    "backToEditor": "Düzenleyiciye dön",
-    "loading": "Tercihler yükleniyor…",
-    "pipeline": {
-      "description": "Her sayfayı işlemek için kullanılan modelleri ve seçenekleri seçin.",
-      "model": "Model",
-      "modelLabel": "{{stage}} modeli",
-      "options": {
-        "bubbleThreshold": "Konuşma balonu eşiği",
-        "onomatopoeiaThreshold": "Ses efekti eşiği",
-        "panelThreshold": "Panel eşiği",
-        "prompt": "İstem",
-        "promptDescription": "Yalnızca üretken modellere uygulanır.",
-        "textThreshold": "Metin eşiği"
-      },
-      "stages": {
-        "detect": {
-          "description": "Metinleri, konuşma balonlarını ve panelleri bulur.",
-          "title": "Algılayıcı"
-        },
-        "inpaint": {
-          "description": "Kaldırılan metnin altındaki çizimi yeniden oluşturur.",
-          "title": "Doldurucu"
-        },
-        "recognize": {
-          "description": "Algılanan bölgelerdeki kaynak metni okur.",
-          "title": "Tanıyıcı"
-        },
-        "translate": {
-          "description": "Kaynak metni hedef dile çevirir.",
-          "title": "Çevirmen"
-        }
-      },
-      "thresholds": "Eşikler",
-      "title": "İşlem hattı",
-      "translator": {
-        "instructions": "Ek talimatlar",
-        "instructionsDescription": "İsteğe bağlı, herhangi bir dilde ve biçimde; örneğin bir adın yazılışı ya da üslup. KoharuBatch bunları kendi sistem isteminin ardından olduğu gibi ekler.",
-        "reasoning": "Akıl yürütme",
-        "reasoningDescription": "Çeviri sırasında model akıl yürütmesini kullanır.",
-        "targetLanguageDescription": "Metnin çevrileceği dili seçin.",
-        "vision": "Görsel",
-        "visionDescription": "Çeviri sırasında sayfa görsellerini LLM'ye iletir."
-      }
-    },
-    "providers": {
-      "browserHint": "Tarayıcınızın açtığı sayfada oturum açmayı tamamlayın.",
-      "clearCredential": "{{provider}} kimlik bilgisini temizle",
-      "configured": "Yapılandırıldı",
-      "connections": "Bağlantılar",
-      "connectionsDescription": "Kimlik bilgileri bu cihazda güvenli bir şekilde saklanır.",
-      "contextWindow": "Bağlam uzunluğu (token)",
-      "credential": "Kimlik bilgisi",
-      "credentialLabel": "{{provider}} kimlik bilgisi",
-      "description": "Çeviri ve dil modeli sağlayıcılarını bağlayın.",
-      "deviceCodeHint": "Bu kodu tarayıcınızın açtığı sayfaya girin.",
-      "notConfigured": "Yapılandırılmadı",
-      "openPage": "Oturum açma sayfasını aç",
-      "openaiCompatible": "OpenAI uyumlu",
-      "signIn": "Oturum aç",
-      "signInLabel": "{{provider}} oturumu aç",
-      "signOut": "Oturumu kapat",
-      "signOutLabel": "{{provider}} oturumunu kapat",
-      "signingIn": "Oturum açma bekleniyor…",
-      "subscription": "Abonelik",
-      "title": "Sağlayıcılar"
-    },
-    "tabs": {
-      "appearance": "Görünüm",
-      "pipeline": "İşlem hattı",
-      "providers": "Sağlayıcılar",
-      "typesetting": "Oluşturucu"
-    },
-    "title": "Ayarlar",
-    "typesetting": {
-      "addFallback": "Yedek ekle",
-      "addFamily": "Yazı tipi ailesi ekle",
-      "description": "Bir metin katmanına aile atanmadığında kullanılacak sıralı yazı tipi yığınını ayarlayın.",
-      "empty": "Varsayılan aile yok. KoharuBatch sistem yedeğini kullanacak.",
-      "fallbacks": "Yedekler",
-      "fallbacksDescription": "Birincil yazı tipinde olmayan karakterler için sırayla kullanılır. Sıralamak için sürükleyin ya da yer değiştirmek için Birincil'in üzerine bırakın.",
-      "familyLabel": "Varsayılan yazı tipi ailesi {{index}}",
-      "fontFallback": "Tercih edilen yazı tipleri",
-      "fontFallbackDescription": "KoharuBatch, metni destekleyen ilk kullanılabilir aileyi kullanır.",
-      "loadError": "Yazı tipleri yüklenemedi. Mevcut aileler yine de kaldırılabilir.",
-      "loadingFonts": "Yazı tipleri yükleniyor…",
-      "primary": "Birincil",
-      "removeFamily": "{{family}} ailesini kaldır",
-      "title": "Oluşturucu"
-    }
-  },
-  "start": {
-    "create": "Oluştur",
-    "deleteAction": "Projeyi sil",
-    "deleteDescription": "“{{name}}” ve tüm sayfaları kalıcı olarak silinir. Bu işlem geri alınamaz.",
-    "deleteLabel": "{{name}} öğesini sil",
-    "deleteTitle": "Proje silinsin mi?",
-    "deleting": "Siliniyor…",
-    "description": "Bir çalışma alanı açın veya yeni bir çeviri başlatın.",
-    "emptyDescription": "Sayfaları içe aktarmaya başlamak için ilk projenizi oluşturun.",
-    "emptyTitle": "Henüz proje yok",
-    "loadingProjects": "Projeler yükleniyor…",
-    "newDescription": "Sayfalarınız, çevirileriniz ve dışa aktarımlarınız için temiz bir çalışma alanı oluşturun.",
-    "newProject": "Yeni proje",
-    "noResults": "Bu aramayla eşleşen proje yok.",
-    "projectKind": "KoharuBatch projesi",
-    "projectList": "Projeler",
-    "openFolder": "Klasör aç…",
-    "projectName": "Proje adı",
-    "projectNamePlaceholder": "Yeni projem",
-    "search": "Proje ara",
-    "storageHint": "Projeler bu bilgisayarda yerel olarak saklanır.",
-    "title": "Projeler",
-    "yourProjects": "Projeleriniz"
-  },
-  "startup": {
-    "description": "Yerel yapay zekâ çalışma zamanları yükleniyor ve çalışma alanı hazırlanıyor. İlk açılış biraz sürebilir.",
-    "opening": "KoharuBatch açılıyor…",
-    "status": "Yerel çalışma zamanları başlatılıyor",
-    "title": "KoharuBatch hazırlanıyor"
-  },
-  "status": {
-    "zoom": "Yakınlaştırma"
-  },
-  "story": {
-    "noText": "Bu sayfada metin yok.",
-    "sfx": "Ses efekti",
-    "title": "Hikâye",
-    "translate": "{{name}} öğesini çevir"
-  },
-  "tools": {
-    "brushSize": "Fırça boyutu",
-    "brushSizeInput": "Fırça boyutu",
-    "brushSizePixels": "Fırça boyutu: {{size}} piksel",
-    "brushSizeShort": "{{size}} px",
-    "color_picker": "Renk seçici",
-    "decreaseBrushSize": "Fırça boyutunu azalt",
-    "direct_select": "Doğrudan Seçim",
-    "draw": "Çizim",
-    "eraser": "Silgi",
-    "increaseBrushSize": "Fırça boyutunu artır",
-    "lasso": "Kement",
-    "marquee": "Dikdörtgen Seçim Çerçevesi",
-    "pan": "Kaydır",
-    "remove": "Kaldır",
-    "select": "Seç",
-    "text": "Metin"
-  },
-  "updater": {
-    "available": {
-      "description": "KoharuBatch <strong>{{version}}</strong> yüklenmeye hazır",
-      "title": "Güncelleme mevcut"
-    },
-    "close": "Kapat",
-    "downloading": {
-      "subtitle": "KoharuBatch {{version}}",
-      "title": "Güncelleme indiriliyor…"
-    },
-    "error": {
-      "description": "Güncelleme sırasında bir hata oluştu",
-      "title": "Güncelleme başarısız"
-    },
-    "later": "Daha sonra",
-    "noNotes": "Sürüm notu sağlanmadı.",
-    "retry": "Tekrar dene",
-    "update": "Güncelle"
-  },
-  "window": {
-    "close": "Kapat",
-    "maximize": "Ekranı kapla",
-    "minimize": "Simge durumuna küçült",
-    "restore": "Geri yükle"
-  }
+    "about":  {
+                  "author":  "Yazar",
+                  "description":  "Manga çeviri araçları",
+                  "unavailable":  "Kullanılamıyor",
+                  "version":  "Sürüm"
+              },
+    "activity":  {
+                     "dismiss":  "Kapat",
+                     "downloadFailed":  "İndirme başarısız oldu.",
+                     "downloadingFiles":  "{{count}} dosya indiriliyor",
+                     "downloadingFiles_one":  "{{count}} dosya indiriliyor",
+                     "downloadingFiles_other":  "{{count}} dosya indiriliyor",
+                     "modelDownload":  "Model indirme",
+                     "processing":  "İşleniyor",
+                     "processingFailed":  "İşleme başarısız oldu.",
+                     "stop":  "Durdur",
+                     "title":  "Etkinlik"
+                 },
+    "agent":  {
+                  "cancel":  "İptal",
+                  "cancelled":  "İptal edildi.",
+                  "emptyDescription":  "Ajandan bu projeyi incelemesini, çevirmesini, düzenlemesini veya işlemesini isteyin. Sayfa görüntülerini yalnızca gerektiğinde görür.",
+                  "emptyTitle":  "KoharuBatch ne yapsın?",
+                  "failed":  "Ajan isteği başarısız oldu.",
+                  "loading":  "Ajan yükleniyor…",
+                  "message":  "KoharuBatch Ajanına mesaj gönder",
+                  "model":  "Model",
+                  "newChat":  "Yeni sohbet",
+                  "placeholder":  "KoharuBatch’dan bu proje üzerinde çalışmasını isteyin…",
+                  "reasoning":  "Akıl yürütme",
+                  "send":  "Gönder",
+                  "thinking":  "Düşünüyor…",
+                  "thought":  "{{seconds}} sn düşündü",
+                  "title":  "Ajan",
+                  "toolFailed":  "{{tool}} başarısız",
+                  "used":  "{{tool}} kullanıldı",
+                  "using":  "{{tool}} kullanılıyor",
+                  "working":  "Çalışıyor…"
+              },
+    "canvas":  {
+                   "empty":  "Başlamak için bir sayfa seçin.",
+                   "notice":  {
+                                  "eraser_needs_raster":  "Silmek için bir raster katman seçin."
+                              }
+               },
+    "colorPicker":  {
+                        "brushColor":  "Fırça rengi",
+                        "hexCode":  "Onaltılık renk kodu",
+                        "recent":  "Son kullanılan renkler",
+                        "recentColor":  "Son kullanılan renk {{color}}",
+                        "sampleCanvas":  "Tuvalden renk seç",
+                        "transparent":  "Şeffaf"
+                    },
+    "common":  {
+                   "back":  "Geri",
+                   "cancel":  "İptal",
+                   "clearSearch":  "Aramayı temizle",
+                   "loading":  "Yükleniyor…"
+               },
+    "errors":  {
+                   "actionFailed":  "İşlem tamamlanamadı",
+                   "fatalTitle":  "KoharuBatch devam edemedi",
+                   "tryAgain":  "Tekrar dene",
+                   "unknown":  "Yerel uygulama bilinmeyen bir hata döndürdü."
+               },
+    "feedback":  {
+                     "addScreenshot":  "Ekran görüntüsü ekle",
+                     "cancel":  "İptal",
+                     "confirm":  "Onayla",
+                     "email":  "E-posta",
+                     "emailPlaceholder":  "your.email@example.org",
+                     "emptyMessage":  "Lütfen ne olduğunu açıklayın.",
+                     "failed":  "Geri bildirim gönderilemedi. Lütfen tekrar deneyin.",
+                     "forbidden":  "Bu sürüm geri bildirim gönderemez.",
+                     "hide":  "Gizle",
+                     "highlight":  "Vurgula",
+                     "message":  "Açıklama",
+                     "messagePlaceholder":  "Ne oldu? Ne olmasını bekliyordunuz?",
+                     "name":  "Ad",
+                     "namePlaceholder":  "Adınız",
+                     "noClient":  "Geri bildirim şu anda kullanılamıyor.",
+                     "removeHighlight":  "Kaldır",
+                     "removeScreenshot":  "Ekran görüntüsünü kaldır",
+                     "required":  "(zorunlu)",
+                     "sent":  "Geri bildiriminiz için teşekkürler!",
+                     "submit":  "Gönder",
+                     "timeout":  "Gönderim zaman aşımına uğradı. Lütfen tekrar deneyin.",
+                     "title":  "Geri bildirim gönder"
+                 },
+    "fill":  {
+                 "deselect":  "Seçimi Kaldır",
+                 "generate":  "Oluştur",
+                 "model":  "Dolgu modeli",
+                 "prompt":  "Ne ekleneceğini açıklayın (isteğe bağlı)",
+                 "title":  "Üretken Dolgu"
+             },
+    "fontPicker":  {
+                       "addFavorite":  "{{name}} yazı tipini favorilere ekle",
+                       "choose":  "Yazı tipi seç",
+                       "favoritesOnly":  "Favori yazı tiplerini göster",
+                       "fontCount":  "{{count}} yazı tipi",
+                       "fontCount_one":  "{{count}} yazı tipi",
+                       "fontCount_other":  "{{count}} yazı tipi",
+                       "fonts":  "Yazı tipleri",
+                       "noFavorites":  "Henüz favori yazı tipi yok",
+                       "noResults":  "Bu aramayla eşleşen yazı tipi yok",
+                       "removeFavorite":  "{{name}} yazı tipini favorilerden çıkar",
+                       "search":  "Yazı tipi ara"
+                   },
+    "history":  {
+                    "close":  "Geçmişi kapat",
+                    "opened":  "Açıldığında",
+                    "steps":  {
+                                  "add_text":  "Metin ekle",
+                                  "delete_layers":  "Katmanları sil",
+                                  "delete_pages":  "Sayfaları sil",
+                                  "detect":  "Algılama",
+                                  "edit_frame":  "Çerçeveyi düzenle",
+                                  "erase":  "Sil",
+                                  "import":  "Sayfaları içe aktar",
+                                  "inpaint":  "Doldurma",
+                                  "move":  "Taşı",
+                                  "move_layer":  "Katmanları taşı",
+                                  "move_page":  "Sayfayı taşı",
+                                  "paint":  "Boya",
+                                  "recognize":  "OCR",
+                                  "resize":  "Yeniden boyutlandır",
+                                  "rotate":  "Döndür",
+                                  "set_locked":  "Kilitle veya kilidi aç",
+                                  "set_source_text":  "Kaynak metni düzenle",
+                                  "set_style":  "Metin stilini değiştir",
+                                  "set_text":  "Metni düzenle",
+                                  "set_visibility":  "Göster veya gizle",
+                                  "translate":  "Çeviri",
+                                  "update_layer":  "Katmanı değiştir"
+                              },
+                    "title":  "Geçmiş"
+                },
+    "inference":  {
+                      "entireProject":  "Tüm proje",
+                      "entireProjectDescription":  "Bu projedeki tüm sayfaları işler.",
+                      "model":  "Model",
+                      "noModel":  "Model yok",
+                      "notSet":  "Ayarlanmadı",
+                      "output":  "Çıktı",
+                      "pipelineStages":  "İşlem hattı aşamaları",
+                      "providerDefault":  "Sağlayıcı varsayılanı",
+                      "run":  "Çalıştır",
+                      "runProcessing":  "İşlemeyi çalıştır",
+                      "scope":  "Kapsam",
+                      "scopeShort":  {
+                                         "project":  "Proje",
+                                         "selected-pages":  "Seçim"
+                                     },
+                      "selectPagesFirst":  "Önce sayfaları seçin",
+                      "selectedCount":  "{{count}} sayfa seçildi",
+                      "selectedCount_one":  "{{count}} sayfa seçildi",
+                      "selectedCount_other":  "{{count}} sayfa seçildi",
+                      "selectedPages":  "Seçili sayfalar",
+                      "selector":  "İşleme ayarları",
+                      "shortcuts":  "İşleme seçenekleri",
+                      "stageCount":  "{{count}} aşama",
+                      "stageCount_one":  "{{count}} aşama",
+                      "stageCount_other":  "{{count}} aşama",
+                      "stages":  "Aşamalar",
+                      "stop":  "Durdur",
+                      "stopProcessing":  "İşlemeyi durdur"
+                  },
+    "inspector":  {
+                      "alignBottom":  "Alta hizala",
+                      "alignCenter":  "Ortala",
+                      "alignLeft":  "Sola hizala",
+                      "alignMiddle":  "Ortaya hizala",
+                      "alignRight":  "Sağa hizala",
+                      "alignTop":  "Üste hizala",
+                      "alignment":  "Hizalama",
+                      "auto":  "Otomatik",
+                      "border":  "Kenarlık",
+                      "borderColor":  "Kenarlık rengi",
+                      "borderWidth":  "Kenarlık genişliği",
+                      "chooseBorderWidth":  "Kenarlık genişliğini seç",
+                      "chooseFontSize":  "Yazı tipi boyutunu seç",
+                      "font":  "Yazı tipi",
+                      "fontSize":  "Yazı tipi boyutu",
+                      "fontStyles":  {
+                                         "italic":  "İtalik",
+                                         "oblique":  "Eğik"
+                                     },
+                      "fontWeight":  "Yazı tipi kalınlığı",
+                      "horizontal":  "Yatay",
+                      "opacity":  "Opaklık",
+                      "selectPage":  "Katmanlarını incelemek için bir sayfa seçin.",
+                      "source":  "Kaynak metin",
+                      "text":  "Metin",
+                      "textColor":  "Metin rengi",
+                      "textDirection":  "Metin yönü",
+                      "translation":  "Çeviri",
+                      "type":  "Tipografi",
+                      "vertical":  "Dikey"
+                  },
+    "layers":  {
+                   "delete":  "{{name}} öğesini sil",
+                   "edit":  "{{name}} öğesini düzenle",
+                   "empty":  "Bu sayfada katman yok.",
+                   "hide":  "{{name}} öğesini gizle",
+                   "kinds":  {
+                                 "balloon":  "Balon",
+                                 "block":  "Metin bloğu",
+                                 "group":  "Grup",
+                                 "image":  "Görüntü",
+                                 "mask":  "Maske",
+                                 "panel":  "Panel",
+                                 "raster":  "Raster",
+                                 "shape":  "Şekil",
+                                 "text":  "Metin"
+                             },
+                   "lock":  "{{name}} öğesini kilitle",
+                   "locked":  "Kilitli",
+                   "opacityLabel":  "{{name}} opaklığı",
+                   "parts":  {
+                                 "cleanup":  "Temizleme",
+                                 "mask":  "Maske",
+                                 "pick":  "{{name}} {{part}}",
+                                 "toggle":  "Göstermek veya gizlemek için Shift+tıklayın"
+                             },
+                   "show":  "{{name}} öğesini göster",
+                   "sourceLabel":  "{{name}} kaynak metni",
+                   "textLabel":  "{{name}} metni",
+                   "textName":  "Metin {{index}}",
+                   "title":  "Katmanlar",
+                   "translationLabel":  "{{name}} çevirisi",
+                   "unlock":  "{{name}} öğesinin kilidini aç",
+                   "unlocked":  "Kilitsiz"
+               },
+    "menu":  {
+                 "about":  "Hakkında",
+                 "closeProject":  "Projeyi Kapat",
+                 "delete":  "Seçilenleri Sil",
+                 "discord":  "Discord",
+                 "donate":  "Bağış yap",
+                 "edit":  "Düzenle",
+                 "export":  "Projeyi Dışa Aktar",
+                 "feedback":  "Geri bildirim gönder",
+                 "file":  "Dosya",
+                 "fit":  "Pencereye Sığdır",
+                 "github":  "GitHub",
+                 "help":  "Yardım",
+                 "history":  "Geçmiş",
+                 "import":  "Sayfaları İçe Aktar",
+                 "redo":  "Yinele",
+                 "selectAllLayers":  "Tüm Katmanları Seç",
+                 "settings":  "Ayarlar",
+                 "undo":  "Geri Al",
+                 "unloadModels":  "Modelleri bellekten kaldır",
+                 "view":  "Görünüm"
+             },
+    "model":  {
+                  "baseUrl":  "Temel URL",
+                  "default":  "Varsayılan",
+                  "targetLanguage":  "Hedef dil"
+              },
+    "modelPicker":  {
+                        "empty":  "Kullanılabilir model yok.",
+                        "loading":  "Modeller yükleniyor…",
+                        "noResults":  "Bu aramayla eşleşen model yok.",
+                        "search":  "Model ara",
+                        "title":  "Model seç",
+                        "useModel":  "{{provider}} sağlayıcısından {{model}} kullan"
+                    },
+    "navigator":  {
+                      "actionsFor":  "{{page}} için eylemler",
+                      "delete":  "Sil",
+                      "deleteDescription":  "“{{page}}” ve katmanları silinir. Bu işlemi geri alabilirsiniz.",
+                      "deleteTitle":  "Sayfa silinsin mi?",
+                      "emptyDescription":  "Sayfa eklemek için görüntü dosyalarını veya bir klasörü içe aktarın.",
+                      "emptyTitle":  "Henüz sayfa yok",
+                      "importAction":  "İçe Aktar",
+                      "importFiles":  "Dosyalar…",
+                      "importFolder":  "Klasör…",
+                      "importing":  "Sayfalar içe aktarılıyor…",
+                      "importingAction":  "İçe aktarılıyor…",
+                      "noImage":  "Görüntü yok",
+                      "pageNumber":  "Sayfa {{number}}",
+                      "pages":  "Sayfalar",
+                      "run":  {
+                                  "detect":  "Algıla",
+                                  "inpaint":  "Doldur",
+                                  "recognize":  "Tanı",
+                                  "translate":  "Çevir"
+                              },
+                      "selected":  "{{count}} seçili",
+                      "translated":  "{{translated}}/{{total}} çevrildi",
+                      "importFolderBatch":  "Batch translate folder"
+                  },
+    "outputPicker":  {
+                         "noResults":  "Bu aramayla eşleşen dil yok.",
+                         "search":  "Dil ara",
+                         "targetLanguage":  "Hedef dil",
+                         "title":  "Çeviri çıktısı"
+                     },
+    "phase":  {
+                  "detect":  "Algılama",
+                  "inpaint":  "Doldurma",
+                  "recognize":  "OCR",
+                  "translate":  "Çeviri"
+              },
+    "phaseDescription":  {
+                             "detect":  "Sayfadaki metni bulur.",
+                             "inpaint":  "Metin kaldırıldıktan sonra çizimi yeniden oluşturur.",
+                             "recognize":  "Her bölgenin içindeki metni okur.",
+                             "translate":  "Kaynak metni hedef dile çevirir."
+                         },
+    "psd":  {
+                "background":  "Arka plan",
+                "cleanup":  "Temizleme",
+                "outline":  "Dış hat"
+            },
+    "reasoning":  {
+                      "high":  "Yüksek",
+                      "low":  "Düşük",
+                      "max":  "Maksimum",
+                      "medium":  "Orta",
+                      "minimal":  "Minimal",
+                      "off":  "Kapalı",
+                      "xhigh":  "Çok yüksek"
+                  },
+    "settings":  {
+                     "appearance":  {
+                                        "description":  "Çizimin işlenişini değiştirmeden çalışma alanını ortamınıza uyarlayın.",
+                                        "interface":  "Arayüz",
+                                        "language":  "Dil",
+                                        "theme":  "Tema",
+                                        "themeDescription":  "Sistem, işletim sistemi ayarını izler.",
+                                        "themes":  {
+                                                       "dark":  "Koyu",
+                                                       "light":  "Açık",
+                                                       "system":  "Sistem"
+                                                   },
+                                        "title":  "Görünüm"
+                                    },
+                     "backToEditor":  "Düzenleyiciye dön",
+                     "loading":  "Tercihler yükleniyor…",
+                     "pipeline":  {
+                                      "description":  "Her sayfayı işlemek için kullanılan modelleri ve seçenekleri seçin.",
+                                      "model":  "Model",
+                                      "modelLabel":  "{{stage}} modeli",
+                                      "options":  {
+                                                      "bubbleThreshold":  "Konuşma balonu eşiği",
+                                                      "onomatopoeiaThreshold":  "Ses efekti eşiği",
+                                                      "panelThreshold":  "Panel eşiği",
+                                                      "prompt":  "İstem",
+                                                      "promptDescription":  "Yalnızca üretken modellere uygulanır.",
+                                                      "textThreshold":  "Metin eşiği"
+                                                  },
+                                      "stages":  {
+                                                     "detect":  {
+                                                                    "description":  "Metinleri, konuşma balonlarını ve panelleri bulur.",
+                                                                    "title":  "Algılayıcı"
+                                                                },
+                                                     "inpaint":  {
+                                                                     "description":  "Kaldırılan metnin altındaki çizimi yeniden oluşturur.",
+                                                                     "title":  "Doldurucu"
+                                                                 },
+                                                     "recognize":  {
+                                                                       "description":  "Algılanan bölgelerdeki kaynak metni okur.",
+                                                                       "title":  "Tanıyıcı"
+                                                                   },
+                                                     "translate":  {
+                                                                       "description":  "Kaynak metni hedef dile çevirir.",
+                                                                       "title":  "Çevirmen"
+                                                                   }
+                                                 },
+                                      "thresholds":  "Eşikler",
+                                      "title":  "İşlem hattı",
+                                      "translator":  {
+                                                         "instructions":  "Ek talimatlar",
+                                                         "instructionsDescription":  "İsteğe bağlı, herhangi bir dilde ve biçimde; örneğin bir adın yazılışı ya da üslup. KoharuBatch bunları kendi sistem isteminin ardından olduğu gibi ekler.",
+                                                         "reasoning":  "Akıl yürütme",
+                                                         "reasoningDescription":  "Çeviri sırasında model akıl yürütmesini kullanır.",
+                                                         "targetLanguageDescription":  "Metnin çevrileceği dili seçin.",
+                                                         "vision":  "Görsel",
+                                                         "visionDescription":  "Çeviri sırasında sayfa görsellerini LLM\u0027ye iletir."
+                                                     }
+                                  },
+                     "providers":  {
+                                       "browserHint":  "Tarayıcınızın açtığı sayfada oturum açmayı tamamlayın.",
+                                       "clearCredential":  "{{provider}} kimlik bilgisini temizle",
+                                       "configured":  "Yapılandırıldı",
+                                       "connections":  "Bağlantılar",
+                                       "connectionsDescription":  "Kimlik bilgileri bu cihazda güvenli bir şekilde saklanır.",
+                                       "contextWindow":  "Bağlam uzunluğu (token)",
+                                       "credential":  "Kimlik bilgisi",
+                                       "credentialLabel":  "{{provider}} kimlik bilgisi",
+                                       "description":  "Çeviri ve dil modeli sağlayıcılarını bağlayın.",
+                                       "deviceCodeHint":  "Bu kodu tarayıcınızın açtığı sayfaya girin.",
+                                       "notConfigured":  "Yapılandırılmadı",
+                                       "openPage":  "Oturum açma sayfasını aç",
+                                       "openaiCompatible":  "OpenAI uyumlu",
+                                       "signIn":  "Oturum aç",
+                                       "signInLabel":  "{{provider}} oturumu aç",
+                                       "signOut":  "Oturumu kapat",
+                                       "signOutLabel":  "{{provider}} oturumunu kapat",
+                                       "signingIn":  "Oturum açma bekleniyor…",
+                                       "subscription":  "Abonelik",
+                                       "title":  "Sağlayıcılar"
+                                   },
+                     "tabs":  {
+                                  "appearance":  "Görünüm",
+                                  "pipeline":  "İşlem hattı",
+                                  "providers":  "Sağlayıcılar",
+                                  "typesetting":  "Oluşturucu"
+                              },
+                     "title":  "Ayarlar",
+                     "typesetting":  {
+                                         "addFallback":  "Yedek ekle",
+                                         "addFamily":  "Yazı tipi ailesi ekle",
+                                         "description":  "Bir metin katmanına aile atanmadığında kullanılacak sıralı yazı tipi yığınını ayarlayın.",
+                                         "empty":  "Varsayılan aile yok. KoharuBatch sistem yedeğini kullanacak.",
+                                         "fallbacks":  "Yedekler",
+                                         "fallbacksDescription":  "Birincil yazı tipinde olmayan karakterler için sırayla kullanılır. Sıralamak için sürükleyin ya da yer değiştirmek için Birincil\u0027in üzerine bırakın.",
+                                         "familyLabel":  "Varsayılan yazı tipi ailesi {{index}}",
+                                         "fontFallback":  "Tercih edilen yazı tipleri",
+                                         "fontFallbackDescription":  "KoharuBatch, metni destekleyen ilk kullanılabilir aileyi kullanır.",
+                                         "loadError":  "Yazı tipleri yüklenemedi. Mevcut aileler yine de kaldırılabilir.",
+                                         "loadingFonts":  "Yazı tipleri yükleniyor…",
+                                         "primary":  "Birincil",
+                                         "removeFamily":  "{{family}} ailesini kaldır",
+                                         "title":  "Oluşturucu"
+                                     }
+                 },
+    "start":  {
+                  "create":  "Oluştur",
+                  "deleteAction":  "Projeyi sil",
+                  "deleteDescription":  "“{{name}}” ve tüm sayfaları kalıcı olarak silinir. Bu işlem geri alınamaz.",
+                  "deleteLabel":  "{{name}} öğesini sil",
+                  "deleteTitle":  "Proje silinsin mi?",
+                  "deleting":  "Siliniyor…",
+                  "description":  "Bir çalışma alanı açın veya yeni bir çeviri başlatın.",
+                  "emptyDescription":  "Sayfaları içe aktarmaya başlamak için ilk projenizi oluşturun.",
+                  "emptyTitle":  "Henüz proje yok",
+                  "loadingProjects":  "Projeler yükleniyor…",
+                  "newDescription":  "Sayfalarınız, çevirileriniz ve dışa aktarımlarınız için temiz bir çalışma alanı oluşturun.",
+                  "newProject":  "Yeni proje",
+                  "noResults":  "Bu aramayla eşleşen proje yok.",
+                  "projectKind":  "KoharuBatch projesi",
+                  "projectList":  "Projeler",
+                  "openFolder":  "Klasör aç…",
+                  "projectName":  "Proje adı",
+                  "projectNamePlaceholder":  "Yeni projem",
+                  "search":  "Proje ara",
+                  "storageHint":  "Projeler bu bilgisayarda yerel olarak saklanır.",
+                  "title":  "Projeler",
+                  "yourProjects":  "Projeleriniz"
+              },
+    "startup":  {
+                    "description":  "Yerel yapay zekâ çalışma zamanları yükleniyor ve çalışma alanı hazırlanıyor. İlk açılış biraz sürebilir.",
+                    "opening":  "KoharuBatch açılıyor…",
+                    "status":  "Yerel çalışma zamanları başlatılıyor",
+                    "title":  "KoharuBatch hazırlanıyor"
+                },
+    "status":  {
+                   "zoom":  "Yakınlaştırma"
+               },
+    "story":  {
+                  "noText":  "Bu sayfada metin yok.",
+                  "sfx":  "Ses efekti",
+                  "title":  "Hikâye",
+                  "translate":  "{{name}} öğesini çevir"
+              },
+    "tools":  {
+                  "brushSize":  "Fırça boyutu",
+                  "brushSizeInput":  "Fırça boyutu",
+                  "brushSizePixels":  "Fırça boyutu: {{size}} piksel",
+                  "brushSizeShort":  "{{size}} px",
+                  "color_picker":  "Renk seçici",
+                  "decreaseBrushSize":  "Fırça boyutunu azalt",
+                  "direct_select":  "Doğrudan Seçim",
+                  "draw":  "Çizim",
+                  "eraser":  "Silgi",
+                  "increaseBrushSize":  "Fırça boyutunu artır",
+                  "lasso":  "Kement",
+                  "marquee":  "Dikdörtgen Seçim Çerçevesi",
+                  "pan":  "Kaydır",
+                  "remove":  "Kaldır",
+                  "select":  "Seç",
+                  "text":  "Metin"
+              },
+    "updater":  {
+                    "available":  {
+                                      "description":  "KoharuBatch \u003cstrong\u003e{{version}}\u003c/strong\u003e yüklenmeye hazır",
+                                      "title":  "Güncelleme mevcut"
+                                  },
+                    "close":  "Kapat",
+                    "downloading":  {
+                                        "subtitle":  "KoharuBatch {{version}}",
+                                        "title":  "Güncelleme indiriliyor…"
+                                    },
+                    "error":  {
+                                  "description":  "Güncelleme sırasında bir hata oluştu",
+                                  "title":  "Güncelleme başarısız"
+                              },
+                    "later":  "Daha sonra",
+                    "noNotes":  "Sürüm notu sağlanmadı.",
+                    "retry":  "Tekrar dene",
+                    "update":  "Güncelle"
+                },
+    "window":  {
+                   "close":  "Kapat",
+                   "maximize":  "Ekranı kapla",
+                   "minimize":  "Simge durumuna küçült",
+                   "restore":  "Geri yükle"
+               }
 }
