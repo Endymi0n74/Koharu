@@ -1,4 +1,4 @@
-//! Koharu's tools on the open project, as rig's own tools: the scene's
+//! KoharuBatch's tools on the open project, as rig's own tools: the scene's
 //! queries but its undo history, which an agent can't act on, an edit of the
 //! scene's ops, the pipeline's run, wait, and stop, and a look at a page. The in-app agent registers them with rig,
 //! and the MCP server serves the same set to outside agents. A call finds

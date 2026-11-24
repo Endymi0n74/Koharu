@@ -1,6 +1,6 @@
 # koharu-torch
 
-libtorch for Koharu's vision models.
+libtorch for KoharuBatch's vision models.
 
 Rust bindings to libtorch, forked from tch-rs [tch-rs], over the C functions of
 `koharu-torch-sys`. The links are under [Sources](#sources).

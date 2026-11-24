@@ -1,4 +1,4 @@
-//! The archives packages come in: Koharu's own `.tar.gz` releases and
+//! The archives packages come in: KoharuBatch's own `.tar.gz` releases and
 //! Python's `.whl` wheels.
 
 use std::{io::copy, path::Path};
@@ -46,7 +46,7 @@ fn unpack(archive: &Path, destination: &Path, patterns: &[&str]) -> Result<()> {
     match archive.extension().and_then(|extension| extension.to_str()) {
         Some("whl") => extract_wheel(archive, destination, selected),
         Some("gz") => extract_tarball(archive, destination, selected),
-        _ => anyhow::bail!("{} isn't an archive Koharu reads", archive.display()),
+        _ => anyhow::bail!("{} isn't an archive KoharuBatch reads", archive.display()),
     }
 }
 

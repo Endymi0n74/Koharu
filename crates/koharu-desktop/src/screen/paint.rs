@@ -1,7 +1,7 @@
 //! What CEF paints: the page and its popup widget (an open `<select>`), kept
 //! as premultiplied BGRA on the CPU with the rectangles that changed since
 //! the compositor last uploaded them, or, where CEF shares its frames, as
-//! Koharu's own GPU textures with the page's transparency mask.
+//! KoharuBatch's own GPU textures with the page's transparency mask.
 
 use std::os::raw::c_int;
 
@@ -55,7 +55,7 @@ pub struct Painted {
     pub popup: Option<Paint>,
     /// Where the popup goes, in window pixels.
     pub popup_origin: Option<(i32, i32)>,
-    /// The page and the popup as Koharu's textures, where CEF shares its
+    /// The page and the popup as KoharuBatch's textures, where CEF shares its
     /// frames, in place of `view` and `popup`.
     pub view_frame: Option<wgpu::Texture>,
     pub popup_frame: Option<wgpu::Texture>,

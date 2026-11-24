@@ -244,7 +244,7 @@ function TranslatorModel({
 
 /** The translator's options under `[pipeline.translator]`, as rows of its section: whether the
  * model sees each page, how much it reasons, the target language, and the user's instructions,
- * which Koharu adds to its own fixed system prompt. */
+ * which KoharuBatch adds to its own fixed system prompt. */
 function TranslatorOptions({
   value,
   onChange,

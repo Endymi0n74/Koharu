@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use strum::{EnumProperty, IntoEnumIterator};
 
-/// The platforms Koharu ships native packages for, each named by the target
-/// triple Koharu's own releases name their archives with.
+/// The platforms KoharuBatch ships native packages for, each named by the target
+/// triple KoharuBatch's own releases name their archives with.
 #[derive(
     Clone, Copy, Debug, Eq, PartialEq, strum::EnumIter, strum::EnumProperty, strum::IntoStaticStr,
 )]
@@ -36,6 +36,6 @@ impl Host {
                 host.get_str("os") == Some(std::env::consts::OS)
                     && host.get_str("arch") == Some(std::env::consts::ARCH)
             })
-            .context("Koharu has no native packages for this platform")
+            .context("KoharuBatch has no native packages for this platform")
     }
 }

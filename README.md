@@ -76,7 +76,7 @@ Detection, OCR, and inpainting models are selected separately.
 
 The detection model finds panels, speech bubbles, text, and sound effects, with a mask over each text's glyphs.
 
-- [KoharuBatch Layout HighRes](https://huggingface.co/mayocream/koharu-layout-highres)
+- [Koharu Layout HighRes](https://huggingface.co/mayocream/koharu-layout-highres)
 
 #### OCR
 
@@ -157,7 +157,7 @@ Startup, runtime, model, and provider errors are covered in [Troubleshooting](ht
 # macOS / Linux
 RUST_LOG=debug koharu
 # Windows (PowerShell)
-$env:RUST_LOG="debug"; koharubatch.exe
+$env:RUST_LOG="debug"; koharu.exe
 ```
 
 ## Development

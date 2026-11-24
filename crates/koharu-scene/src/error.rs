@@ -16,7 +16,7 @@ pub enum Error {
     Rejected(String),
     #[error("op {op}: layer {layer} is locked")]
     Locked { op: usize, layer: LayerId },
-    #[error("this Koharu cannot open project version {0}")]
+    #[error("this KoharuBatch cannot open project version {0}")]
     Version(String),
     #[error("the project file is invalid: {0}")]
     Corrupt(String),

@@ -21,13 +21,13 @@
     "cancel": "İptal",
     "cancelled": "İptal edildi.",
     "emptyDescription": "Ajandan bu projeyi incelemesini, çevirmesini, düzenlemesini veya işlemesini isteyin. Sayfa görüntülerini yalnızca gerektiğinde görür.",
-    "emptyTitle": "Koharu ne yapsın?",
+    "emptyTitle": "KoharuBatch ne yapsın?",
     "failed": "Ajan isteği başarısız oldu.",
     "loading": "Ajan yükleniyor…",
-    "message": "Koharu Ajanına mesaj gönder",
+    "message": "KoharuBatch Ajanına mesaj gönder",
     "model": "Model",
     "newChat": "Yeni sohbet",
-    "placeholder": "Koharu’dan bu proje üzerinde çalışmasını isteyin…",
+    "placeholder": "KoharuBatch’dan bu proje üzerinde çalışmasını isteyin…",
     "reasoning": "Akıl yürütme",
     "send": "Gönder",
     "thinking": "Düşünüyor…",
@@ -60,7 +60,7 @@
   },
   "errors": {
     "actionFailed": "İşlem tamamlanamadı",
-    "fatalTitle": "Koharu devam edemedi",
+    "fatalTitle": "KoharuBatch devam edemedi",
     "tryAgain": "Tekrar dene",
     "unknown": "Yerel uygulama bilinmeyen bir hata döndürdü."
   },
@@ -374,7 +374,7 @@
       "title": "İşlem hattı",
       "translator": {
         "instructions": "Ek talimatlar",
-        "instructionsDescription": "İsteğe bağlı, herhangi bir dilde ve biçimde; örneğin bir adın yazılışı ya da üslup. Koharu bunları kendi sistem isteminin ardından olduğu gibi ekler.",
+        "instructionsDescription": "İsteğe bağlı, herhangi bir dilde ve biçimde; örneğin bir adın yazılışı ya da üslup. KoharuBatch bunları kendi sistem isteminin ardından olduğu gibi ekler.",
         "reasoning": "Akıl yürütme",
         "reasoningDescription": "Çeviri sırasında model akıl yürütmesini kullanır.",
         "targetLanguageDescription": "Metnin çevrileceği dili seçin.",
@@ -415,12 +415,12 @@
       "addFallback": "Yedek ekle",
       "addFamily": "Yazı tipi ailesi ekle",
       "description": "Bir metin katmanına aile atanmadığında kullanılacak sıralı yazı tipi yığınını ayarlayın.",
-      "empty": "Varsayılan aile yok. Koharu sistem yedeğini kullanacak.",
+      "empty": "Varsayılan aile yok. KoharuBatch sistem yedeğini kullanacak.",
       "fallbacks": "Yedekler",
       "fallbacksDescription": "Birincil yazı tipinde olmayan karakterler için sırayla kullanılır. Sıralamak için sürükleyin ya da yer değiştirmek için Birincil'in üzerine bırakın.",
       "familyLabel": "Varsayılan yazı tipi ailesi {{index}}",
       "fontFallback": "Tercih edilen yazı tipleri",
-      "fontFallbackDescription": "Koharu, metni destekleyen ilk kullanılabilir aileyi kullanır.",
+      "fontFallbackDescription": "KoharuBatch, metni destekleyen ilk kullanılabilir aileyi kullanır.",
       "loadError": "Yazı tipleri yüklenemedi. Mevcut aileler yine de kaldırılabilir.",
       "loadingFonts": "Yazı tipleri yükleniyor…",
       "primary": "Birincil",
@@ -442,7 +442,7 @@
     "newDescription": "Sayfalarınız, çevirileriniz ve dışa aktarımlarınız için temiz bir çalışma alanı oluşturun.",
     "newProject": "Yeni proje",
     "noResults": "Bu aramayla eşleşen proje yok.",
-    "projectKind": "Koharu projesi",
+    "projectKind": "KoharuBatch projesi",
     "projectList": "Projeler",
     "openFolder": "Klasör aç…",
     "projectName": "Proje adı",
@@ -454,9 +454,9 @@
   },
   "startup": {
     "description": "Yerel yapay zekâ çalışma zamanları yükleniyor ve çalışma alanı hazırlanıyor. İlk açılış biraz sürebilir.",
-    "opening": "Koharu açılıyor…",
+    "opening": "KoharuBatch açılıyor…",
     "status": "Yerel çalışma zamanları başlatılıyor",
-    "title": "Koharu hazırlanıyor"
+    "title": "KoharuBatch hazırlanıyor"
   },
   "status": {
     "zoom": "Yakınlaştırma"
@@ -487,12 +487,12 @@
   },
   "updater": {
     "available": {
-      "description": "Koharu <strong>{{version}}</strong> yüklenmeye hazır",
+      "description": "KoharuBatch <strong>{{version}}</strong> yüklenmeye hazır",
       "title": "Güncelleme mevcut"
     },
     "close": "Kapat",
     "downloading": {
-      "subtitle": "Koharu {{version}}",
+      "subtitle": "KoharuBatch {{version}}",
       "title": "Güncelleme indiriliyor…"
     },
     "error": {

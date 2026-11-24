@@ -1,6 +1,6 @@
 # koharu-pipeline
 
-Koharu's models, run over a project's pages.
+KoharuBatch's models, run over a project's pages.
 
 One click runs every stage on every page, and every stage also runs by hand on
 a page, a block, or a painted area. The app's buttons, its canvas, and the

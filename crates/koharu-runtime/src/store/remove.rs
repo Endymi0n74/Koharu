@@ -6,7 +6,7 @@ use super::lock::{lock, lock_file};
 
 /// Removes every other version beside each of `versions`, the version folders
 /// a start uses. A failure only logs, since models can still run: a version
-/// another running Koharu holds open stays, and a later start removes it.
+/// another running KoharuBatch holds open stays, and a later start removes it.
 pub(crate) async fn remove_others(versions: Vec<PathBuf>) {
     for version in &versions {
         for other in beside(version) {

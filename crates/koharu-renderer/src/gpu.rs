@@ -1,5 +1,5 @@
 //! The GPU: one wgpu device and a vello_gpu renderer, which draws every page
-//! Koharu shows or exports.
+//! KoharuBatch shows or exports.
 
 use std::sync::{
     Arc, Weak,
@@ -128,8 +128,8 @@ impl Gpu {
             ..Default::default()
         }))
         .context("no GPU adapter supports vello_gpu's features")?;
-        // wgpu panics on an error no scope catches, and Koharu's panic hook
-        // closes the app, so a GPU short of memory, or lost, ended Koharu in
+        // wgpu panics on an error no scope catches, and KoharuBatch's panic hook
+        // closes the app, so a GPU short of memory, or lost, ended KoharuBatch in
         // the middle of a thumbnail. Reads fail through `catch` instead,
         // and the rest is logged.
         device.on_uncaptured_error(Arc::new(|error| tracing::error!("GPU error: {error}")));

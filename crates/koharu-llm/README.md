@@ -1,6 +1,6 @@
 # koharu-llm
 
-Koharu's language models.
+KoharuBatch's language models.
 
 A language model runs on this machine, in-process on llama.cpp, so nothing
 listens on a port and one GPU's memory is planned in one place, or at a hosted
@@ -10,7 +10,7 @@ product, it cites it; the links are under [Sources](#sources).
 
 ## Goal
 
-The user picks a model by name, local or hosted, and nothing else in Koharu
+The user picks a model by name, local or hosted, and nothing else in KoharuBatch
 changes. A local model is one more provider, with the same requests, streams,
 tools, and structured answers as a hosted one, and a page's text goes to a
 provider only when the user picked that provider.
@@ -20,10 +20,10 @@ provider only when the user picked that provider.
 | Part | Model | Cite |
 |---|---|---|
 | name | `vendor/model`, as rig names a model, such as `anthropic/claude-opus-5-5` or `koharu/index-translate-9b` | |
-| quantization | one of Koharu's own models takes it after a colon, `koharu/index-translate-9b:Q8_0`, and otherwise loads its first | Ollama names a model `model:tag` [Ollama API] |
+| quantization | one of KoharuBatch's own models takes it after a colon, `koharu/index-translate-9b:Q8_0`, and otherwise loads its first | Ollama names a model `model:tag` [Ollama API] |
 | a server's address | `[providers]` holds a vendor's `base_url` by its rig name, such as a remote Ollama; the interface offers it for the servers the user names: Ollama, LM Studio, and an OpenAI-compatible one | Codex's `[model_providers]` [Codex config] |
 | OpenAI-compatible | one server at the base URL the user gives, such as a relay, spoken to in Chat Completions, which such servers speak far more widely than Responses; its `/models` list says nothing of what a model can do | Zed's OpenAI-compatible provider [Zed providers] |
-| credentials | API keys and sign-ins live in Koharu's encrypted secrets, under the vendor's name; no environment variable is read | |
+| credentials | API keys and sign-ins live in KoharuBatch's encrypted secrets, under the vendor's name; no environment variable is read | |
 | sign-in | `chatgpt` and `grok` sign in with the user's plan in place of a key: ChatGPT through rig's sign-in, the route Codex takes, and Grok, a SuperGrok or X Premium plan, with xAI's device code through xAI's shared client, its requests going to the endpoint the Grok CLI uses | Hermes Agent and OpenClaw sign in to xAI so [Hermes xAI] [OpenClaw xAI] |
 | listing | every model the user can pick, from each vendor with a key; one that needs a key and has none lists nothing, and a list that fails is left out | LM Studio's own list says what its models can do [LM Studio list] |
 | what a model can do | rig's catalog says; a model it knows as neither calling tools nor keeping to a schema, such as an embedding model, is dropped, and one it doesn't know is offered with its limits unknown | |

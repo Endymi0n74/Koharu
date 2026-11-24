@@ -1,10 +1,10 @@
 //! CEF's frames as shared GPU textures, where the `cef` crate can import them
-//! into Koharu's device: CEF's software path reads each frame back through a
+//! into KoharuBatch's device: CEF's software path reads each frame back through a
 //! copy request whose delivery jitters by up to a frame, which scrolling shows,
 //! while a shared texture arrives as soon as Chromium draws it.
 //!
 //! A shared texture is valid only during CEF's callback, so the `cef` crate
-//! copies each frame into a texture of Koharu's own there, and the page's
+//! copies each frame into a texture of KoharuBatch's own there, and the page's
 //! transparency mask, which stands in for the bytes the software path routes
 //! the pointer by, is drawn from that copy.
 
@@ -46,7 +46,7 @@ fn mask(@builtin(position) at: vec4<f32>) -> @location(0) vec4<f32> {
 /// Whether CEF can hand its frames over as shared textures: on the backends
 /// the `cef` crate imports them on, Vulkan only with the device's external
 /// memory, and on Windows only once Chromium's GPU process is pinned to
-/// Koharu's GPU, since a shared texture opens only on the adapter that made
+/// KoharuBatch's GPU, since a shared texture opens only on the adapter that made
 /// it. `Some` holds the value of Chromium's `use-adapter-luid` switch on
 /// Windows, and nothing elsewhere.
 pub fn sharing(gpu: &Gpu) -> Option<Option<String>> {
@@ -162,14 +162,14 @@ impl Importer {
         }
     }
 
-    /// The frame `info` shares, copied into a texture of Koharu's own. Runs
+    /// The frame `info` shares, copied into a texture of KoharuBatch's own. Runs
     /// in CEF's `on_accelerated_paint`, which lends the frame only until it
     /// returns. Fails when the frame couldn't be imported.
     pub fn take(&self, gpu: &Gpu, info: &AcceleratedPaintInfo) -> Result<wgpu::Texture> {
         // SAFETY: CEF's paint callback is the only caller, and the copy is
         // finished when this returns. Chromium's GPU process draws on
-        // Koharu's GPU: it is pinned there on Windows, and elsewhere it uses
-        // the system's GPU, which is Koharu's unless the machine has several.
+        // KoharuBatch's GPU: it is pinned there on Windows, and elsewhere it uses
+        // the system's GPU, which is KoharuBatch's unless the machine has several.
         unsafe { SharedTextureHandle::new(info).import_texture(&gpu.device, &gpu.queue) }
             .context("CEF's shared texture couldn't be imported")
     }

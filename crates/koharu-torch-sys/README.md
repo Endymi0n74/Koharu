@@ -1,9 +1,9 @@
 # koharu-torch-sys
 
-libtorch's C API and Koharu's shim over it.
+libtorch's C API and KoharuBatch's shim over it.
 
 The declarations `koharu-torch` wraps: a C function for each of libtorch's
-operators and what else its C++ API offers, from Koharu's shim, and libtorch's
+operators and what else its C++ API offers, from KoharuBatch's shim, and libtorch's
 own C functions that make, inspect, and free tensors. The libraries come from
 the runtime's download, and their functions resolve when they're opened. The
 links are under [Sources](#sources).

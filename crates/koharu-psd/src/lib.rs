@@ -1,4 +1,4 @@
-//! Writes a Koharu page as a layered PSD with photocraft-psd.
+//! Writes a KoharuBatch page as a layered PSD with photocraft-psd.
 
 mod blocks;
 mod engine_data;

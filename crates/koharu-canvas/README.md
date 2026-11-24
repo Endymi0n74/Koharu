@@ -1,6 +1,6 @@
 # koharu-canvas
 
-Koharu's page viewport.
+KoharuBatch's page viewport.
 
 It draws a page with the renderer at display rate and turns the pointer into
 edits. It owns the camera, hit-testing, the selection and its handles, the

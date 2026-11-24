@@ -1,5 +1,5 @@
 name: Task
-description: Track a specific piece of work for Koharu
+description: Track a specific piece of work for KoharuBatch
 type: Task
 
 body:

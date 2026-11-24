@@ -58,3 +58,44 @@ choix conservateur assumé.
 Décision committée sur la branche `port/upstream-0.92`. Le rapport affiche les
 périmés puis les réutilisables séparément ; les réutilisables sont dérivés des
 deux racines en même temps que les pins, sans récrire de catalogue.
+
+## Renommage complet Koharu -> KoharuBatch (0.92.0-fork)
+
+Le renommage affiché de 0.92.0 reste le même, et le dépôt GitHub suit :
+`Endymi0n74/Koharu` devient `Endymi0n74/KoharuBatch`, d'où le remote `origin`
+mis à jour (`https://github.com/Endymi0n74/KoharuBatch.git`). `upstream` ne
+bouge pas.
+
+Renommé en `KoharuBatch` : titre de fenêtre (Windows, macOS, Linux), README,
+AGENTS.md, CONTRIBUTING.md, README des crates, textes des 12 locales,
+commentaires et messages de log, description des capacités Tauri, modèles
+d'issue, `cliff.toml` (dépôt du fork), endpoint de mise à jour.
+
+Restent en `koharu`, volontairement :
+
+- les exécutables `koharu.exe` et `koharu-batch.exe` (paquets, bins,
+  `productName` implicite) ;
+- l'identifiant Tauri `Koharu` : il calcule les dossiers de données et de
+  configuration de l'utilisateur (`AppData\Roaming\Koharu`, `~/.koharu`), donc
+  le changer déplacerait les données existantes ;
+- les crates, chemins, types (`KoharuStore`, `KoharuApp`), variables
+  `KOHARU_*`, le modèle « Koharu Layout HighRes » et son dépôt Hugging Face ;
+- les URL d'attribution upstream (`koharu-rs/koharu`, `koharu.rs`, Discord,
+  `LICENSE-MIT`) et `CODE_OF_CONDUCT.md` ;
+- le type de release release-please (`registerReleaseType('koharu')`) ;
+- le dossier local `D:\codex\koharu`.
+
+Version : `[workspace.package] version = "0.92.0-fork"` (Cargo.lock régénéré
+par `cargo check`, aucune dépendance tierce mise à jour). Le manifeste
+release-please reste à 0.92.0 : il ne sert pas à l'affichage et le tag est
+posé à la main.
+
+La traduction d'un dossier en lot reste en place, sans changement de
+comportement : bouton « Open a folder… » de l'écran de démarrage
+(`start.openFolder` -> commande Tauri `openFolder` -> `import::open_folder`),
+et `koharu-batch run --input <dossier>` pour la ligne de commande.
+
+`cargo check --workspace` et `cargo test --workspace --lib --bins --tests`
+passent. `cargo test --workspace` échoue avant les tests sur un exemple
+préexistant (`crates/koharu-ml/examples/qwen_image.rs:49`, `Option<f32>` reçu
+là où un `f32` est attendu), sans lien avec le renommage.

@@ -21,13 +21,13 @@
     "cancel": "إلغاء",
     "cancelled": "أُلغي.",
     "emptyDescription": "اطلب من Agent فحص هذا المشروع أو ترجمته أو تعديله أو معالجته. لن يعرض صور الصفحات إلا عند الحاجة.",
-    "emptyTitle": "ماذا ينبغي أن يفعل Koharu؟",
+    "emptyTitle": "ماذا ينبغي أن يفعل KoharuBatch؟",
     "failed": "فشل طلب Agent.",
     "loading": "جارٍ تحميل الوكيل…",
-    "message": "راسل Koharu Agent",
+    "message": "راسل KoharuBatch Agent",
     "model": "النموذج",
     "newChat": "محادثة جديدة",
-    "placeholder": "اطلب من Koharu العمل على هذا المشروع...",
+    "placeholder": "اطلب من KoharuBatch العمل على هذا المشروع...",
     "reasoning": "التفكير",
     "send": "إرسال",
     "thinking": "جارٍ التفكير...",
@@ -60,7 +60,7 @@
   },
   "errors": {
     "actionFailed": "تعذّر إكمال هذا الإجراء",
-    "fatalTitle": "تعذّر على Koharu المتابعة",
+    "fatalTitle": "تعذّر على KoharuBatch المتابعة",
     "tryAgain": "أعد المحاولة",
     "unknown": "أعاد التطبيق الأصلي خطأً غير معروف."
   },
@@ -374,7 +374,7 @@
       "title": "خط المعالجة",
       "translator": {
         "instructions": "تعليمات إضافية",
-        "instructionsDescription": "اختيارية، بأي لغة وأي صيغة، مثل طريقة كتابة اسم أو نبرة الأسلوب. يضيفها Koharu كما هي بعد موجّه النظام الخاص به.",
+        "instructionsDescription": "اختيارية، بأي لغة وأي صيغة، مثل طريقة كتابة اسم أو نبرة الأسلوب. يضيفها KoharuBatch كما هي بعد موجّه النظام الخاص به.",
         "reasoning": "التفكير",
         "reasoningDescription": "استخدام تفكير النموذج أثناء الترجمة.",
         "targetLanguageDescription": "اختر اللغة التي تُترجم إليها النصوص.",
@@ -415,12 +415,12 @@
       "addFallback": "إضافة خط بديل",
       "addFamily": "إضافة عائلة خطوط",
       "description": "عيّن مجموعة الخطوط المرتّبة المستخدمة عندما لا يكون لطبقة النص عائلة معيّنة.",
-      "empty": "لا توجد عائلات افتراضية. سيستخدم Koharu البديل من النظام.",
+      "empty": "لا توجد عائلات افتراضية. سيستخدم KoharuBatch البديل من النظام.",
       "fallbacks": "البدائل",
       "fallbacksDescription": "تُستخدم بالترتيب للأحرف التي يفتقدها الخط الأساسي. اسحب لإعادة الترتيب، أو إلى الأساسي للتبديل.",
       "familyLabel": "عائلة الخطوط الافتراضية {{index}}",
       "fontFallback": "الخطوط المفضلة",
-      "fontFallbackDescription": "يستخدم Koharu أول عائلة متاحة تدعم النص.",
+      "fontFallbackDescription": "يستخدم KoharuBatch أول عائلة متاحة تدعم النص.",
       "loadError": "تعذّر تحميل الخطوط. لا يزال بإمكانك إزالة العائلات الحالية.",
       "loadingFonts": "جارٍ تحميل الخطوط…",
       "primary": "أساسي",
@@ -442,7 +442,7 @@
     "newDescription": "أنشئ مساحة عمل نظيفة لصفحاتك وترجماتك وعمليات التصدير.",
     "newProject": "مشروع جديد",
     "noResults": "لا توجد مشاريع تطابق هذا البحث.",
-    "projectKind": "مشروع Koharu",
+    "projectKind": "مشروع KoharuBatch",
     "projectList": "المشاريع",
     "openFolder": "فتح مجلد…",
     "projectName": "اسم المشروع",
@@ -454,9 +454,9 @@
   },
   "startup": {
     "description": "جارٍ تحميل بيئات الذكاء الاصطناعي المحلية وتحضير مساحة العمل. قد يستغرق التشغيل الأول لحظة.",
-    "opening": "جارٍ فتح Koharu…",
+    "opening": "جارٍ فتح KoharuBatch…",
     "status": "تهيئة البيئات المحلية",
-    "title": "تحضير Koharu"
+    "title": "تحضير KoharuBatch"
   },
   "status": {
     "zoom": "تكبير"
@@ -487,12 +487,12 @@
   },
   "updater": {
     "available": {
-      "description": "Koharu <strong>{{version}}</strong> جاهز للتثبيت",
+      "description": "KoharuBatch <strong>{{version}}</strong> جاهز للتثبيت",
       "title": "يتوفّر تحديث"
     },
     "close": "إغلاق",
     "downloading": {
-      "subtitle": "Koharu {{version}}",
+      "subtitle": "KoharuBatch {{version}}",
       "title": "جارٍ تنزيل التحديث…"
     },
     "error": {

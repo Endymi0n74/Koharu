@@ -73,7 +73,7 @@ pub async fn save_preferences(
     .await??)
 }
 
-/// Koharu's own models, and each vendor's that has a key or a sign-in.
+/// KoharuBatch's own models, and each vendor's that has a key or a sign-in.
 #[tauri::command]
 #[specta::specta]
 pub async fn list_models() -> Vec<Model> {
@@ -88,7 +88,7 @@ pub struct Vendor {
     pub connected: bool,
 }
 
-/// Every vendor Koharu lists models from, in its order.
+/// Every vendor KoharuBatch lists models from, in its order.
 #[tauri::command]
 #[specta::specta]
 pub async fn list_vendors() -> Result<Vec<Vendor>> {
@@ -150,7 +150,7 @@ pub fn stop_sign_in() {
     }
 }
 
-/// Signs out of `vendor`: the vendor revokes the sign-in, and Koharu
+/// Signs out of `vendor`: the vendor revokes the sign-in, and KoharuBatch
 /// deletes it.
 #[tauri::command]
 #[specta::specta]

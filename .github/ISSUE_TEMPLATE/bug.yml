@@ -32,9 +32,9 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Include your Koharu version and operating system. Add GPU and driver details if relevant and available.
+      description: Include your KoharuBatch version and operating system. Add GPU and driver details if relevant and available.
       placeholder: |
-        Koharu:
+        KoharuBatch:
         OS:
         GPU/runtime, if relevant:
     validations:

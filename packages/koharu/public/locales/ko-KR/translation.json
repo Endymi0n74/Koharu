@@ -24,7 +24,7 @@
     "emptyTitle": "Koharu에게 무엇을 시킬까요?",
     "failed": "에이전트 요청에 실패했습니다.",
     "loading": "에이전트 불러오는 중…",
-    "message": "Koharu 에이전트에게 메시지 보내기",
+    "message": "KoharuBatch 에이전트에게 메시지 보내기",
     "model": "모델",
     "newChat": "새 채팅",
     "placeholder": "Koharu에게 이 프로젝트 작업 요청…",
@@ -442,7 +442,7 @@
     "newDescription": "페이지, 번역 및 내보내기를 위한 새 작업 공간을 만드세요.",
     "newProject": "새 프로젝트",
     "noResults": "이 검색과 일치하는 프로젝트가 없습니다.",
-    "projectKind": "Koharu 프로젝트",
+    "projectKind": "KoharuBatch 프로젝트",
     "projectList": "프로젝트",
     "openFolder": "폴더 열기…",
     "projectName": "프로젝트 이름",
@@ -454,9 +454,9 @@
   },
   "startup": {
     "description": "로컬 AI 런타임을 불러오고 작업 공간을 준비하고 있습니다. 처음 실행할 때는 잠시 걸릴 수 있습니다.",
-    "opening": "Koharu 여는 중…",
+    "opening": "KoharuBatch 여는 중…",
     "status": "로컬 런타임 초기화 중",
-    "title": "Koharu 준비 중"
+    "title": "KoharuBatch 준비 중"
   },
   "status": {
     "zoom": "확대/축소"

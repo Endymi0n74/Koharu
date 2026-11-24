@@ -40,12 +40,12 @@ Vulkan build, so on Vulkan its models run on the CPU.
 |---|---|---|
 | CUDA | NVIDIA's wheels on PyPI | an NVIDIA GPU |
 | ROCm | AMD's wheels, from TheRock [TheRock] | an AMD GPU |
-| libtorch, and Koharu's C shim to it | the koharu-rs/torch releases | every GPU |
+| libtorch, and KoharuBatch's C shim to it | the koharu-rs/torch releases | every GPU |
 | llama.cpp | the koharu-rs/llama releases | every GPU |
 | stable-diffusion.cpp | the koharu-rs/diffusion releases | every GPU |
 
 - **Pinned.** Each package's version is a constant: the `-sys` crate's for
-  Koharu's own builds, the runtime's for NVIDIA's and AMD's. Koharu's builds are
+  KoharuBatch's own builds, the runtime's for NVIDIA's and AMD's. KoharuBatch's builds are
   one archive per platform and GPU backend.
 - **All or nothing.** Every package downloads before any opens, so a failed
   download leaves nothing half loaded.
@@ -56,13 +56,13 @@ Vulkan build, so on Vulkan its models run on the CPU.
 
 | Part | Model | Cite |
 |---|---|---|
-| place | the `store` folder beside the program in Windows release builds, where setup installs Koharu, unless the user can't write there, as in a per-machine install under Program Files; the system cache folder's `koharu/store` otherwise, which is a per-user install's store too | Clip Studio Paint keeps its user data in `AppData` wherever its program is installed [Clip Studio Paint user data] |
+| place | the `store` folder beside the program in Windows release builds, where setup installs KoharuBatch, unless the user can't write there, as in a per-machine install under Program Files; the system cache folder's `koharu/store` otherwise, which is a per-user install's store too | Clip Studio Paint keeps its user data in `AppData` wherever its program is installed [Clip Studio Paint user data] |
 | packages | a folder per package, per version, per platform and backend | |
 | models | Hugging Face repositories at a pinned commit, laid out as Hugging Face's own cache lays them out, by repository and commit snapshot, so a newer commit never mixes into an older one | the `huggingface_hub` cache's `snapshots` by revision [HF cache] |
 | writing | into a staging folder on the same disk, validated, then renamed into place, so nothing is ever half written; a lock other processes respect holds off a second download of the same thing | |
 | clearing | once a start has loaded its packages, every other version of them goes, in the background; models stay | |
 
-A version another running Koharu has open can't be removed, so it stays until
+A version another running KoharuBatch has open can't be removed, so it stays until
 a later start.
 
 ## 4. Transfers

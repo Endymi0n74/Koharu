@@ -21,13 +21,13 @@
     "cancel": "取消",
     "cancelled": "取消哉。",
     "emptyDescription": "让智能体检查、翻译、编辑或者处理箇个项目。有需要个辰光，伊才会查看页面图像。",
-    "emptyTitle": "侬想让 Koharu 做啥？",
+    "emptyTitle": "侬想让 KoharuBatch 做啥？",
     "failed": "智能体个请求失败哉。",
     "loading": "来勒加载智能体…",
-    "message": "发消息畀 Koharu 智能体",
+    "message": "发消息畀 KoharuBatch 智能体",
     "model": "模型",
     "newChat": "新对话",
-    "placeholder": "让 Koharu 帮侬处理箇个项目…",
+    "placeholder": "让 KoharuBatch 帮侬处理箇个项目…",
     "reasoning": "推理",
     "send": "发送",
     "thinking": "来勒忖…",
@@ -60,7 +60,7 @@
   },
   "errors": {
     "actionFailed": "迭个操作做弗好",
-    "fatalTitle": "Koharu 运行弗下去哉",
+    "fatalTitle": "KoharuBatch 运行弗下去哉",
     "tryAgain": "再试一趟",
     "unknown": "原生应用返转来一个弗晓得个错误。"
   },
@@ -374,7 +374,7 @@
       "title": "处理流程",
       "translator": {
         "instructions": "额外指示",
-        "instructionsDescription": "可以勿填，用啥个语言、啥个格式写侪可以，比方讲名字哪能写、语气哪能。Koharu 会照原样接勒自家个系统提示词后头。",
+        "instructionsDescription": "可以勿填，用啥个语言、啥个格式写侪可以，比方讲名字哪能写、语气哪能。KoharuBatch 会照原样接勒自家个系统提示词后头。",
         "reasoning": "推理",
         "reasoningDescription": "翻译个辰光用模型推理。",
         "targetLanguageDescription": "选译文要用个目标语言。",
@@ -415,12 +415,12 @@
       "addFallback": "加备用字体",
       "addFamily": "添加字体系列",
       "description": "设定字体系列个使用次序。文本图层呒没指定字体系列个辰光，就照箇个次序选用字体。",
-      "empty": "呒没默认字体系列。Koharu 会用系统后备字体。",
+      "empty": "呒没默认字体系列。KoharuBatch 会用系统后备字体。",
       "fallbacks": "备用字体",
       "fallbacksDescription": "主字体呒没个字，按顺序用备用字体。拖拖好调顺序，拖到主字体浪就对调。",
       "familyLabel": "默认字体系列 {{index}}",
       "fontFallback": "首选字体",
-      "fontFallbackDescription": "Koharu 照次序寻，选第一个可用、又支持箇段文本个字体系列。",
+      "fontFallbackDescription": "KoharuBatch 照次序寻，选第一个可用、又支持箇段文本个字体系列。",
       "loadError": "字体加载失败哉。列表里向原有个字体系列还是好移除。",
       "loadingFonts": "来勒加载字体…",
       "primary": "主字体",
@@ -442,7 +442,7 @@
     "newDescription": "建一个清爽个工作区，用来放页面、译文搭导出文件。",
     "newProject": "新建项目",
     "noResults": "呒没搭搿个搜索对得上个项目。",
-    "projectKind": "Koharu 项目",
+    "projectKind": "KoharuBatch 项目",
     "projectList": "项目",
     "openFolder": "打开文件夹…",
     "projectName": "项目名称",
@@ -454,9 +454,9 @@
   },
   "startup": {
     "description": "来勒加载本地 AI 运行时搭准备工作区。头一趟启动作兴要等一歇。",
-    "opening": "来勒打开 Koharu…",
+    "opening": "来勒打开 KoharuBatch…",
     "status": "来勒初始化本地运行时",
-    "title": "来勒准备 Koharu"
+    "title": "来勒准备 KoharuBatch"
   },
   "status": {
     "zoom": "缩放"
@@ -487,12 +487,12 @@
   },
   "updater": {
     "available": {
-      "description": "Koharu <strong>{{version}}</strong> 已经准备好安装哉",
+      "description": "KoharuBatch <strong>{{version}}</strong> 已经准备好安装哉",
       "title": "有新版本哉"
     },
     "close": "关闭",
     "downloading": {
-      "subtitle": "Koharu {{version}}",
+      "subtitle": "KoharuBatch {{version}}",
       "title": "来勒下载更新…"
     },
     "error": {

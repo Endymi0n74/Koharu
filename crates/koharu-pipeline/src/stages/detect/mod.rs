@@ -58,7 +58,7 @@ pub(crate) async fn detect(task: &Task, config: &PipelineConfig) -> anyhow::Resu
     let Some((_, scan)) = scan else {
         return Ok(());
     };
-    let key = key(Stage::Detect, config).expect("a detector is Koharu's");
+    let key = key(Stage::Detect, config).expect("a detector is KoharuBatch's");
     let config = config.detector;
     let options = Options {
         text: config.text,

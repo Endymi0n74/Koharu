@@ -5,7 +5,7 @@ use anyhow::Result;
 use super::{Host, extract};
 use crate::{Backend, store};
 
-/// One of Koharu's own builds of a native library, released on GitHub as
+/// One of KoharuBatch's own builds of a native library, released on GitHub as
 /// one archive per platform and backend.
 pub(super) struct Release {
     /// The GitHub repository the release is in.

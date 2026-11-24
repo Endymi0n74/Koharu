@@ -4,7 +4,7 @@
 //!
 //! Vendored from getsentry/sentry-tauri at f83b7225301e327884c3ba62a51bba6d324c3871
 //! (v0.9.0, MIT OR Apache-2.0), written for Tauri 2. The port diverges where
-//! Tauri 3 or Koharu does:
+//! Tauri 3 or KoharuBatch does:
 //! - The plugin is built with `plugin::Builder`, since Tauri 3's `Plugin`
 //!   trait has no `extend_api` to register commands with.
 //! - No browser SDK is injected; the app starts its own and takes the
@@ -12,7 +12,7 @@
 //! - The wry webview context and the WebView2 and WebKitGTK crash handlers
 //!   go; Tauri 3's runtime-independent termination hook reports renderer
 //!   crashes ([`web_content_process_terminated`]).
-//! - The Windows and Mac App Store build types go; Koharu ships through
+//! - The Windows and Mac App Store build types go; KoharuBatch ships through
 //!   neither.
 
 mod breadcrumbs;

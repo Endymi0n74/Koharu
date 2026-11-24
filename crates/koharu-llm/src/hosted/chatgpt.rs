@@ -1,5 +1,5 @@
 //! ChatGPT sign-in through rig's ChatGPT provider, the route Codex uses,
-//! with rig's record kept in Koharu's encrypted secrets.
+//! with rig's record kept in KoharuBatch's encrypted secrets.
 
 use std::sync::Arc;
 

@@ -21,13 +21,13 @@
     "cancel": "Cancelar",
     "cancelled": "Cancelado.",
     "emptyDescription": "Peça ao agente para inspecionar, traduzir, editar ou processar este projeto. Ele verá as imagens das páginas somente quando necessário.",
-    "emptyTitle": "O que o Koharu deve fazer?",
+    "emptyTitle": "O que o KoharuBatch deve fazer?",
     "failed": "A solicitação do agente falhou.",
     "loading": "Carregando o agente…",
-    "message": "Enviar mensagem ao agente do Koharu",
+    "message": "Enviar mensagem ao agente do KoharuBatch",
     "model": "Modelo",
     "newChat": "Novo chat",
-    "placeholder": "Peça ao Koharu para trabalhar neste projeto…",
+    "placeholder": "Peça ao KoharuBatch para trabalhar neste projeto…",
     "reasoning": "Raciocínio",
     "send": "Enviar",
     "thinking": "Pensando…",
@@ -60,7 +60,7 @@
   },
   "errors": {
     "actionFailed": "Não foi possível concluir a ação",
-    "fatalTitle": "O Koharu não pôde continuar",
+    "fatalTitle": "O KoharuBatch não pôde continuar",
     "tryAgain": "Tentar novamente",
     "unknown": "O aplicativo nativo retornou um erro desconhecido."
   },
@@ -374,7 +374,7 @@
       "title": "Pipeline",
       "translator": {
         "instructions": "Instruções adicionais",
-        "instructionsDescription": "Opcionais, em qualquer idioma e formato, como a grafia de um nome ou o tom. O Koharu as acrescenta como estão após o próprio prompt de sistema.",
+        "instructionsDescription": "Opcionais, em qualquer idioma e formato, como a grafia de um nome ou o tom. O KoharuBatch as acrescenta como estão após o próprio prompt de sistema.",
         "reasoning": "Raciocínio",
         "reasoningDescription": "Usa o raciocínio do modelo durante a tradução.",
         "targetLanguageDescription": "Escolha o idioma para o qual o texto será traduzido.",
@@ -415,12 +415,12 @@
       "addFallback": "Adicionar uma alternativa",
       "addFamily": "Adicionar família de fontes",
       "description": "Defina a pilha ordenada de fontes usada quando uma camada de texto não tem família atribuída.",
-      "empty": "Nenhuma família padrão. O Koharu usará a alternativa do sistema.",
+      "empty": "Nenhuma família padrão. O KoharuBatch usará a alternativa do sistema.",
       "fallbacks": "Alternativas",
       "fallbacksDescription": "Usadas em ordem para os caracteres que faltam na principal. Arraste para reordenar, ou sobre Principal para trocar.",
       "familyLabel": "Família de fontes padrão {{index}}",
       "fontFallback": "Fontes preferidas",
-      "fontFallbackDescription": "O Koharu usa a primeira família disponível compatível com o texto.",
+      "fontFallbackDescription": "O KoharuBatch usa a primeira família disponível compatível com o texto.",
       "loadError": "Não foi possível carregar as fontes. As famílias existentes ainda podem ser removidas.",
       "loadingFonts": "Carregando fontes…",
       "primary": "Principal",
@@ -442,7 +442,7 @@
     "newDescription": "Crie um espaço de trabalho limpo para suas páginas, traduções e exportações.",
     "newProject": "Novo projeto",
     "noResults": "Nenhum projeto corresponde a esta pesquisa.",
-    "projectKind": "Projeto do Koharu",
+    "projectKind": "Projeto do KoharuBatch",
     "projectList": "Projetos",
     "openFolder": "Abrir uma pasta…",
     "projectName": "Nome do projeto",
@@ -454,9 +454,9 @@
   },
   "startup": {
     "description": "Carregando os runtimes locais de IA e preparando o espaço de trabalho. A primeira inicialização pode levar alguns instantes.",
-    "opening": "Abrindo o Koharu…",
+    "opening": "Abrindo o KoharuBatch…",
     "status": "Inicializando runtimes locais",
-    "title": "Preparando o Koharu"
+    "title": "Preparando o KoharuBatch"
   },
   "status": {
     "zoom": "Zoom"
@@ -487,12 +487,12 @@
   },
   "updater": {
     "available": {
-      "description": "Koharu <strong>{{version}}</strong> está pronto para instalar",
+      "description": "KoharuBatch <strong>{{version}}</strong> está pronto para instalar",
       "title": "Atualização disponível"
     },
     "close": "Fechar",
     "downloading": {
-      "subtitle": "Koharu {{version}}",
+      "subtitle": "KoharuBatch {{version}}",
       "title": "Baixando atualização…"
     },
     "error": {

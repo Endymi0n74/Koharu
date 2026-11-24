@@ -7,7 +7,7 @@ pub trait Module: std::fmt::Debug + Send {
 }
 
 /// A module whose forward pass differs in training, such as batch
-/// normalization's; Koharu passes `false`.
+/// normalization's; KoharuBatch passes `false`.
 pub trait ModuleT: std::fmt::Debug + Send {
     fn forward_t(&self, xs: &Tensor, train: bool) -> Result<Tensor>;
 }

@@ -374,7 +374,7 @@
       "title": "パイプライン",
       "translator": {
         "instructions": "追加の指示",
-        "instructionsDescription": "任意。どの言語・形式でも書けます（名前の表記や口調など）。Koharu は自身のシステムプロンプトの後に、書いたとおりに追加します。",
+        "instructionsDescription": "任意。どの言語・形式でも書けます（名前の表記や口調など）。KoharuBatch は自身のシステムプロンプトの後に、書いたとおりに追加します。",
         "reasoning": "推論",
         "reasoningDescription": "翻訳時にモデルの推論を使用します。",
         "targetLanguageDescription": "テキストの翻訳先言語を選択します。",
@@ -456,7 +456,7 @@
     "description": "ローカル AI ランタイムを読み込み、ワークスペースを準備しています。初回起動には少し時間がかかる場合があります。",
     "opening": "Koharuを起動中…",
     "status": "ローカルランタイムを初期化しています",
-    "title": "Koharu を準備しています"
+    "title": "KoharuBatch を準備しています"
   },
   "status": {
     "zoom": "ズーム"
@@ -487,12 +487,12 @@
   },
   "updater": {
     "available": {
-      "description": "Koharu <strong>{{version}}</strong> をインストールできます",
+      "description": "KoharuBatch <strong>{{version}}</strong> をインストールできます",
       "title": "アップデートが利用可能"
     },
     "close": "閉じる",
     "downloading": {
-      "subtitle": "Koharu {{version}}",
+      "subtitle": "KoharuBatch {{version}}",
       "title": "アップデートをダウンロード中…"
     },
     "error": {

@@ -3,7 +3,7 @@ use std::ffi::CString;
 use serde::Serialize;
 
 /// The API a device computes through, with what a model needs to know of it.
-/// As a `&'static str` it's the name Koharu's native builds give its variant:
+/// As a `&'static str` it's the name KoharuBatch's native builds give its variant:
 /// `cpu`, `cuda`, `hip`, `metal`, or `vulkan`.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, strum::IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]

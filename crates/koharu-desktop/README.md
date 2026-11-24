@@ -1,6 +1,6 @@
 # koharu-desktop
 
-Koharu's window and the commands its interface calls.
+KoharuBatch's window and the commands its interface calls.
 
 One window shows the page on a native canvas and the React interface over it.
 The interface reads and edits the open project through the same protocol as
@@ -52,8 +52,8 @@ do: with the scene's own queries and edits, its undo and redo, and its history.
 - **One folder** holds every project, one `.khr` file each, and the start view
   lists it. A project's name is its file's name, so a name that isn't a file
   name on every platform is refused rather than changed.
-- **Where it lives.** A Windows release build keeps it in the folder Koharu is
-  installed in, beside the model store, so it holds Koharu's program, models,
+- **Where it lives.** A Windows release build keeps it in the folder KoharuBatch is
+  installed in, beside the model store, so it holds KoharuBatch's program, models,
   and projects together; a per-user install goes to the user's own
   `AppData\Local` [Tauri installer]. Where the user can't write that folder,
   as in a per-machine install under Program Files, and on macOS and Linux,
@@ -73,7 +73,7 @@ do: with the scene's own queries and edits, its undo and redo, and its history.
   that owns it when saved.
 - **Runs.** The pipeline's runs and the agent's run on the open project are told
   to the interface as they go; closing the project stops them.
-- **One instance.** Opening Koharu again brings its window forward, and the
+- **One instance.** Opening KoharuBatch again brings its window forward, and the
   window keeps its size, position, and maximized or full-screen state.
 - **Debug builds** listen for the DevTools protocol on port 4000, which UI
   automation drives, in a browser profile of their own: the installed app pins

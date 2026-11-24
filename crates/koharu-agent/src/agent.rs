@@ -1,4 +1,4 @@
-//! The agent: rig's agent loop over Koharu's tools on the open project, on any
+//! The agent: rig's agent loop over KoharuBatch's tools on the open project, on any
 //! model that takes tools, keeping its conversation inside the model's window.
 
 use std::{
@@ -37,10 +37,10 @@ use koharu_llm::{Context, KOHARU};
 
 use crate::{Tools, tools::refusal};
 
-/// The system prompt: Koharu's own, not a setting, since it describes the
-/// tools and the project document, which Koharu owns.
+/// The system prompt: KoharuBatch's own, not a setting, since it describes the
+/// tools and the project document, which KoharuBatch owns.
 const PROMPT: &str = indoc! {"
-    You are Koharu Agent, operating a manga translation project inside Koharu.
+    You are KoharuBatch Agent, operating a manga translation project inside KoharuBatch.
     The project's state when the request began is the JSON file with id project; tool results report changes since.
     Use the provided tools whenever the user asks to inspect or change the project. Never claim a change succeeded unless its tool result says it succeeded.
     All project changes are revisioned and reversible. Do not ask for permission. Continue using tools until the request is complete or cannot be completed.

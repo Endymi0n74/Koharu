@@ -21,13 +21,13 @@
     "cancel": "Cancel",
     "cancelled": "Cancelled.",
     "emptyDescription": "Ask the agent to inspect, translate, edit, or process this project. It will view page images only when needed.",
-    "emptyTitle": "What should Koharu do?",
+    "emptyTitle": "What should KoharuBatch do?",
     "failed": "The agent request failed.",
     "loading": "Loading agent…",
-    "message": "Message Koharu Agent",
+    "message": "Message KoharuBatch Agent",
     "model": "Model",
     "newChat": "New chat",
-    "placeholder": "Ask Koharu to work on this project...",
+    "placeholder": "Ask KoharuBatch to work on this project...",
     "reasoning": "Reasoning",
     "send": "Send",
     "thinking": "Thinking...",
@@ -60,7 +60,7 @@
   },
   "errors": {
     "actionFailed": "Could not complete that action",
-    "fatalTitle": "Koharu could not continue",
+    "fatalTitle": "KoharuBatch could not continue",
     "tryAgain": "Try again",
     "unknown": "The native application returned an unknown error."
   },
@@ -374,7 +374,7 @@
       "title": "Pipeline",
       "translator": {
         "instructions": "Additional instructions",
-        "instructionsDescription": "Optional, in any language and form, such as a name's spelling or the tone. Koharu adds them, as written, after its own system prompt.",
+        "instructionsDescription": "Optional, in any language and form, such as a name's spelling or the tone. KoharuBatch adds them, as written, after its own system prompt.",
         "reasoning": "Reasoning",
         "reasoningDescription": "Use model reasoning during translation.",
         "targetLanguageDescription": "Choose the language to translate text into.",
@@ -415,12 +415,12 @@
       "addFallback": "Add a fallback",
       "addFamily": "Add font family",
       "description": "Set the ordered font stack used when a text layer has no assigned family.",
-      "empty": "No default families. Koharu will use the system fallback.",
+      "empty": "No default families. KoharuBatch will use the system fallback.",
       "fallbacks": "Fallbacks",
       "fallbacksDescription": "Used in order for characters the primary lacks. Drag to reorder, or onto Primary to swap.",
       "familyLabel": "Default font family {{index}}",
       "fontFallback": "Preferred fonts",
-      "fontFallbackDescription": "Koharu uses the first available family that supports the text.",
+      "fontFallbackDescription": "KoharuBatch uses the first available family that supports the text.",
       "loadError": "Fonts could not be loaded. Existing families can still be removed.",
       "loadingFonts": "Loading fonts…",
       "primary": "Primary",
@@ -442,7 +442,7 @@
     "newDescription": "Create a clean workspace for your pages, translations, and exports.",
     "newProject": "New project",
     "noResults": "No projects match this search.",
-    "projectKind": "Koharu project",
+    "projectKind": "KoharuBatch project",
     "projectList": "Projects",
     "openFolder": "Open a folder…",
     "projectName": "Project name",
@@ -454,9 +454,9 @@
   },
   "startup": {
     "description": "Loading local AI runtimes and preparing the workspace. First launch can take a moment.",
-    "opening": "Opening Koharu…",
+    "opening": "Opening KoharuBatch…",
     "status": "Initializing local runtimes",
-    "title": "Preparing Koharu"
+    "title": "Preparing KoharuBatch"
   },
   "status": {
     "zoom": "Zoom"
@@ -487,12 +487,12 @@
   },
   "updater": {
     "available": {
-      "description": "Koharu <strong>{{version}}</strong> is ready to install",
+      "description": "KoharuBatch <strong>{{version}}</strong> is ready to install",
       "title": "Update available"
     },
     "close": "Close",
     "downloading": {
-      "subtitle": "Koharu {{version}}",
+      "subtitle": "KoharuBatch {{version}}",
       "title": "Downloading update…"
     },
     "error": {

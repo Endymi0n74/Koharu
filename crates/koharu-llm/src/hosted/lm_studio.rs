@@ -12,7 +12,7 @@ use serde_json::Value;
 
 use super::{Http, key, reqwest, unlisted};
 
-/// LM Studio, which rig has no dialect for, so Koharu declares it.
+/// LM Studio, which rig has no dialect for, so KoharuBatch declares it.
 pub(super) const PROVIDER_NAME: &str = "lmstudio";
 /// LM Studio's own server.
 const URL: &str = "http://localhost:1234";

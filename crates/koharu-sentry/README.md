@@ -29,14 +29,14 @@ starts and wouldn't see a change made after.
 
 ## 2. Where it differs from sentry-tauri
 
-Each difference is Tauri 3's or Koharu's:
+Each difference is Tauri 3's or KoharuBatch's:
 
 - **No injected browser SDK.** The interface starts its own and takes the
   plugin's transport, breadcrumb, and scope helpers.
 - **CEF, not the system web view.** There's no web view context to read, and
   instead of WebView2's and WebKitGTK's crash handlers, Tauri 3's termination
   hook reports a crashed renderer process, whichever runtime the app runs on.
-- **No store build types.** Koharu ships through neither the Windows nor the
+- **No store build types.** KoharuBatch ships through neither the Windows nor the
   Mac App Store.
 - **Events the Rust SDK can't parse still go through the scope.** The browser
   SDK sends some an older Rust SDK refuses, such as debug images that carry

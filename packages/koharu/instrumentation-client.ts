@@ -4,7 +4,7 @@ import { tauriOptions, traceHeaders } from '@/lib/sentry'
 import { setRunner } from '@koharu/ipc/protocol'
 
 // Everything the SDK records, sent through the Rust SDK, which has the DSN, the release,
-// and the user. Koharu reports page content, so replays aren't masked. The feedback form
+// and the user. KoharuBatch reports page content, so replays aren't masked. The feedback form
 // opens from the Help menu with the interface's own strings.
 Sentry.init({
   ...tauriOptions,

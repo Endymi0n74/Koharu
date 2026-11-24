@@ -70,7 +70,7 @@ impl<'a, 'g> Overlay<'a, 'g> {
 
     /// When `control`'s text runs past its frame, the overflow mark on the
     /// frame's top-left corner, where Photoshop marks paragraph type that
-    /// overflows its box on the lower-right one. Koharu still draws the text
+    /// overflows its box on the lower-right one. KoharuBatch still draws the text
     /// that runs past, so no line goes missing from an export.
     pub fn overflow(&mut self, control: &Control) {
         if control.overflows {

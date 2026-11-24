@@ -259,7 +259,7 @@ pub(crate) async fn run(task: Task, inputs: Inputs) -> Result<(), String> {
     }
 }
 
-/// The model of Koharu's that `config` has `stage` load; `None` for a hosted
+/// The model of KoharuBatch's that `config` has `stage` load; `None` for a hosted
 /// translation, which loads none and doesn't wait for the GPU.
 pub(crate) fn key(stage: Stage, config: &PipelineConfig) -> Option<Key> {
     let name = match stage {
@@ -284,7 +284,7 @@ pub(crate) fn key(stage: Stage, config: &PipelineConfig) -> Option<Key> {
     Some(Key { stage, name })
 }
 
-/// Every model of Koharu's that `config` chooses, which a switch of settings
+/// Every model of KoharuBatch's that `config` chooses, which a switch of settings
 /// keeps.
 pub(crate) fn chosen(config: &PipelineConfig) -> impl Iterator<Item = Key> + '_ {
     Stage::VARIANTS

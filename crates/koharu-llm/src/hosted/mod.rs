@@ -1,4 +1,4 @@
-//! Hosted models through rig's providers, on Koharu's HTTP client, and the
+//! Hosted models through rig's providers, on KoharuBatch's HTTP client, and the
 //! models each vendor lists, as rig's catalog describes them.
 
 mod chatgpt;
@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 
 pub(crate) use http::{Http, SignIn, reqwest};
 
-/// The vendors Koharu lists models from, by rig's names.
+/// The vendors KoharuBatch lists models from, by rig's names.
 pub const VENDORS: &[&str] = &[
     openai::PROVIDER_NAME,
     anthropic::PROVIDER_NAME,
@@ -66,7 +66,7 @@ pub async fn sign_in(
 }
 
 /// Signs out of `vendor`, one [`sign_in`] signs in to: the vendor revokes
-/// the sign-in, and Koharu deletes it.
+/// the sign-in, and KoharuBatch deletes it.
 pub async fn sign_out(vendor: &str) -> Result<()> {
     match vendor {
         chatgpt::PROVIDER_NAME => chatgpt::sign_out().await,
@@ -76,7 +76,7 @@ pub async fn sign_out(vendor: &str) -> Result<()> {
 }
 
 /// `[providers]`: where a vendor's server is when it isn't where rig, or
-/// Koharu for LM Studio, puts it, as Codex's `[model_providers.<id>]` holds a
+/// KoharuBatch for LM Studio, puts it, as Codex's `[model_providers.<id>]` holds a
 /// `base_url`. Keyed by rig's vendor name.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(transparent)]
@@ -87,7 +87,7 @@ impl koharu_config::Section for Providers {
     const NAME: &'static str = "providers";
 }
 
-/// A vendor's server: where rig, or Koharu for LM Studio, puts it while
+/// A vendor's server: where rig, or KoharuBatch for LM Studio, puts it while
 /// `base_url` is unset, as in an empty table.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, specta::Type)]
 pub struct Endpoint {
@@ -231,7 +231,7 @@ pub(crate) async fn models(vendor: &str) -> Result<Vec<ModelSpec>> {
                 .map(|found| found.spec.clone());
             // A model the catalog knows as neither calling tools nor keeping
             // to a schema, such as an embedding or image model, writes no text
-            // Koharu reads.
+            // KoharuBatch reads.
             if found
                 .as_ref()
                 .is_some_and(|spec| !spec.tools && !spec.structured_output)

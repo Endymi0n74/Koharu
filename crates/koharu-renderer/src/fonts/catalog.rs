@@ -18,7 +18,7 @@ pub(super) const DATASET: Repository = Repository::dataset(
 );
 
 /// Each family by its normalized name, from the dataset's index, downloaded
-/// the first time. One that fails to load stays failed until Koharu starts
+/// the first time. One that fails to load stays failed until KoharuBatch starts
 /// again.
 static CATALOG: LazyLock<Result<HashMap<String, Family>>> =
     LazyLock::new(|| parse(&download("index.json")?));

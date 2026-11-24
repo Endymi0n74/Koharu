@@ -1,4 +1,4 @@
-//! Renders Koharu scene pages with vello: layout, retained layer content,
+//! Renders KoharuBatch scene pages with vello: layout, retained layer content,
 //! and the GPU passes that draw it.
 
 mod config;

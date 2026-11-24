@@ -40,7 +40,7 @@ fn clamp(value: usize) -> c_int {
 
 // Official CEF Linux builds call glibc's legacy 32-bit mallinfo(). Exporting
 // the symbol from the executable keeps CEF's diagnostic field arithmetic from
-// overflowing once Koharu's in-process ML heap grows beyond 2 GiB.
+// overflowing once KoharuBatch's in-process ML heap grows beyond 2 GiB.
 #[unsafe(no_mangle)]
 pub extern "C" fn mallinfo() -> MallInfo {
     // SAFETY: mallinfo2 takes no arguments and returns its statistics by value.

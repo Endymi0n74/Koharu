@@ -27,7 +27,7 @@ const height = (row: Row | undefined) => (row && 'model' in row ? 28 : 24)
 /** The list's height in pixels, which it opens with the model in use in the middle of. */
 const LIST_HEIGHT = 288
 
-/** Picks a model by its `vendor/model` reference, from Koharu's own and each vendor's that has a
+/** Picks a model by its `vendor/model` reference, from KoharuBatch's own and each vendor's that has a
  * key or a sign-in, as Claude's and Codex's model menus do: a search line, the models under their
  * vendors one line each, the one in use checked, and the keyboard's arrows and Enter. `onBack`
  * gives it a heading that goes back, for a menu it opens inside of. */

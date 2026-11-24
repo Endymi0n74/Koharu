@@ -258,7 +258,7 @@ export type Edit = {
 }
 
 /**
- *  A vendor's server: where rig, or Koharu for LM Studio, puts it while
+ *  A vendor's server: where rig, or KoharuBatch for LM Studio, puts it while
  *  `base_url` is unset, as in an empty table.
  */
 export type Endpoint = {
@@ -704,7 +704,7 @@ export type ProjectId = string
 
 /**
  *  `[providers]`: where a vendor's server is when it isn't where rig, or
- *  Koharu for LM Studio, puts it, as Codex's `[model_providers.<id>]` holds a
+ *  KoharuBatch for LM Studio, puts it, as Codex's `[model_providers.<id>]` holds a
  *  `base_url`. Keyed by rig's vendor name.
  */
 export type Providers = { [key in string]: Endpoint }
@@ -946,7 +946,7 @@ export type TranslatorConfig = {
   target?: string
   /**
    *  The user's own instructions to the model, in any language and form,
-   *  such as a name's spelling or the tone; they follow Koharu's own system
+   *  such as a name's spelling or the tone; they follow KoharuBatch's own system
    *  prompt as written, and can't replace it.
    */
   instructions?: string
@@ -1056,9 +1056,9 @@ export const commands = {
     runner('save_preferences', (options) =>
       invoke<Preferences>('save_preferences', { preferences }, options),
     ),
-  /** Koharu's own models, and each vendor's that has a key or a sign-in. */
+  /** KoharuBatch's own models, and each vendor's that has a key or a sign-in. */
   listModels: () => runner('list_models', (options) => invoke<Model[]>('list_models', {}, options)),
-  /** Every vendor Koharu lists models from, in its order. */
+  /** Every vendor KoharuBatch lists models from, in its order. */
   listVendors: () =>
     runner('list_vendors', (options) => invoke<Vendor[]>('list_vendors', {}, options)),
   /** Stores `vendor`'s API key, encrypted with the key the OS credential store keeps, or forgets it for `None`. */
@@ -1069,7 +1069,7 @@ export const commands = {
     runner('sign_in', (options) => invoke<null>('sign_in', { vendor, onPrompt }, options)),
   /** Stops the sign-in waiting for the user. */
   stopSignIn: () => runner('stop_sign_in', (options) => invoke<null>('stop_sign_in', {}, options)),
-  /** Signs out of `vendor`: the vendor revokes the sign-in, and Koharu deletes it. */
+  /** Signs out of `vendor`: the vendor revokes the sign-in, and KoharuBatch deletes it. */
   signOut: (vendor: string) =>
     runner('sign_out', (options) => invoke<null>('sign_out', { vendor }, options)),
   listFonts: () =>

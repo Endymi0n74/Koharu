@@ -32,7 +32,7 @@ const vendorNames: Record<string, string> = {
   grok: 'Grok',
   ollama: 'Ollama',
   lmstudio: 'LM Studio',
-  koharu: 'Koharu',
+  koharu: 'KoharuBatch',
 }
 
 /** The vendor's name: its maker's, or for an OpenAI-compatible server, which no one makes, a

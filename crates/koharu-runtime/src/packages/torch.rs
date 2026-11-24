@@ -1,4 +1,4 @@
-//! libtorch and Koharu's C shim to it, built and released apart from
+//! libtorch and KoharuBatch's C shim to it, built and released apart from
 //! `koharu-rs/torch`.
 
 use std::path::PathBuf;

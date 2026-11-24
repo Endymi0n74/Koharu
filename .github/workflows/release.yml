@@ -24,7 +24,7 @@ jobs:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
             args: '--target aarch64-apple-darwin'
-          # The oldest Ubuntu Koharu supports, since a binary needs the glibc
+          # The oldest Ubuntu KoharuBatch supports, since a binary needs the glibc
           # it was linked against or a newer one.
           - platform: 'ubuntu-24.04'
             args: ''

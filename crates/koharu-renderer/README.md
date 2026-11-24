@@ -1,12 +1,12 @@
 # koharu-renderer
 
-Koharu's one renderer.
+KoharuBatch's one renderer.
 
 It draws a page of a project with vello_gpu [vello]: it lays out the text,
 composites the layers, and turns the page into pixels. The canvas, image
 export, PSD export, thumbnails, and the pipeline's painted areas all draw on
 the GPU through one painter, so
-every export matches what the editor shows, and Koharu needs a GPU to draw.
+every export matches what the editor shows, and KoharuBatch needs a GPU to draw.
 Where it follows an established product or standard, it cites it; the links
 are under [Sources](#sources).
 

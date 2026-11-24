@@ -1,4 +1,4 @@
-//! Koharu's scene graph: Photoshop's layers, a page background, and the parts
+//! KoharuBatch's scene graph: Photoshop's layers, a page background, and the parts
 //! of a manga page as typed kinds. The README is the design.
 
 mod change;

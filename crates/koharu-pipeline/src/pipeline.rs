@@ -16,7 +16,7 @@ use crate::{
     scheduler::{Command, Plan, Run, Scheduler},
 };
 
-/// Runs Koharu's models for the app, its canvas, and the agent alike: a
+/// Runs KoharuBatch's models for the app, its canvas, and the agent alike: a
 /// cheap handle to clone. The scheduler and the thread owning the models end
 /// when the last handle drops.
 #[derive(Clone)]

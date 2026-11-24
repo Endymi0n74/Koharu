@@ -172,7 +172,7 @@ impl Store {
             Some(ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked) => {
                 Error::ProjectLocked(path.to_owned())
             }
-            Some(ErrorCode::NotADatabase) => Error::corrupt("this is not a Koharu project"),
+            Some(ErrorCode::NotADatabase) => Error::corrupt("this is not a KoharuBatch project"),
             _ => error.into(),
         };
         configure(&conn).map_err(opening)?;
@@ -180,7 +180,7 @@ impl Store {
             .query_row("PRAGMA application_id", [], |row| row.get(0))
             .map_err(opening)?;
         if application_id != APPLICATION_ID {
-            return Err(Error::corrupt("this is not a Koharu project"));
+            return Err(Error::corrupt("this is not a KoharuBatch project"));
         }
         let project = load(&conn)?;
         sweep(&conn, &project)?;

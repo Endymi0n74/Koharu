@@ -1,4 +1,4 @@
-//! Gets Koharu ready to run models on this machine's GPU.
+//! Gets KoharuBatch ready to run models on this machine's GPU.
 
 mod device;
 mod hardware;
@@ -21,7 +21,7 @@ pub use huggingface::{Repository, RepositoryKind};
 pub use store::root as store_root;
 pub use transfer::{State, Transfer, transfers};
 
-/// Koharu's root: the folder setup put it in, in Windows release builds, where
+/// KoharuBatch's root: the folder setup put it in, in Windows release builds, where
 /// this user can write it, which a per-machine install's, under Program Files,
 /// isn't. The store goes in it, and the app's projects beside the store.
 pub fn root() -> Option<&'static Path> {
@@ -29,7 +29,7 @@ pub fn root() -> Option<&'static Path> {
         if !cfg!(all(windows, not(debug_assertions))) {
             return None;
         }
-        let executable = std::env::current_exe().expect("Koharu knows where its executable is");
+        let executable = std::env::current_exe().expect("KoharuBatch knows where its executable is");
         let folder = executable.parent().expect("an executable is in a folder");
         match tempfile::tempfile_in(folder) {
             Err(error) if error.kind() == ErrorKind::PermissionDenied => None,

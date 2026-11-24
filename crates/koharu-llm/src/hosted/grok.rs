@@ -1,7 +1,7 @@
 //! Grok, the user's SuperGrok or X Premium plan beside rig's `xai` for xAI's
 //! API, as rig's `chatgpt` is beside `openai`. It signs in with xAI's device
 //! code through xAI's shared client, as Hermes Agent and OpenClaw sign in,
-//! its tokens kept in Koharu's encrypted secrets, and reaches the plan's
+//! its tokens kept in KoharuBatch's encrypted secrets, and reaches the plan's
 //! models on the endpoint xAI serves the Grok CLI from, as OpenClaw does:
 //! <https://github.com/openclaw/openclaw/blob/main/extensions/xai/xai-oauth.ts>
 //! and `stream.ts` beside it.
@@ -58,7 +58,7 @@ const CLIENT_VERSION: &str = "1.0.13";
 /// How long before its expiry an access token is refreshed.
 const SKEW: Duration = Duration::from_secs(60);
 
-/// A sign-in, as Koharu keeps it under the vendor's name.
+/// A sign-in, as KoharuBatch keeps it under the vendor's name.
 #[derive(Deserialize, Serialize)]
 struct Tokens {
     access_token: String,
@@ -317,7 +317,7 @@ pub(super) async fn models(base_url: Option<String>) -> Result<Vec<ModelSpec>> {
         }
         let mut spec = spec(id)?;
         // A model the catalog knows as neither calling tools nor keeping to a
-        // schema writes no text Koharu reads.
+        // schema writes no text KoharuBatch reads.
         if !spec.tools && !spec.structured_output {
             continue;
         }

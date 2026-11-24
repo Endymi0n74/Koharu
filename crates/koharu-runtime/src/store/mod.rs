@@ -15,7 +15,7 @@ use lock::lock;
 pub(crate) use remove::{remove, remove_others};
 
 /// The one store everything downloads into: `KOHARU_STORE` when it names a
-/// folder, Koharu's root's `store` when the executable's folder is writable,
+/// folder, KoharuBatch's root's `store` when the executable's folder is writable,
 /// and the OS cache folder's `koharu/store` otherwise, which is a per-user
 /// install's store too.
 pub fn root() -> &'static Path {

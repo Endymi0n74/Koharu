@@ -1,8 +1,8 @@
 # koharu-llama
 
-llama.cpp for Koharu's language models.
+llama.cpp for KoharuBatch's language models.
 
-Koharu's own fork of llama-cpp-rs's `llama-cpp-2` [llama-cpp-rs]: safe wrappers
+KoharuBatch's own fork of llama-cpp-rs's `llama-cpp-2` [llama-cpp-rs]: safe wrappers
 over nearly direct bindings to llama.cpp, so it keeps up with llama.cpp rather
 than hiding it behind an API of its own. The links are under
 [Sources](#sources).
@@ -26,13 +26,13 @@ new llama.cpp release is a small change.
 
 ## 2. Where it differs from llama-cpp-2
 
-The fork is Koharu's to change. It diverges where llama.cpp has moved on, as
+The fork is KoharuBatch's to change. It diverges where llama.cpp has moved on, as
 when llama.cpp v1.0.0 removed the deprecated functions `llama-cpp-2` still
-calls, and where Koharu loads at runtime what upstream links.
+calls, and where KoharuBatch loads at runtime what upstream links.
 
 - **No upstream sources kept unchanged.** It builds under the workspace's
   edition and lints, and what a lint finds is fixed rather than allowed.
-- **Tests run without llama.cpp.** The library isn't present when Koharu
+- **Tests run without llama.cpp.** The library isn't present when KoharuBatch
   builds, so a test that would call it isn't kept.
 
 ## Sources

@@ -113,7 +113,7 @@ impl App {
         }
     }
 
-    /// Brings the window forward, for Koharu launched again while it runs.
+    /// Brings the window forward, for KoharuBatch launched again while it runs.
     pub fn bring_forward(&self) {
         if let Some(window) = self
             .handle

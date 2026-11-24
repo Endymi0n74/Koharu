@@ -1,6 +1,6 @@
 ---
 name: runtime
-description: Sync Koharu's llama.cpp and stable-diffusion.cpp headers and Rust bindings. Use when updating native runtime releases, vendored C/C++ headers, koharu-llama, or koharu-diffusion after upstream API changes.
+description: Sync KoharuBatch's llama.cpp and stable-diffusion.cpp headers and Rust bindings. Use when updating native runtime releases, vendored C/C++ headers, koharu-llama, or koharu-diffusion after upstream API changes.
 ---
 
 # Runtime

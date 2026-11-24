@@ -1,6 +1,6 @@
 # koharu
 
-Koharu's process.
+KoharuBatch's process.
 
 It starts the app in the order the rest of it depends on, and owns what only
 the process can: crash reporting, the logs, the console, and closing on a

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
-/// `koharu-batch`: a chapter through Koharu's stages, without the window.
+/// `koharu-batch`: a chapter through KoharuBatch's stages, without the window.
 #[derive(Debug, Parser)]
 #[command(name = "koharu-batch", version, about, long_about = None)]
 pub struct Arguments {

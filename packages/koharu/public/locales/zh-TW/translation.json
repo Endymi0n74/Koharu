@@ -21,13 +21,13 @@
     "cancel": "取消",
     "cancelled": "已取消。",
     "emptyDescription": "讓代理檢查、翻譯、編輯或處理此專案。它只會在需要時查看頁面影像。",
-    "emptyTitle": "要讓 Koharu 做什麼？",
+    "emptyTitle": "要讓 KoharuBatch 做什麼？",
     "failed": "代理要求失敗。",
     "loading": "正在載入代理…",
-    "message": "傳送訊息給 Koharu 代理",
+    "message": "傳送訊息給 KoharuBatch 代理",
     "model": "模型",
     "newChat": "新對話",
-    "placeholder": "讓 Koharu 處理此專案…",
+    "placeholder": "讓 KoharuBatch 處理此專案…",
     "reasoning": "推理",
     "send": "傳送",
     "thinking": "正在思考…",
@@ -60,7 +60,7 @@
   },
   "errors": {
     "actionFailed": "無法完成該操作",
-    "fatalTitle": "Koharu 無法繼續執行",
+    "fatalTitle": "KoharuBatch 無法繼續執行",
     "tryAgain": "再試一次",
     "unknown": "原生應用程式傳回了未知錯誤。"
   },
@@ -374,7 +374,7 @@
       "title": "流程",
       "translator": {
         "instructions": "附加指示",
-        "instructionsDescription": "選填，可使用任何語言和形式，例如名字的寫法或語氣。Koharu 會依原樣把它們附加在自己的系統提示詞之後。",
+        "instructionsDescription": "選填，可使用任何語言和形式，例如名字的寫法或語氣。KoharuBatch 會依原樣把它們附加在自己的系統提示詞之後。",
         "reasoning": "推理",
         "reasoningDescription": "翻譯時使用模型推理。",
         "targetLanguageDescription": "選擇文字要翻譯成的語言。",
@@ -415,12 +415,12 @@
       "addFallback": "新增備用字型",
       "addFamily": "新增字型家族",
       "description": "設定文字圖層未指定字型家族時使用的有序字型堆疊。",
-      "empty": "沒有預設字型家族。Koharu 將使用系統後備字型。",
+      "empty": "沒有預設字型家族。KoharuBatch 將使用系統後備字型。",
       "fallbacks": "備用字型",
       "fallbacksDescription": "主要字型缺少的字元會依序使用備用字型。拖曳可調整順序，拖到主要字型上即可互換。",
       "familyLabel": "預設字型家族 {{index}}",
       "fontFallback": "偏好字型",
-      "fontFallbackDescription": "Koharu 使用第一個支援該文字的可用字型家族。",
+      "fontFallbackDescription": "KoharuBatch 使用第一個支援該文字的可用字型家族。",
       "loadError": "無法載入字型。仍可移除現有字型家族。",
       "loadingFonts": "正在載入字型…",
       "primary": "主要字型",
@@ -442,7 +442,7 @@
     "newDescription": "為頁面、翻譯和匯出建立乾淨的工作區。",
     "newProject": "新建專案",
     "noResults": "沒有符合此搜尋的專案。",
-    "projectKind": "Koharu 專案",
+    "projectKind": "KoharuBatch 專案",
     "projectList": "專案",
     "openFolder": "開啟資料夾…",
     "projectName": "專案名稱",
@@ -454,9 +454,9 @@
   },
   "startup": {
     "description": "正在載入本機 AI 執行環境並準備工作區。首次啟動可能需要一些時間。",
-    "opening": "正在開啟 Koharu…",
+    "opening": "正在開啟 KoharuBatch…",
     "status": "正在初始化本機執行環境",
-    "title": "正在準備 Koharu"
+    "title": "正在準備 KoharuBatch"
   },
   "status": {
     "zoom": "縮放"
@@ -487,12 +487,12 @@
   },
   "updater": {
     "available": {
-      "description": "Koharu <strong>{{version}}</strong> 已準備好安裝",
+      "description": "KoharuBatch <strong>{{version}}</strong> 已準備好安裝",
       "title": "有可用更新"
     },
     "close": "關閉",
     "downloading": {
-      "subtitle": "Koharu {{version}}",
+      "subtitle": "KoharuBatch {{version}}",
       "title": "正在下載更新…"
     },
     "error": {

@@ -291,7 +291,7 @@ impl Scheduler {
     fn admit(&mut self) {
         loop {
             let ready = self.ready();
-            // A stage with no model of Koharu's to load, a hosted
+            // A stage with no model of KoharuBatch's to load, a hosted
             // translation, doesn't wait for the GPU, so it isn't counted
             // among the pages in flight.
             let hosted = ready

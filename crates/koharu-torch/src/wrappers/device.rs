@@ -9,7 +9,7 @@ use koharu_torch_sys::{
 use super::utils::check;
 use crate::{Error, Result};
 
-/// c10::DeviceType's values for the devices Koharu runs on. A HIP build of
+/// c10::DeviceType's values for the devices KoharuBatch runs on. A HIP build of
 /// libtorch reports its GPUs as CUDA ones.
 const CPU: i32 = 0;
 const CUDA: i32 = 1;

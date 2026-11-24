@@ -64,7 +64,7 @@ fn cleaned(
     let made = match cleanup.fill {
         Some(fill) => action(
             "c2pa.created",
-            "Koharu",
+            "KoharuBatch",
             Some(json!({"fill": fill.to_string()})),
         ),
         None => made.clone(),

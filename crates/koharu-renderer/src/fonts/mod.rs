@@ -172,7 +172,7 @@ pub(crate) fn preload() {
     let _ = catalog::families();
 }
 
-/// A family or face name as Koharu matches it: trimmed, in any case.
+/// A family or face name as KoharuBatch matches it: trimmed, in any case.
 fn normalize(name: &str) -> String {
     name.trim().to_lowercase()
 }

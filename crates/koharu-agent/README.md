@@ -1,6 +1,6 @@
 # koharu-agent
 
-Koharu's agent and the tools it works with.
+KoharuBatch's agent and the tools it works with.
 
 The tools work on one open project, over the scene's queries and edits, the
 pipeline's runs, and the renderer. The agent in the app uses them, and an MCP
@@ -48,7 +48,7 @@ can't. The scene and the pipeline know nothing of tools.
 
 | Part | Model | Cite |
 |---|---|---|
-| request | the system prompt, Koharu's own and not a setting, since it describes Koharu's tools and project document, then the project's outline as a document ahead of the history, kept out of it, so the model sees only the project's latest state | |
+| request | the system prompt, KoharuBatch's own and not a setting, since it describes KoharuBatch's tools and project document, then the project's outline as a document ahead of the history, kept out of it, so the model sees only the project's latest state | |
 | turns | at most `max_turns` model calls a run | |
 | arguments | every call is held to its tool's schema before it runs, and a call that doesn't fit is skipped with the reason, since a local model has no grammar holding it to the schema | |
 | window | a run starts by fitting its conversation into the model's window; a turn over the threshold is sent with older tool outputs cleared, which needs no model call | Claude's context editing clears the oldest tool results once a conversation passes a threshold [Claude context editing] |

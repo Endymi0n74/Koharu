@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.package]
-version = "0.92.0"
+version = "0.92.0-fork"
 edition = "2024"
 description = "Manga translation tools"
 license = "MIT OR Apache-2.0"
@@ -98,7 +98,7 @@ machine-uid = "0.6.0"
 memmap2 = "0.9.12"
 minijinja = { version = "3.1.0", features = ["json", "loop_controls", "preserve_order", "serde"] }
 minijinja-contrib = { version = "3.1.0", features = ["pycompat"] }
-# oauth2 sends its requests on an older reqwest; Koharu sends them on rig's.
+# oauth2 sends its requests on an older reqwest; KoharuBatch sends them on rig's.
 oauth2 = { version = "5.0.0", default-features = false }
 objc2 = "0.6.5"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = [

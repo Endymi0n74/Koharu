@@ -184,7 +184,7 @@ impl QwenImage {
             let [vae] = VAE
                 .resolve(["vae/qwen_image_2.1_vae_bf16.safetensors"])
                 .await?;
-            // 4-bit, as Koharu's other diffusion models load.
+            // 4-bit, as KoharuBatch's other diffusion models load.
             let [transformer] = match checkpoint {
                 Checkpoint::Turbo => {
                     TRANSFORMER

@@ -1,4 +1,4 @@
-//! Koharu's settings and secrets.
+//! KoharuBatch's settings and secrets.
 
 mod error;
 pub mod secrets;

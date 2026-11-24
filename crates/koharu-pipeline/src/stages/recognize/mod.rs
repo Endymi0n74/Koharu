@@ -42,7 +42,7 @@ pub(crate) async fn recognize(task: &Task, config: &PipelineConfig) -> anyhow::R
     }
     let (members, crops): (Vec<Member>, Vec<Vec<(LayerId, DynamicImage)>>) =
         read.into_iter().unzip();
-    let key = key(Stage::Recognize, config).expect("a recognizer is Koharu's");
+    let key = key(Stage::Recognize, config).expect("a recognizer is KoharuBatch's");
     let model = config.recognizer.model;
     let (texts, language) = task
         .inference(&members.iter().collect::<Vec<_>>(), move |models| {

@@ -1,10 +1,10 @@
 # koharu-scene
 
-Koharu's scene graph.
+KoharuBatch's scene graph.
 
 Every element of this schema copies something an established editor or format
 already has, and cites it. Nothing is new. Where sources differ, Photoshop and
-Clip Studio Paint win, as for all editor behaviour in Koharu. The links are
+Clip Studio Paint win, as for all editor behaviour in KoharuBatch. The links are
 listed under [Sources](#sources).
 
 ## Goal
@@ -418,7 +418,7 @@ Each model also writes its `c2pa` action on the layers it wrote.
 - **Translation stores its decisions, not their result:** the frame, the
   anchor, the direction, and `best` fit. The size a `best` or `shrink` frame
   draws at is worked out at each render, and PSD export writes the size it
-  drew. PowerPoint caches its shrink as `fontScale` [OOXML autofit], but Koharu
+  drew. PowerPoint caches its shrink as `fontScale` [OOXML autofit], but KoharuBatch
   has one renderer, and a cached scale would go stale when a font loads.
 - **Reruns find their fields by kind.** A translation rerun rewrites each given
   block's translation, its wording and its placement. Whether a rerun leaves alone what you changed is

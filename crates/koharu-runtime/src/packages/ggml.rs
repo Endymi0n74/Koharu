@@ -1,4 +1,4 @@
-//! llama.cpp and stable-diffusion.cpp, the libraries Koharu runs on ggml,
+//! llama.cpp and stable-diffusion.cpp, the libraries KoharuBatch runs on ggml,
 //! and the devices ggml lists.
 
 use std::{ffi::CStr, path::PathBuf};

@@ -1,4 +1,4 @@
-//! stable-diffusion.cpp for Koharu's diffusion models.
+//! stable-diffusion.cpp for KoharuBatch's diffusion models.
 
 mod context;
 mod options;

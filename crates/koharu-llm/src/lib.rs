@@ -1,4 +1,4 @@
-//! Language models for Koharu, local and hosted, named, described, and
+//! Language models for KoharuBatch, local and hosted, named, described, and
 //! connected with rig's own types: a `vendor/model` reference, its
 //! `ModelSpec`, and a `DynModel`.
 
@@ -21,7 +21,7 @@ pub use rig_agent::agent::AgentBuilder;
 pub use rig_core as rig;
 pub use rig_memory::{CompactReason, SummaryPrompts};
 
-/// The vendor of the models Koharu runs itself, on llama.cpp.
+/// The vendor of the models KoharuBatch runs itself, on llama.cpp.
 pub const KOHARU: &str = "koharu";
 
 /// The `details.kind` of a model trained only to translate, as Hugging Face's
@@ -30,7 +30,7 @@ pub const KOHARU: &str = "koharu";
 pub const TRANSLATION: &str = "translation";
 
 /// The model `reference` names, `vendor/model` as rig's `ModelSpec::reference`
-/// writes it, its files fetched first for one of Koharu's own. One of those
+/// writes it, its files fetched first for one of KoharuBatch's own. One of those
 /// may name a quantization after a colon, as Ollama's tags do
 /// (`koharu/index-translate-2b:Q8_0`), and otherwise loads its first; it loads
 /// with `size`, which a hosted model doesn't use.
@@ -69,7 +69,7 @@ impl From<&ModelSpec> for Model {
     }
 }
 
-/// Every model the user can pick: Koharu's own, and each vendor's that has a
+/// Every model the user can pick: KoharuBatch's own, and each vendor's that has a
 /// key or a sign-in. A vendor whose list fails is left out, with the failure
 /// logged.
 pub async fn models() -> Vec<Model> {
@@ -106,7 +106,7 @@ mod tests {
     }
 
     /// rig rewrites a schema toward strict mode for OpenAI and Claude.
-    /// Koharu's schemas are written that way, with every property required,
+    /// KoharuBatch's schemas are written that way, with every property required,
     /// no `oneOf`, nothing beside a `$ref`, and no numeric bounds, so the
     /// rewrite must leave them as they are; a rig release that rewrites more
     /// fails here.

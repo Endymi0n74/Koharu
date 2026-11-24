@@ -1,4 +1,4 @@
-//! Koharu's llama.cpp engine as a rig model: a completion wire whose payload
+//! KoharuBatch's llama.cpp engine as a rig model: a completion wire whose payload
 //! is the prompt the model's chat template renders, with its sampling
 //! settings, and whose transport is the thread that owns the model, with the
 //! model's markup read off its replies on the way back.
@@ -136,7 +136,7 @@ impl Sampling {
     }
 }
 
-/// What Koharu's catalog says of one of its models beyond its spec.
+/// What KoharuBatch's catalog says of one of its models beyond its spec.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Local {
     /// The default first.
@@ -152,7 +152,7 @@ pub struct Quantization {
     pub downloaded: bool,
 }
 
-/// Koharu's catalog's facts on `spec`, when it's one of Koharu's models.
+/// KoharuBatch's catalog's facts on `spec`, when it's one of KoharuBatch's models.
 #[must_use]
 pub fn local(spec: &ModelSpec) -> Option<Local> {
     if spec.provider.vendor() != KOHARU {
@@ -175,7 +175,7 @@ pub fn local(spec: &ModelSpec) -> Option<Local> {
     })
 }
 
-/// Every model of Koharu's catalog, as rig describes a model; how much
+/// Every model of KoharuBatch's catalog, as rig describes a model; how much
 /// context one gets is known once it loads.
 pub(crate) fn specs() -> Vec<ModelSpec> {
     catalog::MODELS.iter().map(catalog::Entry::spec).collect()
@@ -187,7 +187,7 @@ pub fn repositories() -> impl Iterator<Item = koharu_runtime::Repository> {
     catalog::MODELS.iter().map(|entry| entry.repository)
 }
 
-/// What rig and a conversation's context know of one of Koharu's models. A
+/// What rig and a conversation's context know of one of KoharuBatch's models. A
 /// model of a specialized `kind`, such as translation, calls no tools,
 /// whatever markup its template writes; it reasons when its template does, as
 /// Index-Translate's opens a think block unless told not to.
@@ -203,7 +203,7 @@ pub(crate) fn spec(id: &str, markup: Option<&Markup>, kind: Option<&str>) -> Mod
     spec
 }
 
-/// The vendor Koharu's own models are filed under.
+/// The vendor KoharuBatch's own models are filed under.
 fn vendor() -> ProviderId {
     ProviderId::declare(KOHARU).expect("`koharu` spells a vendor")
 }

@@ -1,4 +1,4 @@
-//! The GGUF models Koharu offers, each pinned to a Hugging Face revision.
+//! The GGUF models KoharuBatch offers, each pinned to a Hugging Face revision.
 //! Ported from `koharu-translator`'s catalog.
 
 use koharu_runtime::Repository;

@@ -1,4 +1,4 @@
-//! The Koharu app: one window whose React interface renders off-screen in
+//! The KoharuBatch app: one window whose React interface renders off-screen in
 //! CEF over the native canvas, and the commands the interface calls.
 
 mod app;
@@ -26,7 +26,7 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
     // scheduler runs on.
     tauri::async_runtime::set(tokio::runtime::Handle::current());
 
-    // Beside the store in Koharu's root, and in the app's local data folder
+    // Beside the store in KoharuBatch's root, and in the app's local data folder
     // otherwise, which is a per-user install's folder too. That is Tauri's
     // `app_local_data_dir`, which needs the app this builds.
     let projects = match koharu_runtime::root() {
@@ -44,7 +44,7 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
     // The window composites with it from its first frame.
     let gpu = Gpu::get()?;
     let adapter = gpu.adapter.get_info();
-    // CEF hands its frames over as GPU textures where Koharu's GPU can take
+    // CEF hands its frames over as GPU textures where KoharuBatch's GPU can take
     // them, and copies them through memory everywhere else.
     let sharing = screen::sharing(&gpu);
     let shared = sharing.is_some();
@@ -114,7 +114,7 @@ pub fn run(context: tauri::Context<CefRuntime>) -> Result<()> {
                 .targets([Target::new(TargetKind::LogDir { file_name: None })])
                 .build(),
         )
-        // Another build of Koharu, on another CEF profile.
+        // Another build of KoharuBatch, on another CEF profile.
         .plugin(tauri_plugin_single_instance::init(|tauri, _, _| {
             tauri.state::<Arc<App>>().bring_forward()
         }))

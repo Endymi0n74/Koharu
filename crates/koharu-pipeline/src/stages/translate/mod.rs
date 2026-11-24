@@ -52,7 +52,7 @@ pub struct TranslatorConfig {
     #[specta(type = String)]
     pub target: LanguageIdentifier,
     /// The user's own instructions to the model, in any language and form,
-    /// such as a name's spelling or the tone; they follow Koharu's own system
+    /// such as a name's spelling or the tone; they follow KoharuBatch's own system
     /// prompt as written, and can't replace it.
     pub instructions: String,
     /// Whether each page's turn shows the model the page itself beside its

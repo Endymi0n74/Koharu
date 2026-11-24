@@ -1,5 +1,5 @@
 //! Upstream: src/context.rs. Divergence: no webview context, which upstream
-//! read from wry, and no store build types; Koharu runs on CEF and ships
+//! read from wry, and no store build types; KoharuBatch runs on CEF and ships
 //! through neither store.
 
 use std::{

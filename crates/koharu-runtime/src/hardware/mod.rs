@@ -17,7 +17,7 @@ pub(crate) use cuda::hold_primary_context;
 
 use crate::{Backend, Device};
 
-/// The GPUs Koharu supports on this machine, best first.
+/// The GPUs KoharuBatch supports on this machine, best first.
 pub(crate) fn candidates() -> Vec<Device> {
     let mut devices = probe();
     devices.sort_by_key(|(device, memory)| rank(device, *memory));

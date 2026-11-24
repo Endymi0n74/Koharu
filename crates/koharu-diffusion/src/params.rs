@@ -28,7 +28,7 @@ pub enum Cache {
     Spectrum,
 }
 
-/// A model's files and Koharu's settings for it. Whatever is left unset keeps
+/// A model's files and KoharuBatch's settings for it. Whatever is left unset keeps
 /// sd.cpp's own default.
 #[derive(Clone, Debug, Default)]
 pub struct ContextParams<'a> {

@@ -37,7 +37,7 @@ pub(crate) struct Http {
 /// A second, then two, then four.
 const BACKOFF: ExponentialBuilder = ExponentialBuilder::new();
 
-/// rig's own client, for the requests Koharu makes outside rig.
+/// rig's own client, for the requests KoharuBatch makes outside rig.
 pub(crate) fn reqwest() -> Result<reqwest::Client> {
     ReqwestClient::default()
         .inner()

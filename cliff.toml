@@ -5,7 +5,7 @@
 # The fork's own repository: changelog links and contributor metadata resolve
 # against the repo that actually contains the fork's commits.
 owner = "Endymi0n74"
-repo = "Koharu"
+repo = "KoharuBatch"
 
 [changelog]
 # A Tera template to be rendered for each release in the changelog.
@@ -70,7 +70,7 @@ trim = true
 # An array of regex based postprocessors to modify the changelog.
 postprocessors = [
   # Replace the placeholder `<REPO>` with a URL.
-  { pattern = '<REPO>', replace = "https://github.com/Endymi0n74/Koharu" }, # fork's repository URL, as in [remote.github]
+  { pattern = '<REPO>', replace = "https://github.com/Endymi0n74/KoharuBatch" }, # fork's repository URL, as in [remote.github]
   # Rewrite repository URLs embedded in historical commit messages.
   { pattern = 'https://github\.com/mayocream/koharu', replace = "https://github.com/koharu-rs/koharu" },
 ]

@@ -1,6 +1,6 @@
 # koharu-config
 
-Koharu's settings and secrets.
+KoharuBatch's settings and secrets.
 
 Settings are one TOML file meant to be edited by hand, and secrets are one
 file encrypted with a key the operating system keeps. Where it follows an

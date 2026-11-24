@@ -203,7 +203,7 @@ impl Outline {
 /// reach and leave that line no room. Photoshop's area type centres each line
 /// in its own span, so the lines of a lopsided shape, such as a balloon's
 /// share beside another text, wander from side to side; a letterer keeps a
-/// balloon's lines on one axis, and so does Koharu.
+/// balloon's lines on one axis, and so does KoharuBatch.
 pub(super) fn axis(bands: &[Spans]) -> Option<f64> {
     let room = |axis: f64| -> (usize, f64) {
         let reaches: Vec<(f64, f64)> = bands

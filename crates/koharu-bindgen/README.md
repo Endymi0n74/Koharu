@@ -2,15 +2,15 @@
 
 Bindings to C libraries the app opens at runtime.
 
-A build step for Koharu's `-sys` crates: it turns a C header into Rust
+A build step for KoharuBatch's `-sys` crates: it turns a C header into Rust
 functions with the same names and signatures a linked binding has, which call
 through a table filled when the libraries are opened. Where it follows an
 established convention, it cites it; the links are under [Sources](#sources).
 
 ## Goal
 
-The native libraries Koharu runs on are downloaded after the app starts, one
-build for each kind of GPU, so nothing can link against them when Koharu
+The native libraries KoharuBatch runs on are downloaded after the app starts, one
+build for each kind of GPU, so nothing can link against them when KoharuBatch
 builds. A `-sys` crate still looks like one that links, so the safe crates
 over it are written as they would be against any `-sys` crate [Cargo sys].
 

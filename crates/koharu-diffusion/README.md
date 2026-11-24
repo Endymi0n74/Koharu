@@ -1,6 +1,6 @@
 # koharu-diffusion
 
-stable-diffusion.cpp for Koharu's diffusion models.
+stable-diffusion.cpp for KoharuBatch's diffusion models.
 
 A safe Rust layer over stable-diffusion.cpp's image generation [sd.cpp]: load
 a model, then generate images from a prompt, an image to start from, a mask,
@@ -8,7 +8,7 @@ and reference images. The links are under [Sources](#sources).
 
 ## Goal
 
-Koharu's diffusion models run on sd.cpp as sd.cpp runs them, so a model that
+KoharuBatch's diffusion models run on sd.cpp as sd.cpp runs them, so a model that
 works in sd.cpp's own command line works here, with the same results. This
 crate adds safety, not behaviour.
 
@@ -16,7 +16,7 @@ crate adds safety, not behaviour.
 
 | Part | Model | Cite |
 |---|---|---|
-| parameters | set by key on sd.cpp's option objects, so anything left unset is what sd.cpp would use; only the options Koharu's models need are named | sd.cpp's option keys [sd.cpp C API] |
+| parameters | set by key on sd.cpp's option objects, so anything left unset is what sd.cpp would use; only the options KoharuBatch's models need are named | sd.cpp's option keys [sd.cpp C API] |
 | loading | every weight loads up front, so a model that doesn't fit, or can't make images, fails when it loads and not partway through a generation | sd.cpp's eager loading [sd.cpp header] |
 | placing weights | sd.cpp fits the weights into the device's free memory itself, then system memory | |
 | kernels | sd.cpp picks flash attention and direct convolution for each module and backend, so none is forced on or off | sd.cpp's automatic selection [sd.cpp backends] |

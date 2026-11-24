@@ -11,7 +11,7 @@
         "minWidth": 900,
         "minHeight": 600,
         "center": true,
-        "title": "Koharu",
+        "title": "KoharuBatch",
         "decorations": true,
         "titleBarStyle": "Overlay",
         "trafficLightPosition": { "x": 16, "y": 23 },

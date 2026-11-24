@@ -1,8 +1,8 @@
 # Contributing
 
-Thank you for helping improve Koharu. Bug fixes, documentation, translations, model-port corrections, and focused product improvements are all welcome.
+Thank you for helping improve KoharuBatch. Bug fixes, documentation, translations, model-port corrections, and focused product improvements are all welcome.
 
-Everyone participating in the Koharu community is expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+Everyone participating in the KoharuBatch community is expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Getting started
 

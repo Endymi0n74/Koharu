@@ -1,6 +1,6 @@
 # koharu-ml
 
-Koharu's vision models.
+KoharuBatch's vision models.
 
 The models that run on this machine to lay out a page, read its text, and
 redraw what's under the text. Each is a port that stays traceable to a pinned

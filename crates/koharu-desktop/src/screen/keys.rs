@@ -121,7 +121,7 @@ fn edit(host: &BrowserHost, event: &KeyEvent, modifiers: ModifiersState) {
     }
 }
 
-/// Has Koharu's window take the Edit menu's chords on macOS before the menu,
+/// Has KoharuBatch's window take the Edit menu's chords on macOS before the menu,
 /// whose items nothing in this window enables, so they reach `send_key`.
 /// Native panels, the save dialog among them, keep the menu, which their text
 /// fields cut, copy, and paste through.

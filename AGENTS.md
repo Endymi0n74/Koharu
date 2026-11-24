@@ -1,6 +1,6 @@
-# Working on Koharu
+# Working on KoharuBatch
 
-Koharu is a local-first manga translator: a Rust workspace with a TypeScript interface, shipped as a desktop app. This file holds durable decision rules only. Architecture, file layouts, crate and helper names, model inventories, commands, and anything else a refactor can change belong in crate READMEs and the docs. Normal Rust, TypeScript, testing, formatting, and Git practices are assumed.
+KoharuBatch is a local-first manga translator: a Rust workspace with a TypeScript interface, shipped as a desktop app. This file holds durable decision rules only. Architecture, file layouts, crate and helper names, model inventories, commands, and anything else a refactor can change belong in crate READMEs and the docs. Normal Rust, TypeScript, testing, formatting, and Git practices are assumed.
 
 ## Product
 

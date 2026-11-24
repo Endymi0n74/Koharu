@@ -59,7 +59,7 @@ declare module 'i18next' {
 export const supportedLanguages = Object.keys(resources) as SupportedLanguage[]
 
 /** The CLDR locale whose names an interface language shows, where its own tag doesn't find it: Wu
- * has none, and Koharu writes it in simplified Chinese; Taiwan's is Traditional Chinese. */
+ * has none, and KoharuBatch writes it in simplified Chinese; Taiwan's is Traditional Chinese. */
 const cldrLocales: Partial<Record<string, string>> = { wuu: 'zh', 'zh-TW': 'zh-Hant' }
 
 /** Language names in the interface language `display`, from CLDR. */

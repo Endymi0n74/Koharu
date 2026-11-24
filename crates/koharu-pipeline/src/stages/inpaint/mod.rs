@@ -128,7 +128,7 @@ pub(crate) async fn inpaint(
     let Some(work) = work else {
         return Ok(());
     };
-    let key = key(Stage::Inpaint, config).expect("an inpainter is Koharu's");
+    let key = key(Stage::Inpaint, config).expect("an inpainter is KoharuBatch's");
     let model = config.inpainter.model;
     // An area's own prompt names its layer, as Photoshop names a Generative
     // Fill's layer after its prompt.

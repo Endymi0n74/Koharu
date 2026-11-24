@@ -1,6 +1,6 @@
 use crate::{Backend, Device};
 
-/// Apple silicon's GPU, which every Mac Koharu runs on has.
+/// Apple silicon's GPU, which every Mac KoharuBatch runs on has.
 pub(super) fn probe() -> Device {
     Device {
         name: "MTL0".to_owned(),

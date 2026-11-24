@@ -1,4 +1,4 @@
-//! Koharu's models run over a project's pages: every stage on every page in
+//! KoharuBatch's models run over a project's pages: every stage on every page in
 //! one click, or one stage by hand on a page, a block, or a painted area. The
 //! README is the design.
 

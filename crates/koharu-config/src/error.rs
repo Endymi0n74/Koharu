@@ -4,7 +4,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("there's no home folder to keep Koharu's settings in")]
+    #[error("there's no home folder to keep KoharuBatch's settings in")]
     NoHome,
     /// A file or folder of the settings or secrets, named in the message.
     #[error(transparent)]
