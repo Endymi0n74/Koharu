@@ -99,3 +99,24 @@ et `koharu-batch run --input <dossier>` pour la ligne de commande.
 passent. `cargo test --workspace` échoue avant les tests sur un exemple
 préexistant (`crates/koharu-ml/examples/qwen_image.rs:49`, `Option<f32>` reçu
 là où un `f32` est attendu), sans lien avec le renommage.
+## Distribution portable (complément release v0.92.0-fork)
+
+`cargo tauri build --no-bundle` ne produit aucun installeur, et `koharu.exe`
+seul ne démarre pas : c'est un binaire CEF, il lui faut `libcef.dll`, les
+`.pak`, `icudtl.dat`, `bootstrap.exe`/`bootstrapc.exe` et `locales\` à côté
+de lui (sinon « Could not find the webview runtime »). Le dossier racine du
+dépôt contenait un runtime plus ancien que celui de `target\release`, donc
+la release publie désormais une archive assemblée depuis `target\release` :
+
+`KoharuBatch-0.92.0-fork-windows-x64-portable.zip` (602 Mo décompressés,
+runtime CEF 156, 220 locales). Vérifiée en lançant l'exécutable extrait :
+fenêtre « KoharuBatch », bouton « Open a folder… » présent.
+
+Contenu : `koharu.exe`, `koharu-batch.exe`, `libcef.dll`, `chrome_elf.dll`,
+`d3dcompiler_47.dll`, `dxcompiler.dll`, `icudtl.dat`, `resources.pak`,
+`chrome_*.pak`, `v8_context_snapshot.bin`, `vk_swiftshader*`, `vulkan-1.dll`,
+`bootstrap*.exe`, `CREDITS.html`, `locales\`.
+
+Les deux `.exe` restent publiés à part : `koharu-batch.exe` est autonome,
+`koharu.exe` ne sert que si le runtime est déjà présent. Aucune modification
+de code pour ce complément : seul l'emballage change.
