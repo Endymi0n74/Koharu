@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
 import { commands } from '@koharu/ipc/protocol'
-import { TARGET_LANGUAGES } from '@/lib/translation'
 import { Button } from '@koharu/ui/components/button'
 import {
   Dialog,
@@ -23,8 +22,8 @@ import {
 } from '@koharu/ui/components/select'
 import { Switch } from '@koharu/ui/components/switch'
 
-/** Lets the user pick a source folder, an output project, and a target language,
- * then runs `koharu-batch` over the folder. */
+/** Lets the user pick a source folder, an output project, and options, then
+ * runs `koharu-batch` over the folder. */
 export function BatchDialog({
   open,
   onOpenChange,
@@ -34,13 +33,11 @@ export function BatchDialog({
 }) {
   const [source, setSource] = useState<string | null>(null)
   const [output, setOutput] = useState<string | null>(null)
-  const [lang, setLang] = useState<string>('fr-FR')
+  const [translator, setTranslator] = useState<string>('')
+  const [deterministic, setDeterministic] = useState(true)
+  const [overwrite, setOverwrite] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const languageChoices = useMemo(
-    () => TARGET_LANGUAGES.map((tag) => ({ tag, name: tag })),
-    [],
-  )
   const ready = Boolean(source && output) && !busy
 
   const pick = (setPath: (path: string) => void) => {
@@ -53,7 +50,7 @@ export function BatchDialog({
     if (!source || !output) return
     setBusy(true)
     try {
-      await commands.startBatch(source, output, lang)
+      await commands.startBatch(source, output, 'fr-FR', translator || undefined, deterministic, overwrite)
       onOpenChange(false)
     } catch {
       // error is surfaced by Tauri as a toast via send in queries.ts
@@ -105,24 +102,26 @@ export function BatchDialog({
 
           <label className='grid gap-1.5'>
             <span className='text-[11px] font-medium text-muted-foreground'>
-              Target language
+              Model
             </span>
-            <Select value={lang} onValueChange={(tag) => tag && setLang(tag)}>
-              <SelectTrigger
-                aria-label='Target language'
-                className='h-8 w-full text-[11px]'
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {languageChoices.map((choice) => (
-                  <SelectItem key={choice.tag} value={choice.tag}>
-                    {choice.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              value={translator}
+              placeholder='Auto'
+              className='h-8 flex-1 text-[11px]'
+              onChange={(event) => setTranslator(event.target.value)}
+            />
           </label>
+
+          <div className='grid gap-2 border-t border-border/70 pt-3'>
+            <label className='flex items-center justify-between gap-3'>
+              <span className='text-[11px]'>Deterministic</span>
+              <Switch checked={deterministic} onCheckedChange={setDeterministic} />
+            </label>
+            <label className='flex items-center justify-between gap-3'>
+              <span className='text-[11px]'>Overwrite</span>
+              <Switch checked={overwrite} onCheckedChange={setOverwrite} />
+            </label>
+          </div>
         </div>
 
         <DialogFooter>

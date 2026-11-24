@@ -73,6 +73,9 @@ pub(crate) async fn start_batch(
     input: String,
     output: String,
     lang: String,
+    translator: Option<String>,
+    deterministic: bool,
+    overwrite: bool,
 ) -> Result<()> {
     if !Path::new(&input).exists() {
         return Err(anyhow::anyhow!("the input folder {} does not exist", input).into());
@@ -87,7 +90,19 @@ pub(crate) async fn start_batch(
         .arg("--output")
         .arg(&output)
         .arg("--target")
-        .arg(&lang)
+        .arg(&lang);
+    if let Some(translator) = translator.as_deref() {
+        if !translator.is_empty() {
+            command.arg("--translator").arg(translator);
+        }
+    }
+    if deterministic {
+        command.arg("--deterministic");
+    }
+    if overwrite {
+        command.arg("--overwrite");
+    }
+    command
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::piped())

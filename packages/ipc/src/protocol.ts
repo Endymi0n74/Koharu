@@ -1091,9 +1091,16 @@ export const commands = {
       invoke<string | null>('pick_batch_folder', {}, options),
     ),
   /** Runs `koharu-batch` over `input`, writing the project to `output` in `lang`. Blocks until the run ends. */
-  startBatch: (input: string, output: string, lang: string) =>
+  startBatch: (
+    input: string,
+    output: string,
+    lang: string,
+    translator?: string | null,
+    deterministic?: boolean,
+    overwrite?: boolean,
+  ) =>
     runner('start_batch', (options) =>
-      invoke<null>('start_batch', { input, output, lang }, options),
+      invoke<null>('start_batch', { input, output, lang, translator, deterministic, overwrite }, options),
     ),
   /** Picks where the open project's pages go, and writes them there. `labels` names a PSD's layers the scene names nothing, in the interface's language. */
   export: (format: ExportFormat, labels: Labels) =>
