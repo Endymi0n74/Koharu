@@ -1085,6 +1085,16 @@ export const commands = {
   /** A folder of pages as a project of its own: named after the folder, created, then filled with the folder's pages. A dismissed dialog creates nothing. */
   openFolder: () =>
     runner('open_folder', (options) => invoke<string | null>('open_folder', {}, options)),
+  /** Lets the user pick a folder to translate in batch; returns the chosen path, or null when dismissed. */
+  pickBatchFolder: () =>
+    runner('pick_batch_folder', (options) =>
+      invoke<string | null>('pick_batch_folder', {}, options),
+    ),
+  /** Runs `koharu-batch` over `input`, writing the project to `output` in `lang`. Blocks until the run ends. */
+  startBatch: (input: string, output: string, lang: string) =>
+    runner('start_batch', (options) =>
+      invoke<null>('start_batch', { input, output, lang }, options),
+    ),
   /** Picks where the open project's pages go, and writes them there. `labels` names a PSD's layers the scene names nothing, in the interface's language. */
   export: (format: ExportFormat, labels: Labels) =>
     runner('export', (options) => invoke<null>('export', { format, labels }, options)),

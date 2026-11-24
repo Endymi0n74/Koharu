@@ -1,6 +1,7 @@
 //! The commands the React interface calls.
 
 mod agent;
+mod batch;
 mod canvas;
 #[cfg(debug_assertions)]
 mod debug;
@@ -88,6 +89,7 @@ pub fn handler() -> impl Fn(Invoke<CefRuntime>) -> bool + Send + Sync + 'static 
         fonts::get_font_preview,
         import::import,
         import::open_folder,
+        batch::pick_batch_folder,
         export::export,
         canvas::set_viewport,
         canvas::set_tool,
@@ -161,6 +163,7 @@ pub fn bindings(types: &mut Types) -> Vec<Function> {
         fonts::get_font_preview,
         import::import,
         import::open_folder,
+        batch::pick_batch_folder,
         export::export,
         canvas::set_viewport,
         canvas::set_tool,
