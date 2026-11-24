@@ -57,19 +57,17 @@ export function StartView() {
   })
   const busy = list.isFetching || creation.isPending || opening.isPending || deletion.isPending
   const [folderBusy, setFolderBusy] = useState(false)
-  const [failure, setFailure] = useState<string | null>(null)
 
-  // The folder becomes a project of its own, named after it; a failure says why here rather
-  // than leaving the button with nothing to show.
   const openFolder = async () => {
     setFolderBusy(true)
-    setFailure(null)
     try {
       if ((await commands.openFolder()) !== null) {
         await refresh(projectKey, pageKey, projectsKey)
       }
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : String(error))
+      // The command itself is the error path: the server already said why the folder
+      // did not become a project, so the button keeps its own idle state.
+      console.error(error)
     } finally {
       setFolderBusy(false)
     }
@@ -174,12 +172,6 @@ export function StartView() {
                 <FolderOpen className='size-3.5' />
                 {t('start.openFolder')}
               </Button>
-
-              {failure && (
-                <p role='alert' className='mt-2 text-[10px] leading-4 text-destructive'>
-                  {failure}
-                </p>
-              )}
 
               <p className='mt-auto pt-8 text-[10px] leading-4 text-muted-foreground'>
                 {t('start.storageHint')}

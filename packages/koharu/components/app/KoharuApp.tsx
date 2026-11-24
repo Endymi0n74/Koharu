@@ -37,8 +37,7 @@ export function KoharuApp() {
       )}
     >
       <TitleBar />
-      {/* Outside the editor, so a job that runs without one, such as opening a folder, still
-          shows its phases, progress, and stop button. */}
+      {/* Runs everywhere a job can run: on the start screen, in the editor, and in settings. */}
       <ActivityCenter />
       {settingsOpen ? (
         <SettingsPage />

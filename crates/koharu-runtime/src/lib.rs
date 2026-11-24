@@ -51,6 +51,11 @@ pub fn package_repositories() -> Vec<RepositoryKind> {
     packages::repositories()
 }
 
+/// The curated repositories a release catalogs still points at.
+pub fn referenced_repositories() -> Vec<RepositoryKind> {
+    package_repositories()
+}
+
 /// Removes one version folder from the store, taking the lock a download holds
 /// on it so a running transfer is never cut open.
 pub async fn remove_from_store(folder: &Path) -> anyhow::Result<()> {

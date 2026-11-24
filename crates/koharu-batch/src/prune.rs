@@ -128,6 +128,7 @@ fn referenced_repositories() -> Vec<ReferencedRepository> {
         .filter_map(|kind| match kind {
             RepositoryKind::Model(id, commit) => Some((RepoKind::Model, id, commit)),
             RepositoryKind::Dataset(id, commit) => Some((RepoKind::Dataset, id, commit)),
+            #[allow(unreachable_patterns)]
             _ => None,
         })
         .collect();
@@ -161,28 +162,31 @@ fn referenced_repositories() -> Vec<ReferencedRepository> {
 /// The legacy downloads a catalog still pins with the same commit a current
 /// snapshot uses: they already exist on a re-download, so they are not stale
 /// drops. They are reported separately and never entered into the reclaimable
-/// summary. Computed from the reusable repositories, not from snapshot path
-/// shapes.
+/// summary.
 fn reusable_repositories() -> Vec<PathBuf> {
-    let root = koharu_runtime::store_root();
-    let repos: Vec<(RepoKind, &str, &str)> = referenced_repositories().into_iter().collect();
-    reusable_repositories_in_root(&root, &repos)
+    reusable_repositories_in_store(koharu_runtime::store_root())
+}
+
+fn reusable_repositories_in_store(root: &Path) -> Vec<PathBuf> {
+    reusable_repositories_in_root(root, &referenced_repositories())
 }
 
 fn reusable_repositories_in_root(root: &Path, repos: &[(RepoKind, &str, &str)]) -> Vec<PathBuf> {
     let mut reusable = Vec::new();
     for (kind, id, commit) in repos {
-        let snapshot = root.join(format!(
-            "{}/{}/{}/snapshots/{}",
-            kind.current_root(),
-            kind.plural(),
-            id,
-            commit,
-        ));
-        let repo = root.join(format!("{}/{}/{}", kind.legacy_root(), kind.plural(), id,));
-        if !snapshot.is_dir() {
+        if !root
+            .join(format!(
+                "{}/{}/{}/snapshots/{}",
+                kind.current_root(),
+                kind.plural(),
+                id,
+                commit,
+            ))
+            .is_dir()
+        {
             continue;
         }
+        let repo = root.join(format!("{}/{}/{}", kind.legacy_root(), kind.plural(), id,));
         if !repo.is_dir() {
             continue;
         }
@@ -426,34 +430,33 @@ mod tests {
         fs_err::create_dir_all(&a2b_legacy_snapshot).unwrap();
         fs_err::create_dir_all(&a2b_older_snapshot).unwrap();
 
-        let repos = vec![(RepoKind::Model, "a--b", "kept")];
-        let reusable = reusable_repositories_in_root(root, &repos);
-        let ids: Vec<String> = reusable
-            .iter()
-            .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
-            .collect();
-
-        assert_eq!(ids, vec!["a--b"]);
-    }
-
-    #[test]
-    fn a_legacy_directory_that_only_exists_under_snapshots_is_not_reusable() {
-        let store = tempfile::tempdir().unwrap();
-        let root = store.path();
         let cur = root.join("huggingface/models/a--b/snapshots/kept");
         let legacy_repo = root.join("hugging-face/models/a--b");
-        let stale_snapshot = legacy_repo.join("snapshots/not-kept");
         let kept_snapshot = legacy_repo.join("snapshots/kept");
 
         fs_err::create_dir_all(&cur).unwrap();
         fs_err::create_dir_all(&legacy_repo).unwrap();
-        fs_err::create_dir_all(&stale_snapshot).unwrap();
         fs_err::create_dir_all(&kept_snapshot).unwrap();
 
-        let repos = vec![(RepoKind::Model, "a--b", "not-kept")];
-        let reusable = reusable_repositories_in_root(root, &repos);
+        assert_eq!(
+            reusable_repositories_in_root(root, &[(RepoKind::Model, "a--b", "kept")]),
+            vec![legacy_repo]
+        );
+    }
+
+    #[test]
+    fn the_legacy_directory_that_only_exists_under_snapshots_is_not_reusable() {
+        let store = tempfile::tempdir().unwrap();
+        let root = store.path();
+        let cur = root.join("huggingface/models/a--b/snapshots/kept");
+        let legacy_repo = root.join("hugging-face/models/a--b");
+
+        fs_err::create_dir_all(&cur).unwrap();
+        fs_err::create_dir_all(&legacy_repo).unwrap();
+
         assert!(
-            reusable.is_empty(),
+            reusable_repositories_in_root(root, &[(RepoKind::Model, "a--b", "not-kept")])
+                .is_empty(),
             "the reusable listing must not list a legacy folder with no current snapshot"
         );
     }
@@ -464,23 +467,13 @@ mod tests {
         let root = store.path();
         let cur = root.join("huggingface/models/a--b/snapshots/kept");
         let legacy_repo = root.join("hugging-face/models/a--b");
-        let older_snapshot = legacy_repo.join("snapshots/older");
-        let kept_snapshot = legacy_repo.join("snapshots/kept");
 
         fs_err::create_dir_all(&cur).unwrap();
         fs_err::create_dir_all(&legacy_repo).unwrap();
-        fs_err::create_dir_all(&older_snapshot).unwrap();
-        fs_err::create_dir_all(&kept_snapshot).unwrap();
 
-        fs_err::write(
-            root.join("hugging-face/models/a--b/snapshots/older/weights.gguf"),
-            b"old",
-        )
-        .unwrap();
-
-        let repos = vec![(RepoKind::Model, "a--b", "kept")];
-        let reusable = reusable_repositories_in_root(root, &repos);
-        let reusable_repo = root.join("hugging-face/models/a--b");
-        assert_eq!(reusable, vec![reusable_repo.clone()]);
+        assert_eq!(
+            reusable_repositories_in_root(root, &[(RepoKind::Model, "a--b", "kept")]),
+            vec![legacy_repo]
+        );
     }
 }

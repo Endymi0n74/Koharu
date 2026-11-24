@@ -193,16 +193,17 @@ pub(crate) async fn open_folder(
         return Ok(None);
     };
     let folder = folder.path().to_owned();
-    let paths = page_files(&folder)?;
-    if paths.is_empty() {
-        return Err(anyhow::anyhow!("{} holds no pages", folder.display()).into());
-    }
     let app = Arc::clone(&app);
     Ok(Some(
         tokio::task::spawn_blocking(move || -> anyhow::Result<String> {
             let name = app.library.folder_name(&folder);
             let session = app.library.create(&name)?;
             app.open(name.clone(), session)?;
+            let paths = page_files(&folder)?;
+            if paths.is_empty() {
+                app.library.delete(&name)?;
+                bail!("{} holds no pages", folder.display());
+            }
             let pages = read_pages(&paths)?;
             insert(&app, pages)?;
             Ok(name)

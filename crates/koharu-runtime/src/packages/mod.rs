@@ -26,7 +26,7 @@ use self::{
     host::Host,
     release::Release,
 };
-use crate::{Backend, Device, store};
+use crate::{Backend, Device, RepositoryKind, store};
 
 /// A native package a GPU needs. Its folder in the store follows from the host
 /// and the GPU, so `load` finds what `download` put there.
@@ -81,7 +81,7 @@ pub(crate) fn versions() -> Vec<PathBuf> {
 
 /// The repositories a release's packages still reference, with the kind that
 /// decides their store path. A prune keeps the whole legacy repository for each.
-pub(crate) fn repositories() -> Vec<super::RepositoryKind> {
+pub(crate) fn repositories() -> Vec<RepositoryKind> {
     Vec::new()
 }
 

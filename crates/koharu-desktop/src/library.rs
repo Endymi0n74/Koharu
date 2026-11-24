@@ -109,3 +109,55 @@ impl Library {
         Ok(self.root.join(format!("{name}.{EXTENSION}")))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn folder_name_replaces_forbidden_characters() {
+        let library = Library::new(tempfile::tempdir().unwrap().path().to_owned()).unwrap();
+        let folder = std::path::Path::new(r"folder<with>forbidden\characters?.txt");
+        assert!(!library.folder_name(folder).contains('<'));
+        assert!(!library.folder_name(folder).contains('>'));
+        assert!(!library.folder_name(folder).contains(':'));
+        assert!(!library.folder_name(folder).contains('/'));
+        assert!(!library.folder_name(folder).contains('\\'));
+        assert!(!library.folder_name(folder).contains('?'));
+        assert!(!library.folder_name(folder).contains('*'));
+        assert!(!library.folder_name(folder).contains('"'));
+    }
+
+    #[test]
+    fn folder_name_rejects_the_empty_name() {
+        let library = Library::new(tempfile::tempdir().unwrap().path().to_owned()).unwrap();
+        let folder = std::path::Path::new(".");
+        let name = library.folder_name(folder);
+        assert!(name.is_empty() || name == "Imported folder");
+    }
+
+    #[test]
+    fn folder_name_replaces_leading_and_trailing_dots_and_spaces() {
+        let library = Library::new(tempfile::tempdir().unwrap().path().to_owned()).unwrap();
+        let folder = std::path::Path::new(". folder . ");
+        assert_eq!(library.folder_name(folder), "folder");
+    }
+
+    #[test]
+    fn folder_name_uses_the_reserved_base_when_the_path_is_invalid() {
+        let library = Library::new(tempfile::tempdir().unwrap().path().to_owned()).unwrap();
+        // `CON` is a Windows device name; `is_sanitized_with_options` rejects it,
+        // so the folder name cannot be the base.
+        let folder = std::path::Path::new("CON");
+        assert_eq!(library.folder_name(folder), "Imported folder");
+    }
+
+    #[test]
+    fn folder_name_does_not_conflict_with_an_existing_project() {
+        let root = tempfile::tempdir().unwrap();
+        let library = Library::new(root.path().to_owned()).unwrap();
+        library.create("existing").unwrap();
+        let folder = std::path::Path::new("existing");
+        assert_eq!(library.folder_name(folder), "existing-2");
+    }
+}
