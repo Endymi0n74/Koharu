@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "Seç…",
                   "description":  "koharu-batch ile bir klasördeki her sayfayı, herhangi bir proje dışında çevirir.",
-                  "deterministic":  "Deterministik",
+                  "done":  "Toplu çeviri tamamlandı",
                   "folder":  "Çevrilecek klasör",
                   "model":  "Model",
                   "modelAuto":  "Otomatik",
                   "noneSelected":  "Seçilmedi",
                   "output":  "Çıktı projesi",
-                  "overwrite":  "Üzerine yaz",
+                  "progress":  "{{done}}/{{total}} adım",
+                  "sameFolder":  "Giriş ve çıkış klasörleri farklı olmalıdır.",
                   "start":  "Başlat",
                   "starting":  "Başlatılıyor…",
                   "title":  "Klasörü toplu çevir"

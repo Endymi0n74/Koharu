@@ -25,9 +25,11 @@ pub enum Command {
 #[derive(Debug, Args)]
 pub struct Run {
     /// A folder of page images, in name order, an image, or a `.cbz`.
+    /// Required to create a project; ignored when `--overwrite` opens one.
     #[arg(short, long, value_name = "PATH")]
-    pub input: PathBuf,
-    /// The project file to write, such as `chapter.khr`; it must not exist.
+    pub input: Option<PathBuf>,
+    /// The project file to write, such as `chapter.khr`; it must not exist
+    /// unless `--overwrite` resumes it.
     #[arg(short, long, value_name = "PATH")]
     pub output: PathBuf,
     /// The target language, as a tag CLDR names: `fr-FR`, `en-US`, `ja-JP`.
@@ -42,11 +44,19 @@ pub struct Run {
     /// is refused before any page is read.
     #[arg(long, value_name = "MIB")]
     pub vram_budget: Option<u64>,
+    /// Re-translate the pages of an existing project instead of refusing it;
+    /// without `--stages`, translation alone runs.
+    #[arg(long)]
+    pub overwrite: bool,
+    /// Translate greedily (temperature 0), so rerunning the same pages renders
+    /// the same text on every run.
+    #[arg(long)]
+    pub deterministic: bool,
     /// The layout model, by its configuration name.
-    #[arg(long, default_value = "koharu_layout_highres")]
+    #[arg(long, default_value = "koharu-layout-highres")]
     pub detector: String,
     /// The OCR model, by its configuration name.
-    #[arg(long, default_value = "hayai_ocr")]
+    #[arg(long, default_value = "hayai-ocr")]
     pub ocr: String,
     /// The inpainting model, by its configuration name.
     #[arg(long, default_value = "lama")]
@@ -59,7 +69,8 @@ pub struct Run {
     #[arg(long, value_name = "SOURCE=TARGET")]
     pub glossary: Vec<String>,
     /// The stages to run, in the order a page runs them: `detect,recognize,
-    /// inpaint,translate`. All four by default.
+    /// inpaint,translate`. All four for a new project; translation alone when
+    /// `--overwrite` resumes one, unless this names stages.
     #[arg(long, value_name = "STAGES", value_delimiter = ',')]
     pub stages: Vec<String>,
     /// Pages to work on, 1-based in reading order, as `1-10,15`.

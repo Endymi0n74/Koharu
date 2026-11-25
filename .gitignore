@@ -42,6 +42,9 @@ target/
 # Tauri
 gen/
 
+# Sidecar copied next to koharu.exe for `tauri build`
+/crates/koharu/binaries/
+
 # Temporary files
 temp/
 tmp/

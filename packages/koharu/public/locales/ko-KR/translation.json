@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "선택…",
                   "description":  "프로젝트 밖에서 koharu-batch로 폴더의 모든 페이지를 번역합니다.",
-                  "deterministic":  "결정적",
+                  "done":  "일괄 번역 완료",
                   "folder":  "번역할 폴더",
                   "model":  "모델",
                   "modelAuto":  "자동",
                   "noneSelected":  "선택 안 함",
                   "output":  "출력 프로젝트",
-                  "overwrite":  "덮어쓰기",
+                  "progress":  "{{done}}/{{total}} 단계",
+                  "sameFolder":  "입력 폴더와 출력 폴더는 달라야 합니다.",
                   "start":  "시작",
                   "starting":  "시작 중…",
                   "title":  "폴더 일괄 번역"

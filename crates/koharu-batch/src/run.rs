@@ -13,6 +13,7 @@ use alphanumeric_sort::compare_path;
 use anyhow::{Context as _, Result, bail, ensure};
 use koharu_llm::profile::Term;
 use koharu_pipeline::{Event, Outcome, Pipeline, PipelineConfig, Request, Stage, Target};
+use koharu_renderer::Renderer;
 use koharu_scene::{Edit, Hash, Op, PageId, Session};
 use parking_lot::Mutex;
 use serde_json::json;
@@ -22,22 +23,55 @@ use crate::{cli::Run, preset};
 /// What a page image ends with.
 const EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
 
+// The project file name stored inside the output folder.
+const PROJECT_FILE: &str = "project.khr";
+
+// Render and save a translated page image to the output folder.
+fn render_page(session: &Session, output_dir: &Path, page_id: PageId, index: usize) -> Result<()> {
+    let rendered = Renderer::get().render(session, page_id)?.rasterize()?;
+    let out_path = output_dir.join(format!("page{}.png", index + 1));
+    rendered.image.save(&out_path)?;
+    Ok(())
+}
+
 pub async fn run(arguments: &Run) -> Result<()> {
     let config = config(arguments)?;
-    let session = import(&arguments.input, &arguments.output)?;
+    let output_dir = &arguments.output;
+    if output_dir.is_file() {
+        bail!(
+            "{} is a file, not a folder; pick a folder for the translated images",
+            output_dir.display()
+        );
+    }
+    if !output_dir.exists() {
+        fs_err::create_dir_all(output_dir)?;
+    }
+    let (session, resuming) = prepare(arguments, output_dir)?;
     let pages: Vec<PageId> = session
         .lock()
         .project()
         .pages()
         .map(|page| page.id)
         .collect();
-    let target = match &arguments.pages {
-        None => Target::Project,
-        Some(range) => Target::Pages(chosen(range, &pages)?),
+    let (target, selected) = match &arguments.pages {
+        None => (Target::Project, pages.len()),
+        Some(range) => {
+            let chosen = chosen(range, &pages)?;
+            let selected = chosen.len();
+            (Target::Pages(chosen), selected)
+        }
     };
+    let stages = if resuming && arguments.stages.is_empty() {
+        BTreeSet::from([Stage::Translate])
+    } else {
+        stages(&arguments.stages)?
+    };
+    // The app's dialog counts this line with the per-stage ones below, so it
+    // stays one line before them.
+    println!("{} page stages to run", selected * stages.len());
     let request = Request {
         target,
-        stages: stages(&arguments.stages)?,
+        stages,
         config: None,
     };
     let pipeline = Pipeline::new(config);
@@ -48,8 +82,40 @@ pub async fn run(arguments: &Run) -> Result<()> {
     let history = pipeline
         .history(run, Duration::from_secs(arguments.wait))
         .await?;
-    progress.abort();
+    // The task ends on the run's `Ended` event, which `history` has already
+    // seen: aborting it here would drop the stage lines queued behind them.
+    if matches!(history.last(), Some(Event::Ended { .. })) {
+        let _ = progress.await;
+    } else {
+        progress.abort();
+    }
+    // Export translated pages to the output folder.
+    let session_lock = session.lock();
+    let project = session_lock.project();
+    for (index, page) in project.pages().enumerate() {
+        let page_id = page.id;
+        render_page(&session_lock, output_dir, page_id, index)?;
+    }
     report(&history, arguments)
+}
+
+/// The project to work on: the existing output when `--overwrite` resumes it,
+/// or a new one imported from `--input`.
+fn prepare(arguments: &Run, output_dir: &Path) -> Result<(Arc<Mutex<Session>>, bool)> {
+    let project_path = output_dir.join(PROJECT_FILE);
+    let resuming = arguments.overwrite && project_path.exists();
+    let session = if resuming {
+        let session = Session::open(&project_path)
+            .with_context(|| format!("couldn't open {}", project_path.display()))?;
+        Arc::new(Mutex::new(session))
+    } else {
+        let input = arguments
+            .input
+            .as_deref()
+            .context("--input is required unless --overwrite opens an existing --output")?;
+        import(input, &project_path)?
+    };
+    Ok((session, resuming))
 }
 
 /// What the run told, as the terminal's last word on it.
@@ -114,6 +180,7 @@ fn config(arguments: &Run) -> Result<PipelineConfig> {
             "target": arguments.target,
             "instructions": arguments.instructions.clone().unwrap_or_default(),
             "glossary": glossary,
+            "temperature": arguments.deterministic.then_some(0.0),
         },
     });
     serde_json::from_value(settings)
@@ -233,7 +300,10 @@ fn import(input: &Path, output: &Path) -> Result<Arc<Mutex<Session>>> {
     let pages = pages(input)?;
     ensure!(!pages.is_empty(), "{} holds no page image", input.display());
     if output.exists() {
-        bail!("{} exists; remove it first", output.display());
+        bail!(
+            "{} exists; use --overwrite to re-translate it",
+            output.display()
+        );
     }
     let mut session =
         Session::create(output).with_context(|| format!("couldn't create {}", output.display()))?;
@@ -314,4 +384,96 @@ fn extension(path: &Path) -> String {
         .and_then(|extension| extension.to_str())
         .unwrap_or_default()
         .to_ascii_lowercase()
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser as _;
+
+    use super::*;
+    use crate::cli::{Arguments, Command};
+
+    fn parse(arguments: &[&str]) -> Run {
+        let parsed = Arguments::parse_from(arguments.iter().copied());
+        let Command::Run(run) = parsed.command else {
+            panic!("the arguments name a run");
+        };
+        run
+    }
+
+    #[test]
+    fn deterministic_translates_at_temperature_zero() {
+        let arguments = parse(&[
+            "koharu-batch",
+            "run",
+            "--input",
+            "pages",
+            "--output",
+            "chapter_output",
+            "--deterministic",
+        ]);
+        let config = config(&arguments).expect("the default model and language are known");
+        assert_eq!(config.translator.temperature, Some(0.0));
+    }
+
+    #[test]
+    fn render_page_writes_each_page_at_its_own_size() {
+        if koharu_renderer::Gpu::get().is_err() {
+            eprintln!("skipped without a GPU");
+            return;
+        }
+        let directory = tempfile::tempdir().expect("a temporary folder");
+        let output_dir = directory.path().join("pages");
+        fs_err::create_dir_all(&output_dir).expect("created output folder");
+        let mut session = Session::create(directory.path().join(PROJECT_FILE)).expect("a project");
+        let ops = [
+            json!({"op": "add_page", "id": "$first", "index": 0, "size": {"width": 40, "height": 30}}),
+            json!({"op": "add_page", "id": "$second", "index": 1, "size": {"width": 20, "height": 60}}),
+            json!({"op": "add_layer", "page": "$first", "index": 0, "layer": {
+                "kind": "shape", "path": "M0 0 H40 V30 H0 Z", "fill": [1.0, 0.0, 0.0, 1.0]}}),
+        ]
+        .into_iter()
+        .map(|op| serde_json::from_value(op).expect("an op"))
+        .collect();
+        let change = session
+            .apply(Edit {
+                label: "pages".to_owned(),
+                ops,
+            })
+            .expect("an edit");
+        let [first, second] = change.pages.added[..] else {
+            panic!("two pages");
+        };
+        render_page(&session, &output_dir, first, 0).expect("the first page");
+        render_page(&session, &output_dir, second, 1).expect("the second page");
+        let drawn = image::open(output_dir.join("page1.png"))
+            .expect("the first PNG")
+            .to_rgba8();
+        assert_eq!((drawn.width(), drawn.height()), (40, 30));
+        let pixel = drawn.get_pixel(20, 15).0;
+        assert!(pixel[3] == 255 && pixel[0] > 200, "{pixel:?}");
+        let empty = image::open(output_dir.join("page2.png"))
+            .expect("the second PNG")
+            .to_rgba8();
+        assert_eq!((empty.width(), empty.height()), (20, 60));
+    }
+
+    #[test]
+    fn overwrite_opens_an_existing_project_without_an_input() {
+        let directory = tempfile::tempdir().expect("a temporary folder");
+        let output_dir = directory.path().join("chapter_output");
+        fs_err::create_dir_all(&output_dir).expect("created output folder");
+        let project_path = output_dir.join(PROJECT_FILE);
+        Session::create(&project_path).expect("an empty project");
+        let arguments = parse(&[
+            "koharu-batch",
+            "run",
+            "--output",
+            output_dir.to_str().expect("the path is UTF-8"),
+            "--overwrite",
+        ]);
+        let (session, resuming) = prepare(&arguments, &output_dir).expect("the project opens");
+        assert!(resuming);
+        assert_eq!(session.lock().project().pages().count(), 0);
+    }
 }

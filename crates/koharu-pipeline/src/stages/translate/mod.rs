@@ -66,6 +66,10 @@ pub struct TranslatorConfig {
     #[serde(with = "koharu_llm::reasoning")]
     #[specta(type = Option<String>)]
     pub reasoning: Option<Reasoning>,
+    /// The sampling temperature; unset keeps the model's own default. Zero
+    /// translates greedily, so the same pages render the same text on every run.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
     /// Term pairs the user fixed, such as the spelling of a name: a pair
     /// replaces the rendering the chapter's dossier learned for the same
     /// source, on every page.
@@ -83,6 +87,7 @@ impl Default for TranslatorConfig {
             instructions: String::new(),
             vision: false,
             reasoning: None,
+            temperature: None,
             glossary: Vec::new(),
         }
     }
@@ -183,6 +188,7 @@ pub(crate) async fn translate(
         &page.texts,
         page.image.as_deref(),
         translator.reasoning,
+        translator.temperature,
         &member.cancel,
     );
     let Some(translations) = turn

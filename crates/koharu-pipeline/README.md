@@ -179,6 +179,7 @@ is a language CLDR doesn't name in English.
 | `translator.instructions` | none |
 | `translator.vision` | `false` |
 | `translator.reasoning` | the model's own, or `off` or an effort level, one word |
+| `translator.temperature` | the model's catalog default; `0` translates greedily |
 
 Manga OCR AR is CC BY-NC-SA 4.0, so a user who picks it is held to
 non-commercial use. Telea's port keeps OpenCV's BSD-style license, so this

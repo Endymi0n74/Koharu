@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "選擇…",
                   "description":  "在專案之外，用 koharu-batch 翻譯資料夾中的每一頁。",
-                  "deterministic":  "確定性",
+                  "done":  "批次翻譯完成",
                   "folder":  "要翻譯的資料夾",
                   "model":  "模型",
                   "modelAuto":  "自動",
                   "noneSelected":  "未選擇",
                   "output":  "輸出專案",
-                  "overwrite":  "覆寫",
+                  "progress":  "{{done}}/{{total}} 步",
+                  "sameFolder":  "輸入資料夾和輸出資料夾必須不同。",
                   "start":  "開始",
                   "starting":  "正在啟動…",
                   "title":  "批次翻譯資料夾"

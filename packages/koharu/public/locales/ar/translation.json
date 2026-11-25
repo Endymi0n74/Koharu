@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "اختيار…",
                   "description":  "يترجم كل صفحة في مجلد باستخدام koharu-batch، خارج أي مشروع.",
-                  "deterministic":  "حتمي",
+                  "done":  "اكتملت الدفعة",
                   "folder":  "المجلد المراد ترجمته",
                   "model":  "النموذج",
                   "modelAuto":  "تلقائي",
                   "noneSelected":  "لا شيء محدد",
                   "output":  "مشروع الإخراج",
-                  "overwrite":  "استبدال",
+                  "progress":  "{{done}}/{{total}} خطوات",
+                  "sameFolder":  "يجب أن يكون مجلد الإدخال ومجلد الإخراج مختلفين.",
                   "start":  "بدء",
                   "starting":  "جارٍ البدء…",
                   "title":  "ترجمة مجلد دفعةً واحدة"

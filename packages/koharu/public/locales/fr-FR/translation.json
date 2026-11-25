@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "Choisir…",
                   "description":  "Traduit chaque page d’un dossier avec koharu-batch, hors de tout projet.",
-                  "deterministic":  "Déterministe",
+                  "done":  "Lot terminé",
                   "folder":  "Dossier à traduire",
                   "model":  "Modèle",
                   "modelAuto":  "Auto",
                   "noneSelected":  "Aucun",
                   "output":  "Projet de sortie",
-                  "overwrite":  "Écraser",
+                  "progress":  "{{done}}/{{total}} étapes",
+                  "sameFolder":  "Les dossiers d’entrée et de sortie doivent être différents.",
                   "start":  "Démarrer",
                   "starting":  "Démarrage…",
                   "title":  "Traduire un dossier par lot"

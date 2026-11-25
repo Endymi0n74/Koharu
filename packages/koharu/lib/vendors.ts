@@ -19,8 +19,10 @@ export const vendorTraits: Record<string, VendorTraits> = {
   'openai-compatible': { server: true, contextWindow: true },
 }
 
-/** Vendors by rig's names, as their makers write them; others show their own name. */
+/** Vendors by rig's names, as their makers write them; others show their own name. A batch run's
+ * Auto entry is the CLI's own choice among the local models, so it reads as Local. */
 const vendorNames: Record<string, string> = {
+  local: 'Local',
   openai: 'OpenAI',
   anthropic: 'Anthropic',
   'gcp.gemini': 'Google Gemini',

@@ -1,3 +1,108 @@
+## Vague 1 des caches de développement (25/11)
+
+Les sept caches de la vague 1 sont sur `D:\Codex\dev`. C: est passé de 28 à
+41 Go libres (223 → 211 Go utilisés).
+
+| Élément | Taille | Destination | Méthode |
+|---|---:|---|---|
+| `.cargo` | 4,11 Go | `D:\Codex\dev\.cargo` | Jonction `C:\Users\endymion\.cargo` |
+| cache pip | 3,16 Go | `D:\Codex\dev\pip-cache` | `PIP_CACHE_DIR` (variable utilisateur) |
+| `.codex` | 1,73 Go | `D:\Codex\dev\.codex` | Jonction ; `current` recréée vers `releases\0.169.0…` ; sockets exclus |
+| npm global | 1,52 Go | `D:\Codex\dev\npm` | Jonction `%APPDATA%\npm` |
+| `.gradle` | 0,88 Go | `D:\Codex\dev\gradle` | `GRADLE_USER_HOME` (variable utilisateur) |
+| OpenCode | 0,82 Go | `D:\Codex\dev\opencode` | Jonction `~\.local\share\opencode` |
+| `.rustup` | 0,56 Go | `D:\Codex\dev\.rustup` | Jonction `C:\Users\endymion\.rustup` |
+
+Total déplacé : environ 12,8 Go.
+
+Deux incidents réparés pendant la reprise :
+
+- robocopy avec `/SL` a échoué sur 29 liens symboliques (LICENSE, README,
+  examples) car Windows exige un privilège pour les recréer. Les fichiers
+  réguliers étaient déjà sur D ; les liens ont été remplacés par des copies de
+  leurs cibles, sur D.
+- Les proxys `cargo.exe`, `rustc.exe`, `rustup.exe`, etc. de `.cargo\bin`
+  n'avaient pas suivi ; ils ont été recréés en hardlinks de
+  `.rustup\bin\rustup.exe` (14 liens). `cargo-tauri.exe` et `wasm-pack.exe`
+  sont conservés.
+
+Le service OpenCode (`opencode-cli`, `opencode-pty`) a été arrêté pour libérer
+sa base SQLite ; il n'a pas été relancé. Codex n'était pas lancé : ses sockets
+seront recréés à la prochaine ouverture.
+
+Vérifié après déplacement :
+
+- `cargo check -p koharu-batch` : exit 0 en 1 min 50 s.
+- `bun run --filter @koharu/app build` : exit 0 (TypeScript et pages statiques).
+- `koharu.exe` lancé depuis `D:\Codex\koharu` : fenêtre « KoharuBatch »
+  répondante, puis fermée.
+- `cargo 1.97.1`, `rustc 1.97.1`, `rustup 1.29.1`, `bun 1.3.14`, `npm 11.19.0`.
+- `pip cache dir` répond `d:\codex\dev\pip-cache` ; `GRADLE_USER_HOME` et
+  `PIP_CACHE_DIR` sont bien dans l'environnement utilisateur.
+- Jonctions résolues : `.cargo`, `.rustup`, `.codex`, `%APPDATA%\npm`,
+  `~/.local/share/opencode`.
+
+Logs : `target/move-caches.log` (premier essai), `target/move-caches-2.log`,
+`target/cargo-check.log`, `target/bun-build.log`.
+
+## Rien sur C: (25/11)
+
+Tout ce qui restait de KoharuBatch sous `C:\` a été déplacé vers `D:\Codex` :
+
+- `%LOCALAPPDATA%\Koharu` (ancienne installation per-user, 1,9 Go, dont
+  `packages\cuda` 662 Mo et `packages\torch` 209 Mo obsolètes) : binaires,
+  runtime CEF et paquets supprimés ; les caches `cef`, `cef-debug` et `logs`
+  sont conservés dans `D:\Codex\koharu-data\AppData\Local\Koharu`. Projets
+  vides, donc rien d'autre à préserver.
+- `~/.koharu` (config, backups, `vram-calibration.toml`) :
+  `D:\Codex\koharu-data\.koharu`.
+- `%APPDATA%\Koharu` (état de fenêtre) :
+  `D:\Codex\koharu-data\AppData\Roaming\Koharu`.
+- `%LOCALAPPDATA%\tauri-cef` (cache de build CEF, 594 Mo) :
+  `D:\Codex\tauri-cef`.
+- `%LOCALAPPDATA%\Temp\koharu-0.88.3-updater-*` et `build_koharu.log` :
+  supprimés.
+
+Les trois emplacements de données de l'app sont remplacés par des jonctions
+NTFS de 0 octet, pour que l'app installée dans `D:\Codex\koharu` continue de
+les trouver sans jamais écrire sur C: :
+
+    C:\Users\endymion\.koharu
+        -> D:\Codex\koharu-data\.koharu
+    C:\Users\endymion\AppData\Local\Koharu
+        -> D:\Codex\koharu-data\AppData\Local\Koharu
+    C:\Users\endymion\AppData\Roaming\Koharu
+        -> D:\Codex\koharu-data\AppData\Roaming\Koharu
+    C:\Users\endymion\AppData\Local\tauri-cef
+        -> D:\Codex\tauri-cef
+
+Le store (75 Go), les projets et les binaires sont déjà dans
+`D:\Codex\koharu` ; les raccourcis du menu Démarrer et du bureau pointent
+déjà sur `D:\Codex\koharu\koharu.exe`. C: est passé de 26 à 28 Go libres.
+
+## Version unique 0.93.0
+
+La version du produit vient uniquement de `[workspace.package] version` dans
+`Cargo.toml`. release-please la lit et la réécrit par
+`cargo set-version --workspace` ; son manifeste
+`.github/release-please/manifest.json` est aligné sur 0.93.0. Le build Tauri
+n'a plus d'override de version (`crates/koharu/tauri.release.conf.json` ne fixe
+plus que le bundle) : il prend la version du paquet `koharu`, qui hérite du
+workspace. Le suffixe `-fork` disparaît des versions ; le dépôt et le nom
+affiché restent KoharuBatch.
+
+Vérifié : `cargo metadata` donne 0.93.0 pour les crates du workspace,
+`Cargo.lock` ne contient plus `0.93.0-fork`, et le manifeste release-please
+vaut 0.93.0.
+
+Installeur reconstruit sans override le 25/11 avec
+`cargo tauri build --config crates/koharu/tauri.release.conf.json` :
+`koharu_0.93.0_x64-setup.exe` (198 348 423 o), FileVersion et ProductVersion
+0.93.0 ; `koharu-batch --version` répond `koharu-batch 0.93.0`. Les copies
+installées `D:\Codex\koharu` (cible du raccourci), `%LOCALAPPDATA%\Koharu` et
+`%LOCALAPPDATA%\koharu-clean-093` ont été remplacées par ces binaires. Le ZIP
+portable n'a pas été reconstruit.
+
 ## Renommage affiché et montée 0.92.0
 
 ### Décision de renommage (tranchée)
@@ -58,6 +163,56 @@ choix conservateur assumé.
 Décision committée sur la branche `port/upstream-0.92`. Le rapport affiche les
 périmés puis les réutilisables séparément ; les réutilisables sont dérivés des
 deux racines en même temps que les pins, sans récrire de catalogue.
+
+## Version 0.93.0-fork
+
+`[workspace.package] version` passe à `0.93.0-fork` ; le manifeste
+release-please reste à 0.92.0, comme pour la montée précédente : il ne sert pas
+à l'affichage et le tag se pose à la main.
+
+Changements de comportement : le dialogue « Batch translate a folder »
+affiche la progression du lot ; avant d'écraser un `project.khr`, `start_batch`
+en garde une copie (voir « Garde-fous avant écrasement »). `koharu-batch run`
+imprime le total (`N page stages to run`) avant les lignes
+`<stage> done on <page>`, et `start_batch` les remonte au dialogue par un
+`Channel`.
+
+Distribution : `KoharuBatch-0.93.0-fork-windows-x64-portable.zip` (271 Mo,
+603 Mo décompressés), assemblée depuis `target\release` avec le runtime CEF
+156 et ses 220 locales ; `SHA256SUMS` joint. Vérifiée en lançant l'exécutable
+extrait : fenêtre « KoharuBatch », version 0.93.0-fork.
+
+## Garde-fous avant écrasement (0.93.0)
+
+Quand `output\project.khr` existe, `start_batch` le copie en
+`project.khr.bak` et copie `project.khr-wal` en `project.khr-wal.bak` avant
+d'ajouter `--overwrite` ; un échec de copie arrête le lancement. Le dialogue
+refuse le même dossier en entrée et en sortie (`batch.sameFolder`, traduit dans
+les 12 locales), désactive Démarrer tant que les deux chemins sont égaux, et
+efface une sortie identique à l'entrée à la réouverture.
+
+Vérifié le 25/11 : test Vitest ciblé (4/4) et `cargo check` ; sur le build
+debug, le même dossier injecté laisse la sortie vide et Démarrer désactivé ;
+un lot relancé dans `test_output_093_backup` produit `project.khr.bak` avec le
+SHA-256 du projet d'avant le run (`9e16ac…`) et `project.khr-wal.bak`, puis le
+toast « Lot terminé ». Installeur et ZIP reconstruits ; l'installation a été
+mise à jour dans `%LOCALAPPDATA%\koharu-clean-093` (le `/D=` est ignoré quand
+une installation existe), fenêtre « KoharuBatch » et CLI `0.93.0-fork`.
+
+## Pages du lot rendues (0.93.0)
+
+`koharu-batch run` écrit `pageN.png` en rendant chaque page par le renderer
+partagé (`koharu-renderer`), comme l'export PNG de l'app, au lieu d'un canevas
+vide de la taille de la page. Vérifié par
+`render_page_writes_each_page_at_its_own_size` : deux pages de tailles
+différentes (40×30 et 20×60), la première avec un aplat rouge, sont rendues et
+relues depuis leurs PNG sur GPU.
+
+Installeur reconstruit (198 381 686 o) et ZIP portable (270 997 060 o,
+242 fichiers, SHA-256 `342e8ec6…`). Le raccourci `koharu.lnk` vise
+`D:\Codex\koharu\koharu.exe` : le `koharu-batch.exe` de cette installation et
+celui de `%LOCALAPPDATA%\Koharu` et `%LOCALAPPDATA%\koharu-clean-093` ont été
+remplacés par le binaire reconstruit (`a553545c…`).
 
 ## Renommage complet Koharu -> KoharuBatch (0.92.0-fork)
 
@@ -120,3 +275,53 @@ Contenu : `koharu.exe`, `koharu-batch.exe`, `libcef.dll`, `chrome_elf.dll`,
 Les deux `.exe` restent publiés à part : `koharu-batch.exe` est autonome,
 `koharu.exe` ne sert que si le runtime est déjà présent. Aucune modification
 de code pour ce complément : seul l'emballage change.
+## Distribution portable 0.93.0 (build de validation)
+
+`koharu.exe` seul n'est pas portable : c'est un binaire CEF, il exige
+`libcef.dll`, les `.pak`, `icudtl.dat`, `bootstrap.exe`/`bootstrapc.exe` et
+`locales\` à côté de lui. Le build 0.93.0 est donc livré en archive complète,
+assemblée depuis `target\release` :
+
+`dist\KoharuBatch-0.93.0-windows-x64-portable.zip` (277 613 356 o, 264,8 Mio ;
+602,7 Mio décompressés, 242 fichiers), SHA-256 dans `dist\SHA256SUMS`.
+
+Contenu : `koharu.exe` (0.93.0), `koharu-batch.exe` (requis par le dialogue de
+lot, résolu à côté de l'application), runtime CEF 156 complet, 220 locales,
+`LICENSE-MIT`, `LICENSE-APACHE`, `CREDITS.html`, `LISEZ-MOI.txt`.
+
+Vérifié après extraction de l'archive dans un dossier vierge
+(`target\portable-test`) : l'arbre extrait est identique au dossier assemblé
+(242 fichiers, mêmes tailles), `koharu.exe` démarre depuis ce dossier avec la
+fenêtre « KoharuBatch » et cinq processus CEF, `koharu-batch.exe --version`
+répond. L'archive n'a pas été ouverte depuis l'Explorateur Windows ni testée
+sur une autre machine.
+
+### Config de release versionnée
+
+L'override de build n'est plus dans `target\` (perdu au `cargo clean`) : il est
+versionné dans `crates\koharu\tauri.release.conf.json` (cible NSIS,
+`createUpdaterArtifacts: false`, sans version propre). Depuis la racine du
+dépôt, avec ninja (VS BuildTools), cargo, rustc et bun dans le `PATH` :
+
+    cargo tauri build --config crates/koharu/tauri.release.conf.json
+
+La commande lance `bun run --filter @koharu/app build` puis produit
+`target\release\bundle\nsis\koharu_0.93.0_x64-setup.exe`, sans `.sig`.
+Vérifiée le 25/11 : `BUNDLE_EXIT=0`, installeur 0.93.0 (189,15 Mio ;
+198 335 712 o), aucun artefact d'updater.
+
+## Sidecar `koharu-batch` dans l'installeur (0.93.0)
+
+L'installeur ne livrait pas `koharu-batch.exe` : le dialogue de lot échouait sur
+une installation propre. Le CLI est désormais un `externalBin` Tauri
+(`crates/koharu/tauri.conf.json`), préparé par `scripts/prepare-sidecar.ts`
+(`bun run sidecar`, appelé par `beforeBuildCommand`) sous le nom
+`crates/koharu/binaries/koharu-batch-<triple>[.exe]`, dossier ignoré par Git.
+
+Vérifié : `installer.nsi` contient `File ... koharu-batch.exe` ; installation
+propre dans `%LOCALAPPDATA%\koharu-clean-093` (NSIS currentUser, 0.93.0) avec
+`koharu.exe` et `koharu-batch.exe` ; le CLI installé exécute les 8 étapes de
+`test_pages` (PNG + `project.khr`) ; le dialogue, piloté sur le build debug avec
+`KOHARU_BATCH_BIN` pointant sur le CLI installé, affiche `0/8 → 8/8 étapes` et
+le toast « Lot terminé » sur deux passages. Le ZIP portable a été reconstruit
+depuis `target\release` et contient les deux exe.

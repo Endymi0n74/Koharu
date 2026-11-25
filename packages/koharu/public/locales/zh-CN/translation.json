@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "选择…",
                   "description":  "在项目之外，用 koharu-batch 翻译文件夹中的每一页。",
-                  "deterministic":  "确定性",
+                  "done":  "批量翻译完成",
                   "folder":  "要翻译的文件夹",
                   "model":  "模型",
                   "modelAuto":  "自动",
                   "noneSelected":  "未选择",
                   "output":  "输出项目",
-                  "overwrite":  "覆盖",
+                  "progress":  "{{done}}/{{total}} 步",
+                  "sameFolder":  "输入文件夹和输出文件夹必须不同。",
                   "start":  "开始",
                   "starting":  "正在启动…",
                   "title":  "批量翻译文件夹"

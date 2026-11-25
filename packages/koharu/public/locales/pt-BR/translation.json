@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "Escolher…",
                   "description":  "Traduza cada página de uma pasta com o koharu-batch, fora de qualquer projeto.",
-                  "deterministic":  "Determinístico",
+                  "done":  "Lote concluído",
                   "folder":  "Pasta a traduzir",
                   "model":  "Modelo",
                   "modelAuto":  "Auto",
                   "noneSelected":  "Nenhuma",
                   "output":  "Projeto de saída",
-                  "overwrite":  "Substituir",
+                  "progress":  "{{done}}/{{total}} etapas",
+                  "sameFolder":  "As pastas de entrada e saída devem ser diferentes.",
                   "start":  "Iniciar",
                   "starting":  "Iniciando…",
                   "title":  "Traduzir pasta em lote"

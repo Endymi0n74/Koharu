@@ -5,7 +5,7 @@
     "devUrl": "http://localhost:3000",
     "frontendDist": "../../packages/koharu/out",
     "beforeDevCommand": "bun run --filter @koharu/app dev",
-    "beforeBuildCommand": "bun run --filter @koharu/app build"
+    "beforeBuildCommand": "bun run --filter @koharu/app build && bun run sidecar"
   },
   "app": {
     "security": {
@@ -30,6 +30,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": ["binaries/koharu-batch"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

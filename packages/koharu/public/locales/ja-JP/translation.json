@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "選択…",
                   "description":  "フォルダー内のすべてのページを、プロジェクトの外で koharu-batch により翻訳します。",
-                  "deterministic":  "決定的",
+                  "done":  "一括翻訳が完了しました",
                   "folder":  "翻訳するフォルダー",
                   "model":  "モデル",
                   "modelAuto":  "自動",
                   "noneSelected":  "未選択",
                   "output":  "出力プロジェクト",
-                  "overwrite":  "上書き",
+                  "progress":  "{{done}}/{{total}} ステップ",
+                  "sameFolder":  "入力フォルダーと出力フォルダーは別にしてください。",
                   "start":  "開始",
                   "starting":  "開始中…",
                   "title":  "フォルダーを一括翻訳"

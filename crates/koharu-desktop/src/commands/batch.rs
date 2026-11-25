@@ -7,7 +7,7 @@
 use std::path::Path;
 use std::process::Stdio;
 
-use tauri::Window;
+use tauri::{Window, ipc::Channel};
 use tauri_runtime_cef::CefRuntime;
 use tokio::io::{AsyncBufReadExt as _, BufReader};
 
@@ -26,8 +26,23 @@ pub(crate) async fn pick_batch_folder(
         .map(|folder| folder.path().to_string_lossy().into_owned()))
 }
 
-/// Resolves the `koharu-batch` binary next to the running app, then in the
-/// workspace's target folder (development), then through `KOHARU_BATCH_BIN`.
+/// Folder picker for the output a batch writes translated images to.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn pick_batch_output(
+    window: Window<CefRuntime>,
+) -> std::result::Result<Option<String>, Error> {
+    let dialog = rfd::AsyncFileDialog::new()
+        .set_parent(&window)
+        .set_title("Save translated images")
+        .pick_folder();
+    Ok(dialog
+        .await
+        .map(|folder| folder.path().to_string_lossy().into_owned()))
+}
+
+/// Resolves the `koharu-batch` binary: `KOHARU_BATCH_BIN`, then next to the
+/// running app, then in the workspace's target folder (development).
 fn batch_binary() -> Result<String> {
     if let Some(explicit) = std::env::var_os("KOHARU_BATCH_BIN") {
         let path = Path::new(&explicit);
@@ -67,16 +82,18 @@ fn batch_binary() -> Result<String> {
 }
 
 /// Translates a folder with `koharu-batch` as a child process. Blocks until
-/// the child exits, then reports success or failure.
+/// the child exits, then reports the project file it wrote, or a failure;
+/// `on_progress` hears each line the run prints, so a long chapter says where
+/// it is.
 #[tauri::command]
+#[specta::specta]
 pub(crate) async fn start_batch(
     input: String,
     output: String,
     lang: String,
     translator: Option<String>,
-    deterministic: bool,
-    overwrite: bool,
-) -> Result<()> {
+    on_progress: Channel<String>,
+) -> Result<String> {
     if !Path::new(&input).exists() {
         return Err(anyhow::anyhow!("the input folder {} does not exist", input).into());
     }
@@ -91,20 +108,45 @@ pub(crate) async fn start_batch(
         .arg(&output)
         .arg("--target")
         .arg(&lang);
+    // Re-run on a folder that already holds a project: the CLI makes a new
+    // project there otherwise. Keep the version being replaced, so a run that
+    // goes wrong can be recovered; the `-wal` file holds the commits the
+    // project has not checkpointed yet, so it is copied with the file.
+    let project = Path::new(&output).join("project.khr");
+    if project.exists() {
+        let backup = Path::new(&output).join("project.khr.bak");
+        std::fs::copy(&project, &backup).map_err(|error| {
+            anyhow::anyhow!(
+                "could not back up {} to {}: {error}",
+                project.display(),
+                backup.display()
+            )
+        })?;
+        let wal = Path::new(&output).join("project.khr-wal");
+        let wal_backup = Path::new(&output).join("project.khr-wal.bak");
+        if wal.exists() {
+            std::fs::copy(&wal, &wal_backup).map_err(|error| {
+                anyhow::anyhow!(
+                    "could not back up {} to {}: {error}",
+                    wal.display(),
+                    wal_backup.display()
+                )
+            })?;
+        } else if wal_backup.exists() {
+            std::fs::remove_file(&wal_backup).map_err(|error| {
+                anyhow::anyhow!("could not remove {}: {error}", wal_backup.display())
+            })?;
+        }
+        command.arg("--overwrite");
+    }
     if let Some(translator) = translator.as_deref() {
         if !translator.is_empty() {
             command.arg("--translator").arg(translator);
         }
     }
-    if deterministic {
-        command.arg("--deterministic");
-    }
-    if overwrite {
-        command.arg("--overwrite");
-    }
     command
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
 
@@ -115,29 +157,39 @@ pub(crate) async fn start_batch(
         }
     };
 
+    let Some(stdout) = child.stdout.take() else {
+        return Err(anyhow::anyhow!("koharu-batch did not expose stdout").into());
+    };
     let Some(stderr) = child.stderr.take() else {
         return Err(anyhow::anyhow!("koharu-batch did not expose stderr").into());
     };
 
-    let mut lines = BufReader::new(stderr).lines();
-    let mut last_failure: Option<String> = None;
-
-    while let Some(line) = lines.next_line().await? {
-        let lower = line.to_ascii_lowercase();
-        if lower.contains("failed") || lower.contains("error") {
-            last_failure = Some(line);
+    // stderr carries the run's diagnostics, and its last line is what a failed
+    // exit is blamed on; stdout is the progress.
+    let diagnostics = tokio::spawn(async move {
+        let mut last = None;
+        let mut lines = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = lines.next_line().await {
+            last = Some(line);
         }
+        last
+    });
+    let mut lines = BufReader::new(stdout).lines();
+    while let Some(line) = lines.next_line().await? {
+        // Nobody listening isn't a failure.
+        let _ = on_progress.send(line);
     }
+    let failure = diagnostics.await?;
 
     let status = child.wait().await?;
     if status.success() {
-        Ok(())
+        let project_path = Path::new(&output).join("project.khr");
+        Ok(project_path.to_string_lossy().into_owned())
     } else {
-        let detail = last_failure
-            .unwrap_or_else(|| match status.code() {
-                Some(code) => format!("koharu-batch exited with code {code}"),
-                None => "koharu-batch exited without a code".to_owned(),
-            });
+        let detail = failure.unwrap_or_else(|| match status.code() {
+            Some(code) => format!("koharu-batch exited with code {code}"),
+            None => "koharu-batch exited without a code".to_owned(),
+        });
         Err(anyhow::anyhow!("{detail}").into())
     }
 }

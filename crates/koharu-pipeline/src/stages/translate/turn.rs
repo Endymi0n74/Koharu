@@ -24,6 +24,7 @@ pub(super) struct Turn<'a> {
     /// The page, which the model sees with its texts.
     image: Option<&'a str>,
     reasoning: Option<Reasoning>,
+    temperature: Option<f64>,
     cancel: &'a CancellationToken,
 }
 
@@ -33,6 +34,7 @@ impl<'a> Turn<'a> {
         texts: &'a [String],
         image: Option<&'a str>,
         reasoning: Option<Reasoning>,
+        temperature: Option<f64>,
         cancel: &'a CancellationToken,
     ) -> Self {
         let keys = keys(texts.len());
@@ -43,6 +45,7 @@ impl<'a> Turn<'a> {
             texts,
             image,
             reasoning,
+            temperature,
             cancel,
         }
     }
@@ -105,12 +108,15 @@ impl<'a> Turn<'a> {
         if let Some(reasoning) = self.reasoning {
             options = options.reasoning(reasoning);
         }
-        let request = koharu_llm::answers(model, schema(&self.keys)?)
+        let mut request = koharu_llm::answers(model, schema(&self.keys)?)
             .preamble(&self.system)
             .options(options)
             .build()
-            .prompt(Message::from(content))
-            .history(history);
+            .prompt(Message::from(content));
+        if let Some(temperature) = self.temperature {
+            request = request.temperature(temperature);
+        }
+        let request = request.history(history);
         let response = tokio::select! {
             response = request.into_future() => response?,
             () = self.cancel.cancelled() => return Ok(None),

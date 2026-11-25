@@ -41,13 +41,14 @@
     "batch":  {
                   "choose":  "Choose…",
                   "description":  "Translate every page of a folder with koharu-batch, outside any project.",
-                  "deterministic":  "Deterministic",
+                  "done":  "Batch finished",
                   "folder":  "Folder to translate",
                   "model":  "Model",
                   "modelAuto":  "Auto",
                   "noneSelected":  "None selected",
                   "output":  "Output project",
-                  "overwrite":  "Overwrite",
+                  "progress":  "{{done}}/{{total}} steps",
+                  "sameFolder":  "The input and output folders must be different.",
                   "start":  "Start",
                   "starting":  "Starting…",
                   "title":  "Batch translate a folder"
