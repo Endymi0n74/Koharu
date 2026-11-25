@@ -1,3 +1,29 @@
+## Bundle installé déplacé hors du dépôt (25/11)
+
+L'installation qui vivait à la racine du dépôt (`D:\Codex\koharu`) est
+maintenant dans `D:\Codex\KoharuBatch` : `koharu.exe`, `koharu-batch.exe`,
+`uninstall.exe`, le runtime CEF complet (`libcef.dll`, `.pak`, `icudtl.dat`,
+`chrome_elf.dll`, `d3dcompiler_47.dll`, `dxcompiler.dll`, `dxil.dll`,
+`v8_context_snapshot.bin`, `vk_swiftshader*`, `vulkan-1.dll`, `bootstrap*.exe`,
+`CREDITS.html`) et `locales\` (220 fichiers). Le dossier ne contient plus aucun
+fichier de l'application ; `target\` et `dist\` sont inchangés.
+
+Suivi mis à jour :
+
+- raccourcis `%APPDATA%\Microsoft\Windows\Start Menu\Programs\koharu.lnk` et
+  `%USERPROFILE%\Desktop\koharu.lnk` : cible et dossier de travail
+  `D:\Codex\KoharuBatch` ;
+- clé `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\koharu` :
+  `InstallLocation`, `UninstallString` et `DisplayIcon` repointés ;
+  `uninstall.exe` ne contient aucun chemin en dur (non exécuté) ;
+- le bloc « Application Koharu installee dans le dossier du depot » a été
+  retiré de `.git/info/exclude`, et `git status` reste propre sans lui.
+
+Vérifié : `koharu.exe` lancé depuis `D:\Codex\KoharuBatch` (chemin confirmé par
+`Get-Process`), fenêtre « KoharuBatch » répondante et cinq processus CEF, avec
+le runtime CEF présent à côté du binaire. Les avertissements `list_models`
+(Ollama/LM Studio absents) sont normaux.
+
 ## Vague 1 des caches de développement (25/11)
 
 Les sept caches de la vague 1 sont sur `D:\Codex\dev`. C: est passé de 28 à
