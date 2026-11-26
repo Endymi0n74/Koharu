@@ -1,3 +1,24 @@
+Ménage code + branches (26/11/2026)
+===================================
+Décisions : prune du store puis suppression du legacy 60 Go, suppression des 33 branches distantes, target et bench-profile nettoyés, dist conservé, doc commitée, HANDOFF/CLAUDE/.agents conservés.
+
+Vérifié :
+- 12 locales réécrites par PowerShell (indentation 4 espaces, échappements \u003c/\u003e/\u0027) remises au format du projet par oxfmt ; contenu identique (hash JSON comparé avant/après), diff vs 059238f0^ réduit aux ajouts batch du fork.
+- packages/bridge supprimé (wasm généré, plus référencé).
+- Commits locaux aaf962eb (docs fork fr/ja/zh) et a268d646 (style locales), sans Co-Authored-By ; non poussés.
+- Fichiers générés supprimés : node_modules/.old_modules-*, packages/koharu/.next, packages/koharu/out, tsconfig.tsbuildinfo, next-env.d.ts, crates/koharu/binaries, crates/koharu/gen, .cloud-attachments, .freebuff.
+- koharu-batch prune --delete : 9 anciennes versions CUDA, 1,9 Gio.
+- store/hugging-face supprimé (60 Go) : le runtime ne lit que huggingface/<kind>/<repo>/snapshots/<commit> (crates/koharu-runtime/src/huggingface.rs).
+- target/ supprimé (59 Go) ; bench-profile/ déplacé vers D:\codex\koharu-data\bench-profile-2026-11-26 (307 Mo) ; dist/ conservé.
+- git fetch --prune upstream (17 refs disparues), tag local merge-upstream-main supprimé, main suit désormais origin/main.
+- 33 branches supprimées sur origin (17 miroirs upstream, 14 dependabot, port/upstream-0.92, qwen-image-2.1) ; origin ne garde que main. Bundle de sauvegarde de qwen-image-2.1 dans D:\codex\koharu-data\backups (97 Mo).
+
+Non exercé :
+- aucun build complet après suppression de target (aucun code Rust/TS modifié) ; prochaine compilation ~5-6 min.
+- modèles du legacy absents du root courant : re-téléchargés au premier usage.
+- push de main non fait (2 commits locaux).
+- oxlint racine était cassé avant le ménage ; bun install non relancé.
+
 Bundle installé déplacé hors du dépôt (25/11/2026)
 =====================================================
 Le bundle installé (koharu.exe, DLL CEF, paks, locales, uninstall.exe) a été déplacé de la racine du dépôt vers D:\Codex\KoharuBatch.
