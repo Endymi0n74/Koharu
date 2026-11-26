@@ -13,7 +13,6 @@
     "docs": "bun run --filter @koharu/docs dev",
     "lint": "bun run --filter '@koharu/*' lint",
     "test": "bun run --filter @koharu/app test",
-    "sponsors": "cd .github/sponsorkit && sponsorkit --force",
     "format": "oxfmt packages tests package.json .oxfmtrc.json .vscode",
     "check": "oxfmt --check packages tests package.json .oxfmtrc.json .vscode"
   },
@@ -27,7 +26,6 @@
     "oxfmt": "^0.78.0",
     "playwright": "1.65.1",
     "release-please": "17.11.2",
-    "sponsorkit": "^19.0.0",
     "typescript": "^7.0.2"
   },
   "overrides": {
