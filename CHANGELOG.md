@@ -1,3 +1,11 @@
+## [0.93.1](https://github.com/Endymi0n74/KoharuBatch/compare/v0.93.0..v0.93.1) - 2026-11-26
+
+### ⚙️ Miscellaneous Tasks
+
+- *(ci)* Supprimer le workflow Sponsors qui échouait - ([f70136f](https://github.com/Endymi0n74/KoharuBatch/commit/f70136f3d6b2cb7822da1cee24bca023545380cd))
+- Ignorer les artefacts Tauri produits à la racine - ([8dae3da](https://github.com/Endymi0n74/KoharuBatch/commit/8dae3da62e74cd74139f0fc5a4680d2ad762d9c7))
+- Supprimer les restes de SponsorKit - ([59fd60d](https://github.com/Endymi0n74/KoharuBatch/commit/59fd60dec3d936d9799ff7e4df70dd56f9dfe170))
+
 ## [0.92.0](https://github.com/koharu-rs/koharu/compare/0.91.1..0.92.0) - 2026-11-22
 
 ### ⛰️  Features
