@@ -1,0 +1,160 @@
+---
+title: '分支指南'
+description: '安装本地构建、了解运行时存储、为 8 GB GPU 选择模型，并用 koharu-batch 翻译整章。'
+icon: 'code-fork'
+---
+
+本页介绍 `Endymi0n74/KoharuBatch` 分支：如何在没有代码签名的情况下安装本地构建、运行时存储的位置、如何为配备 8 GB 显存的消费级 GPU（例如 RTX 3070）选择翻译模型，以及如何从命令行翻译整章。
+
+## 此分支的改动
+
+在原生 Koharu 之上，此分支增加了：
+
+- **Qwen-Image 2.1 修补** — 除 LaMa 与 FLUX.3 Klein 之外的三个生成式修补模型：`qwen-image`、`qwen-image-base` 和 `qwen-image-uncensored`，后者共用基础模型的文本编码器，并去掉了内容拒答。
+- **批量 CLI（`koharu-batch`）** — 从终端一次性翻译整章：图片文件夹、`.cbz`/`.zip` 或单张图片，输出一个项目文件夹，并支持阶段选择、页面范围、术语对、确定性采样和显存保护（见下文*批量模式*）。
+- **章节档案** — 翻译模型会先描述整章一次（人名、语气、反复出现的术语），并在每一页沿用这份档案，因此一个名字的译法从第 1 页到第 30 页保持一致；`--glossary` 的术语对优先于它。
+- **下载完整性校验** — Hugging Face 文件在进入存储之前，会对照 Hub 给出的大小和 SHA-256 校验；原生包则对照公开发布的摘要校验。
+- **llama.cpp 日志透出** — 最近的 llama.cpp 与 ggml 警告和错误会附加到原生调用的失败信息中。
+- **更新标识** — `crates/koharu/tauri.conf.json` 指向此分支的发布端点，并用分支自己的更新密钥签名。
+
+## 本地（未签名）安装
+
+上游项目的发布二进制文件带有 Authenticode 签名。本地构建（或未配置签名密钥的此分支 CI 构建）**没有签名**，因此 Windows 可能在首次启动时显示「发布者未知」的 SmartScreen 警告。这是正常现象，程序本身完全相同。
+
+Windows 上典型的本地安装布局：
+
+```text
+D:\KoharuBatch\
+├── koharu.exe              # Tauri 应用程序
+├── CEF runtime             # 与可执行文件放在一起
+│   ├── libcef.dll, chrome_elf.dll, icudtl.dat, v8_context_snapshot.bin
+│   ├── *.pak, locales\
+│   ├── d3dcompiler_47.dll, dxcompiler.dll, dxil.dll
+│   └── vk_swiftshader.dll, vk_swiftshader_icd.json, vulkan-1.dll, bootstrap*.exe
+├── LICENSE-MIT, LICENSE-APACHE  # 许可证文件
+├── uninstall.exe
+└── store\                  # 运行时存储（见下文）
+```
+
+`bun run build` 会把可执行文件和这些文件生成到 `target/release`。更新现有安装时，把新构建的文件集复制到安装目录，但**排除 `store\` 和 `uninstall.exe`**——必须保留存储，以免重新下载模型。覆盖之前请备份原可执行文件。
+
+从此仓库构建的应用只接受用分支密钥签名的更新清单，并检查此分支的 GitHub 发布。
+
+## 运行时存储
+
+应用和 CLI 共用一个存储文件夹。设置了 `KOHARU_STORE`（绝对路径）就直接使用它；否则在可执行文件旁边可写时使用那里的 `store`（便携安装），不可写时使用操作系统缓存目录——Windows 上为 `%LOCALAPPDATA%\koharu\store`。
+
+```text
+store\
+├── huggingface\
+│   ├── models\    <owner>--<repo>\snapshots\<commit>\<file>
+│   └── datasets\  ...
+├── cuda\          # CUDA / ROCm 运行时包，每个版本一个文件夹
+├── llama\         # llama.cpp 运行时
+├── torch\         # libtorch 与 koharu-torch shim
+└── diffusion\     # stable-diffusion.cpp 运行时
+```
+
+Hugging Face 文件按仓库、修订版本和文件名精确解析。下载采用流式传输，随后对照仓库元数据校验——大小，以及 Hub 为 LFS 文件保存的 SHA-256——通过后才发布。被截断或损坏的文件会被拒绝而不会部署；大小不对的文件会在下次启动时重新下载。
+
+存储可能增长到数十 GB。删除它会强制重新下载所有模型和运行时（普通网络下需要数小时），因此重装时请保留它。代码中已无任何模型引用的条目——被移除的目录项、探测运行、比固定版本更旧的运行时——可以用 `koharu-batch prune` 列出并删除（见下文*存储整理*）。
+
+## 为 8 GB 显存选择翻译模型
+
+默认是 `koharu/hy-mt2-7b:Q4_K_M`，即腾讯面向翻译的 Hy-MT2 7B，纯文本。在此分支的参考机器（Ryzen 7600 / 32 GB 内存 / RTX 3070 8 GB，CUDA）上，整页流水线——模型、检测、OCR 和修补——实测 **5.6 GiB**，因此可以整块放进 8 GB 显卡，没有留在主机内存中的块。
+
+`--translator auto` 按固定顺序从强到弱检查候选，取第一个估算峰值落在预算内的：`hy-mt2-7b`，然后是 `hy-mt2-1.8b`，最后是 `index-translate-2b`。除非用 `--vram-budget`（MiB）指定，预算为 8 GiB。候选始终整块运行；都不合适时直接停止，不会把模型拆到显卡和 CPU 之间。候选在 2B 级停止是有意为之：小于 2B 的模型虽能塞进繁忙的显卡，却会把对白翻成重复的填充语。
+
+更大的目录模型——`gemma4-*`、`qwen3.5-*`、`index-translate-9b`——可以通过显式指定使用：`--translator koharu/qwen3.5-4b-uncensored:Q4_K_M`。估算超出预算的显式选择会在读取任何页面之前被拒绝；请提高 `--vram-budget` 或换用更小的模型。`koharu-batch run` 会在第一个阶段之前打印所选的翻译模型及其估算值。
+
+参考 RTX 3070 上的实测（现实的日译法 8 段提示词）：
+
+| 模型 | 量化 | 显存峰值（整页流水线） |
+|---|---|---|
+| **hy-mt2-7b** | **Q4_K_M** | **5.6 GiB**（实测，纯文本） |
+| qwen3.5-4b-uncensored | Q4_K_M | 4.9 GiB（实测，含视觉投影器） |
+| gemma4-e4b-uncensored | Q4_K_P | 6.3 GiB（实测，含视觉投影器） |
+| gemma4-12b-it | Q4_K_XL | 7.7 GiB（估算，纯文本） |
+
+批量 CLI 只翻译文本；上表含视觉投影器的数值来自应用流水线的运行，那里可以把页面图像交给同样的模型。显卡更大时请显式指定更强的模型——自动候选有意停在 8 GB 级别。
+
+## 批量模式（`koharu-batch`）
+
+`koharu-batch` 用一条无人值守的命令翻译整章。它复用桌面应用的本地流水线，写出的项目文件夹可以直接在应用里打开：`project.khr` 加上每页渲染的一张 PNG（`page1.png`、`page2.png`、……）。
+
+桌面应用在**文件 → Batch translate folder** 中提供同样的运行：选择要翻译的文件夹、输出的项目文件夹、目标语言和可选的模型；运行会显示在活动中心，期间 Koharu 仍可使用。应用会先在自己旁边查找 `koharu-batch`，再在工作区的 `target\release` 或 `target\debug` 中查找，`KOHARU_BATCH_BIN` 会覆盖这两者。
+
+### 命令
+
+| 命令 | 作用 |
+|---|---|
+| `koharu-batch run` | 导入一章、运行阶段，并写出项目文件夹。 |
+| `koharu-batch report` | 导出项目内容：Markdown 输出到标准输出，需要时输出 JSON。 |
+| `koharu-batch prune` | 列出存储中无人引用的文件夹，`--delete` 时删除。 |
+
+### `run`
+
+```bash
+# 扫描文件夹译为法语，页面图片写在项目旁边
+koharu-batch run --input ./chapter-12 --output ./chapter-12-fr
+
+# CBZ，让工具为显卡挑选模型
+koharu-batch run --input ./chapter-13.cbz --output ./chapter-13-fr
+
+# 固定模型、页面范围和术语对
+koharu-batch run --input ./chapter-12 --output ./chapter-12-fr \
+  --translator koharu/qwen3.5-4b-uncensored:Q4_K_M \
+  --pages 1-10,15 --glossary "ルフィ=Luffy"
+
+# 续跑：只对输出文件夹里已有的项目重新翻译
+koharu-batch run --output ./chapter-12-fr --overwrite
+```
+
+- **输入** — 页面图片文件夹、单张图片，或 `.cbz`/`.zip`。页面按自然顺序排列，`page2.png` 排在 `page10.png` 之前；png、jpg、jpeg、webp 计为页面，且只导入文件夹顶层的文件。
+- **输出** — 一个文件夹（不存在时创建），接收 `project.khr` 和每页一张 PNG。已有的页面图片会在每次运行结束时从项目重新渲染。
+- **续跑** — `--overwrite` 打开输出文件夹里已有的 `project.khr` 而不重新导入；未指定 `--stages` 时只运行翻译。应用在传入 `--overwrite` 前会备份现有项目。
+- **阶段** — `--stages detect,recognize,inpaint,translate` 选择阶段；新项目会按此顺序运行全部四个阶段。
+- **页面** — `--pages 1-10,15` 按阅读顺序处理这些从 1 开始的页面。
+- **翻译** — `--target` 是 `fr-FR`（默认）或 `en-US` 这样的 CLDR 标签；`--instructions` 增加模型遵循的规则；每个 `--glossary SOURCE=TARGET` 固定一个反复出现的术语，并优先于章节档案；`--deterministic` 以温度 0 采样，重跑会得到相同文本。
+- **模型** — `--detector`（默认 `koharu-layout-highres`）、`--ocr`（默认 `hayai-ocr`）、`--inpainting`（默认 `lama`；Qwen-Image 2.1 修补模型为 `qwen-image`、`qwen-image-base`、`qwen-image-uncensored`）按配置名指定其他阶段的模型。
+- **显存** — `--vram-budget` 以 MiB 给出本次运行的预算；显式指定的翻译模型超出预算时，会在读取任何页面之前被拒绝。
+- **等待** — `--wait` 限制命令等待运行的秒数（默认 3600）；超时后报告为未完成，项目仍保留在磁盘上。
+
+退出码：所有页面阶段都完成时为 `0`；阶段失败、运行被停止、等待超时或命令行被拒绝时为非零。
+
+### `report`
+
+```bash
+koharu-batch report --project ./chapter-12-fr/project.khr
+koharu-batch report --project ./chapter-12-fr/project.khr --json ./report.json
+```
+
+Markdown 按页列出文本块及其译文；JSON 含有相同的逐页文本块，以及已翻译和未翻译的数量。指定 `--markdown <PATH>` 时，Markdown 写入文件而不是标准输出。
+
+### 存储整理（`prune`）
+
+存储为每个 Hugging Face 仓库保留一个文件夹，为每个原生包保留一个版本文件夹，而没有任何东西会自动清理它们：被移除的目录模型、探测用二进制、更新后残留的旧运行时都会连同数 GB 的内容留在磁盘上。
+
+```bash
+# 列出代码已不再引用、并标明大小的条目
+koharu-batch prune
+
+# 列表确认无误后删除
+koharu-batch prune --delete
+```
+
+当没有任何目录模型的固定引用指向某个快照时，该模型或数据集文件夹被视为孤立；运行时版本文件夹若不是本次构建固定的版本，也同样如此。CUDA wheel 目录不受影响。单独运行 `prune` 不会删除任何东西。两种形式都从存储解析到的位置读取——`KOHARU_STORE`、安装目录或缓存。删除并非永久：如果之后某个模型需要已删除的文件，它会按仓库的大小和 SHA-256 校验后重新下载一次。
+
+### 把二进制安装到仓库之外
+
+从仓库构建一次（LLVM 和 CMake 需在 PATH 中，见[开发环境](/zh/development/setup)）：
+
+```bash
+cargo build --release -p koharu-batch
+```
+
+结果是 `target\release` 中一个自包含的可执行文件（无需额外 DLL）。放在 KoharuBatch 安装目录旁边时，它会自动使用该安装的 `store`；放在别处时，用 `KOHARU_STORE` 指向要使用的存储：
+
+```bash
+copy target\release\koharu-batch.exe D:\KoharuBatch\koharu-batch.exe
+```

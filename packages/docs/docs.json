@@ -141,6 +141,10 @@
               "reference/troubleshooting",
               "privacy"
             ]
+          },
+          {
+            "group": "Fork",
+            "pages": ["guides/fork"]
           }
         ]
       },
@@ -264,6 +268,10 @@
               "ja/reference/troubleshooting",
               "ja/privacy"
             ]
+          },
+          {
+            "group": "フォーク",
+            "pages": ["ja/guides/fork"]
           }
         ]
       },
@@ -387,6 +395,10 @@
               "zh/reference/troubleshooting",
               "zh/privacy"
             ]
+          },
+          {
+            "group": "分支",
+            "pages": ["zh/guides/fork"]
           }
         ]
       }

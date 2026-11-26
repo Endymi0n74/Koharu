@@ -1,0 +1,160 @@
+---
+title: 'フォークガイド'
+description: 'ローカルビルドのインストール、ランタイムストア、8 GB GPU 向けのモデル選び、koharu-batch での章の翻訳。'
+icon: 'code-fork'
+---
+
+このページは `Endymi0n74/KoharuBatch` フォークを扱います。コード署名なしでローカルビルドをインストールする方法、ランタイムストアの場所、8 GB の VRAM を持つコンシューマー GPU（RTX 3070 など）向けの翻訳モデルの選び方、そしてコマンドラインから章を翻訳する方法です。
+
+## このフォークでの変更点
+
+アップストリームの Koharu に加えて、このフォークは次を追加します。
+
+- **Qwen-Image 2.1 インペイント** — LaMa と FLUX.3 Klein に加えて 3 つの生成型インペインター、`qwen-image`、`qwen-image-base`、`qwen-image-uncensored`。uncensored はベースのテキストエンコーダーを共有し、コンテンツ拒否を外します。
+- **バッチ CLI（`koharu-batch`）** — 画像フォルダ、`.cbz`/`.zip`、単一画像の章を端末から最後まで翻訳し、プロジェクトフォルダを 1 つ出力します。工程の選択、ページ範囲、用語ペア、決定論的サンプリング、VRAM ガードを備えます（下記の*バッチモード*を参照）。
+- **章のドシエ** — 翻訳モデルは章を一度だけ説明し（人名、口調、繰り返し出る用語）、そのドシエを全ページで使うため、名前の表記が 1 ページ目から 30 ページ目まで保たれます。`--glossary` のペアがそれを上書きします。
+- **ダウンロードの整合性検証** — Hugging Face のファイルはストアに入る前に Hub が示すサイズと SHA-256 で検証され、ネイティブパッケージは公開されているダイジェストで検証されます。
+- **llama.cpp ログの表示** — 直近の llama.cpp と ggml の警告・エラーが、ネイティブ呼び出しの失敗に付加されます。
+- **更新 ID** — `crates/koharu/tauri.conf.json` はこのフォークのリリースエンドポイントを指し、フォーク自身の更新キーで署名されます。
+
+## ローカル（非署名）インストール
+
+アップストリームのリリースバイナリは Authenticode 署名されています。ローカル（または署名シークレットなしのこのフォークの CI）で生成したビルドは**署名されていない**ため、Windows は初回起動時に「発行元不明」の SmartScreen 警告を表示することがあります。これは想定どおりで、プログラム自体は同じです。
+
+Windows での一般的なローカルインストール構成:
+
+```text
+D:\KoharuBatch\
+├── koharu.exe              # Tauri アプリケーション
+├── CEF runtime             # 実行ファイルの隣に配置
+│   ├── libcef.dll, chrome_elf.dll, icudtl.dat, v8_context_snapshot.bin
+│   ├── *.pak, locales\
+│   ├── d3dcompiler_47.dll, dxcompiler.dll, dxil.dll
+│   └── vk_swiftshader.dll, vk_swiftshader_icd.json, vulkan-1.dll, bootstrap*.exe
+├── LICENSE-MIT, LICENSE-APACHE  # ライセンスファイル
+├── uninstall.exe
+└── store\                  # ランタイムストア（下記参照）
+```
+
+`bun run build` は実行ファイルとこれらのファイルを `target/release` に生成します。既存のインストールを更新するには、新しくビルドしたファイル一式をインストールディレクトリにコピーしますが、**`store\` と `uninstall.exe` は除外**してください。ストアを残さないとモデルが再ダウンロードされます。上書き前に前の実行ファイルをバックアップしておきます。
+
+このリポジトリからビルドしたアプリは、フォークのキーで署名された更新マニフェストのみを受け入れ、このフォークの GitHub リリースを確認します。
+
+## ランタイムストア
+
+ストアはアプリと CLI が共有する 1 つのフォルダです。`KOHARU_STORE`（絶対パス）が指定されていればそれを使い、なければ実行ファイルの隣の `store`（書き込み可能なポータブル構成のとき）、それも無理なら OS のキャッシュフォルダ — Windows では `%LOCALAPPDATA%\koharu\store` — を使います。
+
+```text
+store\
+├── huggingface\
+│   ├── models\    <owner>--<repo>\snapshots\<commit>\<file>
+│   └── datasets\  ...
+├── cuda\          # CUDA / ROCm ランタイムパッケージ（バージョンごとに 1 フォルダ）
+├── llama\         # llama.cpp ランタイム
+├── torch\         # libtorch と koharu-torch shim
+└── diffusion\     # stable-diffusion.cpp ランタイム
+```
+
+Hugging Face のファイルは、リポジトリ・リビジョン・ファイル名を正確に指定して解決します。ダウンロードはストリーミングされ、リポジトリのメタデータ（サイズ、および LFS ファイルについて Hub が保持する SHA-256）で検証されてから公開されます。切り詰められたファイルや破損したファイルは配備されず拒否され、サイズが誤っているファイルは次回起動時に再ダウンロードされます。
+
+ストアは数十ギガバイトに成長することがあります。削除するとすべてのモデルとランタイムの再ダウンロード（一般的な回線で数時間）が必要になるため、再インストール時はそのまま残してください。コード内のどのモデルも参照しなくなったエントリ — 削除されたカタログ項目、試行用の実行、固定版より古いランタイム — は `koharu-batch prune` で一覧し、削除できます（下記の*ストアの整理*を参照）。
+
+## 8 GB の VRAM 向けの翻訳モデル
+
+既定は `koharu/hy-mt2-7b:Q4_K_M`、Tencent の翻訳特化 Hy-MT2 7B（テキストのみ）です。フォークの参照マシン（Ryzen 7600 / 32 GB RAM / RTX 3070 8 GB、CUDA）では、ページ処理全体 — モデル、検出、OCR、インペイント — が **5.6 GiB** と実測され、8 GB のカードに丸ごと収まります。ホストメモリに残るブロックはありません。
+
+`--translator auto` は固定の候補列を上位から順に見て、推定ピークが予算に収まる最初の候補を選びます: `hy-mt2-7b`、`hy-mt2-1.8b`、`index-translate-2b`。予算は `--vram-budget`（MiB）を指定しない限り 8 GiB です。候補は常に丸ごと実行し、どれも収まらないときはカードと CPU に分割せずに停止します。候補列が 2B 級で止まるのは意図的です。2B 未満のモデルは空いたカードに収まっても、台詞を反復的な埋め草にしてしまいます。
+
+より大きなカタログモデル — `gemma4-*`、`qwen3.5-*`、`index-translate-9b` — は明示的に指定すれば使えます: `--translator koharu/qwen3.5-4b-uncensored:Q4_K_M`。推定値が予算を超える明示指定は、ページを読む前に拒否されます。`--vram-budget` を上げるか、小さいモデルを指定してください。`koharu-batch run` は最初の工程の前に、選んだ翻訳モデルと推定値を表示します。
+
+参照 RTX 3070 での実測（現実的な日本語→フランス語 8 セグメントのプロンプト）:
+
+| モデル | 量子化 | VRAM ピーク（ページ処理全体） |
+|---|---|---|
+| **hy-mt2-7b** | **Q4_K_M** | **5.6 GiB**（実測、テキストのみ） |
+| qwen3.5-4b-uncensored | Q4_K_M | 4.9 GiB（実測、視覚プロジェクター込み） |
+| gemma4-e4b-uncensored | Q4_K_P | 6.3 GiB（実測、視覚プロジェクター込み） |
+| gemma4-12b-it | Q4_K_XL | 7.7 GiB（推定、テキストのみ） |
+
+バッチ CLI はテキストのみを翻訳します。上の視覚プロジェクター込みの数値は、同じモデルに視覚を渡せるアプリのパイプラインでの実行によるものです。より大きなカードでは強いモデルを明示してください。自動の候補列は意図的に 8 GB 級で止まります。
+
+## バッチモード（`koharu-batch`）
+
+`koharu-batch` は章全体を 1 つの無人コマンドで翻訳します。デスクトップアプリと同じローカルパイプラインを使い、アプリで開けるプロジェクトフォルダを書き出します: `project.khr` と、ページごとにレンダリングした PNG（`page1.png`、`page2.png`、…）。
+
+デスクトップアプリでは **ファイル → Batch translate folder** から同じ実行ができ、翻訳するフォルダ、出力先のプロジェクトフォルダ、対象言語、任意のモデルを指定します。実行はアクティビティセンターに表示され、その間も Koharu は使えます。アプリは `koharu-batch` を自分の隣、次にワークスペースの `target\release` または `target\debug` で探し、`KOHARU_BATCH_BIN` がその両方を上書きします。
+
+### コマンド
+
+| コマンド | 内容 |
+|---|---|
+| `koharu-batch run` | 章を取り込み、工程を実行し、プロジェクトフォルダを書き出す。 |
+| `koharu-batch report` | プロジェクトの内容を書き出す。Markdown は標準出力、JSON は指定時。 |
+| `koharu-batch prune` | 何も参照していないストアのフォルダを一覧し、`--delete` で削除する。 |
+
+### `run`
+
+```bash
+# スキャンのフォルダをフランス語へ。ページ画像はプロジェクトの隣に書き出される
+koharu-batch run --input ./chapter-12 --output ./chapter-12-fr
+
+# CBZ。GPU に合うモデルはツールに選ばせる
+koharu-batch run --input ./chapter-13.cbz --output ./chapter-13-fr
+
+# モデル、ページ範囲、用語ペアを固定する
+koharu-batch run --input ./chapter-12 --output ./chapter-12-fr \
+  --translator koharu/qwen3.5-4b-uncensored:Q4_K_M \
+  --pages 1-10,15 --glossary "ルフィ=Luffy"
+
+# 再開: 出力フォルダにあるプロジェクトで翻訳だけをやり直す
+koharu-batch run --output ./chapter-12-fr --overwrite
+```
+
+- **入力** — ページ画像のフォルダ、1 枚の画像、または `.cbz`/`.zip`。ページ順は自然順で、`page2.png` は `page10.png` より前に並びます。png、jpg、jpeg、webp がページとして数えられ、フォルダ直下のファイルだけが取り込まれます。
+- **出力** — フォルダ（無ければ作成）。`project.khr` とページごとの PNG を受け取ります。既存のページ画像は実行のたびにプロジェクトから描き直されます。
+- **再開** — `--overwrite` は出力フォルダの `project.khr` を取り込み直さずに開き、`--stages` を指定しなければ翻訳だけを実行します。アプリは `--overwrite` を渡す前に既存のプロジェクトをバックアップします。
+- **工程** — `--stages detect,recognize,inpaint,translate` で工程を選びます。新しいプロジェクトでは 4 つすべてがこの順に走ります。
+- **ページ** — `--pages 1-10,15` は読み順の 1 始まりのページを対象にします。
+- **翻訳** — `--target` は `fr-FR`（既定）や `en-US` のような CLDR タグ。`--instructions` はモデルが従う追加ルール。各 `--glossary SOURCE=TARGET` は繰り返し出る用語を固定し、章のドシエより優先します。`--deterministic` は温度 0 でサンプリングするため、再実行しても同じテキストになります。
+- **モデル** — `--detector`（既定 `koharu-layout-highres`）、`--ocr`（既定 `hayai-ocr`）、`--inpainting`（既定 `lama`。Qwen-Image 2.1 のインペインターは `qwen-image`、`qwen-image-base`、`qwen-image-uncensored`）が他の工程のモデルを構成名で指定します。
+- **VRAM** — `--vram-budget` は実行の予算を MiB で指定します。それを超える翻訳モデルを明示した場合、ページを読む前に拒否されます。
+- **待機** — `--wait` はコマンドが実行を待つ秒数（既定 3600）。過ぎると未完了として報告し、プロジェクトはディスクに残ります。
+
+終了コード: すべてのページ工程が終われば `0`。工程の失敗、実行の停止、待機時間の経過、コマンドラインの拒否では非ゼロです。
+
+### `report`
+
+```bash
+koharu-batch report --project ./chapter-12-fr/project.khr
+koharu-batch report --project ./chapter-12-fr/project.khr --json ./report.json
+```
+
+Markdown は各ページのテキストブロックとその翻訳を並べ、JSON は同じページごとのブロックに加えて翻訳済み・未翻訳の件数を持ちます。`--markdown <PATH>` を指定すると Markdown は標準出力ではなくファイルに書かれます。
+
+### ストアの整理（`prune`）
+
+ストアは Hugging Face のリポジトリごとに 1 フォルダ、ネイティブパッケージごとにバージョンフォルダを 1 つ持ち、それらを自動で消すものはありません。削除されたカタログモデル、試行用のバイナリ、更新後に残った古いランタイムが、数ギガバイトの内容ごとディスクに残ります。
+
+```bash
+# コードが参照しなくなったエントリをサイズ付きで一覧する
+koharu-batch prune
+
+# 一覧が正しければ削除する
+koharu-batch prune --delete
+```
+
+モデルやデータセットのフォルダは、どのカタログの固定もそのスナップショットを参照していなければ孤立とみなされ、ランタイムのバージョンフォルダはこのビルドが固定する版でなければ孤立とみなされます。CUDA のホイールツリーには触れません。`prune` だけでは何も削除しません。どちらの形も、ストアが解決する先 — `KOHARU_STORE`、インストール先、キャッシュ — から読みます。削除は永久ではありません。後でモデルが必要になれば、リポジトリのサイズと SHA-256 で検証したうえで一度だけ再ダウンロードします。
+
+### リポジトリの外にバイナリを置く
+
+リポジトリから一度ビルドします（LLVM と CMake を PATH に通しておく必要があります。[開発環境](/ja/development/setup) を参照）:
+
+```bash
+cargo build --release -p koharu-batch
+```
+
+結果は `target\release` の自己完結した実行ファイル 1 つです（追加の DLL は不要）。KoharuBatch のインストール先の隣に置けば、そのインストールの `store` を自動で使います。別の場所に置く場合は `KOHARU_STORE` でストアを指定します:
+
+```bash
+copy target\release\koharu-batch.exe D:\KoharuBatch\koharu-batch.exe
+```

@@ -1,0 +1,160 @@
+---
+title: 'Fork guide'
+description: 'Install a local build, understand the runtime store, pick a model for an 8 GB GPU, and translate a chapter with koharu-batch.'
+icon: 'code-fork'
+---
+
+This page covers the `Endymi0n74/KoharuBatch` fork: how a local build is installed without code signing, where the runtime store lives, how to choose a translation model for a consumer GPU with 8 GB of VRAM (an RTX 3070, say), and how to translate a chapter from the command line.
+
+## What this fork changes
+
+On top of upstream Koharu, this fork adds:
+
+- **Qwen-Image 2.1 inpainting** — three generative inpainters beside LaMa and FLUX.3 Klein: `qwen-image`, `qwen-image-base`, and `qwen-image-uncensored`, which drops the base checkpoint's content refusals while sharing its text encoder.
+- **Batch CLI (`koharu-batch`)** — a chapter from a folder of images, a `.cbz`/`.zip`, or a single image, translated end to end from a terminal: one project folder out, with stage selection, page ranges, term pairs, deterministic sampling, and a VRAM guard (see *Batch mode* below).
+- **Chapter dossier** — the translator describes the chapter once (names, tone, recurring terms) and keeps that dossier for every page, so a name's rendering holds from page 1 to page 30; `--glossary` pairs override it.
+- **Download integrity validation** — a Hugging Face file is checked against the size and SHA-256 the Hub lists before it enters the store, and native packages are checked against their published digests.
+- **llama.cpp log surfacing** — the most recent llama.cpp and ggml warnings and errors are appended to the failure a native call reports.
+- **Update identity** — `crates/koharu/tauri.conf.json` points at this fork's release endpoint and is signed with the fork's own updater key.
+
+## Local (unsigned) installation
+
+Release binaries from the upstream project are Authenticode-signed. Builds produced locally, or by this fork's CI without signing secrets, are **not signed**, so Windows may show an "Unknown publisher" SmartScreen warning on first launch. This is expected; the program is identical otherwise.
+
+A typical local installation layout on Windows:
+
+```text
+D:\KoharuBatch\
+├── koharu.exe              # Tauri application
+├── CEF runtime             # shipped next to the executable
+│   ├── libcef.dll, chrome_elf.dll, icudtl.dat, v8_context_snapshot.bin
+│   ├── *.pak, locales\
+│   ├── d3dcompiler_47.dll, dxcompiler.dll, dxil.dll
+│   └── vk_swiftshader.dll, vk_swiftshader_icd.json, vulkan-1.dll, bootstrap*.exe
+├── LICENSE-MIT, LICENSE-APACHE  # license files
+├── uninstall.exe
+└── store\                  # runtime store (see below)
+```
+
+`bun run build` produces the executable and these files in `target/release`. To update an existing installation, copy the freshly built file set into the install directory, **excluding `store\` and `uninstall.exe`** — the store must survive so models are not re-downloaded. Keep a backup of the previous executable before overwriting.
+
+An app built from this repository only accepts update manifests signed with the fork's key, and checks this fork's GitHub releases.
+
+## Runtime store
+
+The store is one folder for the app and the CLI. `KOHARU_STORE`, an absolute path, names it directly; otherwise it is `store` beside the executable when that folder is writable (a portable install), and the operating system's cache folder — `%LOCALAPPDATA%\koharu\store` on Windows — when it is not.
+
+```text
+store\
+├── huggingface\
+│   ├── models\    <owner>--<repo>\snapshots\<commit>\<file>
+│   └── datasets\  ...
+├── cuda\          # CUDA and ROCm runtime packages, one version folder each
+├── llama\         # llama.cpp runtime
+├── torch\         # libtorch and the koharu-torch shim
+└── diffusion\     # stable-diffusion.cpp runtime
+```
+
+Hugging Face files resolve by exact repository, revision, and filename. Downloads are streamed, then verified against the repository metadata — size, and the SHA-256 the Hub keeps for LFS files — before they are published. A truncated or corrupt file is rejected instead of deployed, and a file with the wrong size is re-downloaded on the next launch.
+
+The store can grow to tens of gigabytes. Deleting it forces every model and runtime to be re-downloaded (several hours on a typical connection), so keep it intact when reinstalling. Entries no model in the code references any more — removed catalog entries, probe runs, runtime releases older than the pinned one — can be listed and removed with `koharu-batch prune` (see *Store housekeeping* below).
+
+## Choosing a translation model for 8 GB of VRAM
+
+The default is `koharu/hy-mt2-7b:Q4_K_M`, Tencent's translation-specialized Hy-MT2 7B, text-only. On the fork's reference machine (Ryzen 7600 / 32 GB RAM / RTX 3070 8 GB, CUDA) the whole page pipeline — model, detection, OCR, and inpainting — measured **5.6 GiB**, so it fits an 8 GB card whole, with no block left in host memory.
+
+`--translator auto` walks a fixed ladder, best first, and keeps the first candidate whose estimated peak fits the budget: `hy-mt2-7b`, then `hy-mt2-1.8b`, then `index-translate-2b`. The budget is 8 GiB unless `--vram-budget` names another figure in MiB. A candidate is only run whole; when nothing fits, the run stops instead of splitting a model between the card and the CPU. The ladder stops at the 2B class on purpose: a sub-2B model fits a busy card, yet it renders dialogue into repetitive filler.
+
+Larger catalog models — `gemma4-*`, `qwen3.5-*`, `index-translate-9b` — stay reachable by naming them explicitly, `--translator koharu/qwen3.5-4b-uncensored:Q4_K_M`. An explicit pick whose estimate exceeds the budget is refused before any page is read; raise `--vram-budget` or name a smaller model. `koharu-batch run` prints the translator and its estimate before the first stage.
+
+Measurements on the reference RTX 3070, with a realistic 8-segment Japanese→French prompt:
+
+| Model | Quantization | VRAM peak, whole pipeline |
+|---|---|---|
+| **hy-mt2-7b** | **Q4_K_M** | **5.6 GiB** (measured, text only) |
+| qwen3.5-4b-uncensored | Q4_K_M | 4.9 GiB (measured, with the vision projector) |
+| gemma4-e4b-uncensored | Q4_K_P | 6.3 GiB (measured, with the vision projector) |
+| gemma4-12b-it | Q4_K_XL | 7.7 GiB (estimated, text only) |
+
+The batch CLI translates text only; the vision projector figures above come from runs of the app's pipeline, which offers vision to the same models. On a larger card, name a stronger model explicitly — the automatic ladder deliberately stops at the 8 GB class.
+
+## Batch mode (`koharu-batch`)
+
+`koharu-batch` translates a whole chapter in one unattended command. It reuses the same local pipeline as the desktop app and writes a project folder that the app can open: `project.khr` plus one rendered PNG per page (`page1.png`, `page2.png`, …).
+
+The desktop app offers the same run under **File → Batch translate folder**, with the folder to translate, the output project folder, the target language, and an optional model; the run appears in the activity center while Koharu stays usable. The app looks for `koharu-batch` beside itself, then in the workspace's `target\release` or `target\debug`, and `KOHARU_BATCH_BIN` overrides both.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `koharu-batch run` | Import a chapter and run stages over it, writing the project folder. |
+| `koharu-batch report` | Write what a project holds: Markdown to stdout, JSON when asked. |
+| `koharu-batch prune` | List store folders nothing references, and delete them with `--delete`. |
+
+### `run`
+
+```bash
+# A folder of scans, translated to French, page images written beside the project
+koharu-batch run --input ./chapter-12 --output ./chapter-12-fr
+
+# A CBZ, letting the tool pick the model for the GPU
+koharu-batch run --input ./chapter-13.cbz --output ./chapter-13-fr
+
+# Pin a model, a page range, and a term pair
+koharu-batch run --input ./chapter-12 --output ./chapter-12-fr \
+  --translator koharu/qwen3.5-4b-uncensored:Q4_K_M \
+  --pages 1-10,15 --glossary "ルフィ=Luffy"
+
+# Resume: rerun translation alone on the project already in the output folder
+koharu-batch run --output ./chapter-12-fr --overwrite
+```
+
+- **Input** — a folder of page images, one image, or a `.cbz`/`.zip`. Page order is natural, so `page2.png` sorts before `page10.png`; png, jpg, jpeg, and webp count as pages, and only files directly in a folder are imported.
+- **Output** — a folder, created if missing; it receives `project.khr` and one PNG per page. Existing pages are re-rendered from the project at the end of every run.
+- **Resume** — `--overwrite` opens the `project.khr` already in the output folder instead of importing again, and without `--stages` runs translation alone. The app backs up an existing project before passing `--overwrite`.
+- **Stages** — `--stages detect,recognize,inpaint,translate` selects stages; all four run for a new project, in that order.
+- **Pages** — `--pages 1-10,15` works on these 1-based pages in reading order.
+- **Translation** — `--target` is a CLDR tag such as `fr-FR` (default) or `en-US`; `--instructions` adds rules the model follows; each `--glossary SOURCE=TARGET` pair fixes a recurring term and wins over the chapter's dossier; `--deterministic` samples at temperature 0 so a rerun renders the same text.
+- **Models** — `--detector` (default `koharu-layout-highres`), `--ocr` (default `hayai-ocr`), and `--inpainting` (default `lama`; the Qwen-Image 2.1 inpainters are `qwen-image`, `qwen-image-base`, and `qwen-image-uncensored`) name the other stages' models by configuration name.
+- **VRAM** — `--vram-budget` gives the run's budget in MiB; an explicit translator above it is refused before any page is read.
+- **Wait** — `--wait` bounds how long the command waits for the run, in seconds (default 3600), and reports the run as unfinished when it elapses; the project stays on disk.
+
+Exit codes: `0` when every page stage finished, non-zero when a stage failed, the run stopped, the wait elapsed, or the command line was rejected.
+
+### `report`
+
+```bash
+koharu-batch report --project ./chapter-12-fr/project.khr
+koharu-batch report --project ./chapter-12-fr/project.khr --json ./report.json
+```
+
+The Markdown lists every page's text blocks with their translation, and the JSON carries the same page-by-page blocks plus translated and untranslated counts. `--markdown <PATH>` writes the Markdown to a file instead of stdout.
+
+### Store housekeeping (`prune`)
+
+The store keeps one folder per Hugging Face repository and one version folder per native package, and nothing removes those by itself: entries left behind by removed catalog models, probe binaries, or older runtimes after an update stay on disk with their multi-gigabyte contents.
+
+```bash
+# List every entry nothing in the code references anymore, with its size
+koharu-batch prune
+
+# Then delete them once the list looks right
+koharu-batch prune --delete
+```
+
+A model or dataset folder counts as orphaned when no catalog pin references its snapshot, and a runtime version folder when it is not the one this build pins; the CUDA wheel tree is left untouched. `prune` alone never deletes anything. Both forms read the store from `KOHARU_STORE`, the install, or the cache, whichever the store resolves to. Nothing is lost permanently: if a model later needs a deleted artifact, it re-downloads it once, verified against the repository's size and SHA-256 as usual.
+
+### Installing the binary outside the repository
+
+Build it once from the repository (LLVM and CMake must be on the PATH, see [development setup](/development/setup)):
+
+```bash
+cargo build --release -p koharu-batch
+```
+
+The result is a single self-contained executable in `target\release` (no extra DLLs). Put it next to a KoharuBatch installation — it then finds that installation's `store` automatically — or anywhere else, with `KOHARU_STORE` pointing at the store to use:
+
+```bash
+copy target\release\koharu-batch.exe D:\KoharuBatch\koharu-batch.exe
+```
