@@ -70,3 +70,9 @@ test-results/
 # Sorties de banc et projets locaux, propres a la machine
 /bench-profile/
 /projects/
+
+# Tauri build artifacts
+llama-common.dll
+llama.dll
+mtmd.dll
+release.html
