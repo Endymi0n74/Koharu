@@ -1,529 +1,529 @@
 {
-    "about":  {
-                  "author":  "作者",
-                  "description":  "漫画翻訳ツール",
-                  "unavailable":  "利用不可",
-                  "version":  "バージョン"
-              },
-    "activity":  {
-                     "dismiss":  "閉じる",
-                     "downloadFailed":  "ダウンロードに失敗しました。",
-                     "downloadingFiles":  "{{count}}件のファイルをダウンロード中",
-                     "downloadingFiles_one":  "{{count}}件のファイルをダウンロード中",
-                     "downloadingFiles_other":  "{{count}}件のファイルをダウンロード中",
-                     "modelDownload":  "モデルのダウンロード",
-                     "processing":  "処理中",
-                     "processingFailed":  "処理に失敗しました。",
-                     "stop":  "停止",
-                     "title":  "アクティビティ"
-                 },
-    "agent":  {
-                  "cancel":  "キャンセル",
-                  "cancelled":  "キャンセルしました。",
-                  "emptyDescription":  "エージェントにこのプロジェクトの確認、翻訳、編集、処理を依頼できます。ページ画像は必要な場合にのみ表示されます。",
-                  "emptyTitle":  "Koharuに何をさせますか？",
-                  "failed":  "エージェントのリクエストに失敗しました。",
-                  "loading":  "エージェントを読み込み中…",
-                  "message":  "Koharuエージェントにメッセージを送信",
-                  "model":  "モデル",
-                  "newChat":  "新しいチャット",
-                  "placeholder":  "Koharuにこのプロジェクトの作業を依頼…",
-                  "reasoning":  "推論",
-                  "send":  "送信",
-                  "thinking":  "思考中…",
-                  "thought":  "{{seconds}}秒考えました",
-                  "title":  "エージェント",
-                  "toolFailed":  "{{tool}} が失敗しました",
-                  "used":  "{{tool}} を使用しました",
-                  "using":  "{{tool}} を使用中",
-                  "working":  "作業中…"
-              },
-    "batch":  {
-                  "choose":  "選択…",
-                  "description":  "フォルダー内のすべてのページを、プロジェクトの外で koharu-batch により翻訳します。",
-                  "done":  "一括翻訳が完了しました",
-                  "folder":  "翻訳するフォルダー",
-                  "model":  "モデル",
-                  "modelAuto":  "自動",
-                  "noneSelected":  "未選択",
-                  "output":  "出力プロジェクト",
-                  "progress":  "{{done}}/{{total}} ステップ",
-                  "sameFolder":  "入力フォルダーと出力フォルダーは別にしてください。",
-                  "start":  "開始",
-                  "starting":  "開始中…",
-                  "title":  "フォルダーを一括翻訳"
-              },
-    "canvas":  {
-                   "empty":  "ページを選択して開始します。",
-                   "notice":  {
-                                  "eraser_needs_raster":  "消去するにはラスターレイヤーを選択してください。"
-                              }
-               },
-    "colorPicker":  {
-                        "brushColor":  "ブラシカラー",
-                        "hexCode":  "16進カラーコード",
-                        "recent":  "最近使った色",
-                        "recentColor":  "最近使った色 {{color}}",
-                        "sampleCanvas":  "キャンバスから色を選択",
-                        "transparent":  "透明"
-                    },
-    "common":  {
-                   "back":  "戻る",
-                   "cancel":  "キャンセル",
-                   "clearSearch":  "検索をクリア",
-                   "loading":  "読み込み中…"
-               },
-    "errors":  {
-                   "actionFailed":  "操作を完了できませんでした",
-                   "fatalTitle":  "Koharuを続行できませんでした",
-                   "tryAgain":  "再試行",
-                   "unknown":  "ネイティブアプリケーションが不明なエラーを返しました。"
-               },
-    "feedback":  {
-                     "addScreenshot":  "スクリーンショットを追加",
-                     "cancel":  "キャンセル",
-                     "confirm":  "確定",
-                     "email":  "メールアドレス",
-                     "emailPlaceholder":  "your.email@example.org",
-                     "emptyMessage":  "何が起きたかを入力してください。",
-                     "failed":  "フィードバックを送信できませんでした。もう一度お試しください。",
-                     "forbidden":  "このビルドからはフィードバックを送信できません。",
-                     "hide":  "隠す",
-                     "highlight":  "強調",
-                     "message":  "内容",
-                     "messagePlaceholder":  "何が起きましたか？どうなることを期待していましたか？",
-                     "name":  "名前",
-                     "namePlaceholder":  "お名前",
-                     "noClient":  "現在フィードバックは利用できません。",
-                     "removeHighlight":  "削除",
-                     "removeScreenshot":  "スクリーンショットを削除",
-                     "required":  "（必須）",
-                     "sent":  "フィードバックをありがとうございます！",
-                     "submit":  "送信",
-                     "timeout":  "送信がタイムアウトしました。もう一度お試しください。",
-                     "title":  "フィードバックを送信"
-                 },
-    "fill":  {
-                 "deselect":  "選択を解除",
-                 "generate":  "生成",
-                 "model":  "塗りつぶしのモデル",
-                 "prompt":  "追加する内容を入力（任意）",
-                 "title":  "生成塗りつぶし"
-             },
-    "fontPicker":  {
-                       "addFavorite":  "{{name}} をお気に入りに追加",
-                       "choose":  "フォントを選択",
-                       "favoritesOnly":  "お気に入りのフォントを表示",
-                       "fontCount":  "{{count}}個のフォント",
-                       "fontCount_one":  "{{count}}個のフォント",
-                       "fontCount_other":  "{{count}}個のフォント",
-                       "fonts":  "フォント",
-                       "noFavorites":  "お気に入りのフォントはまだありません",
-                       "noResults":  "この検索に一致するフォントはありません",
-                       "removeFavorite":  "{{name}} をお気に入りから削除",
-                       "search":  "フォントを検索"
-                   },
-    "history":  {
-                    "close":  "ヒストリーを閉じる",
-                    "opened":  "開いた状態",
-                    "steps":  {
-                                  "add_text":  "テキストを追加",
-                                  "delete_layers":  "レイヤーを削除",
-                                  "delete_pages":  "ページを削除",
-                                  "detect":  "検出",
-                                  "edit_frame":  "フレームを編集",
-                                  "erase":  "消去",
-                                  "import":  "ページを読み込み",
-                                  "inpaint":  "インペイント",
-                                  "move":  "移動",
-                                  "move_layer":  "レイヤーを移動",
-                                  "move_page":  "ページを移動",
-                                  "paint":  "ペイント",
-                                  "recognize":  "OCR",
-                                  "resize":  "サイズ変更",
-                                  "rotate":  "回転",
-                                  "set_locked":  "ロック/ロック解除",
-                                  "set_source_text":  "原文を編集",
-                                  "set_style":  "書式を変更",
-                                  "set_text":  "テキストを編集",
-                                  "set_visibility":  "表示/非表示",
-                                  "translate":  "翻訳",
-                                  "update_layer":  "レイヤーを変更"
-                              },
-                    "title":  "ヒストリー"
-                },
-    "inference":  {
-                      "entireProject":  "プロジェクト全体",
-                      "entireProjectDescription":  "このプロジェクトの全ページを処理します。",
-                      "model":  "モデル",
-                      "noModel":  "モデルなし",
-                      "notSet":  "未設定",
-                      "output":  "出力",
-                      "pipelineStages":  "パイプラインの工程",
-                      "providerDefault":  "プロバイダーの既定値",
-                      "run":  "実行",
-                      "runProcessing":  "処理を実行",
-                      "scope":  "範囲",
-                      "scopeShort":  {
-                                         "project":  "プロジェクト",
-                                         "selected-pages":  "選択範囲"
-                                     },
-                      "selectPagesFirst":  "先にページを選択してください",
-                      "selectedCount":  "選択中のページ: {{count}}件",
-                      "selectedCount_one":  "選択中のページ: {{count}}件",
-                      "selectedCount_other":  "選択中のページ: {{count}}件",
-                      "selectedPages":  "選択したページ",
-                      "selector":  "処理設定",
-                      "shortcuts":  "処理オプション",
-                      "stageCount":  "{{count}}工程",
-                      "stageCount_one":  "{{count}}工程",
-                      "stageCount_other":  "{{count}}工程",
-                      "stages":  "工程",
-                      "stop":  "停止",
-                      "stopProcessing":  "処理を停止"
-                  },
-    "inspector":  {
-                      "alignBottom":  "下揃え",
-                      "alignCenter":  "中央揃え",
-                      "alignLeft":  "左揃え",
-                      "alignMiddle":  "中央揃え",
-                      "alignRight":  "右揃え",
-                      "alignTop":  "上揃え",
-                      "alignment":  "文字揃え",
-                      "auto":  "自動",
-                      "border":  "縁取り",
-                      "borderColor":  "縁取りの色",
-                      "borderWidth":  "縁取り幅",
-                      "chooseBorderWidth":  "縁取り幅を選択",
-                      "chooseFontSize":  "フォントサイズを選択",
-                      "font":  "フォント",
-                      "fontSize":  "フォントサイズ",
-                      "fontStyles":  {
-                                         "italic":  "斜体",
-                                         "oblique":  "オブリーク"
-                                     },
-                      "fontWeight":  "フォントの太さ",
-                      "horizontal":  "横書き",
-                      "opacity":  "不透明度",
-                      "selectPage":  "ページを選択してレイヤーを確認します。",
-                      "source":  "原文",
-                      "text":  "テキスト",
-                      "textColor":  "文字色",
-                      "textDirection":  "文字方向",
-                      "translation":  "翻訳",
-                      "type":  "タイポグラフィ",
-                      "vertical":  "縦書き"
-                  },
-    "layers":  {
-                   "delete":  "{{name}}を削除",
-                   "edit":  "{{name}}を編集",
-                   "empty":  "このページにはレイヤーがありません。",
-                   "hide":  "{{name}}を隠す",
-                   "kinds":  {
-                                 "balloon":  "フキダシ",
-                                 "block":  "テキストブロック",
-                                 "group":  "グループ",
-                                 "image":  "画像",
-                                 "mask":  "マスク",
-                                 "panel":  "コマ",
-                                 "raster":  "ラスター",
-                                 "shape":  "シェイプ",
-                                 "text":  "テキスト"
-                             },
-                   "lock":  "{{name}}をロック",
-                   "locked":  "ロック中",
-                   "opacityLabel":  "{{name}}の不透明度",
-                   "parts":  {
-                                 "cleanup":  "クリーンアップ",
-                                 "mask":  "マスク",
-                                 "pick":  "{{name}}の{{part}}",
-                                 "toggle":  "Shift+クリックで表示/非表示"
-                             },
-                   "show":  "{{name}}を表示",
-                   "sourceLabel":  "{{name}}の原文",
-                   "textLabel":  "{{name}}のテキスト",
-                   "textName":  "テキスト {{index}}",
-                   "title":  "レイヤー",
-                   "translationLabel":  "{{name}}の翻訳",
-                   "unlock":  "{{name}}のロックを解除",
-                   "unlocked":  "ロックなし"
-               },
-    "menu":  {
-                 "about":  "Koharuについて",
-                 "closeProject":  "プロジェクトを閉じる",
-                 "delete":  "選択項目を削除",
-                 "discord":  "Discord",
-                 "donate":  "寄付する",
-                 "edit":  "編集",
-                 "export":  "プロジェクトを書き出す",
-                 "feedback":  "フィードバックを送信",
-                 "file":  "ファイル",
-                 "fit":  "ウィンドウに合わせる",
-                 "github":  "GitHub",
-                 "help":  "ヘルプ",
-                 "history":  "ヒストリー",
-                 "import":  "ページを読み込む",
-                 "redo":  "やり直す",
-                 "selectAllLayers":  "すべてのレイヤーを選択",
-                 "settings":  "設定",
-                 "undo":  "元に戻す",
-                 "unloadModels":  "モデルをアンロード",
-                 "view":  "表示"
-             },
-    "model":  {
-                  "baseUrl":  "ベース URL",
-                  "default":  "既定",
-                  "targetLanguage":  "対象言語"
-              },
-    "modelPicker":  {
-                        "empty":  "利用できるモデルがありません。",
-                        "loading":  "モデルを読み込み中…",
-                        "noResults":  "この検索に一致するモデルはありません。",
-                        "search":  "モデルを検索",
-                        "title":  "モデルを選択",
-                        "useModel":  "{{provider}}の{{model}}を使用"
-                    },
-    "navigator":  {
-                      "actionsFor":  "{{page}}の操作",
-                      "delete":  "削除",
-                      "deleteDescription":  "「{{page}}」とそのレイヤーを削除します。元に戻せます。",
-                      "deleteTitle":  "ページを削除しますか？",
-                      "emptyDescription":  "画像ファイルまたはフォルダーを読み込んでページを追加します。",
-                      "emptyTitle":  "ページがまだありません",
-                      "importAction":  "読み込む",
-                      "importFiles":  "ファイル…",
-                      "importFolder":  "フォルダー…",
-                      "importing":  "ページを読み込み中…",
-                      "importingAction":  "読み込み中…",
-                      "noImage":  "画像なし",
-                      "pageNumber":  "{{number}}ページ目",
-                      "pages":  "ページ",
-                      "run":  {
-                                  "detect":  "検出",
-                                  "inpaint":  "インペイント",
-                                  "recognize":  "文字認識",
-                                  "translate":  "翻訳"
-                              },
-                      "selected":  "{{count}}件選択中",
-                      "translated":  "{{total}} 件中 {{translated}} 件翻訳済み",
-                      "importFolderBatch":  "Batch translate folder"
-                  },
-    "outputPicker":  {
-                         "noResults":  "この検索に一致する言語はありません。",
-                         "search":  "言語を検索",
-                         "targetLanguage":  "対象言語",
-                         "title":  "翻訳出力"
-                     },
-    "phase":  {
-                  "detect":  "検出",
-                  "inpaint":  "インペイント",
-                  "recognize":  "OCR",
-                  "translate":  "翻訳"
-              },
-    "phaseDescription":  {
-                             "detect":  "ページ上のテキストを見つけます。",
-                             "inpaint":  "文字を消した部分の絵を復元します。",
-                             "recognize":  "各領域内の原文を読み取ります。",
-                             "translate":  "原文を対象言語に翻訳します。"
-                         },
-    "psd":  {
-                "background":  "背景",
-                "cleanup":  "クリーンアップ",
-                "outline":  "輪郭"
-            },
-    "reasoning":  {
-                      "high":  "高",
-                      "low":  "低",
-                      "max":  "最大",
-                      "medium":  "中",
-                      "minimal":  "最小限",
-                      "off":  "オフ",
-                      "xhigh":  "最高"
-                  },
-    "settings":  {
-                     "appearance":  {
-                                        "description":  "アートワークの描画には影響せず、作業環境の見た目を調整します。",
-                                        "interface":  "インターフェース",
-                                        "language":  "言語",
-                                        "theme":  "テーマ",
-                                        "themeDescription":  "「システム」はOSの設定に従います。",
-                                        "themes":  {
-                                                       "dark":  "ダーク",
-                                                       "light":  "ライト",
-                                                       "system":  "システム"
-                                                   },
-                                        "title":  "外観"
-                                    },
-                     "backToEditor":  "エディターに戻る",
-                     "loading":  "設定を読み込み中…",
-                     "pipeline":  {
-                                      "description":  "各ページの処理に使用するモデルとオプションを選択します。",
-                                      "model":  "モデル",
-                                      "modelLabel":  "{{stage}}モデル",
-                                      "options":  {
-                                                      "bubbleThreshold":  "吹き出ししきい値",
-                                                      "onomatopoeiaThreshold":  "擬音しきい値",
-                                                      "panelThreshold":  "コマしきい値",
-                                                      "prompt":  "プロンプト",
-                                                      "promptDescription":  "生成モデルにのみ適用されます。",
-                                                      "textThreshold":  "テキストしきい値"
-                                                  },
-                                      "stages":  {
-                                                     "detect":  {
-                                                                    "description":  "テキスト、吹き出し、コマを検出します。",
-                                                                    "title":  "検出エンジン"
-                                                                },
-                                                     "inpaint":  {
-                                                                     "description":  "削除した文字の下にあるアートワークを再構築します。",
-                                                                     "title":  "インペイントエンジン"
-                                                                 },
-                                                     "recognize":  {
-                                                                       "description":  "検出領域内の原文を読み取ります。",
-                                                                       "title":  "認識エンジン"
-                                                                   },
-                                                     "translate":  {
-                                                                       "description":  "原文を翻訳先の言語に翻訳します。",
-                                                                       "title":  "翻訳エンジン"
-                                                                   }
-                                                 },
-                                      "thresholds":  "しきい値",
-                                      "title":  "パイプライン",
-                                      "translator":  {
-                                                         "instructions":  "追加の指示",
-                                                         "instructionsDescription":  "任意。どの言語・形式でも書けます（名前の表記や口調など）。KoharuBatch は自身のシステムプロンプトの後に、書いたとおりに追加します。",
-                                                         "reasoning":  "推論",
-                                                         "reasoningDescription":  "翻訳時にモデルの推論を使用します。",
-                                                         "targetLanguageDescription":  "テキストの翻訳先言語を選択します。",
-                                                         "vision":  "ビジョン",
-                                                         "visionDescription":  "翻訳時にページ画像をLLMへ入力します。"
-                                                     }
-                                  },
-                     "providers":  {
-                                       "browserHint":  "ブラウザーで開いたページでサインインを完了してください。",
-                                       "clearCredential":  "{{provider}}の認証情報を消去",
-                                       "configured":  "設定済み",
-                                       "connections":  "接続",
-                                       "connectionsDescription":  "認証情報はこのデバイスに安全に保存されます。",
-                                       "contextWindow":  "コンテキスト長（トークン）",
-                                       "credential":  "認証情報",
-                                       "credentialLabel":  "{{provider}}の認証情報",
-                                       "description":  "翻訳および言語モデルのプロバイダーに接続します。",
-                                       "deviceCodeHint":  "ブラウザーで開いたページにこのコードを入力してください。",
-                                       "notConfigured":  "未設定",
-                                       "openPage":  "サインインページを開く",
-                                       "openaiCompatible":  "OpenAI 互換",
-                                       "signIn":  "サインイン",
-                                       "signInLabel":  "{{provider}}にサインイン",
-                                       "signOut":  "サインアウト",
-                                       "signOutLabel":  "{{provider}}からサインアウト",
-                                       "signingIn":  "サインインを待機中…",
-                                       "subscription":  "サブスクリプション",
-                                       "title":  "プロバイダー"
-                                   },
-                     "tabs":  {
-                                  "appearance":  "外観",
-                                  "pipeline":  "パイプライン",
-                                  "providers":  "プロバイダー",
-                                  "typesetting":  "レンダラー"
-                              },
-                     "title":  "設定",
-                     "typesetting":  {
-                                         "addFallback":  "フォールバックを追加",
-                                         "addFamily":  "フォントファミリーを追加",
-                                         "description":  "テキストレイヤーにファミリーが指定されていない場合に使う、順序付きフォントスタックを設定します。",
-                                         "empty":  "既定のファミリーがありません。Koharuはシステムの代替フォントを使用します。",
-                                         "fallbacks":  "フォールバック",
-                                         "fallbacksDescription":  "メインにない文字に順番に使われます。ドラッグで並べ替え、メインに重ねると入れ替えられます。",
-                                         "familyLabel":  "既定のフォントファミリー {{index}}",
-                                         "fontFallback":  "優先フォント",
-                                         "fontFallbackDescription":  "Koharuは文字に対応する最初の利用可能なファミリーを使用します。",
-                                         "loadError":  "フォントを読み込めませんでした。既存のファミリーは削除できます。",
-                                         "loadingFonts":  "フォントを読み込み中…",
-                                         "primary":  "メイン",
-                                         "removeFamily":  "{{family}}を削除",
-                                         "title":  "レンダラー"
-                                     }
-                 },
-    "start":  {
-                  "create":  "作成",
-                  "deleteAction":  "プロジェクトを削除",
-                  "deleteDescription":  "「{{name}}」とその全ページを完全に削除します。この操作は元に戻せません。",
-                  "deleteLabel":  "{{name}}を削除",
-                  "deleteTitle":  "プロジェクトを削除しますか？",
-                  "deleting":  "削除中…",
-                  "description":  "ワークスペースを開くか、新しい翻訳を始めます。",
-                  "emptyDescription":  "最初のプロジェクトを作成してページの読み込みを始めましょう。",
-                  "emptyTitle":  "プロジェクトがまだありません",
-                  "loadingProjects":  "プロジェクトを読み込み中…",
-                  "newDescription":  "ページ、翻訳、書き出し用の新しいワークスペースを作成します。",
-                  "newProject":  "新規プロジェクト",
-                  "noResults":  "この検索に一致するプロジェクトはありません。",
-                  "projectKind":  "Koharuプロジェクト",
-                  "projectList":  "プロジェクト",
-                  "openFolder":  "フォルダを開く…",
-                  "projectName":  "プロジェクト名",
-                  "projectNamePlaceholder":  "新しいプロジェクト",
-                  "search":  "プロジェクトを検索",
-                  "storageHint":  "プロジェクトはこのコンピューターにローカル保存されます。",
-                  "title":  "プロジェクト",
-                  "yourProjects":  "プロジェクト一覧"
-              },
-    "startup":  {
-                    "description":  "ローカル AI ランタイムを読み込み、ワークスペースを準備しています。初回起動には少し時間がかかる場合があります。",
-                    "opening":  "Koharuを起動中…",
-                    "status":  "ローカルランタイムを初期化しています",
-                    "title":  "KoharuBatch を準備しています"
-                },
-    "status":  {
-                   "zoom":  "ズーム"
-               },
-    "story":  {
-                  "noText":  "このページにはテキストがありません。",
-                  "sfx":  "効果音",
-                  "title":  "ストーリー",
-                  "translate":  "{{name}}を翻訳"
-              },
-    "tools":  {
-                  "brushSize":  "ブラシサイズ",
-                  "brushSizeInput":  "ブラシサイズ",
-                  "brushSizePixels":  "ブラシサイズ: {{size}}ピクセル",
-                  "brushSizeShort":  "{{size}} px",
-                  "color_picker":  "カラーピッカー",
-                  "decreaseBrushSize":  "ブラシサイズを縮小",
-                  "direct_select":  "パス選択",
-                  "draw":  "描画",
-                  "eraser":  "消しゴム",
-                  "increaseBrushSize":  "ブラシサイズを拡大",
-                  "lasso":  "なげなわ",
-                  "marquee":  "長方形選択",
-                  "pan":  "移動",
-                  "remove":  "削除",
-                  "select":  "選択",
-                  "text":  "テキスト"
-              },
-    "updater":  {
-                    "available":  {
-                                      "description":  "KoharuBatch \u003cstrong\u003e{{version}}\u003c/strong\u003e をインストールできます",
-                                      "title":  "アップデートが利用可能"
-                                  },
-                    "close":  "閉じる",
-                    "downloading":  {
-                                        "subtitle":  "KoharuBatch {{version}}",
-                                        "title":  "アップデートをダウンロード中…"
-                                    },
-                    "error":  {
-                                  "description":  "アップデート中に問題が発生しました",
-                                  "title":  "アップデートに失敗しました"
-                              },
-                    "later":  "後で",
-                    "noNotes":  "リリースノートはありません。",
-                    "retry":  "再試行",
-                    "update":  "更新"
-                },
-    "window":  {
-                   "close":  "閉じる",
-                   "maximize":  "最大化",
-                   "minimize":  "最小化",
-                   "restore":  "元のサイズに戻す"
-               }
+  "about": {
+    "author": "作者",
+    "description": "漫画翻訳ツール",
+    "unavailable": "利用不可",
+    "version": "バージョン"
+  },
+  "activity": {
+    "dismiss": "閉じる",
+    "downloadFailed": "ダウンロードに失敗しました。",
+    "downloadingFiles": "{{count}}件のファイルをダウンロード中",
+    "downloadingFiles_one": "{{count}}件のファイルをダウンロード中",
+    "downloadingFiles_other": "{{count}}件のファイルをダウンロード中",
+    "modelDownload": "モデルのダウンロード",
+    "processing": "処理中",
+    "processingFailed": "処理に失敗しました。",
+    "stop": "停止",
+    "title": "アクティビティ"
+  },
+  "agent": {
+    "cancel": "キャンセル",
+    "cancelled": "キャンセルしました。",
+    "emptyDescription": "エージェントにこのプロジェクトの確認、翻訳、編集、処理を依頼できます。ページ画像は必要な場合にのみ表示されます。",
+    "emptyTitle": "Koharuに何をさせますか？",
+    "failed": "エージェントのリクエストに失敗しました。",
+    "loading": "エージェントを読み込み中…",
+    "message": "Koharuエージェントにメッセージを送信",
+    "model": "モデル",
+    "newChat": "新しいチャット",
+    "placeholder": "Koharuにこのプロジェクトの作業を依頼…",
+    "reasoning": "推論",
+    "send": "送信",
+    "thinking": "思考中…",
+    "thought": "{{seconds}}秒考えました",
+    "title": "エージェント",
+    "toolFailed": "{{tool}} が失敗しました",
+    "used": "{{tool}} を使用しました",
+    "using": "{{tool}} を使用中",
+    "working": "作業中…"
+  },
+  "batch": {
+    "choose": "選択…",
+    "description": "フォルダー内のすべてのページを、プロジェクトの外で koharu-batch により翻訳します。",
+    "done": "一括翻訳が完了しました",
+    "folder": "翻訳するフォルダー",
+    "model": "モデル",
+    "modelAuto": "自動",
+    "noneSelected": "未選択",
+    "output": "出力プロジェクト",
+    "progress": "{{done}}/{{total}} ステップ",
+    "sameFolder": "入力フォルダーと出力フォルダーは別にしてください。",
+    "start": "開始",
+    "starting": "開始中…",
+    "title": "フォルダーを一括翻訳"
+  },
+  "canvas": {
+    "empty": "ページを選択して開始します。",
+    "notice": {
+      "eraser_needs_raster": "消去するにはラスターレイヤーを選択してください。"
+    }
+  },
+  "colorPicker": {
+    "brushColor": "ブラシカラー",
+    "hexCode": "16進カラーコード",
+    "recent": "最近使った色",
+    "recentColor": "最近使った色 {{color}}",
+    "sampleCanvas": "キャンバスから色を選択",
+    "transparent": "透明"
+  },
+  "common": {
+    "back": "戻る",
+    "cancel": "キャンセル",
+    "clearSearch": "検索をクリア",
+    "loading": "読み込み中…"
+  },
+  "errors": {
+    "actionFailed": "操作を完了できませんでした",
+    "fatalTitle": "Koharuを続行できませんでした",
+    "tryAgain": "再試行",
+    "unknown": "ネイティブアプリケーションが不明なエラーを返しました。"
+  },
+  "feedback": {
+    "addScreenshot": "スクリーンショットを追加",
+    "cancel": "キャンセル",
+    "confirm": "確定",
+    "email": "メールアドレス",
+    "emailPlaceholder": "your.email@example.org",
+    "emptyMessage": "何が起きたかを入力してください。",
+    "failed": "フィードバックを送信できませんでした。もう一度お試しください。",
+    "forbidden": "このビルドからはフィードバックを送信できません。",
+    "hide": "隠す",
+    "highlight": "強調",
+    "message": "内容",
+    "messagePlaceholder": "何が起きましたか？どうなることを期待していましたか？",
+    "name": "名前",
+    "namePlaceholder": "お名前",
+    "noClient": "現在フィードバックは利用できません。",
+    "removeHighlight": "削除",
+    "removeScreenshot": "スクリーンショットを削除",
+    "required": "（必須）",
+    "sent": "フィードバックをありがとうございます！",
+    "submit": "送信",
+    "timeout": "送信がタイムアウトしました。もう一度お試しください。",
+    "title": "フィードバックを送信"
+  },
+  "fill": {
+    "deselect": "選択を解除",
+    "generate": "生成",
+    "model": "塗りつぶしのモデル",
+    "prompt": "追加する内容を入力（任意）",
+    "title": "生成塗りつぶし"
+  },
+  "fontPicker": {
+    "addFavorite": "{{name}} をお気に入りに追加",
+    "choose": "フォントを選択",
+    "favoritesOnly": "お気に入りのフォントを表示",
+    "fontCount": "{{count}}個のフォント",
+    "fontCount_one": "{{count}}個のフォント",
+    "fontCount_other": "{{count}}個のフォント",
+    "fonts": "フォント",
+    "noFavorites": "お気に入りのフォントはまだありません",
+    "noResults": "この検索に一致するフォントはありません",
+    "removeFavorite": "{{name}} をお気に入りから削除",
+    "search": "フォントを検索"
+  },
+  "history": {
+    "close": "ヒストリーを閉じる",
+    "opened": "開いた状態",
+    "steps": {
+      "add_text": "テキストを追加",
+      "delete_layers": "レイヤーを削除",
+      "delete_pages": "ページを削除",
+      "detect": "検出",
+      "edit_frame": "フレームを編集",
+      "erase": "消去",
+      "import": "ページを読み込み",
+      "inpaint": "インペイント",
+      "move": "移動",
+      "move_layer": "レイヤーを移動",
+      "move_page": "ページを移動",
+      "paint": "ペイント",
+      "recognize": "OCR",
+      "resize": "サイズ変更",
+      "rotate": "回転",
+      "set_locked": "ロック/ロック解除",
+      "set_source_text": "原文を編集",
+      "set_style": "書式を変更",
+      "set_text": "テキストを編集",
+      "set_visibility": "表示/非表示",
+      "translate": "翻訳",
+      "update_layer": "レイヤーを変更"
+    },
+    "title": "ヒストリー"
+  },
+  "inference": {
+    "entireProject": "プロジェクト全体",
+    "entireProjectDescription": "このプロジェクトの全ページを処理します。",
+    "model": "モデル",
+    "noModel": "モデルなし",
+    "notSet": "未設定",
+    "output": "出力",
+    "pipelineStages": "パイプラインの工程",
+    "providerDefault": "プロバイダーの既定値",
+    "run": "実行",
+    "runProcessing": "処理を実行",
+    "scope": "範囲",
+    "scopeShort": {
+      "project": "プロジェクト",
+      "selected-pages": "選択範囲"
+    },
+    "selectPagesFirst": "先にページを選択してください",
+    "selectedCount": "選択中のページ: {{count}}件",
+    "selectedCount_one": "選択中のページ: {{count}}件",
+    "selectedCount_other": "選択中のページ: {{count}}件",
+    "selectedPages": "選択したページ",
+    "selector": "処理設定",
+    "shortcuts": "処理オプション",
+    "stageCount": "{{count}}工程",
+    "stageCount_one": "{{count}}工程",
+    "stageCount_other": "{{count}}工程",
+    "stages": "工程",
+    "stop": "停止",
+    "stopProcessing": "処理を停止"
+  },
+  "inspector": {
+    "alignBottom": "下揃え",
+    "alignCenter": "中央揃え",
+    "alignLeft": "左揃え",
+    "alignMiddle": "中央揃え",
+    "alignRight": "右揃え",
+    "alignTop": "上揃え",
+    "alignment": "文字揃え",
+    "auto": "自動",
+    "border": "縁取り",
+    "borderColor": "縁取りの色",
+    "borderWidth": "縁取り幅",
+    "chooseBorderWidth": "縁取り幅を選択",
+    "chooseFontSize": "フォントサイズを選択",
+    "font": "フォント",
+    "fontSize": "フォントサイズ",
+    "fontStyles": {
+      "italic": "斜体",
+      "oblique": "オブリーク"
+    },
+    "fontWeight": "フォントの太さ",
+    "horizontal": "横書き",
+    "opacity": "不透明度",
+    "selectPage": "ページを選択してレイヤーを確認します。",
+    "source": "原文",
+    "text": "テキスト",
+    "textColor": "文字色",
+    "textDirection": "文字方向",
+    "translation": "翻訳",
+    "type": "タイポグラフィ",
+    "vertical": "縦書き"
+  },
+  "layers": {
+    "delete": "{{name}}を削除",
+    "edit": "{{name}}を編集",
+    "empty": "このページにはレイヤーがありません。",
+    "hide": "{{name}}を隠す",
+    "kinds": {
+      "balloon": "フキダシ",
+      "block": "テキストブロック",
+      "group": "グループ",
+      "image": "画像",
+      "mask": "マスク",
+      "panel": "コマ",
+      "raster": "ラスター",
+      "shape": "シェイプ",
+      "text": "テキスト"
+    },
+    "lock": "{{name}}をロック",
+    "locked": "ロック中",
+    "opacityLabel": "{{name}}の不透明度",
+    "parts": {
+      "cleanup": "クリーンアップ",
+      "mask": "マスク",
+      "pick": "{{name}}の{{part}}",
+      "toggle": "Shift+クリックで表示/非表示"
+    },
+    "show": "{{name}}を表示",
+    "sourceLabel": "{{name}}の原文",
+    "textLabel": "{{name}}のテキスト",
+    "textName": "テキスト {{index}}",
+    "title": "レイヤー",
+    "translationLabel": "{{name}}の翻訳",
+    "unlock": "{{name}}のロックを解除",
+    "unlocked": "ロックなし"
+  },
+  "menu": {
+    "about": "Koharuについて",
+    "closeProject": "プロジェクトを閉じる",
+    "delete": "選択項目を削除",
+    "discord": "Discord",
+    "donate": "寄付する",
+    "edit": "編集",
+    "export": "プロジェクトを書き出す",
+    "feedback": "フィードバックを送信",
+    "file": "ファイル",
+    "fit": "ウィンドウに合わせる",
+    "github": "GitHub",
+    "help": "ヘルプ",
+    "history": "ヒストリー",
+    "import": "ページを読み込む",
+    "redo": "やり直す",
+    "selectAllLayers": "すべてのレイヤーを選択",
+    "settings": "設定",
+    "undo": "元に戻す",
+    "unloadModels": "モデルをアンロード",
+    "view": "表示"
+  },
+  "model": {
+    "baseUrl": "ベース URL",
+    "default": "既定",
+    "targetLanguage": "対象言語"
+  },
+  "modelPicker": {
+    "empty": "利用できるモデルがありません。",
+    "loading": "モデルを読み込み中…",
+    "noResults": "この検索に一致するモデルはありません。",
+    "search": "モデルを検索",
+    "title": "モデルを選択",
+    "useModel": "{{provider}}の{{model}}を使用"
+  },
+  "navigator": {
+    "actionsFor": "{{page}}の操作",
+    "delete": "削除",
+    "deleteDescription": "「{{page}}」とそのレイヤーを削除します。元に戻せます。",
+    "deleteTitle": "ページを削除しますか？",
+    "emptyDescription": "画像ファイルまたはフォルダーを読み込んでページを追加します。",
+    "emptyTitle": "ページがまだありません",
+    "importAction": "読み込む",
+    "importFiles": "ファイル…",
+    "importFolder": "フォルダー…",
+    "importing": "ページを読み込み中…",
+    "importingAction": "読み込み中…",
+    "noImage": "画像なし",
+    "pageNumber": "{{number}}ページ目",
+    "pages": "ページ",
+    "run": {
+      "detect": "検出",
+      "inpaint": "インペイント",
+      "recognize": "文字認識",
+      "translate": "翻訳"
+    },
+    "selected": "{{count}}件選択中",
+    "translated": "{{total}} 件中 {{translated}} 件翻訳済み",
+    "importFolderBatch": "Batch translate folder"
+  },
+  "outputPicker": {
+    "noResults": "この検索に一致する言語はありません。",
+    "search": "言語を検索",
+    "targetLanguage": "対象言語",
+    "title": "翻訳出力"
+  },
+  "phase": {
+    "detect": "検出",
+    "inpaint": "インペイント",
+    "recognize": "OCR",
+    "translate": "翻訳"
+  },
+  "phaseDescription": {
+    "detect": "ページ上のテキストを見つけます。",
+    "inpaint": "文字を消した部分の絵を復元します。",
+    "recognize": "各領域内の原文を読み取ります。",
+    "translate": "原文を対象言語に翻訳します。"
+  },
+  "psd": {
+    "background": "背景",
+    "cleanup": "クリーンアップ",
+    "outline": "輪郭"
+  },
+  "reasoning": {
+    "high": "高",
+    "low": "低",
+    "max": "最大",
+    "medium": "中",
+    "minimal": "最小限",
+    "off": "オフ",
+    "xhigh": "最高"
+  },
+  "settings": {
+    "appearance": {
+      "description": "アートワークの描画には影響せず、作業環境の見た目を調整します。",
+      "interface": "インターフェース",
+      "language": "言語",
+      "theme": "テーマ",
+      "themeDescription": "「システム」はOSの設定に従います。",
+      "themes": {
+        "dark": "ダーク",
+        "light": "ライト",
+        "system": "システム"
+      },
+      "title": "外観"
+    },
+    "backToEditor": "エディターに戻る",
+    "loading": "設定を読み込み中…",
+    "pipeline": {
+      "description": "各ページの処理に使用するモデルとオプションを選択します。",
+      "model": "モデル",
+      "modelLabel": "{{stage}}モデル",
+      "options": {
+        "bubbleThreshold": "吹き出ししきい値",
+        "onomatopoeiaThreshold": "擬音しきい値",
+        "panelThreshold": "コマしきい値",
+        "prompt": "プロンプト",
+        "promptDescription": "生成モデルにのみ適用されます。",
+        "textThreshold": "テキストしきい値"
+      },
+      "stages": {
+        "detect": {
+          "description": "テキスト、吹き出し、コマを検出します。",
+          "title": "検出エンジン"
+        },
+        "inpaint": {
+          "description": "削除した文字の下にあるアートワークを再構築します。",
+          "title": "インペイントエンジン"
+        },
+        "recognize": {
+          "description": "検出領域内の原文を読み取ります。",
+          "title": "認識エンジン"
+        },
+        "translate": {
+          "description": "原文を翻訳先の言語に翻訳します。",
+          "title": "翻訳エンジン"
+        }
+      },
+      "thresholds": "しきい値",
+      "title": "パイプライン",
+      "translator": {
+        "instructions": "追加の指示",
+        "instructionsDescription": "任意。どの言語・形式でも書けます（名前の表記や口調など）。KoharuBatch は自身のシステムプロンプトの後に、書いたとおりに追加します。",
+        "reasoning": "推論",
+        "reasoningDescription": "翻訳時にモデルの推論を使用します。",
+        "targetLanguageDescription": "テキストの翻訳先言語を選択します。",
+        "vision": "ビジョン",
+        "visionDescription": "翻訳時にページ画像をLLMへ入力します。"
+      }
+    },
+    "providers": {
+      "browserHint": "ブラウザーで開いたページでサインインを完了してください。",
+      "clearCredential": "{{provider}}の認証情報を消去",
+      "configured": "設定済み",
+      "connections": "接続",
+      "connectionsDescription": "認証情報はこのデバイスに安全に保存されます。",
+      "contextWindow": "コンテキスト長（トークン）",
+      "credential": "認証情報",
+      "credentialLabel": "{{provider}}の認証情報",
+      "description": "翻訳および言語モデルのプロバイダーに接続します。",
+      "deviceCodeHint": "ブラウザーで開いたページにこのコードを入力してください。",
+      "notConfigured": "未設定",
+      "openPage": "サインインページを開く",
+      "openaiCompatible": "OpenAI 互換",
+      "signIn": "サインイン",
+      "signInLabel": "{{provider}}にサインイン",
+      "signOut": "サインアウト",
+      "signOutLabel": "{{provider}}からサインアウト",
+      "signingIn": "サインインを待機中…",
+      "subscription": "サブスクリプション",
+      "title": "プロバイダー"
+    },
+    "tabs": {
+      "appearance": "外観",
+      "pipeline": "パイプライン",
+      "providers": "プロバイダー",
+      "typesetting": "レンダラー"
+    },
+    "title": "設定",
+    "typesetting": {
+      "addFallback": "フォールバックを追加",
+      "addFamily": "フォントファミリーを追加",
+      "description": "テキストレイヤーにファミリーが指定されていない場合に使う、順序付きフォントスタックを設定します。",
+      "empty": "既定のファミリーがありません。Koharuはシステムの代替フォントを使用します。",
+      "fallbacks": "フォールバック",
+      "fallbacksDescription": "メインにない文字に順番に使われます。ドラッグで並べ替え、メインに重ねると入れ替えられます。",
+      "familyLabel": "既定のフォントファミリー {{index}}",
+      "fontFallback": "優先フォント",
+      "fontFallbackDescription": "Koharuは文字に対応する最初の利用可能なファミリーを使用します。",
+      "loadError": "フォントを読み込めませんでした。既存のファミリーは削除できます。",
+      "loadingFonts": "フォントを読み込み中…",
+      "primary": "メイン",
+      "removeFamily": "{{family}}を削除",
+      "title": "レンダラー"
+    }
+  },
+  "start": {
+    "create": "作成",
+    "deleteAction": "プロジェクトを削除",
+    "deleteDescription": "「{{name}}」とその全ページを完全に削除します。この操作は元に戻せません。",
+    "deleteLabel": "{{name}}を削除",
+    "deleteTitle": "プロジェクトを削除しますか？",
+    "deleting": "削除中…",
+    "description": "ワークスペースを開くか、新しい翻訳を始めます。",
+    "emptyDescription": "最初のプロジェクトを作成してページの読み込みを始めましょう。",
+    "emptyTitle": "プロジェクトがまだありません",
+    "loadingProjects": "プロジェクトを読み込み中…",
+    "newDescription": "ページ、翻訳、書き出し用の新しいワークスペースを作成します。",
+    "newProject": "新規プロジェクト",
+    "noResults": "この検索に一致するプロジェクトはありません。",
+    "projectKind": "Koharuプロジェクト",
+    "projectList": "プロジェクト",
+    "openFolder": "フォルダを開く…",
+    "projectName": "プロジェクト名",
+    "projectNamePlaceholder": "新しいプロジェクト",
+    "search": "プロジェクトを検索",
+    "storageHint": "プロジェクトはこのコンピューターにローカル保存されます。",
+    "title": "プロジェクト",
+    "yourProjects": "プロジェクト一覧"
+  },
+  "startup": {
+    "description": "ローカル AI ランタイムを読み込み、ワークスペースを準備しています。初回起動には少し時間がかかる場合があります。",
+    "opening": "Koharuを起動中…",
+    "status": "ローカルランタイムを初期化しています",
+    "title": "KoharuBatch を準備しています"
+  },
+  "status": {
+    "zoom": "ズーム"
+  },
+  "story": {
+    "noText": "このページにはテキストがありません。",
+    "sfx": "効果音",
+    "title": "ストーリー",
+    "translate": "{{name}}を翻訳"
+  },
+  "tools": {
+    "brushSize": "ブラシサイズ",
+    "brushSizeInput": "ブラシサイズ",
+    "brushSizePixels": "ブラシサイズ: {{size}}ピクセル",
+    "brushSizeShort": "{{size}} px",
+    "color_picker": "カラーピッカー",
+    "decreaseBrushSize": "ブラシサイズを縮小",
+    "direct_select": "パス選択",
+    "draw": "描画",
+    "eraser": "消しゴム",
+    "increaseBrushSize": "ブラシサイズを拡大",
+    "lasso": "なげなわ",
+    "marquee": "長方形選択",
+    "pan": "移動",
+    "remove": "削除",
+    "select": "選択",
+    "text": "テキスト"
+  },
+  "updater": {
+    "available": {
+      "description": "KoharuBatch <strong>{{version}}</strong> をインストールできます",
+      "title": "アップデートが利用可能"
+    },
+    "close": "閉じる",
+    "downloading": {
+      "subtitle": "KoharuBatch {{version}}",
+      "title": "アップデートをダウンロード中…"
+    },
+    "error": {
+      "description": "アップデート中に問題が発生しました",
+      "title": "アップデートに失敗しました"
+    },
+    "later": "後で",
+    "noNotes": "リリースノートはありません。",
+    "retry": "再試行",
+    "update": "更新"
+  },
+  "window": {
+    "close": "閉じる",
+    "maximize": "最大化",
+    "minimize": "最小化",
+    "restore": "元のサイズに戻す"
+  }
 }

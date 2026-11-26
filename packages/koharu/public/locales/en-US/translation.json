@@ -1,529 +1,529 @@
 {
-    "about":  {
-                  "author":  "Author",
-                  "description":  "Manga translation tools",
-                  "unavailable":  "Unavailable",
-                  "version":  "Version"
-              },
-    "activity":  {
-                     "dismiss":  "Dismiss",
-                     "downloadFailed":  "Download failed.",
-                     "downloadingFiles":  "Downloading {{count}} files",
-                     "downloadingFiles_one":  "Downloading {{count}} file",
-                     "downloadingFiles_other":  "Downloading {{count}} files",
-                     "modelDownload":  "Model download",
-                     "processing":  "Processing",
-                     "processingFailed":  "Processing failed.",
-                     "stop":  "Stop",
-                     "title":  "Activity"
-                 },
-    "agent":  {
-                  "cancel":  "Cancel",
-                  "cancelled":  "Cancelled.",
-                  "emptyDescription":  "Ask the agent to inspect, translate, edit, or process this project. It will view page images only when needed.",
-                  "emptyTitle":  "What should KoharuBatch do?",
-                  "failed":  "The agent request failed.",
-                  "loading":  "Loading agent…",
-                  "message":  "Message KoharuBatch Agent",
-                  "model":  "Model",
-                  "newChat":  "New chat",
-                  "placeholder":  "Ask KoharuBatch to work on this project...",
-                  "reasoning":  "Reasoning",
-                  "send":  "Send",
-                  "thinking":  "Thinking...",
-                  "thought":  "Thought for {{seconds}}s",
-                  "title":  "Agent",
-                  "toolFailed":  "{{tool}} failed",
-                  "used":  "Used {{tool}}",
-                  "using":  "Using {{tool}}",
-                  "working":  "Working..."
-              },
-    "batch":  {
-                  "choose":  "Choose…",
-                  "description":  "Translate every page of a folder with koharu-batch, outside any project.",
-                  "done":  "Batch finished",
-                  "folder":  "Folder to translate",
-                  "model":  "Model",
-                  "modelAuto":  "Auto",
-                  "noneSelected":  "None selected",
-                  "output":  "Output project",
-                  "progress":  "{{done}}/{{total}} steps",
-                  "sameFolder":  "The input and output folders must be different.",
-                  "start":  "Start",
-                  "starting":  "Starting…",
-                  "title":  "Batch translate a folder"
-              },
-    "canvas":  {
-                   "empty":  "Select a page to begin.",
-                   "notice":  {
-                                  "eraser_needs_raster":  "Select a raster layer to erase."
-                              }
-               },
-    "colorPicker":  {
-                        "brushColor":  "Brush color",
-                        "hexCode":  "Hex color code",
-                        "recent":  "Recent colors",
-                        "recentColor":  "Recent color {{color}}",
-                        "sampleCanvas":  "Pick color from canvas",
-                        "transparent":  "Transparent"
-                    },
-    "common":  {
-                   "back":  "Back",
-                   "cancel":  "Cancel",
-                   "clearSearch":  "Clear search",
-                   "loading":  "Loading…"
-               },
-    "errors":  {
-                   "actionFailed":  "Could not complete that action",
-                   "fatalTitle":  "KoharuBatch could not continue",
-                   "tryAgain":  "Try again",
-                   "unknown":  "The native application returned an unknown error."
-               },
-    "feedback":  {
-                     "addScreenshot":  "Add a screenshot",
-                     "cancel":  "Cancel",
-                     "confirm":  "Confirm",
-                     "email":  "Email",
-                     "emailPlaceholder":  "your.email@example.org",
-                     "emptyMessage":  "Please describe what happened.",
-                     "failed":  "The feedback couldn’t be sent. Please try again.",
-                     "forbidden":  "This build can’t send feedback.",
-                     "hide":  "Hide",
-                     "highlight":  "Highlight",
-                     "message":  "Description",
-                     "messagePlaceholder":  "What happened? What did you expect?",
-                     "name":  "Name",
-                     "namePlaceholder":  "Your name",
-                     "noClient":  "Feedback isn’t available right now.",
-                     "removeHighlight":  "Remove",
-                     "removeScreenshot":  "Remove screenshot",
-                     "required":  "(required)",
-                     "sent":  "Thank you for your feedback!",
-                     "submit":  "Send",
-                     "timeout":  "Sending timed out. Please try again.",
-                     "title":  "Send Feedback"
-                 },
-    "fill":  {
-                 "deselect":  "Deselect",
-                 "generate":  "Generate",
-                 "model":  "Fill model",
-                 "prompt":  "Describe what to add (optional)",
-                 "title":  "Generative Fill"
-             },
-    "fontPicker":  {
-                       "addFavorite":  "Add {{name}} to favorites",
-                       "choose":  "Choose a font",
-                       "favoritesOnly":  "Show favorite fonts",
-                       "fontCount":  "{{count}} fonts",
-                       "fontCount_one":  "{{count}} font",
-                       "fontCount_other":  "{{count}} fonts",
-                       "fonts":  "Fonts",
-                       "noFavorites":  "No favorite fonts yet",
-                       "noResults":  "No fonts match this search",
-                       "removeFavorite":  "Remove {{name}} from favorites",
-                       "search":  "Search fonts"
-                   },
-    "history":  {
-                    "close":  "Close history",
-                    "opened":  "Opened",
-                    "steps":  {
-                                  "add_text":  "Add text",
-                                  "delete_layers":  "Delete layers",
-                                  "delete_pages":  "Delete pages",
-                                  "detect":  "Detection",
-                                  "edit_frame":  "Edit frame",
-                                  "erase":  "Erase",
-                                  "import":  "Import pages",
-                                  "inpaint":  "Inpainting",
-                                  "move":  "Move",
-                                  "move_layer":  "Move layers",
-                                  "move_page":  "Move page",
-                                  "paint":  "Paint",
-                                  "recognize":  "OCR",
-                                  "resize":  "Resize",
-                                  "rotate":  "Rotate",
-                                  "set_locked":  "Lock or unlock",
-                                  "set_source_text":  "Edit source text",
-                                  "set_style":  "Change type",
-                                  "set_text":  "Edit text",
-                                  "set_visibility":  "Show or hide",
-                                  "translate":  "Translation",
-                                  "update_layer":  "Change layer"
-                              },
-                    "title":  "History"
-                },
-    "inference":  {
-                      "entireProject":  "Entire project",
-                      "entireProjectDescription":  "Process every page in this project.",
-                      "model":  "Model",
-                      "noModel":  "No model",
-                      "notSet":  "Not set",
-                      "output":  "Output",
-                      "pipelineStages":  "Pipeline stages",
-                      "providerDefault":  "Provider default",
-                      "run":  "Run",
-                      "runProcessing":  "Run processing",
-                      "scope":  "Scope",
-                      "scopeShort":  {
-                                         "project":  "Project",
-                                         "selected-pages":  "Selection"
-                                     },
-                      "selectPagesFirst":  "Select pages first",
-                      "selectedCount":  "{{count}} selected pages",
-                      "selectedCount_one":  "{{count}} selected page",
-                      "selectedCount_other":  "{{count}} selected pages",
-                      "selectedPages":  "Selected pages",
-                      "selector":  "Processing settings",
-                      "shortcuts":  "Processing options",
-                      "stageCount":  "{{count}} stages",
-                      "stageCount_one":  "{{count}} stage",
-                      "stageCount_other":  "{{count}} stages",
-                      "stages":  "Stages",
-                      "stop":  "Stop",
-                      "stopProcessing":  "Stop processing"
-                  },
-    "inspector":  {
-                      "alignBottom":  "Align bottom",
-                      "alignCenter":  "Align center",
-                      "alignLeft":  "Align left",
-                      "alignMiddle":  "Align middle",
-                      "alignRight":  "Align right",
-                      "alignTop":  "Align top",
-                      "alignment":  "Alignment",
-                      "auto":  "Auto",
-                      "border":  "Border",
-                      "borderColor":  "Border color",
-                      "borderWidth":  "Border width",
-                      "chooseBorderWidth":  "Choose border width",
-                      "chooseFontSize":  "Choose font size",
-                      "font":  "Font",
-                      "fontSize":  "Font size",
-                      "fontStyles":  {
-                                         "italic":  "Italic",
-                                         "oblique":  "Oblique"
-                                     },
-                      "fontWeight":  "Font weight",
-                      "horizontal":  "Horizontal",
-                      "opacity":  "Opacity",
-                      "selectPage":  "Select a page to inspect its layers.",
-                      "source":  "Source text",
-                      "text":  "Text",
-                      "textColor":  "Text color",
-                      "textDirection":  "Text direction",
-                      "translation":  "Translation",
-                      "type":  "Type",
-                      "vertical":  "Vertical"
-                  },
-    "layers":  {
-                   "delete":  "Delete {{name}}",
-                   "edit":  "Edit {{name}}",
-                   "empty":  "No layers on this page.",
-                   "hide":  "Hide {{name}}",
-                   "kinds":  {
-                                 "balloon":  "Balloon",
-                                 "block":  "Text block",
-                                 "group":  "Group",
-                                 "image":  "Image",
-                                 "mask":  "Mask",
-                                 "panel":  "Panel",
-                                 "raster":  "Raster",
-                                 "shape":  "Shape",
-                                 "text":  "Text"
-                             },
-                   "lock":  "Lock {{name}}",
-                   "locked":  "Locked",
-                   "opacityLabel":  "{{name}} opacity",
-                   "parts":  {
-                                 "cleanup":  "Cleanup",
-                                 "mask":  "Mask",
-                                 "pick":  "{{part}} of {{name}}",
-                                 "toggle":  "Shift-click to show or hide"
-                             },
-                   "show":  "Show {{name}}",
-                   "sourceLabel":  "{{name}} source text",
-                   "textLabel":  "{{name}} text",
-                   "textName":  "Text {{index}}",
-                   "title":  "Layers",
-                   "translationLabel":  "{{name}} translation",
-                   "unlock":  "Unlock {{name}}",
-                   "unlocked":  "Unlocked"
-               },
-    "menu":  {
-                 "about":  "About",
-                 "closeProject":  "Close Project",
-                 "delete":  "Delete Selected",
-                 "discord":  "Discord",
-                 "donate":  "Donate",
-                 "edit":  "Edit",
-                 "export":  "Export Project",
-                 "feedback":  "Send Feedback",
-                 "file":  "File",
-                 "fit":  "Fit Window",
-                 "github":  "GitHub",
-                 "help":  "Help",
-                 "history":  "History",
-                 "import":  "Import Pages",
-                 "redo":  "Redo",
-                 "selectAllLayers":  "Select All Layers",
-                 "settings":  "Settings",
-                 "undo":  "Undo",
-                 "unloadModels":  "Unload Models",
-                 "view":  "View"
-             },
-    "model":  {
-                  "baseUrl":  "Base URL",
-                  "default":  "Default",
-                  "targetLanguage":  "Target language"
-              },
-    "modelPicker":  {
-                        "empty":  "No models are available.",
-                        "loading":  "Loading models…",
-                        "noResults":  "No models match this search.",
-                        "search":  "Search models",
-                        "title":  "Choose a model",
-                        "useModel":  "Use {{model}} from {{provider}}"
-                    },
-    "navigator":  {
-                      "actionsFor":  "Actions for {{page}}",
-                      "delete":  "Delete",
-                      "deleteDescription":  "This deletes “{{page}}” and its layers. You can undo it.",
-                      "deleteTitle":  "Delete page?",
-                      "emptyDescription":  "Import image files or a folder to add pages.",
-                      "emptyTitle":  "No pages yet",
-                      "importAction":  "Import",
-                      "importFiles":  "Files…",
-                      "importFolder":  "Folder…",
-                      "importing":  "Importing pages…",
-                      "importingAction":  "Importing…",
-                      "noImage":  "No image",
-                      "pageNumber":  "Page {{number}}",
-                      "pages":  "Pages",
-                      "run":  {
-                                  "detect":  "Detect",
-                                  "inpaint":  "Inpaint",
-                                  "recognize":  "Recognize",
-                                  "translate":  "Translate"
-                              },
-                      "selected":  "{{count}} selected",
-                      "translated":  "{{translated}} of {{total}} translated",
-                      "importFolderBatch":  "Batch translate folder"
-                  },
-    "outputPicker":  {
-                         "noResults":  "No languages match this search.",
-                         "search":  "Search languages",
-                         "targetLanguage":  "Target language",
-                         "title":  "Translation output"
-                     },
-    "phase":  {
-                  "detect":  "Detection",
-                  "inpaint":  "Inpainting",
-                  "recognize":  "OCR",
-                  "translate":  "Translation"
-              },
-    "phaseDescription":  {
-                             "detect":  "Locate text on the page.",
-                             "inpaint":  "Rebuild the artwork behind removed text.",
-                             "recognize":  "Read the text inside each region.",
-                             "translate":  "Convert source text to the target language."
-                         },
-    "psd":  {
-                "background":  "Background",
-                "cleanup":  "Cleanup",
-                "outline":  "Outline"
-            },
-    "reasoning":  {
-                      "high":  "High",
-                      "low":  "Low",
-                      "max":  "Max",
-                      "medium":  "Medium",
-                      "minimal":  "Minimal",
-                      "off":  "Off",
-                      "xhigh":  "Extra high"
-                  },
-    "settings":  {
-                     "appearance":  {
-                                        "description":  "Match your workspace to the room without changing how artwork is rendered.",
-                                        "interface":  "Interface",
-                                        "language":  "Language",
-                                        "theme":  "Theme",
-                                        "themeDescription":  "System follows the operating-system setting.",
-                                        "themes":  {
-                                                       "dark":  "Dark",
-                                                       "light":  "Light",
-                                                       "system":  "System"
-                                                   },
-                                        "title":  "Appearance"
-                                    },
-                     "backToEditor":  "Back to editor",
-                     "loading":  "Loading preferences…",
-                     "pipeline":  {
-                                      "description":  "Choose the models and options used to process each page.",
-                                      "model":  "Model",
-                                      "modelLabel":  "{{stage}} model",
-                                      "options":  {
-                                                      "bubbleThreshold":  "Bubble threshold",
-                                                      "onomatopoeiaThreshold":  "SFX threshold",
-                                                      "panelThreshold":  "Panel threshold",
-                                                      "prompt":  "Prompt",
-                                                      "promptDescription":  "Applies only to generative models.",
-                                                      "textThreshold":  "Text threshold"
-                                                  },
-                                      "stages":  {
-                                                     "detect":  {
-                                                                    "description":  "Find text, speech bubbles, and panels.",
-                                                                    "title":  "Detector"
-                                                                },
-                                                     "inpaint":  {
-                                                                     "description":  "Rebuild artwork beneath removed text.",
-                                                                     "title":  "Inpainter"
-                                                                 },
-                                                     "recognize":  {
-                                                                       "description":  "Read the source text inside detected regions.",
-                                                                       "title":  "Recognizer"
-                                                                   },
-                                                     "translate":  {
-                                                                       "description":  "Translate the source text into the target language.",
-                                                                       "title":  "Translator"
-                                                                   }
-                                                 },
-                                      "thresholds":  "Thresholds",
-                                      "title":  "Pipeline",
-                                      "translator":  {
-                                                         "instructions":  "Additional instructions",
-                                                         "instructionsDescription":  "Optional, in any language and form, such as a name\u0027s spelling or the tone. KoharuBatch adds them, as written, after its own system prompt.",
-                                                         "reasoning":  "Reasoning",
-                                                         "reasoningDescription":  "Use model reasoning during translation.",
-                                                         "targetLanguageDescription":  "Choose the language to translate text into.",
-                                                         "vision":  "Vision",
-                                                         "visionDescription":  "Feed page images to the LLM during translation."
-                                                     }
-                                  },
-                     "providers":  {
-                                       "browserHint":  "Finish signing in on the page your browser opened.",
-                                       "clearCredential":  "Clear {{provider}} credential",
-                                       "configured":  "Configured",
-                                       "connections":  "Connections",
-                                       "connectionsDescription":  "Credentials are stored securely on this device.",
-                                       "contextWindow":  "Context length (tokens)",
-                                       "credential":  "Credential",
-                                       "credentialLabel":  "{{provider}} credential",
-                                       "description":  "Connect translation and language-model providers.",
-                                       "deviceCodeHint":  "Enter this code on the page your browser opened.",
-                                       "notConfigured":  "Not configured",
-                                       "openPage":  "Open sign-in page",
-                                       "openaiCompatible":  "OpenAI-compatible",
-                                       "signIn":  "Sign in",
-                                       "signInLabel":  "Sign in to {{provider}}",
-                                       "signOut":  "Sign out",
-                                       "signOutLabel":  "Sign out of {{provider}}",
-                                       "signingIn":  "Waiting for sign-in…",
-                                       "subscription":  "Subscription",
-                                       "title":  "Providers"
-                                   },
-                     "tabs":  {
-                                  "appearance":  "Appearance",
-                                  "pipeline":  "Pipeline",
-                                  "providers":  "Providers",
-                                  "typesetting":  "Renderer"
-                              },
-                     "title":  "Settings",
-                     "typesetting":  {
-                                         "addFallback":  "Add a fallback",
-                                         "addFamily":  "Add font family",
-                                         "description":  "Set the ordered font stack used when a text layer has no assigned family.",
-                                         "empty":  "No default families. KoharuBatch will use the system fallback.",
-                                         "fallbacks":  "Fallbacks",
-                                         "fallbacksDescription":  "Used in order for characters the primary lacks. Drag to reorder, or onto Primary to swap.",
-                                         "familyLabel":  "Default font family {{index}}",
-                                         "fontFallback":  "Preferred fonts",
-                                         "fontFallbackDescription":  "KoharuBatch uses the first available family that supports the text.",
-                                         "loadError":  "Fonts could not be loaded. Existing families can still be removed.",
-                                         "loadingFonts":  "Loading fonts…",
-                                         "primary":  "Primary",
-                                         "removeFamily":  "Remove {{family}}",
-                                         "title":  "Renderer"
-                                     }
-                 },
-    "start":  {
-                  "create":  "Create",
-                  "deleteAction":  "Delete project",
-                  "deleteDescription":  "This permanently deletes “{{name}}” and all of its pages. This action cannot be undone.",
-                  "deleteLabel":  "Delete {{name}}",
-                  "deleteTitle":  "Delete project?",
-                  "deleting":  "Deleting…",
-                  "description":  "Open a workspace or start a new translation.",
-                  "emptyDescription":  "Create your first project to start importing pages.",
-                  "emptyTitle":  "No projects yet",
-                  "loadingProjects":  "Loading projects…",
-                  "newDescription":  "Create a clean workspace for your pages, translations, and exports.",
-                  "newProject":  "New project",
-                  "noResults":  "No projects match this search.",
-                  "projectKind":  "KoharuBatch project",
-                  "projectList":  "Projects",
-                  "openFolder":  "Open a folder…",
-                  "projectName":  "Project name",
-                  "projectNamePlaceholder":  "My new project",
-                  "search":  "Search projects",
-                  "storageHint":  "Projects are stored locally on this computer.",
-                  "title":  "Projects",
-                  "yourProjects":  "Your projects"
-              },
-    "startup":  {
-                    "description":  "Loading local AI runtimes and preparing the workspace. First launch can take a moment.",
-                    "opening":  "Opening KoharuBatch…",
-                    "status":  "Initializing local runtimes",
-                    "title":  "Preparing KoharuBatch"
-                },
-    "status":  {
-                   "zoom":  "Zoom"
-               },
-    "story":  {
-                  "noText":  "No text on this page.",
-                  "sfx":  "Sound effect",
-                  "title":  "Story",
-                  "translate":  "Translate {{name}}"
-              },
-    "tools":  {
-                  "brushSize":  "Brush size",
-                  "brushSizeInput":  "Brush size",
-                  "brushSizePixels":  "Brush size: {{size}} pixels",
-                  "brushSizeShort":  "{{size}} px",
-                  "color_picker":  "Color picker",
-                  "decreaseBrushSize":  "Decrease brush size",
-                  "direct_select":  "Direct Selection",
-                  "draw":  "Brush",
-                  "eraser":  "Eraser",
-                  "increaseBrushSize":  "Increase brush size",
-                  "lasso":  "Lasso",
-                  "marquee":  "Rectangular Marquee",
-                  "pan":  "Pan",
-                  "remove":  "Remove",
-                  "select":  "Select",
-                  "text":  "Text"
-              },
-    "updater":  {
-                    "available":  {
-                                      "description":  "KoharuBatch \u003cstrong\u003e{{version}}\u003c/strong\u003e is ready to install",
-                                      "title":  "Update available"
-                                  },
-                    "close":  "Close",
-                    "downloading":  {
-                                        "subtitle":  "KoharuBatch {{version}}",
-                                        "title":  "Downloading update…"
-                                    },
-                    "error":  {
-                                  "description":  "Something went wrong while updating",
-                                  "title":  "Update failed"
-                              },
-                    "later":  "Later",
-                    "noNotes":  "No release notes provided.",
-                    "retry":  "Retry",
-                    "update":  "Update"
-                },
-    "window":  {
-                   "close":  "Close",
-                   "maximize":  "Maximize",
-                   "minimize":  "Minimize",
-                   "restore":  "Restore"
-               }
+  "about": {
+    "author": "Author",
+    "description": "Manga translation tools",
+    "unavailable": "Unavailable",
+    "version": "Version"
+  },
+  "activity": {
+    "dismiss": "Dismiss",
+    "downloadFailed": "Download failed.",
+    "downloadingFiles": "Downloading {{count}} files",
+    "downloadingFiles_one": "Downloading {{count}} file",
+    "downloadingFiles_other": "Downloading {{count}} files",
+    "modelDownload": "Model download",
+    "processing": "Processing",
+    "processingFailed": "Processing failed.",
+    "stop": "Stop",
+    "title": "Activity"
+  },
+  "agent": {
+    "cancel": "Cancel",
+    "cancelled": "Cancelled.",
+    "emptyDescription": "Ask the agent to inspect, translate, edit, or process this project. It will view page images only when needed.",
+    "emptyTitle": "What should KoharuBatch do?",
+    "failed": "The agent request failed.",
+    "loading": "Loading agent…",
+    "message": "Message KoharuBatch Agent",
+    "model": "Model",
+    "newChat": "New chat",
+    "placeholder": "Ask KoharuBatch to work on this project...",
+    "reasoning": "Reasoning",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "thought": "Thought for {{seconds}}s",
+    "title": "Agent",
+    "toolFailed": "{{tool}} failed",
+    "used": "Used {{tool}}",
+    "using": "Using {{tool}}",
+    "working": "Working..."
+  },
+  "batch": {
+    "choose": "Choose…",
+    "description": "Translate every page of a folder with koharu-batch, outside any project.",
+    "done": "Batch finished",
+    "folder": "Folder to translate",
+    "model": "Model",
+    "modelAuto": "Auto",
+    "noneSelected": "None selected",
+    "output": "Output project",
+    "progress": "{{done}}/{{total}} steps",
+    "sameFolder": "The input and output folders must be different.",
+    "start": "Start",
+    "starting": "Starting…",
+    "title": "Batch translate a folder"
+  },
+  "canvas": {
+    "empty": "Select a page to begin.",
+    "notice": {
+      "eraser_needs_raster": "Select a raster layer to erase."
+    }
+  },
+  "colorPicker": {
+    "brushColor": "Brush color",
+    "hexCode": "Hex color code",
+    "recent": "Recent colors",
+    "recentColor": "Recent color {{color}}",
+    "sampleCanvas": "Pick color from canvas",
+    "transparent": "Transparent"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "clearSearch": "Clear search",
+    "loading": "Loading…"
+  },
+  "errors": {
+    "actionFailed": "Could not complete that action",
+    "fatalTitle": "KoharuBatch could not continue",
+    "tryAgain": "Try again",
+    "unknown": "The native application returned an unknown error."
+  },
+  "feedback": {
+    "addScreenshot": "Add a screenshot",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "email": "Email",
+    "emailPlaceholder": "your.email@example.org",
+    "emptyMessage": "Please describe what happened.",
+    "failed": "The feedback couldn’t be sent. Please try again.",
+    "forbidden": "This build can’t send feedback.",
+    "hide": "Hide",
+    "highlight": "Highlight",
+    "message": "Description",
+    "messagePlaceholder": "What happened? What did you expect?",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "noClient": "Feedback isn’t available right now.",
+    "removeHighlight": "Remove",
+    "removeScreenshot": "Remove screenshot",
+    "required": "(required)",
+    "sent": "Thank you for your feedback!",
+    "submit": "Send",
+    "timeout": "Sending timed out. Please try again.",
+    "title": "Send Feedback"
+  },
+  "fill": {
+    "deselect": "Deselect",
+    "generate": "Generate",
+    "model": "Fill model",
+    "prompt": "Describe what to add (optional)",
+    "title": "Generative Fill"
+  },
+  "fontPicker": {
+    "addFavorite": "Add {{name}} to favorites",
+    "choose": "Choose a font",
+    "favoritesOnly": "Show favorite fonts",
+    "fontCount": "{{count}} fonts",
+    "fontCount_one": "{{count}} font",
+    "fontCount_other": "{{count}} fonts",
+    "fonts": "Fonts",
+    "noFavorites": "No favorite fonts yet",
+    "noResults": "No fonts match this search",
+    "removeFavorite": "Remove {{name}} from favorites",
+    "search": "Search fonts"
+  },
+  "history": {
+    "close": "Close history",
+    "opened": "Opened",
+    "steps": {
+      "add_text": "Add text",
+      "delete_layers": "Delete layers",
+      "delete_pages": "Delete pages",
+      "detect": "Detection",
+      "edit_frame": "Edit frame",
+      "erase": "Erase",
+      "import": "Import pages",
+      "inpaint": "Inpainting",
+      "move": "Move",
+      "move_layer": "Move layers",
+      "move_page": "Move page",
+      "paint": "Paint",
+      "recognize": "OCR",
+      "resize": "Resize",
+      "rotate": "Rotate",
+      "set_locked": "Lock or unlock",
+      "set_source_text": "Edit source text",
+      "set_style": "Change type",
+      "set_text": "Edit text",
+      "set_visibility": "Show or hide",
+      "translate": "Translation",
+      "update_layer": "Change layer"
+    },
+    "title": "History"
+  },
+  "inference": {
+    "entireProject": "Entire project",
+    "entireProjectDescription": "Process every page in this project.",
+    "model": "Model",
+    "noModel": "No model",
+    "notSet": "Not set",
+    "output": "Output",
+    "pipelineStages": "Pipeline stages",
+    "providerDefault": "Provider default",
+    "run": "Run",
+    "runProcessing": "Run processing",
+    "scope": "Scope",
+    "scopeShort": {
+      "project": "Project",
+      "selected-pages": "Selection"
+    },
+    "selectPagesFirst": "Select pages first",
+    "selectedCount": "{{count}} selected pages",
+    "selectedCount_one": "{{count}} selected page",
+    "selectedCount_other": "{{count}} selected pages",
+    "selectedPages": "Selected pages",
+    "selector": "Processing settings",
+    "shortcuts": "Processing options",
+    "stageCount": "{{count}} stages",
+    "stageCount_one": "{{count}} stage",
+    "stageCount_other": "{{count}} stages",
+    "stages": "Stages",
+    "stop": "Stop",
+    "stopProcessing": "Stop processing"
+  },
+  "inspector": {
+    "alignBottom": "Align bottom",
+    "alignCenter": "Align center",
+    "alignLeft": "Align left",
+    "alignMiddle": "Align middle",
+    "alignRight": "Align right",
+    "alignTop": "Align top",
+    "alignment": "Alignment",
+    "auto": "Auto",
+    "border": "Border",
+    "borderColor": "Border color",
+    "borderWidth": "Border width",
+    "chooseBorderWidth": "Choose border width",
+    "chooseFontSize": "Choose font size",
+    "font": "Font",
+    "fontSize": "Font size",
+    "fontStyles": {
+      "italic": "Italic",
+      "oblique": "Oblique"
+    },
+    "fontWeight": "Font weight",
+    "horizontal": "Horizontal",
+    "opacity": "Opacity",
+    "selectPage": "Select a page to inspect its layers.",
+    "source": "Source text",
+    "text": "Text",
+    "textColor": "Text color",
+    "textDirection": "Text direction",
+    "translation": "Translation",
+    "type": "Type",
+    "vertical": "Vertical"
+  },
+  "layers": {
+    "delete": "Delete {{name}}",
+    "edit": "Edit {{name}}",
+    "empty": "No layers on this page.",
+    "hide": "Hide {{name}}",
+    "kinds": {
+      "balloon": "Balloon",
+      "block": "Text block",
+      "group": "Group",
+      "image": "Image",
+      "mask": "Mask",
+      "panel": "Panel",
+      "raster": "Raster",
+      "shape": "Shape",
+      "text": "Text"
+    },
+    "lock": "Lock {{name}}",
+    "locked": "Locked",
+    "opacityLabel": "{{name}} opacity",
+    "parts": {
+      "cleanup": "Cleanup",
+      "mask": "Mask",
+      "pick": "{{part}} of {{name}}",
+      "toggle": "Shift-click to show or hide"
+    },
+    "show": "Show {{name}}",
+    "sourceLabel": "{{name}} source text",
+    "textLabel": "{{name}} text",
+    "textName": "Text {{index}}",
+    "title": "Layers",
+    "translationLabel": "{{name}} translation",
+    "unlock": "Unlock {{name}}",
+    "unlocked": "Unlocked"
+  },
+  "menu": {
+    "about": "About",
+    "closeProject": "Close Project",
+    "delete": "Delete Selected",
+    "discord": "Discord",
+    "donate": "Donate",
+    "edit": "Edit",
+    "export": "Export Project",
+    "feedback": "Send Feedback",
+    "file": "File",
+    "fit": "Fit Window",
+    "github": "GitHub",
+    "help": "Help",
+    "history": "History",
+    "import": "Import Pages",
+    "redo": "Redo",
+    "selectAllLayers": "Select All Layers",
+    "settings": "Settings",
+    "undo": "Undo",
+    "unloadModels": "Unload Models",
+    "view": "View"
+  },
+  "model": {
+    "baseUrl": "Base URL",
+    "default": "Default",
+    "targetLanguage": "Target language"
+  },
+  "modelPicker": {
+    "empty": "No models are available.",
+    "loading": "Loading models…",
+    "noResults": "No models match this search.",
+    "search": "Search models",
+    "title": "Choose a model",
+    "useModel": "Use {{model}} from {{provider}}"
+  },
+  "navigator": {
+    "actionsFor": "Actions for {{page}}",
+    "delete": "Delete",
+    "deleteDescription": "This deletes “{{page}}” and its layers. You can undo it.",
+    "deleteTitle": "Delete page?",
+    "emptyDescription": "Import image files or a folder to add pages.",
+    "emptyTitle": "No pages yet",
+    "importAction": "Import",
+    "importFiles": "Files…",
+    "importFolder": "Folder…",
+    "importing": "Importing pages…",
+    "importingAction": "Importing…",
+    "noImage": "No image",
+    "pageNumber": "Page {{number}}",
+    "pages": "Pages",
+    "run": {
+      "detect": "Detect",
+      "inpaint": "Inpaint",
+      "recognize": "Recognize",
+      "translate": "Translate"
+    },
+    "selected": "{{count}} selected",
+    "translated": "{{translated}} of {{total}} translated",
+    "importFolderBatch": "Batch translate folder"
+  },
+  "outputPicker": {
+    "noResults": "No languages match this search.",
+    "search": "Search languages",
+    "targetLanguage": "Target language",
+    "title": "Translation output"
+  },
+  "phase": {
+    "detect": "Detection",
+    "inpaint": "Inpainting",
+    "recognize": "OCR",
+    "translate": "Translation"
+  },
+  "phaseDescription": {
+    "detect": "Locate text on the page.",
+    "inpaint": "Rebuild the artwork behind removed text.",
+    "recognize": "Read the text inside each region.",
+    "translate": "Convert source text to the target language."
+  },
+  "psd": {
+    "background": "Background",
+    "cleanup": "Cleanup",
+    "outline": "Outline"
+  },
+  "reasoning": {
+    "high": "High",
+    "low": "Low",
+    "max": "Max",
+    "medium": "Medium",
+    "minimal": "Minimal",
+    "off": "Off",
+    "xhigh": "Extra high"
+  },
+  "settings": {
+    "appearance": {
+      "description": "Match your workspace to the room without changing how artwork is rendered.",
+      "interface": "Interface",
+      "language": "Language",
+      "theme": "Theme",
+      "themeDescription": "System follows the operating-system setting.",
+      "themes": {
+        "dark": "Dark",
+        "light": "Light",
+        "system": "System"
+      },
+      "title": "Appearance"
+    },
+    "backToEditor": "Back to editor",
+    "loading": "Loading preferences…",
+    "pipeline": {
+      "description": "Choose the models and options used to process each page.",
+      "model": "Model",
+      "modelLabel": "{{stage}} model",
+      "options": {
+        "bubbleThreshold": "Bubble threshold",
+        "onomatopoeiaThreshold": "SFX threshold",
+        "panelThreshold": "Panel threshold",
+        "prompt": "Prompt",
+        "promptDescription": "Applies only to generative models.",
+        "textThreshold": "Text threshold"
+      },
+      "stages": {
+        "detect": {
+          "description": "Find text, speech bubbles, and panels.",
+          "title": "Detector"
+        },
+        "inpaint": {
+          "description": "Rebuild artwork beneath removed text.",
+          "title": "Inpainter"
+        },
+        "recognize": {
+          "description": "Read the source text inside detected regions.",
+          "title": "Recognizer"
+        },
+        "translate": {
+          "description": "Translate the source text into the target language.",
+          "title": "Translator"
+        }
+      },
+      "thresholds": "Thresholds",
+      "title": "Pipeline",
+      "translator": {
+        "instructions": "Additional instructions",
+        "instructionsDescription": "Optional, in any language and form, such as a name's spelling or the tone. KoharuBatch adds them, as written, after its own system prompt.",
+        "reasoning": "Reasoning",
+        "reasoningDescription": "Use model reasoning during translation.",
+        "targetLanguageDescription": "Choose the language to translate text into.",
+        "vision": "Vision",
+        "visionDescription": "Feed page images to the LLM during translation."
+      }
+    },
+    "providers": {
+      "browserHint": "Finish signing in on the page your browser opened.",
+      "clearCredential": "Clear {{provider}} credential",
+      "configured": "Configured",
+      "connections": "Connections",
+      "connectionsDescription": "Credentials are stored securely on this device.",
+      "contextWindow": "Context length (tokens)",
+      "credential": "Credential",
+      "credentialLabel": "{{provider}} credential",
+      "description": "Connect translation and language-model providers.",
+      "deviceCodeHint": "Enter this code on the page your browser opened.",
+      "notConfigured": "Not configured",
+      "openPage": "Open sign-in page",
+      "openaiCompatible": "OpenAI-compatible",
+      "signIn": "Sign in",
+      "signInLabel": "Sign in to {{provider}}",
+      "signOut": "Sign out",
+      "signOutLabel": "Sign out of {{provider}}",
+      "signingIn": "Waiting for sign-in…",
+      "subscription": "Subscription",
+      "title": "Providers"
+    },
+    "tabs": {
+      "appearance": "Appearance",
+      "pipeline": "Pipeline",
+      "providers": "Providers",
+      "typesetting": "Renderer"
+    },
+    "title": "Settings",
+    "typesetting": {
+      "addFallback": "Add a fallback",
+      "addFamily": "Add font family",
+      "description": "Set the ordered font stack used when a text layer has no assigned family.",
+      "empty": "No default families. KoharuBatch will use the system fallback.",
+      "fallbacks": "Fallbacks",
+      "fallbacksDescription": "Used in order for characters the primary lacks. Drag to reorder, or onto Primary to swap.",
+      "familyLabel": "Default font family {{index}}",
+      "fontFallback": "Preferred fonts",
+      "fontFallbackDescription": "KoharuBatch uses the first available family that supports the text.",
+      "loadError": "Fonts could not be loaded. Existing families can still be removed.",
+      "loadingFonts": "Loading fonts…",
+      "primary": "Primary",
+      "removeFamily": "Remove {{family}}",
+      "title": "Renderer"
+    }
+  },
+  "start": {
+    "create": "Create",
+    "deleteAction": "Delete project",
+    "deleteDescription": "This permanently deletes “{{name}}” and all of its pages. This action cannot be undone.",
+    "deleteLabel": "Delete {{name}}",
+    "deleteTitle": "Delete project?",
+    "deleting": "Deleting…",
+    "description": "Open a workspace or start a new translation.",
+    "emptyDescription": "Create your first project to start importing pages.",
+    "emptyTitle": "No projects yet",
+    "loadingProjects": "Loading projects…",
+    "newDescription": "Create a clean workspace for your pages, translations, and exports.",
+    "newProject": "New project",
+    "noResults": "No projects match this search.",
+    "projectKind": "KoharuBatch project",
+    "projectList": "Projects",
+    "openFolder": "Open a folder…",
+    "projectName": "Project name",
+    "projectNamePlaceholder": "My new project",
+    "search": "Search projects",
+    "storageHint": "Projects are stored locally on this computer.",
+    "title": "Projects",
+    "yourProjects": "Your projects"
+  },
+  "startup": {
+    "description": "Loading local AI runtimes and preparing the workspace. First launch can take a moment.",
+    "opening": "Opening KoharuBatch…",
+    "status": "Initializing local runtimes",
+    "title": "Preparing KoharuBatch"
+  },
+  "status": {
+    "zoom": "Zoom"
+  },
+  "story": {
+    "noText": "No text on this page.",
+    "sfx": "Sound effect",
+    "title": "Story",
+    "translate": "Translate {{name}}"
+  },
+  "tools": {
+    "brushSize": "Brush size",
+    "brushSizeInput": "Brush size",
+    "brushSizePixels": "Brush size: {{size}} pixels",
+    "brushSizeShort": "{{size}} px",
+    "color_picker": "Color picker",
+    "decreaseBrushSize": "Decrease brush size",
+    "direct_select": "Direct Selection",
+    "draw": "Brush",
+    "eraser": "Eraser",
+    "increaseBrushSize": "Increase brush size",
+    "lasso": "Lasso",
+    "marquee": "Rectangular Marquee",
+    "pan": "Pan",
+    "remove": "Remove",
+    "select": "Select",
+    "text": "Text"
+  },
+  "updater": {
+    "available": {
+      "description": "KoharuBatch <strong>{{version}}</strong> is ready to install",
+      "title": "Update available"
+    },
+    "close": "Close",
+    "downloading": {
+      "subtitle": "KoharuBatch {{version}}",
+      "title": "Downloading update…"
+    },
+    "error": {
+      "description": "Something went wrong while updating",
+      "title": "Update failed"
+    },
+    "later": "Later",
+    "noNotes": "No release notes provided.",
+    "retry": "Retry",
+    "update": "Update"
+  },
+  "window": {
+    "close": "Close",
+    "maximize": "Maximize",
+    "minimize": "Minimize",
+    "restore": "Restore"
+  }
 }
