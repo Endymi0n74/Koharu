@@ -73,12 +73,12 @@ fn batch_binary() -> Result<String> {
             }
         }
     }
-    return Err(anyhow::anyhow!(
+    Err(anyhow::anyhow!(
         "{executable} was not found; build it with \
          `cargo build --release -p koharu-batch` \
          or point KOHARU_BATCH_BIN at it"
     )
-    .into());
+    .into())
 }
 
 /// Translates a folder with `koharu-batch` as a child process. Blocks until
@@ -139,10 +139,10 @@ pub(crate) async fn start_batch(
         }
         command.arg("--overwrite");
     }
-    if let Some(translator) = translator.as_deref() {
-        if !translator.is_empty() {
-            command.arg("--translator").arg(translator);
-        }
+    if let Some(translator) = translator.as_deref()
+        && !translator.is_empty()
+    {
+        command.arg("--translator").arg(translator);
     }
     command
         .stdin(Stdio::null())

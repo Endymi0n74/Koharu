@@ -33,6 +33,15 @@ jobs:
       - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt -- --check
+      # `tauri_build` in `crates/koharu/build.rs` copies `bundle.externalBin` on
+      # every cargo invocation, `check` included, and fails when the file is
+      # missing. Nothing links or runs the sidecar here, so an empty file is
+      # enough; the directory is ignored and the real one comes from
+      # `bun run sidecar` in the Build workflow.
+      - name: Provide the sidecar tauri-build expects
+        run: |
+          mkdir -p crates/koharu/binaries
+          touch "crates/koharu/binaries/koharu-batch-$(rustc -vV | sed -n 's/^host: //p')"
       - run: cargo check
       - run: cargo clippy -- -D warnings
 

@@ -84,7 +84,6 @@ impl Http {
     }
 
     /// `parts` as the sign-in authorizes them.
-    #[expect(clippy::result_large_err, reason = "rig's HTTP error is rig's")]
     async fn authorized(&self, mut parts: Parts) -> http_client::Result<Parts> {
         if let Some(sign_in) = &self.sign_in {
             sign_in

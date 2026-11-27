@@ -15,7 +15,7 @@ pub struct Arguments {
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Translate a chapter: a folder of page images, one image, or a `.cbz`.
-    Run(Run),
+    Run(Box<Run>),
     /// Write what a project holds: Markdown, and JSON when asked.
     Report(Report),
     /// List what the store holds for nothing, and delete it with `--delete`.

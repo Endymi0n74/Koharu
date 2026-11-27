@@ -24,15 +24,15 @@ pub async fn prune(arguments: &Prune) -> Result<()> {
     }
     let keep = referenced_folders();
     let reusable = reusable_repositories();
-    let mut candidates = plan(&root, &keep)?;
-    candidates.extend(plan(&root, &legacy(&root, &keep))?);
+    let mut candidates = plan(root, &keep)?;
+    candidates.extend(plan(root, &legacy(root, &keep))?);
     candidates.sort();
     if reusable.is_empty() && candidates.is_empty() {
         println!("the store keeps nothing it could drop");
         return Ok(());
     }
     if !reusable.is_empty() {
-        print_reusable(&root, &reusable);
+        print_reusable(root, &reusable);
     }
     if candidates.is_empty() {
         return Ok(());
@@ -41,7 +41,7 @@ pub async fn prune(arguments: &Prune) -> Result<()> {
     for candidate in &candidates {
         let bytes = size(candidate)?;
         total += bytes;
-        println!("{}\t{}", mibibytes(bytes), shown(&root, candidate));
+        println!("{}\t{}", mibibytes(bytes), shown(root, candidate));
     }
     println!(
         "\n{} folder(s), {} reclaimable",
@@ -55,8 +55,8 @@ pub async fn prune(arguments: &Prune) -> Result<()> {
     for candidate in &candidates {
         koharu_runtime::remove_from_store(candidate)
             .await
-            .with_context(|| format!("couldn't remove {}", shown(&root, candidate)))?;
-        println!("removed {}", shown(&root, candidate));
+            .with_context(|| format!("couldn't remove {}", shown(root, candidate)))?;
+        println!("removed {}", shown(root, candidate));
     }
     Ok(())
 }
@@ -215,7 +215,7 @@ fn legacy(root: &Path, keep: &[PathBuf]) -> Vec<PathBuf> {
         let Some(id) = components.next() else {
             continue;
         };
-        let repo = legacy.join(&kind).join(&id);
+        let repo = legacy.join(kind).join(id);
         if !repo.is_dir() {
             continue;
         }
@@ -317,7 +317,7 @@ fn print_reusable(root: &Path, reusable: &[PathBuf]) {
     for folder in reusable {
         let bytes = size(folder).unwrap_or(0);
         total += bytes;
-        println!("{}\t{}", mibibytes(bytes), shown(&root, folder));
+        println!("{}\t{}", mibibytes(bytes), shown(root, folder));
     }
     println!(
         "\n{} reusable legacy download(s), {} already present on a re-download",
