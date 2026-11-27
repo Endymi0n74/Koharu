@@ -65,15 +65,13 @@ pub fn close(app: State<'_, Arc<App>>) {
 /// the projects folder.
 #[tauri::command]
 #[specta::specta]
-pub async fn open_project_path(
-    app: State<'_, Arc<App>>,
-    path: String,
-) -> Result<()> {
+pub async fn open_project_path(app: State<'_, Arc<App>>, path: String) -> Result<()> {
     let app = Arc::clone(&app);
     Ok(tokio::task::spawn_blocking(move || {
         let path = Path::new(&path);
         ensure!(
-            path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("khr")),
+            path.extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("khr")),
             "{path:?} is not a .khr project file"
         );
         let name = path
@@ -81,7 +79,8 @@ pub async fn open_project_path(
             .and_then(|stem| stem.to_str())
             .unwrap_or("imported")
             .to_owned();
-        let session = Session::open(path).with_context(|| format!("couldn't open {}", path.display()))?;
+        let session =
+            Session::open(path).with_context(|| format!("couldn't open {}", path.display()))?;
         app.open(name, session)
     })
     .await??)

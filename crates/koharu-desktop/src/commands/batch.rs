@@ -78,7 +78,7 @@ fn batch_binary() -> Result<String> {
          `cargo build --release -p koharu-batch` \
          or point KOHARU_BATCH_BIN at it"
     )
-    .into())
+    .into());
 }
 
 /// Translates a folder with `koharu-batch` as a child process. Blocks until

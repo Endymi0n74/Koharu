@@ -29,7 +29,8 @@ pub fn root() -> Option<&'static Path> {
         if !cfg!(all(windows, not(debug_assertions))) {
             return None;
         }
-        let executable = std::env::current_exe().expect("KoharuBatch knows where its executable is");
+        let executable =
+            std::env::current_exe().expect("KoharuBatch knows where its executable is");
         let folder = executable.parent().expect("an executable is in a folder");
         match tempfile::tempfile_in(folder) {
             Err(error) if error.kind() == ErrorKind::PermissionDenied => None,
