@@ -84,6 +84,10 @@ impl Http {
     }
 
     /// `parts` as the sign-in authorizes them.
+    // `allow`, not `expect`: whether rig's HTTP error crosses clippy's 128-byte
+    // threshold depends on the target's layout, so the lint fires on the Linux
+    // runner and stays quiet on Windows.
+    #[allow(clippy::result_large_err, reason = "rig's HTTP error is rig's")]
     async fn authorized(&self, mut parts: Parts) -> http_client::Result<Parts> {
         if let Some(sign_in) = &self.sign_in {
             sign_in
