@@ -77,22 +77,26 @@ describe('StartView', () => {
     expect(await screen.findByText('Opened Blue Archive')).toBeInTheDocument()
   })
 
-    it('tries the folder dialog until it is dismissed', async () => {
-    const folder = vi.spyOn(commands, 'openFolder').mockResolvedValueOnce(null)
-    desktop(() => null)
-    renderProjectFlow()
-    await fireEvent.click(screen.getByRole('button', { name: 'Open a folder…' }))
-    await waitFor(() => expect(folder).toHaveBeenCalledOnce())
-  })
+  it('tries the folder dialog until it is dismissed', async () => {
+    const folder = vi.spyOn(commands, 'openFolder').mockResolvedValueOnce(null)
+    desktop(() => null)
+    renderProjectFlow()
+    const openButton = screen.getByRole('button', { name: 'Open a folder…' })
+    await waitFor(() => expect(openButton).toBeEnabled())
+    fireEvent.click(openButton)
+    await waitFor(() => expect(folder).toHaveBeenCalledOnce())
+  })
 
-    it('keeps its own state when the folder does not become a project', async () => {
-    const folder = vi.spyOn(commands, 'openFolder').mockRejectedValueOnce(new Error('no pages'))
-    desktop(() => null)
-    renderProjectFlow()
-    await fireEvent.click(screen.getByRole('button', { name: 'Open a folder…' }))
-    await waitFor(() => expect(folder).toHaveBeenCalledOnce())
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })
+  it('keeps its own state when the folder does not become a project', async () => {
+    const folder = vi.spyOn(commands, 'openFolder').mockRejectedValueOnce(new Error('no pages'))
+    desktop(() => null)
+    renderProjectFlow()
+    const openButton = screen.getByRole('button', { name: 'Open a folder…' })
+    await waitFor(() => expect(openButton).toBeEnabled())
+    fireEvent.click(openButton)
+    await waitFor(() => expect(folder).toHaveBeenCalledOnce())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 
   it('confirms before deleting a managed project', async () => {
     vi.spyOn(commands, 'listProjects')
