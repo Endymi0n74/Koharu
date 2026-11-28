@@ -1,3 +1,34 @@
+## [0.93.1](https://github.com/Endymi0n74/KoharuBatch/compare/v0.93.0..v0.93.1) - 2026-11-28
+
+### 🐛 Bug Fixes
+
+- *(llm)* Garder un allow clippy sur l'erreur HTTP de rig - ([38b9b2e](https://github.com/Endymi0n74/KoharuBatch/commit/38b9b2e8b6b46cf06e100e57ea0a708823b2eae2))
+
+### 📚 Documentation
+
+- Page fork fr/ja/zh et entree dans la navigation - ([aaf962e](https://github.com/Endymi0n74/KoharuBatch/commit/aaf962ebb76322a72f51d0d96ecc6f60aa1cbf56))
+
+### 🎨 Styling
+
+- *(locales)* Restaurer le format du projet apres la reecriture PowerShell - ([a268d64](https://github.com/Endymi0n74/KoharuBatch/commit/a268d646d1877630c4dff87557c43ec923be7591))
+- *(test)* Normaliser les fins de ligne des tests UI - ([61e7948](https://github.com/Endymi0n74/KoharuBatch/commit/61e7948125d67224a8aa432c0a9c18222ccb5626))
+- Formater le workspace pour que cargo fmt --check passe - ([8de70c8](https://github.com/Endymi0n74/KoharuBatch/commit/8de70c8748fa9bbfa27565c880dd4a7faf50d116))
+
+### 🧪 Testing
+
+- *(ui)* Attendre le bouton avant de cliquer et suivre le dialogue About - ([99d4f3f](https://github.com/Endymi0n74/KoharuBatch/commit/99d4f3ff011919427cf7717d26e3cdfd5dd90990))
+
+### ⚙️ Miscellaneous Tasks
+
+- *(ci)* Supprimer le workflow Sponsors qui échouait - ([f70136f](https://github.com/Endymi0n74/KoharuBatch/commit/f70136f3d6b2cb7822da1cee24bca023545380cd))
+- *(git)* Normaliser cliff.toml en LF - ([39517a8](https://github.com/Endymi0n74/KoharuBatch/commit/39517a85fc9b4dfb964d595d53051530a8223f4f))
+- *(git)* Stocker les fichiers texte avec des fins de ligne LF - ([b9bda13](https://github.com/Endymi0n74/KoharuBatch/commit/b9bda134599e667e1885278f4561ea740c143f59))
+- *(lint)* Fournir le sidecar attendu par tauri-build et corriger clippy - ([b2d45aa](https://github.com/Endymi0n74/KoharuBatch/commit/b2d45aa6515d38996789f3060e3b3f80dddafdb2))
+- *(test)* Nommer le sidecar attendu par tauri-build sous Windows - ([aa3653d](https://github.com/Endymi0n74/KoharuBatch/commit/aa3653d3bdcb8deba5cb7ed8a26910fb57e99713))
+- *(test)* Fournir le sidecar tauri-build attendu par les tests Rust - ([93d6b6d](https://github.com/Endymi0n74/KoharuBatch/commit/93d6b6dd3289703f2c0da66f19f7896681730936))
+- Ignorer les artefacts Tauri produits à la racine - ([8dae3da](https://github.com/Endymi0n74/KoharuBatch/commit/8dae3da62e74cd74139f0fc5a4680d2ad762d9c7))
+- Supprimer les restes de SponsorKit - ([59fd60d](https://github.com/Endymi0n74/KoharuBatch/commit/59fd60dec3d936d9799ff7e4df70dd56f9dfe170))
+
 ## [0.92.0](https://github.com/koharu-rs/koharu/compare/0.91.1..0.92.0) - 2026-11-22
 
 ### ⛰️  Features
