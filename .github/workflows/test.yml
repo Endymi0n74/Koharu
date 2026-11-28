@@ -37,7 +37,10 @@ jobs:
       # every cargo invocation, tests included, and fails when the file is
       # missing. Nothing links or runs the sidecar here, so an empty file is
       # enough; the directory is ignored and the real one comes from
-      # `bun run sidecar` in the Build workflow.
+      # `bun run sidecar` in the Build workflow. The expected name is
+      # `koharu-batch-<host triple>`, and on Windows the file must keep its
+      # `.exe` suffix (`koharu-batch-x86_64-pc-windows-msvc.exe`); without it
+      # the lookup misses and reports the resource path as missing.
       - name: Provide the sidecar tauri-build expects
         run: |
           mkdir -p crates/koharu/binaries
