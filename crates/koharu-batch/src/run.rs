@@ -398,7 +398,7 @@ mod tests {
         let Command::Run(run) = parsed.command else {
             panic!("the arguments name a run");
         };
-        run
+        *run
     }
 
     #[test]
